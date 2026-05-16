@@ -681,6 +681,7 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
     'R-189 术语统一与允许例外',
     'R-190 中文化自动验证门禁',
     'docs/quality/developer-copy-language-script-legacy-baseline.json',
+    '具体文案',
     'src/locales/en-US.js'
   ]
   const missingRuleMarkers = ruleMarkers.filter(marker => !rulesContent.includes(marker))
@@ -697,7 +698,9 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
     'R-190 中文化自动门禁验证',
     'node scripts/check-developer-copy-language.mjs --changed',
     'node scripts/check-developer-copy-language.mjs --all',
-    'docs/quality/developer-copy-language-script-legacy-baseline.json'
+    'docs/quality/developer-copy-language-script-legacy-baseline.json',
+    'src/main/resources',
+    '具体文案'
   ]
   const missingValidationMarkers = validationMarkers.filter(marker => !validationContent.includes(marker))
   if (missingValidationMarkers.length > 0) {
@@ -732,8 +735,11 @@ function ensureDeveloperCopyLanguageGovernance(errors, checks) {
     'LOGGER',
     'setMessage',
     'checkJavaAssertionMessage',
+    'scanResource',
+    'resource-human-string',
     'script-human-string',
     'legacyScriptOutputBaselineRelativePath',
+    'allowedIssueTextCountsByFile',
     'allowLooseIdentifierPhrase',
     'src/locales/en-US.js'
   ]

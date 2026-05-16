@@ -481,8 +481,9 @@
   1. Java 注释、日志、异常、断言失败消息、校验注解 `message` 和 API `message` / `msg` 文案默认中文。
   2. SQL `COMMENT` 与 schema helper 内嵌 DDL `COMMENT` 默认中文。
   3. 仓库自研脚本的注释、help、error、usage、print / echo 说明文本默认中文。
-  4. 仓库自研脚本既有纯英文 help / error / print / echo 存量由 `docs/quality/developer-copy-language-script-legacy-baseline.json` 登记，新增或超过预算必须失败。
-  5. 前端 `src/locales/en-US.js` 作为英文 locale 事实来源，不被本规则误判。
+  4. Java `src/main/resources` 下的 XML、YAML、properties、SQL 中，面向人类的注释、message / msg / description / help / error / usage 文案和内嵌 SQL `COMMENT` 默认中文。
+  5. 仓库自研脚本既有纯英文 help / error / print / echo 存量由 `docs/quality/developer-copy-language-script-legacy-baseline.json` 按每文件计数和具体文案登记，新增、替换为新的纯英文说明或超过预算必须失败。
+  6. 前端 `src/locales/en-US.js` 作为英文 locale 事实来源，不被本规则误判。
 - 通过标准：`node scripts/check-developer-copy-language.mjs --changed` 对相关变更通过；规则或检查器自身变更时 `node scripts/check-developer-copy-language.mjs --all` 通过。
 - 失败处置：将纯英文人类说明句改为中文，或按 `R-189` 写入 allowlist / 相邻中文解释后重新验证。
 - 关联规则：`R-187`, `R-190`
@@ -515,8 +516,8 @@
 - 检查清单：
   1. `scripts/check-developer-copy-language.mjs` 存在并支持 `--changed` 与 `--all`。
   2. `foreman validate` 在普通相关变更中自动追加 `node scripts/check-developer-copy-language.mjs --changed`。
-  3. `foreman validate` 在规则、文档、检查器自身、foreman 接线或 `docs/quality/developer-copy-language-script-legacy-baseline.json` 变更中自动追加 `node scripts/check-developer-copy-language.mjs --all`。
-  4. `scripts/lint-repository-knowledge.js` 检查 `R-187` 至 `R-190`、验证规则索引、检查脚本、foreman 接线、脚本英文存量基线和任务矩阵叠加。
+  3. `foreman validate` 在规则、文档、检查器自身、foreman 接线、资源 / mapper 扫描范围或 `docs/quality/developer-copy-language-script-legacy-baseline.json` 变更中自动追加 `node scripts/check-developer-copy-language.mjs --all`。
+  4. `scripts/lint-repository-knowledge.js` 检查 `R-187` 至 `R-190`、验证规则索引、检查脚本、foreman 接线、资源 / mapper 扫描、脚本英文存量精确基线和任务矩阵叠加。
   5. closeout 前的验证日志保留中文化检查证据，失败时阻断归档。
 - 通过标准：`python3 scripts/foreman.py validate <TASK_ID>` 自动执行适用门禁；`node scripts/lint-repository-knowledge.js` 通过。
 - 失败处置：补齐脚本、接线、文档索引或矩阵映射后重新验证。

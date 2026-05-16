@@ -1,5 +1,5 @@
 {
-  "description": "R-187 至 R-190 中文化门禁的脚本 help/error/print/echo 英文历史存量预算。该文件只允许存量计数下降；新增或超出计数必须中文化。",
+  "description": "R-187 至 R-190 中文化门禁的脚本 help/error/print/echo 英文历史存量基线。该文件按具体文案锁定历史存量；新增、变更或超出计数必须中文化。",
   "created_at": "2026-05-16",
   "scope": "scripts/**/*.py, scripts/**/*.sh, scripts/**/*.mjs, scripts/**/*.js 中已存在的脚本可读字符串英文存量",
   "maxIssuesByFile": {
@@ -48,9 +48,387 @@
     "scripts/start-backend-services.sh": 6,
     "scripts/task_audit.py": 11,
     "scripts/task_materialize.sh": 11,
-    "scripts/validate-form-component-governance.mjs": 1,
     "scripts/validate_codex_runtime.py": 1,
-    "scripts/verify-db-scripts.sh": 2,
-    "scripts/verify_java_quality_reports.py": 1
+    "scripts/validate-form-component-governance.mjs": 1,
+    "scripts/verify_java_quality_reports.py": 1,
+    "scripts/verify-db-scripts.sh": 2
+  },
+  "allowedIssueTextCountsByFile": {
+    "scripts/chat_native_router.py": {
+      "脚本可读字符串: File containing a user prompt.": 1,
+      "脚本可读字符串: Inline user prompt text.": 1,
+      "脚本可读字符串: Route governed chat-native templates into governed intake runtime automation.": 1,
+      "脚本可读字符串: Stable run id to use when creating a preview.": 1,
+      "脚本可读字符串: Use governed_intake confirm-run --dry-run for confirmation prompts.": 1
+    },
+    "scripts/check-acceleration-workbench-browser-smoke.mjs": {
+      "脚本可读字符串: Frontend dev server did not become ready at ${baseUrl}": 1
+    },
+    "scripts/check-batch-import-contract.mjs": {
+      "脚本可读字符串: - forbidden report statistics overview token: ${token}": 1,
+      "脚本可读字符串: - forbidden whole report SQL detail overview token: ${token}": 1
+    },
+    "scripts/check-dev-frontend.mjs": {
+      "脚本可读字符串: Expected locator to include \"${expectedText}\"": 1,
+      "脚本可读字符串: Frontend dev server did not become ready at ${baseUrl}": 1
+    },
+    "scripts/check-frontend-backend-separation.js": {
+      "脚本可读字符串: - category=structure severity=info path=. message=No structural or boundary violations detected suggestion=Keep independent build and deployment boundaries intact": 1
+    },
+    "scripts/check-frontend-page-governance.mjs": {
+      "脚本可读字符串: Frontend page governance check passed: no changed frontend page, component, or locale files.": 1
+    },
+    "scripts/check-history-page-contract.mjs": {
+      "脚本可读字符串: - forbidden default filter token in view: ${token}": 1
+    },
+    "scripts/check-portable-frontend.mjs": {
+      "脚本可读字符串: Expected locator to include \"${expectedText}\"": 1,
+      "脚本可读字符串: Portable frontend did not become healthy at ${url}": 1,
+      "脚本可读字符串: Portable index.html does not use relative asset paths.": 1
+    },
+    "scripts/check-production-rewrite-closed-loop-browser-smoke.mjs": {
+      "脚本可读字符串: Frontend dev server did not become ready at ${baseUrl}": 1
+    },
+    "scripts/check-recommendation-page-contract.mjs": {
+      "脚本可读字符串: Recommendation page must not reintroduce stacked card/list token ${JSON.stringify(token)}": 1
+    },
+    "scripts/codex_template_adapter.py": {
+      "脚本可读字符串: Adapt Codex natural-language templates to governed_intake commands.": 1,
+      "脚本可读字符串: Execute the generated governed_intake command after writing the summary.": 1,
+      "脚本可读字符串: File containing a Codex natural-language template.": 1,
+      "脚本可读字符串: Inline Codex natural-language template text.": 1,
+      "脚本可读字符串: Missing content for {requirement_key}.": 1,
+      "脚本可读字符串: Stable adapter run id for machine-readable output.": 1
+    },
+    "scripts/foreman.py": {
+      "脚本可读字符串: closeout did not receive any valid explicit file paths.": 1,
+      "脚本可读字符串: closeout is missing required marker '{marker}' and no CLI value was provided.": 1,
+      "脚本可读字符串: Closeout repair completed for {args.task} at {commit_sha}": 1,
+      "脚本可读字符串: closeout requires a commit subject either in the task block or via --commit-subject.": 1,
+      "脚本可读字符串: closeout requires at least one explicit --stage-path.": 1,
+      "脚本可读字符串: Compiled governance policy files into {relative_path(POLICY_DIR)}": 1,
+      "脚本可读字符串: Delivery closeout completed for {args.target}": 1,
+      "脚本可读字符串: delivery-closeout requires --tag unless --dry-run is used.": 1,
+      "脚本可读字符串: delivery-closeout requires a delivery-class task; inferred class for {args.target} is {task_class}.": 1,
+      "脚本可读字符串: Governance policy files are in sync.": 1,
+      "脚本可读字符串: Instantiated {args.task_id} into tasks.md": 1,
+      "脚本可读字符串: Stage path {candidate} is a directory; closeout requires explicit file paths.": 1,
+      "脚本可读字符串: Stage path {candidate} is outside the repository root.": 1,
+      "脚本可读字符串: Task {args.task_id} already exists in the ledgers.": 1,
+      "脚本可读字符串: Task {task_id} was not found in tasks.md.": 1,
+      "脚本可读字符串: Tasks outside the plan matrices require both --title and --scope.": 1,
+      "脚本可读字符串: tasks-done.md is missing the '## Done' section.": 1,
+      "脚本可读字符串: tasks.md is missing the '## In Progress' section.": 1
+    },
+    "scripts/frontend-runtime-smoke.mjs": {
+      "脚本可读字符串: Expected ${testId} to include \"${expectedText}\", got \"${latestText}\"": 1,
+      "脚本可读字符串: Expected URL param \"${key}\" to equal \"${expectedValue}\", got \"${actualValue}\" from \"${currentUrl}\"": 1
+    },
+    "scripts/governed_full_cycle.sh": {
+      "脚本可读字符串: governed full-cycle stopped after materialize for run ${RUN_ID}": 1,
+      "脚本可读字符串: One of --requirements-file or --prompt is required.": 1,
+      "脚本可读字符串: Use either --requirements-file or --prompt, not both.": 1
+    },
+    "scripts/governed_healthcheck.py": {
+      "脚本可读字符串: Governed healthcheck found cleanup preview items.": 1,
+      "脚本可读字符串: Governed healthcheck found issues:": 1,
+      "脚本可读字符串: Optional candidate task pack to validate.": 1,
+      "脚本可读字符串: Preview stale runtime cleanup without writing state.": 1,
+      "脚本可读字符串: Print the machine-readable summary path only.": 1,
+      "脚本可读字符串: Release stale runtime reservations that are safe to abandon.": 1,
+      "脚本可读字符串: Run governed full-cycle health checks.": 1,
+      "脚本可读字符串: Run the health-check suite.": 1,
+      "脚本可读字符串: Stable run id for summary output.": 1,
+      "脚本可读字符串: When running inside closeout post-checks, exempt the specified task from self-referential closeout-actual-evidence blocking.": 1
+    },
+    "scripts/governed_intake.sh": {
+      "脚本可读字符串: --confirm-run must be used on its own, except for optional --constraints and --dry-run.": 1,
+      "脚本可读字符串: --task cannot be combined with --prompt/--requirements-file.": 1,
+      "脚本可读字符串: Confirm with: bash scripts/governed_intake.sh --confirm-run ${RUN_ID}": 2,
+      "脚本可读字符串: Execution mode remained preview-only for ${CONFIRM_RUN}; clarify the boundary before retrying.": 1,
+      "脚本可读字符串: governed intake confirm-run completed for ${CONFIRM_RUN}": 1,
+      "脚本可读字符串: Invalid intake summary for ${CONFIRM_RUN}": 1,
+      "脚本可读字符串: Missing intake summary for {run_id}": 1,
+      "脚本可读字符串: Prepared existing-task intake for ${TASK_ID}": 1,
+      "脚本可读字符串: Prepared no-task intake for run ${RUN_ID}": 1,
+      "脚本可读字符串: Unsupported execution mode in intake summary: ${EXECUTION_MODE}": 1,
+      "脚本可读字符串: Use either --prompt or --requirements-file, not both.": 1
+    },
+    "scripts/governed_runtime_dashboard.py": {
+      "脚本可读字符串: {task_id} already exists in repo truth; resume is not valid.": 1,
+      "脚本可读字符串: {task_id} cannot be abandoned while materializing.": 1,
+      "脚本可读字符串: {task_id} cannot be archived while materializing.": 1,
+      "脚本可读字符串: {task_id} cannot be paused from status {current_status}.": 1,
+      "脚本可读字符串: {task_id} cannot be resumed from status {current_status}; reshape a new candidate instead.": 1,
+      "脚本可读字符串: {task_id} is already materialized; candidate lifecycle actions no longer apply.": 1,
+      "脚本可读字符串: Abandon a candidate reservation by task id.": 1,
+      "脚本可读字符串: Archive a candidate reservation by task id.": 1,
+      "脚本可读字符串: Archive unreferenced runtime evidence directories under .codex/state/archive/.": 1,
+      "脚本可读字符串: Audit reason for candidate lifecycle mutations.": 1,
+      "脚本可读字符串: Pause a candidate reservation by task id.": 1,
+      "脚本可读字符串: Release stale reservations that do not map to repo truth.": 1,
+      "脚本可读字符串: Reservation not found for {task_id}": 1,
+      "脚本可读字符串: Resume a paused candidate reservation by task id.": 1,
+      "脚本可读字符串: Show governed runtime dashboard and optional cleanup actions.": 1,
+      "脚本可读字符串: Unsupported candidate action: {action}": 1
+    },
+    "scripts/health-check.sh": {
+      "脚本可读字符串: Health check failed: ${FAILURES} mandatory probe(s) are not healthy.": 1
+    },
+    "scripts/local-start-cn.sh": {
+      "脚本可读字符串: Docker Compose is not installed. Install Docker Desktop or docker-compose first.": 1,
+      "脚本可读字符串: Failed to pull ${image} after 3 attempts.": 1,
+      "脚本可读字符串: MySQL container is reachable on 3306 but did not become ready within 60s.": 1,
+      "脚本可读字符串: Please manually download the image on a networked machine, then use docker load -i <image-tar>.": 1,
+      "脚本可读字符串: Port ${port} is already in use. Release it before starting the local environment.": 1,
+      "脚本可读字符串: Timed out waiting for ${host}:${port} after ${timeout_seconds}s.": 1,
+      "脚本可读字符串: Waiting for MySQL port 3306...": 1
+    },
+    "scripts/local-start.sh": {
+      "脚本可读字符串: Docker Compose is not installed. Install Docker Desktop or docker-compose first.": 1,
+      "脚本可读字符串: MySQL container is reachable on 3306 but did not become ready within 60s.": 1,
+      "脚本可读字符串: Port ${port} is already in use. Release it before starting the local environment.": 1,
+      "脚本可读字符串: Starting local infrastructure with Docker Compose...": 1,
+      "脚本可读字符串: Timed out waiting for ${host}:${port} after ${timeout_seconds}s.": 1,
+      "脚本可读字符串: Verified kafka_message_queue table exists for R-144 DATABASE mode.": 1,
+      "脚本可读字符串: Waiting for MySQL port 3306...": 1,
+      "脚本可读字符串: Warning: kafka_message_queue table does not exist. Check sql/init-schema.sql and R-144 setup.": 1
+    },
+    "scripts/local-stop.sh": {
+      "脚本可读字符串: Docker Compose is not installed.": 1
+    },
+    "scripts/manual-benchmark-governance-smoke.sh": {
+      "脚本可读字符串: Benchmark task ${task_id} did not reach ${expected_status}": 1,
+      "脚本可读字符串: Expected at least one pending compensation message for ${COMPENSATION_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected FAILED benchmark status audit row for ${COMPENSATION_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected no benchmark_task_report row for failed task ${FAILURE_TASK_ID}": 1,
+      "脚本可读字符串: Expected persisted benchmark_task_report row for ${SUCCESS_REPORT_ID}": 1,
+      "脚本可读字符串: Expected persisted FAILED benchmark_task row for ${FAILURE_TASK_ID}": 1,
+      "脚本可读字符串: Expected persisted SUCCEEDED benchmark_task row for ${SUCCESS_TASK_ID}": 1,
+      "脚本可读字符串: Expected queue pending count to increase after benchmark audit compensation": 1,
+      "脚本可读字符串: Expected QUEUED submit audit row for ${SUCCESS_SUBMIT_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected SUCCEEDED status audit row for ${SUCCESS_STATUS_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected SUCCESS raw-data audit row with trace/export links for ${SUCCESS_RAW_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected SUCCESS report audit row with trace/export links for ${SUCCESS_REPORT_REQUEST_ID}": 1
+    },
+    "scripts/manual-governance-authorization-smoke.sh": {
+      "脚本可读字符串: Expected FAILED authorization audit row for ${DENY_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected FAILED cross-tenant authorization audit row for ${CROSS_TENANT_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected FAILED revoked authorization audit row for ${REVOKED_ACCESS_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected SUCCESS authorization audit row for ${SUCCESS_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected SUCCESS permission change audit row for ${REVOKE_CHANGE_REQUEST_ID}": 1
+    },
+    "scripts/manual-message-queue-smoke.sh": {
+      "脚本可读字符串: Leaving smoke-test message in kafka_message_queue.id=${MESSAGE_ID}. Re-run with --cleanup to delete it.": 1,
+      "脚本可读字符串: Smoke test failed: message ${MESSAGE_ID} was not reset to PENDING/0/NULL": 1
+    },
+    "scripts/manual-query-governance-smoke.sh": {
+      "脚本可读字符串: Expected at least one pending compensation message for ${COMPENSATION_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected PARTIAL audit row for ${COMPENSATION_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected queue pending count to increase after audit compensation": 1,
+      "脚本可读字符串: Expected SUCCESS audit row for ${SUCCESS_REQUEST_ID}": 1
+    },
+    "scripts/manual-sql-optimization-governance-smoke.sh": {
+      "脚本可读字符串: Expected at least one pending compensation message for ${COMPENSATION_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected FAILED status audit row for ${COMPENSATION_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected queue pending count to increase after sql-optimization audit compensation": 1,
+      "脚本可读字符串: Expected QUEUED submit audit row for ${SUCCESS_SUBMIT_REQUEST_ID}": 1,
+      "脚本可读字符串: Expected SUCCEEDED status audit row for ${SUCCESS_STATUS_REQUEST_ID}": 1,
+      "脚本可读字符串: Optimization task ${task_id} did not reach ${expected_status}": 1
+    },
+    "scripts/mcp_doctor.py": {
+      "脚本可读字符串: MCP doctor found issues:": 1,
+      "脚本可读字符串: Run the doctor checks.": 1,
+      "脚本可读字符串: Validate SQLForge MCP onboarding and governance readiness without contacting remote systems.": 1
+    },
+    "scripts/mock-hetu-server.py": {
+      "脚本可读字符串: Run a minimal mock Hetu coordinator for runtime smoke.": 1
+    },
+    "scripts/multi_agent_autoplan.sh": {
+      "脚本可读字符串: {task_id} is not active in tasks.md.": 1,
+      "脚本可读字符串: Auto-planner assigned mcp_profile {mcp_profile} to unsupported role {role} for {name}": 1,
+      "脚本可读字符串: Auto-planner assigned mcp_profile to worker {name}, which is forbidden.": 1,
+      "脚本可读字符串: Auto-planner referenced undefined mcp_profile for {name}: {mcp_profile}": 1,
+      "脚本可读字符串: auto-planner result is missing object field: manifest": 1,
+      "脚本可读字符串: auto-planner result is missing string field: plan_markdown": 1,
+      "脚本可读字符串: Auto-planner returned a manifest without agents.": 1,
+      "脚本可读字符串: Auto-planner returned an agent without name: {agent}": 1,
+      "脚本可读字符串: Auto-planner returned duplicate agent name: {name}": 1,
+      "脚本可读字符串: Auto-planner returned empty prompt_file for {name}": 1,
+      "脚本可读字符串: Auto-planner returned invalid list fields for {name}": 1,
+      "脚本可读字符串: Auto-planner returned invalid mcp_profiles; expected an object.": 1,
+      "脚本可读字符串: Auto-planner returned invalid mcp_profiles.{profile_name}; expected an object.": 1,
+      "脚本可读字符串: Auto-planner returned unsupported mcp_profiles.{profile_name}.source: {source!r}": 1,
+      "脚本可读字符串: Auto-planner returned unsupported role for {name}: {role!r}": 1,
+      "脚本可读字符串: Missing required json file: {path}": 1,
+      "脚本可读字符串: One of --requirements-file or --prompt is required.": 1,
+      "脚本可读字符串: Prompt template does not exist for {name}: {prompt_file}": 1,
+      "脚本可读字符串: Requirement input is empty.": 1,
+      "脚本可读字符串: Requirements file does not exist: {requirements_path}": 1,
+      "脚本可读字符串: Use either --requirements-file or --prompt, not both.": 1
+    },
+    "scripts/multi_agent_collect.sh": {
+      "脚本可读字符串: collect completed for {task_id}": 1,
+      "脚本可读字符串: Manifest mcp_profiles must be an object when provided.": 1,
+      "脚本可读字符串: Missing required file: {path}": 1
+    },
+    "scripts/multi_agent_full_auto.sh": {
+      "脚本可读字符串: all launched agents stopped for {task_id}": 1,
+      "脚本可读字符串: autonomous Main Foreman completed for {task_id}": 1,
+      "脚本可读字符串: full-auto orchestration completed for ${TASK_ID}": 1,
+      "脚本可读字符串: full-auto stopped after autoplan for ${TASK_ID}": 1,
+      "脚本可读字符串: full-auto stopped after collect for ${TASK_ID}": 1,
+      "脚本可读字符串: Missing required file: {path}": 1,
+      "脚本可读字符串: One of --requirements-file or --prompt is required.": 1,
+      "脚本可读字符串: Use either --requirements-file or --prompt, not both.": 1,
+      "脚本可读字符串: waiting for agents:": 1
+    },
+    "scripts/multi_agent_launch.sh": {
+      "脚本可读字符串: Agent {only_agent} was not found in {manifest_path}": 1,
+      "脚本可读字符串: launch {'dry-run ' if dry_run else ''}completed for {task_id}": 1,
+      "脚本可读字符串: Manifest agents must be a non-empty array.": 1,
+      "脚本可读字符串: Manifest does not exist: {path}": 1,
+      "脚本可读字符串: Manifest mcp_profiles must be an object when provided.": 1,
+      "脚本可读字符串: Prompt template does not exist for {name}: {prompt_file}": 1,
+      "脚本可读字符串: Worktree does not exist for {name}: {worktree}": 1
+    },
+    "scripts/multi_agent_prepare.sh": {
+      "脚本可读字符串: {task_id} is not active in tasks.md.": 1,
+      "脚本可读字符串: Agent {agent['name']} role {role} may not declare mcp_profile.": 1,
+      "脚本可读字符串: Agent forbidden_paths must be an array for {name}": 1,
+      "脚本可读字符串: Agent is missing required field {field}: {agent}": 1,
+      "脚本可读字符串: Agent ownership must be an array for {name}": 1,
+      "脚本可读字符串: Agent validation_scope must be an array for {name}": 1,
+      "脚本可读字符串: Created worktree {path} is not bound to the current repository.": 1,
+      "脚本可读字符串: Main worktree does not exist: {main_worktree}": 1,
+      "脚本可读字符串: Main worktree is dirty and cannot start a multi-agent round: {main_worktree}": 1,
+      "脚本可读字符串: Manifest agents must be a non-empty array.": 1,
+      "脚本可读字符串: Manifest does not exist: {manifest_path}": 1,
+      "脚本可读字符串: Manifest mcp_profiles must be an object when provided.": 1,
+      "脚本可读字符串: Manifest task_id {manifest['task_id']} does not match --task {task_id}": 1,
+      "脚本可读字符串: mcp_profiles.{profile_name} must remain read-only and cannot declare write_capable=true.": 1,
+      "脚本可读字符串: Missing required json file: {path}": 1,
+      "脚本可读字符串: Unsupported agent role for {name}: {agent['role']}": 1,
+      "脚本可读字符串: Worker {agent['name']} cannot reuse the main worktree {main_worktree}": 1,
+      "脚本可读字符串: Worker {name} is missing required forbidden paths: {', '.join(missing)}": 1,
+      "脚本可读字符串: Worktree {path} does not belong to the current repository.": 1,
+      "脚本可读字符串: Worktree is dirty and cannot be used for multi-agent launch: {path}": 1
+    },
+    "scripts/requirements_to_plan.sh": {
+      "脚本可读字符串: candidate execution plan completed for {run_id}": 1,
+      "脚本可读字符串: Codex shaping step failed; see {log_path}": 1,
+      "脚本可读字符串: Missing required file: {path}": 1,
+      "脚本可读字符串: One of --requirements-file or --prompt is required.": 1,
+      "脚本可读字符串: plan-shaper returned unknown story id: {plan_payload['story_id']}": 1,
+      "脚本可读字符串: Requirement input is empty.": 1,
+      "脚本可读字符串: Requirements file does not exist: {requirements_path}": 1,
+      "脚本可读字符串: requirements normalization completed for {run_id}": 1,
+      "脚本可读字符串: task prefix cannot be empty": 1,
+      "脚本可读字符串: Use either --requirements-file or --prompt, not both.": 1
+    },
+    "scripts/run-coverage.sh": {
+      "脚本可读字符串: Aggregated line coverage: {rate:.4%} ({covered}/{total})": 1,
+      "脚本可读字符串: Coverage threshold not met.": 1,
+      "脚本可读字符串: No JaCoCo XML reports were generated.": 1,
+      "脚本可读字符串: No line coverage counters found in JaCoCo reports.": 1,
+      "脚本可读字符串: Required minimum line coverage: {threshold_value:.2%}": 1,
+      "脚本可读字符串: Running coverage generation for phase mode: $PHASE_MODE": 1,
+      "脚本可读字符串: Unsupported coverage phase: $PHASE_MODE": 1
+    },
+    "scripts/run-env-smoke.sh": {
+      "脚本可读字符串: ${label} did not reach ${expected_status} within ${POLL_ATTEMPTS} attempts.": 1,
+      "脚本可读字符串: Benchmark smoke did not return reportId.": 1,
+      "脚本可读字符串: Benchmark smoke did not return taskId.": 1,
+      "脚本可读字符串: Frontend response body is empty for ${FRONTEND_BASE_URL}": 1,
+      "脚本可读字符串: Query smoke did not return metadata.targetEngine.": 1,
+      "脚本可读字符串: SQL optimization smoke did not return taskId.": 1
+    },
+    "scripts/run-hetu-env-smoke.sh": {
+      "脚本可读字符串: Unexpected execution route order: expected=${EXPECTED_HETU_ROUTE_ORDER} actual=${actual_order}": 1,
+      "脚本可读字符串: Unexpected Hetu route order: expected=${EXPECTED_HETU_ROUTE_ORDER} actual=${actual_order}": 1
+    },
+    "scripts/run-kafka-runtime-gate.sh": {
+      "脚本可读字符串: ${service_name} process exited before ${url} became ready.": 1,
+      "脚本可读字符串: Docker Compose is not installed.": 1,
+      "脚本可读字符串: Expected fallback queue rows for failed Kafka delivery, got ${fallback_count:-0}.": 1,
+      "脚本可读字符串: Expected no fallback queue rows for successful Kafka delivery, got ${success_fallback_count}.": 1,
+      "脚本可读字符串: Failed to resolve spring.boot.version from pom.xml": 1,
+      "脚本可读字符串: Kafka security parameter gate did not reject incomplete SASL_SSL configuration.": 1,
+      "脚本可读字符串: Port ${port} is already in use before starting ${service_name}.": 1,
+      "脚本可读字符串: Timed out waiting for ${service_name} at ${url} after ${timeout_seconds}s.": 1,
+      "脚本可读字符串: Timed out waiting for governance log to contain: ${expected_text}": 1,
+      "脚本可读字符串: Timed out waiting for Kafka container ${KAFKA_CONTAINER}.": 1
+    },
+    "scripts/run-phase-gates.sh": {
+      "脚本可读字符串: Real Kafka fallback promoted to required for this run": 1,
+      "脚本可读字符串: Real Kafka remains optional fallback; running config-only check": 1,
+      "脚本可读字符串: Running R-116 entry gate checks": 1,
+      "脚本可读字符串: Running R-117 delivery gate checks (repo-closed primary path)": 1,
+      "脚本可读字符串: Running R-118 compliance gate checks (repo-closed baseline)": 1,
+      "脚本可读字符串: Sonar fallback promoted to required for this run": 1,
+      "脚本可读字符串: Sonar remains optional fallback for this run": 1
+    },
+    "scripts/run-runtime-smoke.sh": {
+      "脚本可读字符串: ${service_name} process exited before ${url} became ready.": 1,
+      "脚本可读字符串: Docker Compose is not installed.": 1,
+      "脚本可读字符串: Failed to resolve spring.boot.version from pom.xml": 1,
+      "脚本可读字符串: Port ${port} is already in use before starting ${service_name}. Stop the existing process or rerun in a clean environment.": 1,
+      "脚本可读字符串: Timed out waiting for ${service_name} at ${url} after ${timeout_seconds}s.": 1
+    },
+    "scripts/run-sonar.sh": {
+      "脚本可读字符串: Missing required Sonar configuration: ${missing[*]}": 1,
+      "脚本可读字符串: Running SonarQube scan for project: $PROJECT_KEY": 1,
+      "脚本可读字符串: Skipping SonarQube scan because configuration is not complete: ${missing[*]}": 1
+    },
+    "scripts/smoke-lib.sh": {
+      "脚本可读字符串: Smoke HTTP request failed: method=${method} url=${url} expected=${expected_statuses} actual=${status_code}": 1
+    },
+    "scripts/start-backend-services.sh": {
+      "脚本可读字符串: ${service_name} already appears to be running with pid ${existing_pid}. Remove ${pid_file} after stopping it, or use a different --log-dir.": 1,
+      "脚本可读字符串: ${service_name} process exited before ${url} became ready.": 1,
+      "脚本可读字符串: Failed to resolve spring.boot.version from pom.xml": 1,
+      "脚本可读字符串: Missing required command: setsid": 1,
+      "脚本可读字符串: Port ${port} is already in use before starting ${service_name}. Stop the existing process or choose a clean environment.": 1,
+      "脚本可读字符串: Timed out waiting for ${service_name} at ${url} after ${WAIT_TIMEOUT_SECONDS}s.": 1
+    },
+    "scripts/task_audit.py": {
+      "脚本可读字符串: - archived done-task Plan refs do not point at active exec plans": 1,
+      "脚本可读字符串: - blocked and in_review tasks contain required human-decision metadata and valid INBOX refs": 1,
+      "脚本可读字符串: - R-168 Context closeout markers exist for applicable in-review/done tasks": 1,
+      "脚本可读字符串: - tasks and tasks-done have no duplicate ids": 1,
+      "脚本可读字符串: - tasks-done commit subjects all exist in git history": 1,
+      "脚本可读字符串: - tasks-done commit subjects exist in git history, except at most one newest same-day closeout task pending its commit": 1,
+      "脚本可读字符串: - tasks-done ordering is newest-first for closeout evaluation": 1,
+      "脚本可读字符串: - tasks.md contains no done tasks": 1,
+      "脚本可读字符串: - todo and in_progress tasks contain no unresolved human-decision markers": 1,
+      "脚本可读字符串: Audit phase to evaluate. Defaults to pre-closeout for backward compatibility.": 1,
+      "脚本可读字符串: Run the default task audit.": 1
+    },
+    "scripts/task_materialize.sh": {
+      "脚本可读字符串: Candidate execution plan does not exist: {candidate_plan_path}": 1,
+      "脚本可读字符串: Candidate task pack field {field} has invalid type; expected {expected_type.__name__}": 1,
+      "脚本可读字符串: Candidate task pack is missing field: {field}": 1,
+      "脚本可读字符串: document-coverage-matrix.md is missing the completeness statement section": 1,
+      "脚本可读字符串: Failed to find anchor pattern: {anchor_pattern}": 1,
+      "脚本可读字符串: Failed to find phase section: {phase}": 1,
+      "脚本可读字符串: Failed to find phase task matrix table for {phase}": 1,
+      "脚本可读字符串: Failed to find task table after anchor pattern: {anchor_pattern}": 1,
+      "脚本可读字符串: Missing required file: {path}": 1,
+      "脚本可读字符串: Requirements source does not exist: {requirements_source_path}": 1,
+      "脚本可读字符串: task materialization completed for {task_id}": 1
+    },
+    "scripts/validate_codex_runtime.py": {
+      "脚本可读字符串: No unbound matrix task is available for instantiate dry-run validation.": 1
+    },
+    "scripts/validate-form-component-governance.mjs": {
+      "脚本可读字符串: form component governance markers passed": 1
+    },
+    "scripts/verify_java_quality_reports.py": {
+      "脚本可读字符串: No Maven modules found in pom.xml; nothing to verify.": 1
+    },
+    "scripts/verify-db-scripts.sh": {
+      "脚本可读字符串: Docker Compose is not installed.": 1,
+      "脚本可读字符串: MySQL container did not become ready within 60s.": 1
+    }
   }
 }

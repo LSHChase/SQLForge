@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-CODE-RULES-FIX456-20260516: 修复中文化门禁后续缺口
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `chore: tighten Chinese copy governance gates USER-CN-CODE-RULES-FIX456-20260516`
+- Priority: 1
+- Depends on: USER-CN-CODE-RULES-FIX-20260516
+- Scope: 修复中文化规则落地复核发现的 4、5、6 项后续问题：资源/mapper 文件触发后必须真实扫描，脚本英文历史存量基线必须按具体问题锁定而不是只按计数放行，changed 模式与知识库自检必须覆盖这些门禁能力。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-CODE-RULES-FIX456-20260516`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复中文化门禁后续缺口：src/main/resources mapper/resources 文件进入真实扫描；脚本英文历史存量 baseline 升级为计数加具体文案锁定；知识库自检和规则文档同步这些门禁能力。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-CODE-RULES-FIX456-20260516 通过；node scripts/check-developer-copy-language.mjs --changed/--all 通过；node scripts/lint-repository-knowledge.js 通过；npm run lint 通过；git diff --check 通过。
+  - Residual risk: 无已知残余风险；脚本英文 help/error/print/echo 历史存量仍存在但已按具体文案基线锁定，只允许减少或中文化。
+  - Next step: 后续触达 Java resources、mapper 或脚本输出时继续按 R-187 至 R-190 降低英文存量。
+
 ### USER-CN-CODE-RULES-FIX-20260516: 修复中文化门禁前三项缺口
 
 - Status: done

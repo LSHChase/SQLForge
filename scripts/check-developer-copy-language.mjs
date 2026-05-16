@@ -11,6 +11,7 @@ const legacyScriptOutputBaselineRelativePath = 'docs/quality/developer-copy-lang
 const legacyScriptOutputBaselinePath = path.join(root, legacyScriptOutputBaselineRelativePath)
 
 const mode = process.argv.includes('--all') ? 'all' : process.argv.includes('--changed') ? 'changed' : ''
+const dumpLegacyScriptBaseline = process.argv.includes('--dump-legacy-script-baseline')
 
 if (!mode) {
   console.error('用法：node scripts/check-developer-copy-language.mjs --changed|--all')
@@ -313,6 +314,9 @@ function classify(relativePath) {
   }
   if (/^sql\/.*\.sql$/.test(relativePath)) {
     return 'sql'
+  }
+  if (/\/src\/main\/resources\/.*\.(?:xml|yml|yaml|properties|sql)$/.test(`/${relativePath}`)) {
+    return 'resource'
   }
   if (/^scripts\/.*\.(?:py|sh|mjs|js)$/.test(relativePath)) {
     return 'script'
@@ -743,6 +747,58 @@ function scanSqlComments(relativePath, content, errors) {
   })
 }
 
+function stripXmlComment(value) {
+  return value
+    .replace(/^\s*<!--/, '')
+    .replace(/-->\s*$/, '')
+    .trim()
+}
+
+function checkXmlComment(relativePath, lineNumber, comment, errors) {
+  const value = stripXmlComment(comment)
+  if (isIgnorableComment(value)) {
+    return
+  }
+  if (needsChinese(value, 6)) {
+    addIssue(errors, relativePath, lineNumber, '资源注释', value, nonTechnicalWords(value), 'resource-comment')
+  }
+}
+
+function checkResourceHumanValue(relativePath, lineNumber, kind, value, errors) {
+  const normalized = value.replace(/^['"]|['"]$/g, '').trim()
+  if (needsChinese(normalized, 2, { allowLooseIdentifierPhrase: false })) {
+    addIssue(errors, relativePath, lineNumber, kind, normalized, nonTechnicalWords(normalized), 'resource-human-string')
+  }
+}
+
+function scanResource(relativePath, content, errors) {
+  scanSqlComments(relativePath, content, errors)
+  const lines = content.split(/\r?\n/)
+  lines.forEach((line, index) => {
+    const lineNumber = index + 1
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('#')) {
+      checkComment(relativePath, lineNumber, trimmed, errors, 6)
+    }
+    for (const match of line.matchAll(/<!--([\s\S]*?)-->/g)) {
+      checkXmlComment(relativePath, lineNumber, match[0], errors)
+    }
+
+    for (const match of line.matchAll(/\b(?:message|msg|description|help|error|usage)\s*=\s*(["'])((?:\\.|(?!\1)[\s\S])*?)\1/gi)) {
+      checkResourceHumanValue(relativePath, lineNumber, '资源可读属性', match[2], errors)
+    }
+    for (const match of line.matchAll(/<(?:message|msg|description|help|error|usage)>([^<]+)<\/(?:message|msg|description|help|error|usage)>/gi)) {
+      checkResourceHumanValue(relativePath, lineNumber, '资源可读节点', match[1], errors)
+    }
+
+    const keyValue = line.match(/^\s*[-\w.]+(?:\s*[:=]\s*)(["']?)([^#'"]{3,}|[^#]*?)\1\s*(?:#.*)?$/)
+    if (keyValue && /\b(?:message|msg|description|help|error|usage|summary|title|label)\b/i.test(line.split(/[:=]/, 1)[0] || '')) {
+      checkResourceHumanValue(relativePath, lineNumber, '资源可读配置', keyValue[2], errors)
+    }
+  })
+}
+
 function isScriptHumanStringLine(line) {
   return (
     /\b(?:description|help|epilog)\s*=/.test(line) ||
@@ -813,6 +869,8 @@ function scanFile(relativePath, errors) {
     scanJava(relativePath, content, errors)
   } else if (type === 'sql') {
     scanSqlComments(relativePath, content, errors)
+  } else if (type === 'resource') {
+    scanResource(relativePath, content, errors)
   } else if (type === 'script') {
     scanScript(relativePath, content, errors)
   }
@@ -837,12 +895,55 @@ function countLegacyScriptOutputIssues(issues) {
   return counts
 }
 
+function legacyScriptIssueKey(issue) {
+  return `${issue.kind}: ${issue.value.replace(/\s+/g, ' ').trim()}`
+}
+
+function countLegacyScriptIssueTexts(issues) {
+  const counts = new Map()
+  for (const issue of issues.filter(isLegacyScriptOutputIssue)) {
+    if (!counts.has(issue.relativePath)) {
+      counts.set(issue.relativePath, new Map())
+    }
+    const issueCounts = counts.get(issue.relativePath)
+    const key = legacyScriptIssueKey(issue)
+    issueCounts.set(key, (issueCounts.get(key) || 0) + 1)
+  }
+  return counts
+}
+
+function sortedObjectFromMap(map) {
+  return Object.fromEntries(Array.from(map.entries()).sort(([left], [right]) => left.localeCompare(right)))
+}
+
+function sortedNestedObjectFromMap(map) {
+  return Object.fromEntries(
+    Array.from(map.entries())
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => [key, sortedObjectFromMap(value)])
+  )
+}
+
+function legacyScriptOutputBaselinePayload(issues) {
+  const baseline = loadLegacyScriptOutputBaseline()
+  return {
+    ...baseline,
+    description:
+      'R-187 至 R-190 中文化门禁的脚本 help/error/print/echo 英文历史存量基线。该文件按具体文案锁定历史存量；新增、变更或超出计数必须中文化。',
+    created_at: baseline.created_at || '2026-05-16',
+    scope: baseline.scope || 'scripts/**/*.py, scripts/**/*.sh, scripts/**/*.mjs, scripts/**/*.js 中已存在的脚本可读字符串英文存量',
+    maxIssuesByFile: sortedObjectFromMap(countLegacyScriptOutputIssues(issues)),
+    allowedIssueTextCountsByFile: sortedNestedObjectFromMap(countLegacyScriptIssueTexts(issues))
+  }
+}
+
 function validateLegacyScriptOutputDebt(issues, errors) {
   if (mode !== 'all') {
     return { issueCount: 0, fileCount: 0 }
   }
   const baseline = loadLegacyScriptOutputBaseline()
   const allowedByFile = baseline.maxIssuesByFile || {}
+  const allowedTextsByFile = baseline.allowedIssueTextCountsByFile || {}
   const counts = countLegacyScriptOutputIssues(issues)
   for (const [relativePath, count] of counts.entries()) {
     const allowed = allowedByFile[relativePath] || 0
@@ -850,6 +951,22 @@ function validateLegacyScriptOutputDebt(issues, errors) {
       errors.push(
         `${relativePath} 新增或超出脚本英文 help/error/print/echo 存量：当前 ${count} 条，baseline 允许 ${allowed} 条。`
       )
+    }
+  }
+  const issueTextCounts = countLegacyScriptIssueTexts(issues)
+  for (const [relativePath, textCounts] of issueTextCounts.entries()) {
+    const allowedTextCounts = allowedTextsByFile[relativePath]
+    if (!allowedTextCounts) {
+      errors.push(`${relativePath} 缺少脚本英文存量逐条 baseline，不能只按数量放行。`)
+      continue
+    }
+    for (const [key, count] of textCounts.entries()) {
+      const allowed = allowedTextCounts[key] || 0
+      if (count > allowed) {
+        errors.push(
+          `${relativePath} 新增或变更脚本英文 help/error/print/echo 文案：${key}（当前 ${count} 条，baseline 允许 ${allowed} 条）。`
+        )
+      }
     }
   }
   return {
@@ -862,6 +979,11 @@ const files = targetFiles()
 const issues = []
 
 files.forEach(relativePath => scanFile(relativePath, issues))
+
+if (dumpLegacyScriptBaseline) {
+  console.log(JSON.stringify(legacyScriptOutputBaselinePayload(issues), null, 2))
+  process.exit(0)
+}
 
 const validationErrors = []
 const legacyScriptOutputDebt = validateLegacyScriptOutputDebt(issues, validationErrors)
