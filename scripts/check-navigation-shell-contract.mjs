@@ -116,6 +116,7 @@ const expectedDefaultModuleKeys = [
   'parse-acceleration',
   'parse-history',
   'recommendations',
+  'rewrite-governance',
   'auxiliary-governance',
   'assets',
   'benchmark',
@@ -133,6 +134,7 @@ const sqlHistoryModule = fullTree.find(item => item.key === 'sql-history')
 const parseModule = fullTree.find(item => item.key === 'parse-acceleration')
 const parseHistoryModule = fullTree.find(item => item.key === 'parse-history')
 const recommendationModule = fullTree.find(item => item.key === 'recommendations')
+const rewriteGovernanceModule = fullTree.find(item => item.key === 'rewrite-governance')
 const auxiliaryModule = fullTree.find(item => item.key === 'auxiliary-governance')
 const referenceModule = fullTree.find(item => item.key === 'reference-pages')
 check(sqlHistoryModule?.directItem?.routeKey === 'sqlHistory', 'SQL history must be a core direct menu entry.')
@@ -143,6 +145,14 @@ check(
 )
 check(parseHistoryModule?.directItem?.routeKey === 'parseRecord', 'Parse history must be a core direct menu entry.')
 check(recommendationModule?.directItem?.routeKey === 'recommendationCenter', 'Recommendation results must be a core direct menu entry.')
+check(
+  JSON.stringify(rewriteGovernanceModule?.items?.map(item => item.menuKey)) ===
+    JSON.stringify([
+      '/governance/recommendations?tab=rewriteLifecycle',
+      '/governance/history/sql-history?detailTab=rewriteRecords&hasRewriteRecord=true'
+    ]),
+  '改写治理正式导航入口必须指向推荐改写生命周期与 SQL 改写历史深链。'
+)
 check(Array.isArray(auxiliaryModule?.sections), 'Auxiliary governance must group audit, trace, alert and runtime evidence.')
 check(
   Array.isArray(referenceModule?.items) &&
@@ -199,6 +209,17 @@ check(
 const parseRecordItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATHS.parseRecord, query: {} })
 check(parseRecordItem?.moduleKey === 'parse-history', 'Parse record active item must stay under parse history.')
 check(JSON.stringify(parseRecordItem?.defaultOpeneds) === JSON.stringify([]), 'Parse record open state drifted.')
+
+const rewriteRecordItem = findActiveNavigationItem(defaultTree, {
+  path: ROUTE_PATHS.recommendationCenter,
+  query: { tab: 'rewriteLifecycle' }
+})
+check(rewriteRecordItem?.moduleKey === 'rewrite-governance', '改写记录深链必须命中改写治理导航分组。')
+const rewriteHistoryItem = findActiveNavigationItem(defaultTree, {
+  path: ROUTE_PATHS.sqlHistory,
+  query: { hasRewriteRecord: 'true', detailTab: 'rewriteRecords' }
+})
+check(rewriteHistoryItem?.moduleKey === 'rewrite-governance', '改写历史深链必须命中改写治理导航分组。')
 
 const hiddenWorkbenchItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATHS.accelerationGovernanceWorkbench, query: {} })
 check(!hiddenWorkbenchItem, 'Acceleration governance workbench must be hidden from default formal navigation.')

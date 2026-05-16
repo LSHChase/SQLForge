@@ -1197,6 +1197,7 @@ export default {
       openHistory: '打开 SQL 历史查询',
       openAlertCenter: '打开告警中心',
       refreshRewriteRecords: '刷新改写记录',
+      refreshValidationRuns: '刷新验证运行',
       approveRewrite: '审批通过',
       rejectRewrite: '驳回',
       publishRewrite: '发布',
@@ -1254,6 +1255,13 @@ export default {
       publishEligible: '发布资格',
       policyId: '策略 ID',
       actionReason: '动作原因',
+      status: '状态',
+      validationRunId: '验证运行 ID',
+      comparisonStatus: '比对状态',
+      differenceType: '差异类型',
+      autoApplyPaused: '自动应用暂停',
+      startedAt: '开始时间',
+      finishedAt: '结束时间',
       refusalCode: '拒绝码',
       refusalMessage: '拒绝原因',
       refusalField: '字段',
@@ -1276,7 +1284,8 @@ export default {
       awaitingRewriteReview: '等待改写审批或发布。',
       reviewNoteRequired: '驳回必须填写审批意见。',
       lifecycleActionApplied: '改写记录动作已提交，状态已从后端刷新。',
-      noRefusalReasons: '当前没有发布资格拒绝原因。'
+      noRefusalReasons: '当前没有发布资格拒绝原因。',
+      noValidationRuns: '当前改写记录没有验证运行。'
     },
     tabs: {
       summary: '摘要',
@@ -1299,7 +1308,8 @@ export default {
       semanticRisks: '语义风险 semanticRisks',
       unappliedRules: '未应用规则 unappliedRules',
       alertLinkage: '告警联动',
-      publishEligibility: '发布资格与拒绝原因'
+      publishEligibility: '发布资格与拒绝原因',
+      validationRuns: '验证运行'
     },
     reviewGuard: {
       eyebrow: '人工复核',
@@ -2891,6 +2901,7 @@ export default {
       parseAcceleration: 'SQL 解析',
       parseHistory: '解析历史',
       recommendations: '推荐结果',
+      rewriteGovernance: '改写治理',
       auxiliaryGovernance: '辅助治理',
       referencePages: '参考页面',
       routing: '路由治理',
@@ -2918,6 +2929,8 @@ export default {
       batchParseCenter: '批量解析中心',
       parseHistorySearch: '解析历史',
       accelerationRewriteCenter: '推荐结果',
+      rewriteRecords: '改写记录',
+      rewriteHistory: '改写历史',
       routingEvidence: '追踪查询',
       assetCatalog: '资产目录',
       benchmarkWorkbench: '压测工作台',

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
@@ -11,6 +11,7 @@ import {
   getRecommendationDiff,
   getRecommendations,
   getRecommendationTrace,
+  getRewriteValidationRuns,
   getRewritePublishEligibility,
   getSqlRewriteRecord,
   getSqlRewriteRecords,
@@ -29,6 +30,20 @@ const router = useRouter()
 const route = useRoute()
 
 const normalizeQueryValue = value => (Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim())
+const DETAIL_TAB_NAMES = [
+  'summary',
+  'sqlDiff',
+  'rulesRisk',
+  'sqlEvidence',
+  'rewriteLifecycle',
+  'dispatchContract',
+  'traceability',
+  'dispatchEvents'
+]
+const normalizeDetailTab = value => {
+  const tabName = normalizeQueryValue(value)
+  return DETAIL_TAB_NAMES.includes(tabName) ? tabName : ''
+}
 
 const form = reactive({
   tenantId: normalizeQueryValue(route.query.tenantId) || 'tenant-a'
@@ -43,7 +58,8 @@ const loading = reactive({
   page: false,
   detail: false,
   lifecycle: false,
-  lifecycleAction: ''
+  lifecycleAction: '',
+  validationRuns: false
 })
 
 const activeFilter = ref('ALL')
@@ -58,11 +74,14 @@ const rewriteRecords = ref([])
 const selectedRewriteRecordId = ref(normalizeQueryValue(route.query.rewriteRecordId))
 const selectedRewriteRecord = ref(null)
 const rewritePublishEligibility = ref(null)
+const rewriteValidationRuns = ref([])
 const errorMessage = ref('')
 const diffErrorMessage = ref('')
 const lifecycleErrorMessage = ref('')
 const lifecycleSuccessMessage = ref('')
+const validationRunErrorMessage = ref('')
 const activeDetailTab = ref('summary')
+const preferredDetailTab = ref(normalizeDetailTab(route.query.tab || route.query.detailTab))
 const selectedRuleDiffId = ref('')
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
@@ -419,8 +438,45 @@ const resetRewriteLifecycle = () => {
   selectedRewriteRecordId.value = ''
   selectedRewriteRecord.value = null
   rewritePublishEligibility.value = null
+  rewriteValidationRuns.value = []
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
+  validationRunErrorMessage.value = ''
+}
+
+const syncActiveDetailTabFromRoute = () => {
+  if (preferredDetailTab.value) {
+    activeDetailTab.value = preferredDetailTab.value
+  }
+}
+
+const syncRouteQueryState = () => {
+  form.tenantId = normalizeQueryValue(route.query.tenantId) || 'tenant-a'
+  selectedRecommendationId.value = normalizeQueryValue(route.query.recommendationId)
+  selectedRewriteRecordId.value = normalizeQueryValue(route.query.rewriteRecordId)
+  preferredDetailTab.value = normalizeDetailTab(route.query.tab || route.query.detailTab)
+  syncActiveDetailTabFromRoute()
+}
+
+const loadRewriteValidationRuns = async rewriteRecordId => {
+  if (!rewriteRecordId) {
+    rewriteValidationRuns.value = []
+    validationRunErrorMessage.value = ''
+    return
+  }
+  loading.validationRuns = true
+  validationRunErrorMessage.value = ''
+  try {
+    const runs = await getRewriteValidationRuns(form.tenantId, rewriteRecordId, {
+      requestPrefix: 'frontend-recommendation-rewrite-validation-runs'
+    })
+    rewriteValidationRuns.value = Array.isArray(runs) ? runs : []
+  } catch (error) {
+    rewriteValidationRuns.value = []
+    validationRunErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.validationRuns = false
+  }
 }
 
 const fetchRewriteRecordLifecycle = async rewriteRecordId => {
@@ -432,6 +488,7 @@ const fetchRewriteRecordLifecycle = async rewriteRecordId => {
   rewritePublishEligibility.value = await getRewritePublishEligibility(form.tenantId, rewriteRecordId, {
     requestPrefix: 'frontend-recommendation-rewrite-publish-eligibility'
   })
+  await loadRewriteValidationRuns(rewriteRecordId)
 }
 
 const loadRewriteRecordLifecycle = async rewriteRecordId => {
@@ -439,16 +496,20 @@ const loadRewriteRecordLifecycle = async rewriteRecordId => {
     selectedRewriteRecordId.value = ''
     selectedRewriteRecord.value = null
     rewritePublishEligibility.value = null
+    rewriteValidationRuns.value = []
+    validationRunErrorMessage.value = ''
     return
   }
   loading.lifecycle = true
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
+  validationRunErrorMessage.value = ''
   try {
     await fetchRewriteRecordLifecycle(rewriteRecordId)
   } catch (error) {
     selectedRewriteRecord.value = null
     rewritePublishEligibility.value = null
+    rewriteValidationRuns.value = []
     lifecycleErrorMessage.value = formatRuntimeError(error)
   } finally {
     loading.lifecycle = false
@@ -463,6 +524,7 @@ const loadRewriteRecordsForRecommendation = async (recommendationId, preferredRe
   loading.lifecycle = true
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
+  validationRunErrorMessage.value = ''
   try {
     const records = await getSqlRewriteRecords(
       form.tenantId,
@@ -485,11 +547,14 @@ const loadRewriteRecordsForRecommendation = async (recommendationId, preferredRe
       selectedRewriteRecordId.value = ''
       selectedRewriteRecord.value = null
       rewritePublishEligibility.value = null
+      rewriteValidationRuns.value = []
+      validationRunErrorMessage.value = ''
     }
   } catch (error) {
     rewriteRecords.value = []
     selectedRewriteRecord.value = null
     rewritePublishEligibility.value = null
+    rewriteValidationRuns.value = []
     lifecycleErrorMessage.value = formatRuntimeError(error)
   } finally {
     loading.lifecycle = false
@@ -528,6 +593,7 @@ const refreshPage = async () => {
       recommendationDiff.value = null
       recommendationTrace.value = null
       activeDetailTab.value = 'summary'
+      syncActiveDetailTabFromRoute()
       resetRewriteLifecycle()
     }
   } catch (error) {
@@ -545,6 +611,7 @@ const loadRecommendation = async recommendationId => {
     recommendationTrace.value = null
     diffErrorMessage.value = ''
     activeDetailTab.value = 'summary'
+    syncActiveDetailTabFromRoute()
     resetRewriteLifecycle()
     return
   }
@@ -573,9 +640,11 @@ const loadRecommendation = async recommendationId => {
         requestPrefix: 'frontend-recommendation-center-diff'
       })
       activeDetailTab.value = recommendationDiff.value ? 'sqlDiff' : 'summary'
+      syncActiveDetailTabFromRoute()
     } catch (error) {
       diffErrorMessage.value = formatRuntimeError(error)
       activeDetailTab.value = 'summary'
+      syncActiveDetailTabFromRoute()
     }
     await loadRewriteRecordsForRecommendation(recommendationId, selectedRewriteRecordId.value)
   } catch (error) {
@@ -879,8 +948,17 @@ const hunkTagType = type => {
 const formatJson = value => JSON.stringify(value, null, 2)
 
 onMounted(() => {
+  syncRouteQueryState()
   refreshPage()
 })
+
+watch(
+  () => route.fullPath,
+  async () => {
+    syncRouteQueryState()
+    await refreshPage()
+  }
+)
 </script>
 
 <template>
@@ -1418,6 +1496,45 @@ onMounted(() => {
                     </el-table>
                     <p v-else class="muted-copy" data-testid="recommendation-rewrite-no-refusal-reasons">
                       {{ t('recommendationCenter.states.noRefusalReasons') }}
+                    </p>
+                  </section>
+
+                  <section class="evidence-table" data-testid="recommendation-rewrite-validation-runs">
+                    <div class="evidence-heading">
+                      <h3>{{ t('recommendationCenter.sections.validationRuns') }}</h3>
+                      <el-button
+                        :loading="loading.validationRuns"
+                        data-testid="recommendation-rewrite-validation-runs-refresh"
+                        @click="loadRewriteValidationRuns(selectedRewriteRecordId)"
+                      >
+                        {{ t('recommendationCenter.actions.refreshValidationRuns') }}
+                      </el-button>
+                    </div>
+                    <p v-if="validationRunErrorMessage" class="error-banner" data-testid="recommendation-rewrite-validation-runs-error">
+                      {{ validationRunErrorMessage }}
+                    </p>
+                    <el-table
+                      v-loading="loading.validationRuns"
+                      :data="rewriteValidationRuns"
+                      row-key="validationRunId"
+                      data-testid="recommendation-rewrite-validation-run-table"
+                    >
+                      <el-table-column prop="validationRunId" :label="t('recommendationCenter.fields.validationRunId')" min-width="190" />
+                      <el-table-column prop="status" :label="t('recommendationCenter.fields.status')" min-width="120" />
+                      <el-table-column prop="comparisonStatus" :label="t('recommendationCenter.fields.comparisonStatus')" min-width="160" />
+                      <el-table-column prop="differenceType" :label="t('recommendationCenter.fields.differenceType')" min-width="160" />
+                      <el-table-column prop="autoApplyPaused" :label="t('recommendationCenter.fields.autoApplyPaused')" min-width="150">
+                        <template #default="{ row }">{{ boolText(row.autoApplyPaused) }}</template>
+                      </el-table-column>
+                      <el-table-column prop="startedAt" :label="t('recommendationCenter.fields.startedAt')" min-width="170" />
+                      <el-table-column prop="finishedAt" :label="t('recommendationCenter.fields.finishedAt')" min-width="170" />
+                    </el-table>
+                    <p
+                      v-if="!rewriteValidationRuns.length && !loading.validationRuns"
+                      class="muted-copy"
+                      data-testid="recommendation-rewrite-validation-runs-empty"
+                    >
+                      {{ t('recommendationCenter.states.noValidationRuns') }}
                     </p>
                   </section>
                 </template>

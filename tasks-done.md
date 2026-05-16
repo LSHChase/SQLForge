@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-007: 改写记录与改写历史入口收口
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): close rewrite governance entries HARN-FE-007`
+- Priority: 1
+- Depends on: HARN-FE-006
+- Scope: 在正式导航和推荐详情中呈现改写记录、改写历史，复用现有 rewrite records、query-history rewrite records 和 validation runs 能力；复用推荐结果与 SQL 历史查询 route，通过 query/tab 深链进入对应 tab；不新增独立 view、独立 route 或后端接口，不改变审批/发布状态机或运行时绑定语义。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-007`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 正式导航新增改写治理分组，改写记录深链复用推荐结果页 rewriteLifecycle tab，改写历史深链复用 SQL 历史查询并携带 hasRewriteRecord/detailTab；推荐页同步 route tab、recommendationId、rewriteRecordId 与租户并展示改写验证运行只读表；SQL 历史页支持改写筛选 query 和 historyId+detailTab=rewriteRecords 自动打开详情改写记录 tab；Dashboard 改写入口、下一步和活动流改为 query 化目标；同步静态契约与 dev browser smoke 覆盖。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-007 --include-task-audit --extra-command node scripts/check-navigation-shell-contract.mjs --extra-command node scripts/check-recommendation-page-contract.mjs --extra-command node scripts/check-history-page-contract.mjs --extra-command node scripts/check-history-detail-contract.mjs --extra-command npm run smoke:frontend-dev --extra-command git diff --check 通过；直接运行 npm run lint、npm run build、npm run test:frontend-page-governance、npm run test:sql-ui-contract、npm run smoke:frontend-dev 与 git diff --check 通过。
+  - Residual risk: 本任务仅调整前端正式入口、query 深链和只读展示，复用既有 rewrite records、query-history rewrite records 与 validation-runs API；未新增独立 route/view/backend API，未改变审批、发布、运行时绑定或自动应用语义；真实外部 Hetu/MRS 环境验证仍按 HARN-016/INBOX-002 跟踪。
+  - Next step: 进入 HARN-FE-008，收口参考页治理与最终验证。
+
 ### HARN-FE-006: 推荐结果页面聚焦 SQL diff 与收益风险
 
 - Status: done

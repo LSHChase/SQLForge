@@ -1213,6 +1213,7 @@ export default {
       openHistory: 'Open SQL history search',
       openAlertCenter: 'Open alert center',
       refreshRewriteRecords: 'Refresh rewrite records',
+      refreshValidationRuns: 'Refresh validation runs',
       approveRewrite: 'Approve',
       rejectRewrite: 'Reject',
       publishRewrite: 'Publish',
@@ -1270,6 +1271,13 @@ export default {
       publishEligible: 'Publish eligible',
       policyId: 'Policy ID',
       actionReason: 'Action reason',
+      status: 'Status',
+      validationRunId: 'Validation run ID',
+      comparisonStatus: 'Comparison status',
+      differenceType: 'Difference type',
+      autoApplyPaused: 'Auto apply paused',
+      startedAt: 'Started at',
+      finishedAt: 'Finished at',
       refusalCode: 'Refusal code',
       refusalMessage: 'Refusal reason',
       refusalField: 'Field',
@@ -1292,7 +1300,8 @@ export default {
       awaitingRewriteReview: 'Waiting for rewrite review or publish.',
       reviewNoteRequired: 'A review note is required when rejecting.',
       lifecycleActionApplied: 'Rewrite record action was submitted and refreshed from the backend.',
-      noRefusalReasons: 'No publish eligibility refusal reason is present.'
+      noRefusalReasons: 'No publish eligibility refusal reason is present.',
+      noValidationRuns: 'This rewrite record has no validation runs.'
     },
     tabs: {
       summary: 'Summary',
@@ -1315,7 +1324,8 @@ export default {
       semanticRisks: 'semanticRisks',
       unappliedRules: 'unappliedRules',
       alertLinkage: 'Alert linkage',
-      publishEligibility: 'Publish eligibility and refusal reasons'
+      publishEligibility: 'Publish eligibility and refusal reasons',
+      validationRuns: 'Validation runs'
     },
     reviewGuard: {
       eyebrow: 'manual review',
@@ -2907,6 +2917,7 @@ export default {
       parseAcceleration: 'SQL Parse',
       parseHistory: 'Parse History',
       recommendations: 'Recommendation Results',
+      rewriteGovernance: 'Rewrite Governance',
       auxiliaryGovernance: 'Auxiliary Governance',
       referencePages: 'Reference Pages',
       routing: 'Routing Governance',
@@ -2934,6 +2945,8 @@ export default {
       batchParseCenter: 'Batch parse center',
       parseHistorySearch: 'Parse history',
       accelerationRewriteCenter: 'Recommendation results',
+      rewriteRecords: 'Rewrite records',
+      rewriteHistory: 'Rewrite history',
       routingEvidence: 'Trace search',
       assetCatalog: 'Asset catalog',
       benchmarkWorkbench: 'Benchmark workbench',

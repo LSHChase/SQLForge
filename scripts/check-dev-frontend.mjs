@@ -146,6 +146,7 @@ const runBrowserSmoke = async baseUrl => {
   let queryExecuteCalls = 0
   let sqlHistoryPageCalls = 0
   let sqlHistoryRewriteRecordCalls = 0
+  let recommendationRewriteValidationRunCalls = 0
   const sqlHistoryPageRequests = []
   let parseHistoryPageCalls = 0
 
@@ -235,7 +236,9 @@ const runBrowserSmoke = async baseUrl => {
       sqlHistoryPageRequests.push({
         pageNo,
         pageSize,
-        reportCode: requestUrl.searchParams.get('reportCode') || ''
+        reportCode: requestUrl.searchParams.get('reportCode') || '',
+        hasRewriteRecord: requestUrl.searchParams.get('hasRewriteRecord') || '',
+        rewriteValidationStatus: requestUrl.searchParams.get('rewriteValidationStatus') || ''
       })
       const remainingCount = Math.max(0, totalCount - ((pageNo - 1) * pageSize))
       const itemCount = Math.min(pageSize, remainingCount)
@@ -359,6 +362,210 @@ const runBrowserSmoke = async baseUrl => {
       return
     }
 
+    if (pathname === '/api/sql-optimization/recommendations' && requestPrefix === 'frontend-recommendation-center-list') {
+      await fulfillJson(route, [
+        {
+          recommendationId: 'rec-dev-1',
+          recommendationType: 'REWRITE',
+          status: 'DISPATCH_READY',
+          benefitLevel: 'HIGH',
+          riskLevel: 'MEDIUM',
+          validationStatus: 'DIVERGED',
+          alertStatus: 'OPEN',
+          sourceSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
+          recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+          logicalObjectKey: 'sales.orders',
+          targetEngine: 'HETU',
+          targetDatasource: 'hetu_main',
+          requiresDispatch: true,
+          manualReviewRequired: true,
+          autoApplyAllowed: false,
+          ruleChain: [{ ruleCode: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
+          preconditions: [],
+          semanticRisks: [{ type: 'COLUMN_PROJECTION', severity: 'MEDIUM' }],
+          unappliedRules: []
+        }
+      ])
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/dispatch-contract' && requestPrefix === 'frontend-recommendation-center-contract') {
+      await fulfillJson(route, {
+        coordinationMode: 'PULL_ONLY',
+        externalPullRequired: true,
+        allowedEventStatuses: ['PENDING', 'ACKED'],
+        allowedDispatchTypes: ['REWRITE_RECORD']
+      })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/dispatch-events' && requestPrefix === 'frontend-recommendation-center-events') {
+      await fulfillJson(route, [])
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/recommendations/rec-dev-1/trace' &&
+      requestPrefix === 'frontend-recommendation-center-trace'
+    ) {
+      await fulfillJson(route, {
+        recommendationId: 'rec-dev-1',
+        historyId: 'dev-history-nav-1',
+        reportCode: 'DEV_RPT_REWRITE',
+        sqlFingerprint: 'fingerprint-dev-history-nav-1',
+        traceRefs: { alertRefs: [{ alertId: 'alert-dev-1' }] },
+        alertId: 'alert-dev-1',
+        alertStatus: 'OPEN'
+      })
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/recommendations/rec-dev-1/diff' &&
+      requestPrefix === 'frontend-recommendation-center-diff'
+    ) {
+      await fulfillJson(route, {
+        recommendationId: 'rec-dev-1',
+        diffStatus: 'AVAILABLE',
+        sourceType: 'QUERY',
+        sourceKind: 'QUERY_HISTORY',
+        sourceId: 'dev-history-nav-1',
+        evidenceLevel: 'RUNTIME_HISTORY',
+        sqlFingerprint: 'fingerprint-dev-history-nav-1',
+        originalSql: 'SELECT * FROM sales.orders WHERE dt = ?',
+        recommendedSql: 'SELECT id FROM sales.orders WHERE dt = ?',
+        diffSummary: {
+          changeCount: 1,
+          ruleDiffCount: 1,
+          manualReviewRequired: true,
+          autoApplyAllowed: false,
+          writesBackRecommendation: true,
+          evidenceBoundary: 'repo-closed smoke'
+        },
+        textDiff: [
+          {
+            hunkId: 'hunk-dev-1',
+            type: 'REPLACE',
+            originalStartLine: 1,
+            recommendedStartLine: 1,
+            originalText: 'SELECT * FROM sales.orders WHERE dt = ?',
+            recommendedText: 'SELECT id FROM sales.orders WHERE dt = ?'
+          }
+        ],
+        ruleDiff: [{ diffId: 'rule-dev-1', rule: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
+        astSummaryDiff: { parseStatus: 'SUCCESS' }
+      })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/recommendations/rec-dev-1' && requestPrefix === 'frontend-recommendation-center-detail') {
+      await fulfillJson(route, {
+        recommendationId: 'rec-dev-1',
+        recommendationType: 'REWRITE',
+        status: 'DISPATCH_READY',
+        benefitLevel: 'HIGH',
+        riskLevel: 'MEDIUM',
+        validationMethod: 'SQL_COMPARE',
+        validationStatus: 'DIVERGED',
+        alertStatus: 'OPEN',
+        sourceSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
+        recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+        logicalObjectKey: 'sales.orders',
+        targetEngine: 'HETU',
+        targetDatasource: 'hetu_main',
+        requiresDispatch: true,
+        manualReviewRequired: true,
+        autoApplyAllowed: false,
+        ruleChain: [{ ruleCode: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
+        preconditions: [],
+        semanticRisks: [{ type: 'COLUMN_PROJECTION', severity: 'MEDIUM' }],
+        unappliedRules: []
+      })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/rewrite-records' && requestPrefix === 'frontend-recommendation-rewrite-record-list') {
+      assert(
+        requestUrl.searchParams.get('recommendationId') === 'rec-dev-1',
+        '推荐页改写记录列表必须携带 recommendationId。'
+      )
+      await fulfillJson(route, [
+        {
+          rewriteRecordId: 'rewrite-dev-1',
+          tenantId: 'tenant-a',
+          recommendationId: 'rec-dev-1',
+          reviewStatus: 'APPROVED',
+          publishStatus: 'PUBLISHED',
+          validationStatus: 'DIVERGED',
+          alertStatus: 'OPEN',
+          lastValidationRunId: 'validation-rec-dev-1',
+          autoApplyAllowed: false,
+          runtimeBindingId: 'runtime-dev-1'
+        }
+      ])
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/rewrite-records/rewrite-dev-1/validation-runs' &&
+      requestPrefix === 'frontend-recommendation-rewrite-validation-runs'
+    ) {
+      recommendationRewriteValidationRunCalls += 1
+      await fulfillJson(route, [
+        {
+          validationRunId: 'validation-rec-dev-1',
+          rewriteRecordId: 'rewrite-dev-1',
+          status: 'FINISHED',
+          comparisonStatus: 'DIVERGED',
+          differenceType: 'RESULT_SET',
+          autoApplyPaused: true,
+          startedAt: '2026-05-16T10:00:00',
+          finishedAt: '2026-05-16T10:00:05'
+        }
+      ])
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/rewrite-records/rewrite-dev-1/publish-eligibility' &&
+      requestPrefix === 'frontend-recommendation-rewrite-publish-eligibility'
+    ) {
+      await fulfillJson(route, {
+        eligible: false,
+        policyId: 'policy-dev-1',
+        reviewStatus: 'APPROVED',
+        validationStatus: 'DIVERGED',
+        publishStatus: 'PUBLISHED',
+        alertStatus: 'OPEN',
+        autoApplyAllowed: false,
+        lastValidationRunId: 'validation-rec-dev-1',
+        refusalReasons: [{ code: 'VALIDATION_DIVERGED', message: '验证存在差异', blocking: true }]
+      })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/rewrite-records/rewrite-dev-1' && requestPrefix === 'frontend-recommendation-rewrite-record-detail') {
+      await fulfillJson(route, {
+        rewriteRecordId: 'rewrite-dev-1',
+        tenantId: 'tenant-a',
+        recommendationId: 'rec-dev-1',
+        reviewStatus: 'APPROVED',
+        reviewedBy: 'dev-smoke',
+        reviewedAt: '2026-05-16T09:55:00',
+        publishStatus: 'PUBLISHED',
+        validationStatus: 'DIVERGED',
+        alertStatus: 'OPEN',
+        lastValidationRunId: 'validation-rec-dev-1',
+        autoApplyAllowed: false,
+        runtimeBindingId: 'runtime-dev-1',
+        runtimeRuleVersion: 'v1',
+        runtimeBindingScope: 'tenant-a',
+        runtimeBindingAt: '2026-05-16T09:58:00',
+        runtimeBindingBy: 'dev-smoke'
+      })
+      return
+    }
+
     if (pathname === '/api/sql-optimization/parse-history' && requestPrefix === 'frontend-parse-record-parse-history-page') {
       assert(
         !requestUrl.searchParams.has('historyType'),
@@ -475,6 +682,27 @@ const runBrowserSmoke = async baseUrl => {
       page.url().includes(ROUTE_PATHS.dashboard) && !page.url().includes('#'),
       `Expected history-mode dashboard route, got ${page.url()}`
     )
+    await page.getByText('改写治理', { exact: true }).click()
+    await page.locator('.app-menu').getByText('改写记录', { exact: true }).click()
+    await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
+    const rewriteRecordUrl = new URL(page.url())
+    assert(rewriteRecordUrl.pathname === ROUTE_PATHS.recommendationCenter, '改写记录导航必须复用推荐结果路由。')
+    assert(rewriteRecordUrl.searchParams.get('tab') === 'rewriteLifecycle', '改写记录导航必须进入 rewriteLifecycle tab。')
+    await page.getByTestId('recommendation-rewrite-lifecycle').waitFor({ timeout: defaultTimeoutMs })
+    await expectTextInLocator(page.getByTestId('recommendation-rewrite-validation-run-table'), 'validation-rec-dev-1')
+
+    await page.locator('.app-menu').getByText('改写历史', { exact: true }).click()
+    await page.getByTestId('sql-history-page').waitFor({ timeout: defaultTimeoutMs })
+    const rewriteHistoryUrl = new URL(page.url())
+    assert(rewriteHistoryUrl.pathname === ROUTE_PATHS.sqlHistory, '改写历史导航必须复用 SQL 历史查询路由。')
+    assert(rewriteHistoryUrl.searchParams.get('hasRewriteRecord') === 'true', '改写历史导航必须带 hasRewriteRecord=true。')
+    assert(rewriteHistoryUrl.searchParams.get('detailTab') === 'rewriteRecords', '改写历史导航必须带 detailTab=rewriteRecords。')
+
+    await page.goto(`${baseUrl}${ROUTE_PATHS.sqlHistory}?historyId=dev-history-deep-link&detailTab=rewriteRecords&hasRewriteRecord=true`, {
+      waitUntil: 'domcontentloaded'
+    })
+    await page.getByTestId('sql-history-detail-drawer').waitFor({ timeout: defaultTimeoutMs })
+    await expectTextInLocator(page.getByTestId('sql-history-rewrite-record-table'), 'rewrite-dev-1')
 
     await page.goto(`${baseUrl}${ROUTE_PATHS.runtimeGates}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('runtime-gates-page').waitFor({ timeout: defaultTimeoutMs })
@@ -566,8 +794,12 @@ const runBrowserSmoke = async baseUrl => {
     assert(governanceStatsCalls === 2, `Expected 2 governance stats calls, got ${governanceStatsCalls}`)
     assert(sqlHistoryPageCalls >= 1, `Expected SQL history page calls, got ${sqlHistoryPageCalls}`)
     assert(
-      sqlHistoryRewriteRecordCalls === 1,
-      `Expected one SQL history rewrite-record call, got ${sqlHistoryRewriteRecordCalls}`
+      sqlHistoryRewriteRecordCalls >= 2,
+      `SQL 历史改写记录接口至少应调用两次，实际为 ${sqlHistoryRewriteRecordCalls}`
+    )
+    assert(
+      recommendationRewriteValidationRunCalls >= 1,
+      `推荐页改写验证运行接口至少应调用一次，实际为 ${recommendationRewriteValidationRunCalls}`
     )
     assert(
       sqlHistoryPageRequests.some(item => item.pageNo === 2),
@@ -580,6 +812,10 @@ const runBrowserSmoke = async baseUrl => {
     assert(
       sqlHistoryPageRequests.some(item => item.pageNo === 1 && item.reportCode === 'DEV_RPT_FILTER'),
       `Expected SQL history submit-search request, got ${JSON.stringify(sqlHistoryPageRequests)}`
+    )
+    assert(
+      sqlHistoryPageRequests.some(item => item.hasRewriteRecord === 'true'),
+      `SQL 历史应收到改写记录路由筛选请求，实际为 ${JSON.stringify(sqlHistoryPageRequests)}`
     )
     assert(parseHistoryPageCalls >= 1, `Expected parse history page calls, got ${parseHistoryPageCalls}`)
     assert(unexpectedApiRequests.length === 0, `Unexpected API requests: ${unexpectedApiRequests.join(', ')}`)

@@ -84,6 +84,12 @@ const exportFormatOptions = [
   { label: 'MARKDOWN', value: 'MARKDOWN' }
 ]
 
+const DETAIL_TAB_NAMES = ['overview', 'execution', 'sql', 'rewriteRecords', 'signals', 'refs', 'audit']
+const normalizeDetailTab = value => {
+  const tabName = Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim()
+  return DETAIL_TAB_NAMES.includes(tabName) ? tabName : ''
+}
+
 const loading = reactive({
   detail: false,
   lookup: false,
@@ -855,6 +861,19 @@ const clearFilters = async () => {
   await clearListFilters()
 }
 
+const syncRouteSearchFilters = () => {
+  syncRouteTenant()
+  searchForm.hasRewriteRecord = normalizeQueryValue(route.query.hasRewriteRecord)
+  searchForm.rewriteValidationStatus = normalizeQueryValue(route.query.rewriteValidationStatus)
+  searchForm.rewriteSourceType = normalizeQueryValue(route.query.rewriteSourceType)
+  searchForm.recommendationId = normalizeQueryValue(route.query.recommendationId)
+  if (searchForm.hasRewriteRecord === 'false') {
+    searchForm.rewriteValidationStatus = ''
+    searchForm.rewriteSourceType = ''
+    searchForm.recommendationId = ''
+  }
+}
+
 const resetRewriteRecords = () => {
   rewriteRecordsResponse.value = null
   rewriteRecordsLoadedHistoryId.value = ''
@@ -924,12 +943,19 @@ const openHistoryDetail = async historyId => {
   loading.detail = true
   workflowErrorMessage.value = ''
   activeDetailTab.value = 'overview'
+  const routeDetailTab = normalizeDetailTab(route.query.detailTab)
+  if (routeDetailTab) {
+    activeDetailTab.value = routeDetailTab
+  }
   resetRewriteRecords()
   try {
     selectedHistoryDetail.value = await getGovernanceQueryHistoryDetail(requestTenantId.value, normalizedHistoryId, {
       requestPrefix: 'frontend-sql-history-detail'
     })
     detailDrawerVisible.value = true
+    if (activeDetailTab.value === 'rewriteRecords') {
+      await loadRewriteRecords({ force: true })
+    }
   } catch (error) {
     selectedHistoryDetail.value = null
     workflowErrorMessage.value = formatRuntimeError(error)
@@ -953,7 +979,8 @@ const openRecommendationCenter = recommendationOrRecord => {
     query: {
       tenantId: requestTenantId.value,
       recommendationId: normalizedRecommendationId,
-      rewriteRecordId: normalizedRewriteRecordId
+      rewriteRecordId: normalizedRewriteRecordId,
+      tab: 'rewriteLifecycle'
     }
   })
 }
@@ -1218,7 +1245,7 @@ const formatTimestamp = value => {
 const formatJson = value => JSON.stringify(value, null, 2)
 
 onMounted(async () => {
-  syncRouteTenant()
+  syncRouteSearchFilters()
   await initializeList()
   await openRouteDeepLink()
 })
@@ -1237,7 +1264,7 @@ watch(
 watch(
   () => route.fullPath,
   async () => {
-    syncRouteTenant()
+    syncRouteSearchFilters()
     pageInfo.currentPage = 1
     await initializeList()
     await openRouteDeepLink()

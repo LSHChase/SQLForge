@@ -462,6 +462,23 @@ export const NAVIGATION_TREE = [
     directItem: navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.accelerationRewriteCenter')
   },
   {
+    key: 'rewrite-governance',
+    label: 'navigation.modules.rewriteGovernance',
+    items: [
+      navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.rewriteRecords', {
+        query: {
+          tab: 'rewriteLifecycle'
+        }
+      }),
+      navItem('sqlHistory', 'sqlHistory.title', 'navigation.items.rewriteHistory', {
+        query: {
+          hasRewriteRecord: 'true',
+          detailTab: 'rewriteRecords'
+        }
+      })
+    ]
+  },
+  {
     key: 'auxiliary-governance',
     label: 'navigation.modules.auxiliaryGovernance',
     sections: [

@@ -43,7 +43,7 @@ const DEFAULT_SEARCH_FORM = Object.freeze({
   reportId: ''
 })
 
-const normalizeQueryValue = value => String(value || '').trim()
+const normalizeQueryValue = value => (Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim())
 
 const parseBooleanFilter = value => {
   if (value === 'true') {

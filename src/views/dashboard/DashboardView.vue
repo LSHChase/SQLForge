@@ -46,6 +46,32 @@ const isChinese = computed(() => locale.value === 'zh-CN')
 const historyItems = computed(() => queryHistoryPage.value?.items || [])
 const parseHistoryItems = computed(() => parseHistoryPage.value?.items || [])
 const accessCounts = computed(() => queryHistoryPage.value?.classificationSummary?.accessChannelCounts || {})
+
+const compactQuery = query =>
+  Object.fromEntries(
+    Object.entries(query).filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+  )
+
+const rewriteRecordTarget = (record = {}) => ({
+  path: ROUTE_PATHS.recommendationCenter,
+  query: compactQuery({
+    tenantId: form.tenantId,
+    tab: 'rewriteLifecycle',
+    recommendationId: record.recommendationId,
+    rewriteRecordId: record.rewriteRecordId
+  })
+})
+
+const rewriteHistoryTarget = (extraQuery = {}) => ({
+  path: ROUTE_PATHS.sqlHistory,
+  query: compactQuery({
+    tenantId: form.tenantId,
+    hasRewriteRecord: 'true',
+    detailTab: 'rewriteRecords',
+    ...extraQuery
+  })
+})
+
 const historyWindowStats = computed(() => {
   const stats = {
     total: historyItems.value.length,
@@ -286,7 +312,7 @@ const quickEntries = computed(() => [
     title: t('inline.viewsDashboardDashboardView.text024'),
     description: t('inline.viewsDashboardDashboardView.text025'),
     status: isChinese.value ? `${rewriteStats.value.total} 条改写记录样本` : `${rewriteStats.value.total} rewrite-record samples`,
-    path: ROUTE_PATHS.recommendationCenter
+    path: rewriteRecordTarget()
   }
 ])
 
@@ -420,7 +446,7 @@ const nextStepItems = computed(() => {
       description: isChinese.value
         ? `${rewriteStats.value.attention} 条改写记录样本需要关注 review、publish、paused 或 validation 状态。`
         : `${rewriteStats.value.attention} rewrite-record samples need review, publish, paused, or validation attention.`,
-      path: ROUTE_PATHS.recommendationCenter
+      path: rewriteHistoryTarget()
     })
   }
   importantUrgent.value.slice(0, 2).forEach((item, index) => {
@@ -484,7 +510,7 @@ const activityItems = computed(() => {
     target: item.rewriteRecordId || item.recommendationId || item.sqlFingerprint || '-',
     status: item.validationStatus || item.publishStatus || item.reviewStatus || 'UNKNOWN',
     time: formatTimestamp(item.updatedAt || item.lastComparedAt || item.createdAt),
-    path: ROUTE_PATHS.recommendationCenter,
+    path: rewriteRecordTarget(item),
     sortValue: toEpoch(item.updatedAt || item.lastComparedAt || item.createdAt)
   }))
   return [...historyActivities, ...parseActivities, ...recommendationActivities, ...rewriteActivities]
