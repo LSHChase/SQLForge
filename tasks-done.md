@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-FE-006: 推荐结果页面聚焦 SQL diff 与收益风险
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `feat(frontend): refocus recommendation results HARN-FE-006`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将 RecommendationCenterView.vue 的主视觉调整为正式推荐结果页面，突出推荐列表、SQL diff、收益风险、规则链和推荐来源；保留既有审批、发布、dispatch、trace 和自动应用语义不变，审批/发布能力仅降权为辅助证据区；同步前端展示契约检查与必要 i18n 文案，不新增后端 API、不改数据库、不改变 recommendation diff 语义。
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-006`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 推荐结果页完成 HARN-FE-006 聚焦收口：详情顶部新增推荐来源、收益、风险、diff 状态和规则差异焦点摘要；新推荐默认进入 SQL 差异页签，diff 不可用时回到摘要；tab 顺序调整为摘要、SQL 差异、规则与风险、SQL 证据、改写复核与发布、Dispatch 契约、追溯链、Dispatch 事件；规则链、前置条件、语义风险和未应用规则从仅数量/原始抽屉提升为可读摘要；保留审批、发布、dispatch、trace 和自动应用语义不变，并强化推荐页契约防回退。
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-006 --include-task-audit --extra-command npm-run-lint --extra-command npm-run-build --extra-command check-recommendation-page-contract --extra-command frontend-page-governance --extra-command sql-ui-contract --extra-command git-diff-check 通过；node scripts/check-recommendation-page-contract.mjs 通过；npm run lint 通过；npm run build 通过；npm run test:frontend-page-governance 通过；npm run test:sql-ui-contract 通过；git diff --check 通过；python3 scripts/task_audit.py --check --phase pre-closeout 通过；R-186 截图自检通过，证据为 .codex-log/harn-fe-006/after-desktop.png 与 after-narrow.png。
+  - Residual risk: 本任务只调整前端展示层与静态契约，不改变后端 recommendation diff 语义、推荐状态机、审批、发布或自动应用行为；截图和 browser evidence 使用 repo-closed mock 数据，真实 Hetu/MRS 外部环境验证仍按 HARN-016 / INBOX-002 跟踪。
+  - Next step: 进入 HARN-FE-007，收口改写记录与改写历史入口。
+
 ### HARN-FE-005: SQL 历史与解析历史强化关联链路
 
 - Status: done

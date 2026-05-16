@@ -4109,3 +4109,60 @@
 2026-05-16T05:54:32-05:00 | HARN-FE-005 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-05-16T05:54:32-05:00 | HARN-FE-005 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:frontend-dev (projected-precommit)`
 2026-05-16T05:54:32-05:00 | HARN-FE-005 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`
+2026-05-16T07:35:54-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T07:35:54-05:00 | HARN-FE-006 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T07:36:12-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T07:36:12-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T07:36:13-05:00 | HARN-FE-006 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-16T07:36:17-05:00 | HARN-FE-006 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-16T07:36:17-05:00 | HARN-FE-006 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-16T07:36:17-05:00 | HARN-FE-006 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-16T07:36:18-05:00 | HARN-FE-006 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-16T07:36:18-05:00 | HARN-FE-006 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-16T07:36:18-05:00 | HARN-FE-006 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T07:36:19-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-16T07:36:23-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-16T07:36:23-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-16T07:36:23-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run test:frontend-page-governance`
+2026-05-16T07:36:24-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-16T07:36:24-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-16T07:36:49-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T07:36:49-05:00 | HARN-FE-006 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T07:37:01-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T07:37:01-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T07:37:02-05:00 | HARN-FE-006 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-16T07:37:06-05:00 | HARN-FE-006 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-16T07:37:06-05:00 | HARN-FE-006 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-16T07:37:06-05:00 | HARN-FE-006 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-16T07:37:07-05:00 | HARN-FE-006 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-16T07:37:07-05:00 | HARN-FE-006 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-16T07:37:07-05:00 | HARN-FE-006 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T07:37:08-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-16T07:37:12-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-16T07:37:12-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-16T07:37:13-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run test:frontend-page-governance`
+2026-05-16T07:37:13-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-16T07:37:13-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-16T07:42:01-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-16T07:42:01-05:00 | HARN-FE-006 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-16T07:42:15-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 scripts/validate_codex_runtime.py`
+2026-05-16T07:42:15-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-16T07:42:17-05:00 | HARN-FE-006 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-16T07:42:21-05:00 | HARN-FE-006 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-16T07:42:21-05:00 | HARN-FE-006 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-16T07:42:21-05:00 | HARN-FE-006 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-16T07:42:21-05:00 | HARN-FE-006 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-16T07:42:21-05:00 | HARN-FE-006 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-16T07:42:21-05:00 | HARN-FE-006 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T07:42:23-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-16T07:42:27-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-16T07:42:27-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-16T07:42:27-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run test:frontend-page-governance`
+2026-05-16T07:42:27-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-16T07:42:27-05:00 | HARN-FE-006 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-16T07:43:25-05:00 | HARN-FE-006 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-16T07:43:25-05:00 | HARN-FE-006 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): refocus recommendation results HARN-FE-006' (projected-precommit)`
+2026-05-16T07:43:25-05:00 | HARN-FE-006 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-16T07:43:25-05:00 | HARN-FE-006 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-16T07:43:25-05:00 | HARN-FE-006 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-recommendation-page-contract.mjs (projected-precommit)`
+2026-05-16T07:43:25-05:00 | HARN-FE-006 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1..HEAD' (projected-precommit)`

@@ -1305,6 +1305,7 @@ export default {
       dispatchEvents: 'Dispatch events'
     },
     sections: {
+      focusSummary: 'Result focus',
       compareView: 'Before/after compare',
       textDiff: 'Text diff',
       astSummary: 'AST summary diff',

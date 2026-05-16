@@ -7,6 +7,7 @@ const targets = [
       'data-testid="recommendation-page"',
       'data-testid="recommendation-filter"',
       'data-testid="recommendation-detail"',
+      'data-testid="recommendation-focus-summary"',
       'data-testid="recommendation-dispatch-contract"',
       'data-testid="recommendation-dispatch-event"',
       'data-testid="recommendation-trace-refs"',
@@ -17,9 +18,13 @@ const targets = [
       'data-testid="recommendation-ast-summary-diff"',
       'data-testid="recommendation-rule-diff"',
       'data-testid="recommendation-rule-chain"',
+      'data-testid="recommendation-rule-chain-summary"',
       'data-testid="recommendation-preconditions"',
+      'data-testid="recommendation-preconditions-summary"',
       'data-testid="recommendation-semantic-risks"',
+      'data-testid="recommendation-semantic-risks-summary"',
       'data-testid="recommendation-unapplied-rules"',
+      'data-testid="recommendation-unapplied-rules-summary"',
       'data-testid="recommendation-rewrite-lifecycle"',
       'data-testid="recommendation-rewrite-lifecycle-state"',
       'data-testid="recommendation-rewrite-record-select"',
@@ -49,10 +54,13 @@ const targets = [
       'comparePaneClass',
       'hunkTagType',
       'astSummaryDiff',
+      'focusSummaryCards',
       'ruleChain',
       'preconditions',
       'semanticRisks',
       'unappliedRules',
+      'summarizeEvidenceItem',
+      "activeDetailTab.value = recommendationDiff.value ? 'sqlDiff' : 'summary'",
       'manualReviewRequired',
       'reviewSqlRewriteRecord',
       'getSqlRewriteRecords',
@@ -129,6 +137,37 @@ for (const target of targets) {
         throw new Error(`Recommendation page must not reintroduce stacked card/list token ${JSON.stringify(token)}`)
       }
     }
+    assertOrderedTokens(target.path, content, [
+      'name="summary"',
+      'name="sqlDiff"',
+      'name="rulesRisk"',
+      'name="sqlEvidence"',
+      'name="rewriteLifecycle"',
+      'name="dispatchContract"',
+      'name="traceability"',
+      'name="dispatchEvents"'
+    ])
+    assertOrderedTokens(target.path, content, [
+      'data-testid="recommendation-focus-summary"',
+      'data-testid="recommendation-sql-diff"',
+      'data-testid="recommendation-rule-chain-summary"',
+      'data-testid="recommendation-rewrite-lifecycle"',
+      'data-testid="recommendation-dispatch-contract"'
+    ])
+  }
+}
+
+function assertOrderedTokens(path, content, orderedTokens) {
+  let previousIndex = -1
+  for (const token of orderedTokens) {
+    const index = content.indexOf(token)
+    if (index === -1) {
+      throw new Error(`Missing ordered token ${JSON.stringify(token)} in ${path}`)
+    }
+    if (index <= previousIndex) {
+      throw new Error(`推荐结果页 token 顺序错误：${path} 中 ${JSON.stringify(token)} 未位于前一个 token 之后`)
+    }
+    previousIndex = index
   }
 }
 

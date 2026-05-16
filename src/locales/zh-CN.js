@@ -1289,6 +1289,7 @@ export default {
       dispatchEvents: 'Dispatch 事件'
     },
     sections: {
+      focusSummary: '结果焦点',
       compareView: '改写前后 Compare',
       textDiff: '文本差异',
       astSummary: 'AST 摘要差异',
