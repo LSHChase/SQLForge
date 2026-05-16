@@ -8,6 +8,7 @@
 
 - 核心目标：让前端第一视觉聚焦真实 SQL 工作流：`SQL 查询分析 -> SQL 历史查询 -> SQL 解析 -> 解析历史 -> 推荐结果 -> 改写记录 -> 改写历史`。
 - 产品原则：核心功能用于完成 SQL 分析闭环；审计、追踪、审批、告警、运行门禁、恢复演练等只作为辅助治理证据，不抢占核心视角。
+- 文档权威：HARN-FE-001A 已确认本文是前端展示层菜单与视觉权重的当前权威；`docs/product/sql-governance-platform-implementation-spec.md` 中的历史一级模块清单保留为产品能力域基线。
 - 交付边界：本任务包默认不新增后端 API、不改数据库、不改变推荐、改写、审批、发布、自动应用的业务语义。
 - 参考页边界：`加速治理工作台`只作为模拟核心流程执行的参考页面，按 `AI 交付` 类临时/参考页逻辑保留，不作为实际项目交付功能页面。
 - Codex 执行原则：每个任务都必须足够小、可独立验证、可单任务单 commit；不得以一个大任务同时改导航、首页、历史、推荐、改写和参考页。
@@ -96,11 +97,11 @@
 
 **接口契约**：保留现有 `ROUTE_PATHS`、route name、legacy redirect；只改变菜单树和可见分组。
 
-**技术约束**：不得删除现有页面组件；不得改变旧地址跳转；参考页可沿用 `deliveryProgressEnabled` 类似策略或低优先级参考分组。
+**技术约束**：不得删除现有页面组件；不得改变旧地址跳转；参考页可沿用 `deliveryProgressEnabled` 类似策略或低优先级参考分组；必须在同一任务内同步导航、工作台和页面治理契约脚本，避免旧 contract 继续把参考页强制为核心菜单。
 
 **分层定位**：`frontend/router`。
 
-**测试策略**：`npm run test:frontend-page-governance`、导航契约脚本、`git diff --check`。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/check-navigation-shell-contract.mjs`、`node scripts/check-acceleration-workbench-contract.mjs`、前端 before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-001。
 
@@ -122,7 +123,7 @@
 
 **分层定位**：`frontend/i18n`。
 
-**测试策略**：`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance`、必要时执行 i18n copy 检查。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance`、`npm run test:i18n-copy`、`git diff --check`。
 
 **依赖**：HARN-FE-002。
 
@@ -144,7 +145,7 @@
 
 **分层定位**：`frontend/views/dashboard`。
 
-**测试策略**：`npm run test:frontend-page-governance`、Dashboard contract 检查、视觉自检。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、Dashboard contract 检查、before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-003。
 
@@ -166,7 +167,7 @@
 
 **分层定位**：`frontend/views/sql-history`、`frontend/views/parse-record`。
 
-**测试策略**：`npm run test:sql-ui-contract`、history page/detail contract、parse history contract、`git diff --check`。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、history page/detail contract、parse history contract、before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-003。
 
@@ -188,7 +189,7 @@
 
 **分层定位**：`frontend/views/recommendation-center`。
 
-**测试策略**：`node scripts/check-recommendation-page-contract.mjs`、`npm run test:frontend-page-governance`、`npm run test:sql-ui-contract`、视觉自检。
+**测试策略**：`npm run lint`、`npm run build`、`node scripts/check-recommendation-page-contract.mjs`、`npm run test:frontend-page-governance`、`npm run test:sql-ui-contract`、before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-003。
 
@@ -206,11 +207,11 @@
 
 **接口契约**：复用既有改写记录、发布资格、验证运行、SQL 历史关联改写接口；不新增独立后端 API。
 
-**技术约束**：`改写记录`关注当前记录状态；`改写历史`关注历史关联、验证运行、结果差异、暂停原因。审批是详情动作，不成为独立核心菜单。
+**技术约束**：`改写记录`关注当前记录状态；`改写历史`关注历史关联、验证运行、结果差异、暂停原因。v1 默认复用现有 `推荐结果` 与 `SQL 历史查询` route，并通过 query/tab 深链进入对应 tab；除非人工确认，不新增独立 view、独立 route 或后端接口。审批是详情动作，不成为独立核心菜单。
 
 **分层定位**：`frontend/router`、`frontend/views/recommendation-center`、`frontend/views/sql-history`。
 
-**测试策略**：`npm run test:sql-ui-contract`、recommendation page contract、history detail contract、`git diff --check`。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、recommendation page contract、history detail contract、before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-006。
 
@@ -232,7 +233,7 @@
 
 **分层定位**：`frontend/router`、`frontend/views/acceleration-governance`、`frontend/runtime-flags`。
 
-**测试策略**：`npm run test:frontend-page-governance`、`npm run test:sql-ui-contract`、`node scripts/check-acceleration-workbench-contract.mjs`、前端 smoke、`git diff --check`。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`npm run test:sql-ui-contract`、`node scripts/check-acceleration-workbench-contract.mjs`、前端 smoke、before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-002 至 HARN-FE-007。
 
@@ -258,6 +259,7 @@
 - 禁止使用 `git add .`、`git add -A`、`git commit -a`、`git reset --hard`。
 - 每个任务开始时必须重新读取本文件、`docs/README.md`、`docs/rules/codex-rules.md`、`docs/quality/validation-rules.md` 和命中的产品/前端文档。
 - 不改后端接口、不新增数据库迁移、不改变推荐/改写状态语义，除非该任务重新被人工确认并拆出后端专项任务。
+- 涉及前端页面、路由、菜单或 i18n 的任务，默认执行 `npm run lint`、`npm run build`、`npm run test:frontend-page-governance` 和 R-186 截图自检；命中 SQL 展示、历史或推荐页面时追加 `npm run test:sql-ui-contract` 与对应 contract 脚本。
 - 每个任务 closeout 前运行 `python3 scripts/task_audit.py --check --phase pre-closeout`，closeout 后运行 post-closeout 检查。
 
 ## 验收总口径

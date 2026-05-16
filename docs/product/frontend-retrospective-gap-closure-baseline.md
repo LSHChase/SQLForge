@@ -62,6 +62,12 @@
   - 或 `PULL_ONLY`
   之一，禁止把当前仓库没有全局聚合接口的指标写成全租户最终事实。
 
+## HARN-FE-001A Display IA Supersession
+
+U-TASK-004 的结论仍用于说明当时的 repo-closed 修复结果，但 HARN-FE-001 / HARN-FE-001A 已把后续前端展示目标调整为“核心 SQL 工作流优先”。后续导航、首页和页面标题改造以 `docs/plans/frontend-core-workflow-refocus-task-pack.md` 为展示层权威：`SQL 查询分析`、`SQL 历史查询`、`SQL 解析`、`解析历史`、`推荐结果`、`改写记录` 和 `改写历史` 构成核心路径，审计、追踪、告警、运行门禁和恢复演练作为辅助治理证据后置。
+
+该 supersession 只覆盖前端信息架构和视觉权重，不改变已有后端接口、数据模型、推荐/改写状态语义或 `PULL_ONLY` 边界。HARN-FE-002 实施导航时，必须在同一任务内同步导航契约脚本，避免旧 contract 继续强制 `加速治理工作台` 作为 `解析与加速` 正式菜单项。
+
 ## Remaining Pending Gaps
 
 以下缺口在当前仓库内不能仅靠前端闭环，必须继续保持显式边界：

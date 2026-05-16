@@ -24,6 +24,7 @@
    - [加速与改写治理工作台方案](./product/acceleration-rewrite-governance-workbench-spec.md)
    - [生产自动改写闭环任务拆解计划](./plans/production-rewrite-auto-apply-task-plan.md)
    - [前端复盘补漏基线](./product/frontend-retrospective-gap-closure-baseline.md)
+   - [前端核心链路聚焦改造任务包](./plans/frontend-core-workflow-refocus-task-pack.md)
    - [C4 文字总览](./architecture/c4-overview.md)
    - [持久化基线](./architecture/persistence.md)
    - [消息抽象说明](./architecture/messaging-abstraction.md)
@@ -136,6 +137,7 @@
   - `document-governance-retrospective-2026-04-20.md`：本轮治理复盘实例。
   - `document-governance-repair-retrospective-2026-04-20.md`：本轮严格核验修复复盘实例。
   - `task-governance-extension-matrix.md`：Task 的人工确认点、数据影响、回滚扩展矩阵。
+  - `frontend-core-workflow-refocus-task-pack.md`：HARN-FE-001A 确认后的前端展示层菜单与核心 SQL 工作流聚焦改造权威入口。
 - `exec-plans/`
   已确认复杂执行计划的活动、归档与模板目录。
 - `generated/`

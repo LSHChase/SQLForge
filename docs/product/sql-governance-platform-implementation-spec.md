@@ -92,7 +92,7 @@
 
 ## 3. Information Architecture
 
-一级模块固定为：
+以下一级模块是 SQL 治理平台的产品能力域基线，用于约束服务边界、页面能力归属和历史规格追溯：
 
 1. `Dashboard`
 2. `SQL 查询`
@@ -103,6 +103,8 @@
 7. `压测中心`
 8. `系统管理`
 9. `开放接入`
+
+HARN-FE-001 / HARN-FE-001A 之后，前端展示层菜单以 `docs/plans/frontend-core-workflow-refocus-task-pack.md` 为当前聚焦改造权威：它可以把上述能力域重新组织为 `SQL 查询分析`、`SQL 历史查询`、`SQL 解析`、`解析历史`、`推荐结果`、`改写治理`、`辅助治理` 等用户路径。该展示层重组只改变导航命名、排序和首屏权重，不改变后端 API、数据库 schema、推荐/改写状态机、审批发布语义或 `PULL_ONLY` 装数协同边界。
 
 ## 4. Module and Page Design
 

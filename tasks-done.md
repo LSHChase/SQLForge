@@ -4,6 +4,25 @@
 
 ## Done
 
+### HARN-FE-001A: 对齐前端核心菜单文档真值
+
+- Status: done
+- Completed at: 2026-05-16
+- Commit subject: `docs(frontend): align core workflow IA authority`
+- Priority: 1
+- Depends on: HARN-FE-001
+- Scope: Docs-only alignment for HARN-FE-001: synchronize product/front-end plan truth for the core workflow refocus task pack before navigation implementation; update documentation authority and validation expectations only, without changing frontend code, backend APIs, database schema, route behavior, or contract scripts.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-FE-001A`
+- Progress log:
+  - 2026-05-16: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-16: aligned docs/product/sql-governance-platform-implementation-spec.md, docs/product/frontend-retrospective-gap-closure-baseline.md, docs/plans/frontend-core-workflow-refocus-task-pack.md and docs/README.md so HARN-FE menu refocus is the frontend display IA authority before navigation implementation.
+- Context closeout:
+  - Completed scope: Aligned HARN-FE-001 frontend display IA authority across product spec, frontend retrospective baseline, task pack validation requirements, docs entry index, and compiled governance authority map; no frontend runtime code, backend API, database schema, route behavior, or contract script behavior changed.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-FE-001A --include-task-audit --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'python3 scripts/foreman.py compile-governance --check' --extra-command 'git diff --check' passed after compiling governance policy; direct git diff --check passed.
+  - Residual risk: HARN-FE-002 still needs to implement the actual navigation tree and update navigation/workbench contract scripts in the same task; this docs-only task intentionally did not change frontend code.
+  - Next step: Materialize HARN-FE-002 to update NAVIGATION_TREE, i18n labels, reference-page placement, and matching contract scripts under the aligned IA authority.
+
 ### HARN-FE-001: 固化前端核心菜单与功能边界任务包
 
 - Status: done
