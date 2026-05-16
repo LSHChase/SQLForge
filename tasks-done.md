@@ -4,6 +4,24 @@
 
 ## Done
 
+### OPS-CODEX-TMP-IGNORE-20260516: Ignore Codex tmp runtime files
+
+- Status: done
+- Completed at: 2026-05-15
+- Commit subject: `chore: ignore codex tmp files`
+- Priority: 1
+- Depends on: N/A
+- Scope: Add .codex/tmp/** to .gitignore so local Codex npm/cache temp files do not appear as untracked changes.
+- Validation:
+  - `python3 scripts/foreman.py validate OPS-CODEX-TMP-IGNORE-20260516`
+- Progress log:
+  - 2026-05-15: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added .codex/tmp/** to the repository ignore rules so local Codex npm/cache runtime files no longer appear as untracked changes.
+  - Validation evidence: python3 scripts/foreman.py validate OPS-CODEX-TMP-IGNORE-20260516 --include-task-audit attempted; py_compile and pre-closeout task audit passed; node scripts/lint-repository-knowledge.js failed on pre-existing document coverage matrix entries for docs/SQLForge.md, docs/SQLForgeV1.0.md, and docs/SQLTest.md.
+  - Residual risk: Repository knowledge lint remains blocked by unrelated document-coverage-matrix drift; the .codex/tmp ignore rule itself was verified by git ls-files --others --exclude-standard -- .codex/tmp returning 0.
+  - Next step: Track the document coverage matrix drift separately before treating repository-wide knowledge lint as green.
+
 ### USER-REPORT-IMPORT-SAMPLE-20260516: Generate report import XLSX stress sample
 
 - Status: done
