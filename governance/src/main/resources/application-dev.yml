@@ -28,9 +28,9 @@ messaging:
 
 logging:
   level:
-    root: DEBUG
-    com.company.governance: DEBUG
-    org.mybatis: DEBUG
+    root: INFO
+    com.company.governance: INFO
+    org.mybatis: INFO
 
 sqlforge:
   optional:

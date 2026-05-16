@@ -44,6 +44,8 @@
 | `docs/product/sql-governance-platform-implementation-spec.md` | Authority | SQL 治理中后台 + 开放接入平台产品实施规格 | Consumed | `HARN-042` 与后续 D/E/F Story 的产品目标、页面与流程权威落点 |
 | `docs/product/acceleration-rewrite-governance-workbench-spec.md` | Authority | 加速与改写治理工作台、SQL diff、改写记录、周期比对告警与任务拆分方案 | Consumed | `HARN-127`、`HARN-143`、`HARN-144` 与后续 `HARN-128` 至 `HARN-142` 的方案、页面、接口、数据模型与任务边界权威落点 |
 | `docs/product/frontend-retrospective-gap-closure-baseline.md` | Authority | 前端复盘、规格补漏与 repo-closed 边界基线 | Consumed | `U-TASK-004` 的前端差距基线、导航/首页补漏边界与剩余待后端承接项权威落点 |
+| `docs/report-import-parse-stress-sample.md` | Indexed | 报表导入解析 XLSX 压测样例说明 | Referenced | 记录本次报表导入测试样例的模板、规模、低质量 SQL 场景、自测边界与使用参数 |
+| `docs/report-import-parse-stress-sample.xlsx` | Archive | 报表导入解析 XLSX 压测样例文件 | Archived | 供后续手动导入测试使用；按 `report_code` + `sql_1..sql_120` 宽表模板保留 |
 | `docs/agent-prompts/auto-planner.md` | Indexed | requirement-driven auto planner prompt 模板 | Referenced | 约束 full-auto 模式下的 exec plan 与 manifest 自动生成，不允许绕过 Main Foreman 治理链 |
 | `docs/agent-prompts/auto-foreman.md` | Indexed | autonomous Main Foreman prompt 模板 | Referenced | 约束 full-auto 模式下 collect 之后的 fan-in、验证与 closeout 收口行为 |
 | `docs/agent-prompts/requirement-normalizer.md` | Indexed | requirement normalization prompt 模板 | Referenced | 约束从无 task 开始时的需求标准化输出，不允许把推断写成正式治理事实 |

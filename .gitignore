@@ -27,6 +27,5 @@ __pycache__/
 !.codex/state/.gitkeep
 !.codex/state/current-task.example.json
 !.codex/state/*.example.json
-
 codex-history-list/
 docs/references/raw-requirements/generated/*.md
