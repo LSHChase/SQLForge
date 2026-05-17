@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-SAMPLE-VALIDATION-20260517: 验证第2类 SQL 解析与推荐改写
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `test: verify manual review rewrite samples USER-CN-REWRITE-SAMPLE-VALIDATION-20260517`
+- Priority: 1
+- Depends on: N/A
+- Scope: 用第2类人工复核 SQL 样例实际跑 SQL 解析和推荐改写链路，确认推荐 SQL 是否保持原文、unappliedRules/manualReviewRequired 是否出现；若发现用户可见样例或实现口径误导，则修正并验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-SAMPLE-VALIDATION-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added focused regression coverage proving item-2 manual-review SQL samples do not produce safe candidate rewritten SQL and instead surface as unapplied rules requiring manual review.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-SAMPLE-VALIDATION-20260517 --include-task-audit --extra-command 'mvn -pl sql-optimization,sqlforge-shared -am -Dtest=SqlOptimizationManualReviewSampleTest -Dsurefire.failIfNoSpecifiedTests=false test' --extra-command 'git diff --check'
+  - Residual risk: Parse-triggered persisted rewrite recommendations remain limited to the configured target issue scenes; some manual-review shapes require an explicit rewrite task or a target parse issue scene to create a recommendation row.
+  - Next step: Use L0 safe-rule samples when the expectation is visibly changed candidate SQL; use item-2 samples to verify unappliedRules and manual-review behavior.
+
 ### USER-CN-RECOMMENDATION-SOURCE-FILTER-20260517: 推荐结果来源类型联动筛选
 
 - Status: done
