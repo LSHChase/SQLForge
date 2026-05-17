@@ -46,6 +46,7 @@
 | `docs/frontend/form-component-governance.md` | Authority | 页面表单组件语义治理基线 | Consumed | `HARN-045` 的日期时间、租户、数据源、枚举、布尔、数值与敏感输入组件映射权威落点 |
 | `docs/product/sql-governance-platform-implementation-spec.md` | Authority | SQL 治理中后台 + 开放接入平台产品实施规格 | Consumed | `HARN-042` 与后续 D/E/F Story 的产品目标、页面与流程权威落点 |
 | `docs/product/acceleration-rewrite-governance-workbench-spec.md` | Authority | 加速与改写治理工作台、SQL diff、改写记录、周期比对告警与任务拆分方案 | Consumed | `HARN-127`、`HARN-143`、`HARN-144` 与后续 `HARN-128` 至 `HARN-142` 的方案、页面、接口、数据模型与任务边界权威落点 |
+| `docs/product/sql-rewrite-function-boundary-design.md` | Authority | SQL 改写验证、推荐结果 / 改写记录、真实 SQL 改写历史的产品分层、边界和联动方案 | Consumed | 约束解析记录来源改写、推荐治理对象和生产执行改写历史的归属，供后续前端和产品任务引用 |
 | `docs/product/frontend-retrospective-gap-closure-baseline.md` | Authority | 前端复盘、规格补漏与 repo-closed 边界基线 | Consumed | `U-TASK-004` 的前端差距基线、导航/首页补漏边界与剩余待后端承接项权威落点 |
 | `docs/report-import-parse-stress-sample.md` | Indexed | 报表导入解析 XLSX 压测样例说明 | Referenced | 记录本次报表导入测试样例的模板、规模、低质量 SQL 场景、自测边界与使用参数 |
 | `docs/report-import-parse-stress-sample.xlsx` | Archive | 报表导入解析 XLSX 压测样例文件 | Archived | 供后续手动导入测试使用；按 `report_code` + `sql_1..sql_120` 宽表模板保留 |

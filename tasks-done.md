@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517: Write SQL rewrite function boundary design
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `docs(product): document SQL rewrite function boundaries`
+- Priority: 1
+- Depends on: HARN-FE-007,PRW-012
+- Scope: Document the three SQL rewrite function surfaces, include parse-history-sourced rewrite ownership, and align product boundaries without code or schema changes.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added a product design scheme for the three SQL rewrite function surfaces, including parse-history-sourced rewrite ownership, cross-page linkage, state evidence rules, boundaries, non-goals, and acceptance criteria. Linked the scheme from docs README, the SQL governance product spec, and the document coverage matrix.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'git diff --check'
+  - Residual risk: Docs-only scheme; no frontend route, backend API, schema, or runtime behavior was changed.
+  - Next step: Use docs/product/sql-rewrite-function-boundary-design.md as the product authority when materializing future SQL rewrite validation, recommendation/record, or rewrite history UI tasks.
+
 ### USER-CN-REWRITE-SAMPLE-VALIDATION-20260517: 验证第2类 SQL 解析与推荐改写
 
 - Status: done

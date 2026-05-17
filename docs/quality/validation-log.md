@@ -4318,3 +4318,12 @@
 2026-05-17T08:02:26-05:00 | USER-CN-REWRITE-SAMPLE-VALIDATION-20260517 closeout commit | `R-168` | projected | `git commit -m 'test: verify manual review rewrite samples USER-CN-REWRITE-SAMPLE-VALIDATION-20260517' (projected-precommit)`
 2026-05-17T08:02:26-05:00 | USER-CN-REWRITE-SAMPLE-VALIDATION-20260517 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-17T08:02:26-05:00 | USER-CN-REWRITE-SAMPLE-VALIDATION-20260517 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `mvn -pl sql-optimization,sqlforge-shared -am -Dtest=SqlOptimizationManualReviewSampleTest -Dsurefire.failIfNoSpecifiedTests=false test (projected-precommit)`
+2026-05-17T08:22:59-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-17T08:22:59-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-17T08:23:00-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-17T08:23:00-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-17T08:23:48-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-17T08:23:48-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 closeout commit | `R-168` | projected | `git commit -m 'docs(product): document SQL rewrite function boundaries' (projected-precommit)`
+2026-05-17T08:23:48-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-17T08:23:48-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-17T08:23:48-05:00 | USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
