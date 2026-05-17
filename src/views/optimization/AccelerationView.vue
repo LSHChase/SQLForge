@@ -20,6 +20,7 @@ import {
 } from '../../services/runtimeGateApi'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
+import RewriteValidationView from '../rewrite-validation/RewriteValidationView.vue'
 import { buildDatasourceOptions, withCurrentOption } from '../common/formComponentGovernance'
 import { riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
 
@@ -1087,7 +1088,8 @@ watch(
 </script>
 
 <template>
-  <section class="runtime-page parse-workbench-page" data-testid="parse-workbench-page">
+  <RewriteValidationView v-if="isRewriteValidationEntry" />
+  <section v-else class="runtime-page parse-workbench-page" data-testid="parse-workbench-page">
     <div class="runtime-hero surface-card">
       <div>
         <p class="runtime-eyebrow sqlforge-code-label">{{ pageEyebrow }}</p>

@@ -6,6 +6,7 @@ import { chromium } from 'playwright'
 import { ROUTE_PATHS } from '../src/config/routePaths.mjs'
 
 const defaultTimeoutMs = Number(process.env.FRONTEND_DEV_SMOKE_TIMEOUT_MS || 20000)
+const rewriteValidationScreenshotPath = process.env.SQLFORGE_DEV_SMOKE_REWRITE_VALIDATION_SCREENSHOT || ''
 const browserCandidates = [
   process.env.FRONTEND_RUNTIME_BROWSER_BIN,
   '/usr/bin/google-chrome-stable',
@@ -252,6 +253,9 @@ const runBrowserSmoke = async baseUrl => {
   let sqlHistoryPageCalls = 0
   let sqlHistoryRewriteRecordCalls = 0
   let recommendationRewriteValidationRunCalls = 0
+  let rewriteValidationTaskPolls = 0
+  let rewriteValidationRecordCreateCalls = 0
+  let rewriteValidationRunCreateCalls = 0
   const sqlHistoryPageRequests = []
   const recommendationPageRequests = []
   let parseHistoryPageCalls = 0
@@ -339,6 +343,187 @@ const runBrowserSmoke = async baseUrl => {
         await fulfillJson(route, [])
         return
       }
+    }
+
+    if (pathname === '/api/sql-optimization/tasks' && requestPrefix === 'frontend-rewrite-validation-task-submit') {
+      assertDevHeaders(request, 'tenant-a', ['frontend-rewrite-validation-task-submit'])
+      const payload = parseJsonBody(request)
+      assert(payload.taskType === 'REWRITE', 'SQL 改写验证必须提交 REWRITE 优化任务。')
+      assert(payload.sqlText, 'SQL 改写验证任务必须携带原 SQL。')
+      assert(
+        payload.taskContext?.sourceType === 'COMBINED_PARSE',
+        `人工改写验证任务需要映射到 COMBINED_PARSE 来源，实际为 ${payload.taskContext?.sourceType}`
+      )
+      assert(
+        Array.isArray(payload.taskContext?.issueScenes) && payload.taskContext.issueScenes.includes('SELECT_STAR'),
+        'SQL 改写验证任务必须携带问题场景以便后端落推荐。'
+      )
+      await fulfillJson(route, {
+        taskId: 'rewrite-task-dev-1',
+        status: 'QUEUED',
+        currentPhase: 'SUBMITTED',
+        estimatedReadyAt: '2026-05-17T10:00:00',
+        statusQueryPath: '/api/sql-optimization/tasks/rewrite-task-dev-1',
+        contractStage: 'LONG_TERM_BASELINE',
+        implementationStage: 'ACCELERATION_PLAN_GOVERNANCE_BASELINE'
+      })
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/tasks/rewrite-task-dev-1' &&
+      (requestPrefix.startsWith('frontend-rewrite-validation-task-poll-') ||
+        requestPrefix.startsWith('frontend-sql-optimization-poll-') ||
+        requestPrefix === 'frontend-sql-optimization-status')
+    ) {
+      assertDevHeaders(request, 'tenant-a', [requestPrefix])
+      rewriteValidationTaskPolls += 1
+      await fulfillJson(route, {
+        taskId: 'rewrite-task-dev-1',
+        taskType: 'REWRITE',
+        status: 'SUCCEEDED',
+        currentPhase: 'FINISHED',
+        priority: 'NORMAL',
+        progressPercent: 100,
+        requestedSuggestionTypes: [],
+        suggestion: {
+          summary: '已生成候选改写 SQL，包含 1 条安全 AST 规则。',
+          primaryRecommendation: '请先将候选改写结果与原始语句做校验，再把批准后的 SQL 带入下一步治理。',
+          confidenceScore: 68,
+          artifacts: [
+            {
+              category: 'REWRITTEN_SQL',
+              name: 'candidateSql',
+              content: "SELECT id FROM orders WHERE dt = '2026-04-01' ORDER BY id"
+            },
+            {
+              category: 'REWRITE_RULE_TRACE',
+              name: 'appliedRules',
+              content: JSON.stringify(['REMOVE_DUPLICATE_PREDICATE'])
+            },
+            {
+              category: 'AST_PROFILE',
+              name: 'astProfile',
+              content: JSON.stringify({
+                statementType: 'SELECT',
+                parserEngine: 'JSQLPARSER',
+                tables: ['orders'],
+                projectionCount: 1,
+                predicateCount: 1,
+                joinCount: 0,
+                duplicateOrderByKeyCount: 1,
+                duplicateGroupByKeyCount: 0,
+                selectStar: false,
+                repeatedSubqueryCount: 0
+              })
+            }
+          ],
+          benefits: [{ category: 'PLAN_SIMPLIFICATION', score: 48, description: '逻辑计划更小。' }],
+          costs: [{ category: 'VALIDATION', level: 'MEDIUM', description: '批准前需要做结果集差异校验。' }],
+          risks: [
+            {
+              category: 'SEMANTIC_VALIDATION_REQUIRED',
+              level: 'MEDIUM',
+              description: '批准前仍需要对比结果集。',
+              suggestion: '在代表性样本上执行只读摘要校验。'
+            }
+          ]
+        },
+        failure: null,
+        statusHistory: [
+          { status: 'QUEUED', note: 'TASK_SUBMITTED', occurredAt: '2026-05-17T10:00:00' },
+          { status: 'SUCCEEDED', note: 'WORKER_REWRITE_ARTIFACTS_READY', occurredAt: '2026-05-17T10:00:01' }
+        ],
+        contractStage: 'LONG_TERM_BASELINE',
+        implementationStage: 'ACCELERATION_PLAN_GOVERNANCE_BASELINE'
+      })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/recommendations/page' && requestPrefix === 'frontend-rewrite-validation-recommendation-page') {
+      assert(requestUrl.searchParams.get('recommendationType') === 'REWRITE', '改写验证推荐读取必须限定 REWRITE。')
+      assert(requestUrl.searchParams.get('sourceType') === 'PARSE', '改写验证推荐读取必须携带 PARSE 来源类型。')
+      assert(requestUrl.searchParams.get('sourceKind') === 'COMBINED_PARSE', '人工改写验证推荐读取必须携带 COMBINED_PARSE 来源。')
+      assert(requestUrl.searchParams.get('sourceId') === 'manual-rewrite-validation', '改写验证推荐读取必须携带来源 ID。')
+      await fulfillJson(route, {
+        items: [
+          {
+            recommendationId: 'rec-dev-1',
+            tenantId: 'tenant-a',
+            recommendationType: 'REWRITE',
+            validationStatus: 'NOT_VALIDATED',
+            benefitLevel: 'MEDIUM',
+            riskLevel: 'MEDIUM',
+            sourceType: 'PARSE',
+            sourceKind: 'COMBINED_PARSE',
+            sourceId: 'manual-rewrite-validation',
+            sourceSqlText: recommendationSourceSql,
+            recommendedSqlText: recommendationRecommendedSql
+          }
+        ],
+        pageNo: 1,
+        pageSize: 5,
+        totalCount: 1,
+        pageCount: 1,
+        hasMore: false
+      })
+      return
+    }
+
+    if (pathname === '/api/sql-optimization/rewrite-records' && requestPrefix === 'frontend-rewrite-validation-record-create') {
+      const payload = parseJsonBody(request)
+      rewriteValidationRecordCreateCalls += 1
+      assert(payload.sourceKind === 'MANUAL', '改写验证创建改写记录时必须保留 MANUAL 来源场景。')
+      assert(payload.originalSqlText && payload.recommendedSqlText, '改写验证创建改写记录必须携带原 SQL 和推荐 SQL。')
+      await fulfillJson(route, {
+        rewriteRecordId: 'rewrite-validation-dev-1',
+        tenantId: 'tenant-a',
+        recommendationId: payload.recommendationId || 'rec-dev-1',
+        optimizationTaskId: 'rewrite-task-dev-1',
+        sourceType: 'PARSE',
+        sourceKind: 'MANUAL',
+        sourceId: 'manual-rewrite-validation',
+        evidenceLevel: 'STATIC_PARSE',
+        validationStatus: 'NOT_VALIDATED',
+        reviewStatus: 'PENDING_REVIEW',
+        publishStatus: 'UNPUBLISHED',
+        alertStatus: 'NONE',
+        autoApplyAllowed: false,
+        manualReviewRequired: true,
+        originalSqlText: payload.originalSqlText,
+        recommendedSqlText: payload.recommendedSqlText
+      })
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/rewrite-records/rewrite-validation-dev-1/validation-runs' &&
+      requestPrefix === 'frontend-rewrite-validation-run-list'
+    ) {
+      await fulfillJson(route, [])
+      return
+    }
+
+    if (
+      pathname === '/api/sql-optimization/rewrite-records/rewrite-validation-dev-1/validation-runs' &&
+      requestPrefix === 'frontend-rewrite-validation-run-create'
+    ) {
+      const payload = parseJsonBody(request)
+      rewriteValidationRunCreateCalls += 1
+      assert(payload.comparisonStatus === 'NOT_COMPARED', '前端静态改写验证不得声明结果已等价。')
+      await fulfillJson(route, {
+        validationRunId: 'validation-rewrite-page-dev-1',
+        tenantId: 'tenant-a',
+        rewriteRecordId: 'rewrite-validation-dev-1',
+        recommendationId: 'rec-dev-1',
+        status: 'SUCCEEDED',
+        comparisonStatus: 'NOT_COMPARED',
+        differenceType: 'UNKNOWN',
+        autoApplyPaused: false,
+        startedAt: '2026-05-17T10:00:02',
+        finishedAt: '2026-05-17T10:00:03'
+      })
+      return
     }
 
     if (pathname === '/api/sql-optimization/parse/structure' && requestPrefix === 'frontend-parse-workbench-structure') {
@@ -758,6 +943,7 @@ const runBrowserSmoke = async baseUrl => {
 
     if (pathname === '/api/governance/datasources') {
       assertDevHeaders(request, 'tenant-a', [
+        'frontend-rewrite-validation-governance-datasources',
         'frontend-parse-workbench-governance-datasources',
         'frontend-parse-record-datasource-options',
         'frontend-sql-history-datasource-options'
@@ -853,30 +1039,47 @@ const runBrowserSmoke = async baseUrl => {
     )
     await page.getByText('改写治理', { exact: true }).click()
     await page.locator('.app-menu').getByText('SQL 改写验证', { exact: true }).click()
-    await page.getByTestId('parse-workbench-page').waitFor({ timeout: defaultTimeoutMs })
+    await page.getByTestId('rewrite-validation-page').waitFor({ timeout: defaultTimeoutMs })
     const rewriteValidationUrl = new URL(page.url())
     assert(rewriteValidationUrl.pathname === ROUTE_PATHS.acceleration, 'SQL 改写验证导航必须复用单条 SQL 解析路由。')
     assert(rewriteValidationUrl.searchParams.get('mode') === 'rewriteValidation', 'SQL 改写验证导航必须带 mode=rewriteValidation。')
-    await expectTextInLocator(page.getByTestId('parse-workbench-title'), 'SQL 改写验证')
-    await expectTextInLocator(page.getByTestId('parse-workbench-rewrite-validation-boundary'), '试算验证证据')
-    await page.getByTestId('parse-workbench-structure-preview').click()
-    await expectTextInLocator(page.getByTestId('parse-workbench-status'), 'STRUCTURE_ONLY')
-    await page.getByTestId('parse-workbench-open-recommendations').click()
+    await expectTextInLocator(page.getByTestId('rewrite-validation-title'), 'SQL 改写验证')
+    await expectTextInLocator(page.getByTestId('rewrite-validation-boundary'), '不会标记生产已自动改写')
+    await page.getByTestId('rewrite-validation-submit').click()
+    try {
+      await expectTextInLocator(page.getByTestId('rewrite-validation-status'), 'SUCCEEDED')
+    } catch (error) {
+      const statusText = await page.getByTestId('rewrite-validation-status').textContent().catch(() => '')
+      const errorText = await page.getByTestId('rewrite-validation-error').textContent().catch(() => '')
+      throw new Error(`改写验证任务未到达成功状态，当前状态=${statusText}，页面错误=${errorText}，未预期请求=${unexpectedApiRequests.join(';')}`)
+    }
+    await expectTextInLocator(page.getByTestId('rewrite-validation-rule-chain'), 'REMOVE_DUPLICATE_PREDICATE')
+    await expectTextInLocator(page.getByTestId('rewrite-validation-recommendation-table'), 'rec-dev-1')
+    await page.getByTestId('rewrite-validation-create-record').click()
+    await expectTextInLocator(page.getByTestId('rewrite-validation-success'), '改写记录草稿已创建')
+    await page.getByTestId('rewrite-validation-create-run').click()
+    await expectTextInLocator(page.getByTestId('rewrite-validation-run-table'), 'validation-rewrite-page-dev-1')
+    if (rewriteValidationScreenshotPath) {
+      fs.mkdirSync(path.dirname(rewriteValidationScreenshotPath), { recursive: true })
+      await page.screenshot({ path: rewriteValidationScreenshotPath, fullPage: true })
+    }
+    await page.getByTestId('rewrite-validation-open-recommendations').click()
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
     const recommendationDeepLinkUrl = new URL(page.url())
     assert(recommendationDeepLinkUrl.pathname === ROUTE_PATHS.recommendationCenter, '改写验证推荐入口必须复用推荐结果路由。')
     assert(recommendationDeepLinkUrl.searchParams.get('sourceCategory') === 'SQL_PARSE', '改写验证推荐入口必须带 sourceCategory=SQL_PARSE。')
-    assert(recommendationDeepLinkUrl.searchParams.get('historyId') === 'dev-parse-history-structure-1', '改写验证推荐入口必须带 parse history 来源。')
-    assert(recommendationDeepLinkUrl.searchParams.get('parseTaskId') === 'dev-parse-structure-1', '改写验证推荐入口必须带 parseTaskId。')
+    assert(recommendationDeepLinkUrl.searchParams.get('sourceId') === 'manual-rewrite-validation', '改写验证推荐入口必须带来源 ID。')
     assert(
       recommendationPageRequests.some(item =>
         item.sourceType === 'PARSE' &&
-        item.sourceKind === 'STRUCTURE_PARSE' &&
-        item.historyId === 'dev-parse-history-structure-1' &&
-        item.parseTaskId === 'dev-parse-structure-1'
+        item.sourceKind === 'COMBINED_PARSE' &&
+        item.sourceId === 'manual-rewrite-validation'
       ),
       `推荐结果分页请求必须消费改写验证来源深链，实际为 ${JSON.stringify(recommendationPageRequests)}`
     )
+    assert(rewriteValidationTaskPolls >= 1, 'SQL 改写验证必须轮询 REWRITE 任务终态。')
+    assert(rewriteValidationRecordCreateCalls === 1, 'SQL 改写验证必须能创建改写记录草稿。')
+    assert(rewriteValidationRunCreateCalls === 1, 'SQL 改写验证必须能创建 validation run。')
 
     await page.locator('.app-menu').getByText('改写记录', { exact: true }).click()
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })

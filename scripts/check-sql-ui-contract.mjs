@@ -191,6 +191,14 @@ const requiredFiles = {
     'recommendation-source-sql',
     'recommendation-recommended-sql'
   ],
+  'src/views/rewrite-validation/RewriteValidationView.vue': [
+    'SqlEditorField',
+    'SqlCodeBlock',
+    'SqlCompareBlock',
+    'rewrite-validation-sql-input',
+    'rewrite-validation-sql-compare',
+    'rewrite-validation-raw-evidence'
+  ],
   'src/views/common/SqlCompareBlock.vue': [
     'buildSqlCompareRows',
     'buildFormattedSqlDisplayText',

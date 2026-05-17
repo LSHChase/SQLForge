@@ -3,11 +3,13 @@ import path from 'node:path'
 
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/optimization/AccelerationView.vue')
+const rewriteValidationViewPath = path.join(root, 'src/views/rewrite-validation/RewriteValidationView.vue')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
 const zhLocalePath = path.join(root, 'src/locales/zh-CN.js')
 const enLocalePath = path.join(root, 'src/locales/en-US.js')
 const source = [
   fs.readFileSync(viewPath, 'utf8'),
+  fs.readFileSync(rewriteValidationViewPath, 'utf8'),
   fs.readFileSync(helperPath, 'utf8'),
   fs.readFileSync(zhLocalePath, 'utf8'),
   fs.readFileSync(enLocalePath, 'utf8')
@@ -46,6 +48,20 @@ const requiredTokens = [
   'data-testid="parse-workbench-open-history"',
   'data-testid="parse-workbench-open-recommendations"',
   'openRecommendationResultsForParseResult',
+  'data-testid="rewrite-validation-page"',
+  'data-testid="rewrite-validation-submit"',
+  'data-testid="rewrite-validation-status"',
+  'data-testid="rewrite-validation-sql-compare"',
+  'data-testid="rewrite-validation-create-record"',
+  'data-testid="rewrite-validation-create-run"',
+  'data-testid="rewrite-validation-run-table"',
+  'submitOptimizationTask',
+  'waitForOptimizationTask',
+  'createSqlRewriteRecord',
+  'createRewriteValidationRun',
+  'taskType: \'REWRITE\'',
+  'comparisonStatus: \'NOT_COMPARED\'',
+  'sourceKind: form.sourceKind',
   'sourceCategory: \'SQL_PARSE\'',
   'sourceType: \'PARSE\'',
   'historyId',

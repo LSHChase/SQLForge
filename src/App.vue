@@ -56,6 +56,7 @@ const workspaceSummary = computed(() =>
 )
 const userBadge = computed(() => `${userDisplayName.value} · ${userStore.role}`)
 const breadcrumbText = computed(() => buildNavigationBreadcrumb(activeNavItem.value, navLabel, itemLabel))
+const pageTitle = computed(() => t(activeNavItem.value?.titleKey || route.meta.titleKey || 'dashboard.title'))
 
 const handleLocaleToggle = () => {
   const nextLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
@@ -181,7 +182,7 @@ onMounted(() => {
         <el-header class="app-header">
           <div class="page-heading">
             <p class="page-kicker sqlforge-code-label">{{ t('common.currentWorkspace') }}</p>
-            <h1 class="page-title">{{ t(route.meta.titleKey || 'dashboard.title') }}</h1>
+            <h1 class="page-title">{{ pageTitle }}</h1>
             <div class="breadcrumb-strip">
               <span
                 v-for="pill in breadcrumbText"

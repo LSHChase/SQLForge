@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-VALIDATION-PAGE-20260517: SQL 改写验证真实可用页面
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat(frontend): implement rewrite validation page`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按 SQL 改写功能分层设计实现独立 SQL 改写验证页面能力，替代当前复用解析功能的体验；复用现有 sql-optimization task/rewrite record/validation run/recommendation 接口，不新增后端 API、route schema 或生产自动改写语义；补齐页面任务流、推荐结果入口、验证运行证据、前端契约/视觉验证与台账审计。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-VALIDATION-PAGE-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现独立 SQL 改写验证页面并接入 /acceleration?mode=rewriteValidation；页面提交 REWRITE 优化任务，展示候选 SQL、SQL diff、规则链、风险、解析证据、推荐关联、改写记录草稿与验证运行；外层工作区标题按导航项显示 SQL 改写验证；保留推荐治理、改写记录、真实生产改写历史三层边界，不新增后端 API、route、schema，不标记生产已自动改写，不绕过审批发布门禁。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-VALIDATION-PAGE-20260517 --include-task-audit --extra-command 'node scripts/check-parse-workbench-contract.mjs' --extra-command 'npm run smoke:frontend-dev' --extra-command 'npm run test:form-governance' --extra-command 'git diff --check' passed；npm run lint、npm run build、npm run test:sql-ui-contract、npm run test:frontend-page-governance、node scripts/check-developer-copy-language.mjs --changed、node scripts/check-parse-workbench-contract.mjs、npm run test:form-governance、npm run smoke:frontend-dev、git diff --check passed；before/after 截图自检：before screenshot 未在实现前抓取，当前未提交工作树无法无损重建用户报告的旧页面状态；after screenshot .codex/tmp/rewrite-validation-after.png；Codex 读图/视觉复核发现外层标题仍显示 SQL解析、复验原因默认英文调试文案，已修复后重跑截图 smoke passed。
+  - Residual risk: 无法提供实现前真实 before screenshot，只保留用户报告的问题描述、代码差异和 after screenshot 复核证据；真实外部 Hetu/MRS 环境验证仍按 HARN-016/INBOX-002 跟踪。
+  - Next step: None.
+
 ### USER-CN-REWRITE-VALIDATION-RECOMMENDATION-DEEPLINK-20260517: SQL 改写验证到推荐结果来源深链
 
 - Status: done
