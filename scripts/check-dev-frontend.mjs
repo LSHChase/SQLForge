@@ -28,11 +28,42 @@ const recommendationLongPredicates = Array.from(
   { length: 42 },
   (_, index) => `AND metric_${index} = '${recommendationLongLiteral}_${index}'`
 ).join(' ')
+const recommendationDeepNestedPredicate = `dt IN (
+  SELECT dt FROM mart.calendar_day WHERE calendar_key IN (
+    SELECT calendar_key FROM mart.calendar_acl WHERE EXISTS (
+      SELECT 1 FROM security.acl acl WHERE acl.calendar_key = mart.calendar_acl.calendar_key AND acl.tenant_id IN (
+        SELECT tenant_id FROM security.tenant_scope WHERE scope_id IN (
+          SELECT scope_id FROM security.scope_group WHERE group_id IN (
+            SELECT group_id FROM security.group_owner WHERE owner_note = 'literal select from dev smoke'
+          )
+        )
+      )
+    )
+  )
+)`
 const recommendationSourceSql = `-- report_code=DEV_RPT_REWRITE
 /* owner: recommendation smoke */
-SELECT * FROM sales.orders WHERE dt = ? ${recommendationLongPredicates}`
-const recommendationDiffOriginalSql = `SELECT * FROM sales.orders WHERE dt = ? ${recommendationLongPredicates}`
-const recommendationRecommendedSql = `SELECT id FROM sales.orders WHERE dt = ? ${recommendationLongPredicates}`
+SELECT * FROM (
+  SELECT order_id, id, dt, metric_0 FROM sales.orders WHERE ${recommendationDeepNestedPredicate} ${recommendationLongPredicates}
+) d WHERE EXISTS (
+  SELECT 1 FROM mart.order_quality q WHERE q.order_id = d.order_id AND q.status IN (
+    SELECT status FROM mart.valid_status WHERE status_note = 'select/from literal'
+  )
+)`
+const recommendationDiffOriginalSql = `SELECT * FROM (
+  SELECT order_id, id, dt, metric_0 FROM sales.orders WHERE ${recommendationDeepNestedPredicate} ${recommendationLongPredicates}
+) d WHERE EXISTS (
+  SELECT 1 FROM mart.order_quality q WHERE q.order_id = d.order_id AND q.status IN (
+    SELECT status FROM mart.valid_status WHERE status_note = 'select/from literal'
+  )
+)`
+const recommendationRecommendedSql = `SELECT id FROM (
+  SELECT order_id, id, dt, metric_0 FROM sales.orders WHERE ${recommendationDeepNestedPredicate} ${recommendationLongPredicates}
+) d WHERE EXISTS (
+  SELECT 1 FROM mart.order_quality q WHERE q.order_id = d.order_id AND q.status IN (
+    SELECT status FROM mart.valid_status WHERE status_note = 'select/from literal'
+  )
+)`
 
 const resolveExecutablePath = () => browserCandidates.find(candidate => fs.existsSync(candidate))
 
@@ -791,6 +822,20 @@ const runBrowserSmoke = async baseUrl => {
     await recommendationCompare.waitFor({ timeout: defaultTimeoutMs })
     await expectTextInLocator(recommendationCompare, 'SELECT')
     await expectTextInLocator(recommendationCompare, '-- report_code=DEV_RPT_REWRITE')
+    const recommendationCompareCodeText = await recommendationCompare
+      .locator('.sql-compare-code')
+      .evaluateAll(nodes => nodes.map(node => node.textContent || '').join('\n'))
+    assert(recommendationCompareCodeText.includes('EXISTS'), '推荐 SQL compare 必须渲染嵌套 EXISTS 条件。')
+    assert(recommendationCompareCodeText.includes('IN ('), '推荐 SQL compare 必须渲染嵌套 IN 子查询。')
+    assert(
+      recommendationCompareCodeText.includes("'literal select from dev smoke'") &&
+        recommendationCompareCodeText.includes("'select/from literal'"),
+      '推荐 SQL compare 必须保留嵌套 SQL 中类似 SQL 的字符串字面量。'
+    )
+    assert(
+      (recommendationCompareCodeText.match(/\n\s{8,}SELECT\b/g) || []).length >= 2,
+      '推荐 SQL compare 必须展示多层嵌套 SELECT 缩进。'
+    )
     assert(
       (await recommendationCompare.locator('.sql-compare-token-mark--delete').count()) > 0,
       '推荐 SQL compare 必须标记删除侧 token 差异。'

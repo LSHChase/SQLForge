@@ -125,6 +125,7 @@ const targets = [
       'data-testid="sql-compare-copy-original"',
       'data-testid="sql-compare-format-original"',
       'syncPaneScroll',
+      'buildFormattedSqlDisplayText',
       'sql-compare-row--insert',
       'sql-compare-row--delete',
       'sql-compare-row--replace',
@@ -137,6 +138,7 @@ const targets = [
     tokens: [
       'formatSqlText',
       'highlightSql',
+      'buildFormattedSqlDisplayText',
       'extractLeadingSqlComments',
       'buildRecommendedSqlDisplay',
       'buildSqlCompareRows'

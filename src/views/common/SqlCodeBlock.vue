@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { copyTextToClipboard, formatSqlText, highlightSql } from './sqlFormatting.mjs'
 
 const props = defineProps({
@@ -14,6 +14,14 @@ const props = defineProps({
   copyLabel: {
     type: String,
     default: 'Copy'
+  },
+  formatLabel: {
+    type: String,
+    default: 'Format'
+  },
+  rawLabel: {
+    type: String,
+    default: 'Raw'
   },
   emptyText: {
     type: String,
@@ -37,15 +45,34 @@ const props = defineProps({
   }
 })
 
+const showFormattedRaw = ref(false)
+
+watch(
+  () => [props.value, props.autoFormat],
+  () => {
+    showFormattedRaw.value = false
+  }
+)
+
+const rawSql = computed(() => String(props.value ?? ''))
+const hasRawSql = computed(() => rawSql.value.trim().length > 0)
+const canToggleRawFormat = computed(() => !props.autoFormat && hasRawSql.value)
+
 const displaySql = computed(() => {
-  const raw = String(props.value ?? '')
-  const fallback = raw.trim() ? raw : props.emptyText
-  return props.autoFormat ? formatSqlText(fallback) || fallback : fallback
+  const fallback = hasRawSql.value ? rawSql.value : props.emptyText
+  if (props.autoFormat || (canToggleRawFormat.value && showFormattedRaw.value)) {
+    return formatSqlText(fallback) || fallback
+  }
+  return fallback
 })
 
 const highlightedSql = computed(() => highlightSql(displaySql.value))
 
 const copySql = () => copyTextToClipboard(displaySql.value)
+
+const toggleRawFormat = () => {
+  showFormattedRaw.value = !showFormattedRaw.value
+}
 </script>
 
 <template>
@@ -56,7 +83,18 @@ const copySql = () => copyTextToClipboard(displaySql.value)
   >
     <div class="sql-code-panel__header">
       <span class="sql-code-panel__label">{{ label }}</span>
-      <el-button text size="small" @click.stop="copySql">{{ copyLabel }}</el-button>
+      <div class="sql-code-panel__actions">
+        <el-button text size="small" @click.stop="copySql">{{ copyLabel }}</el-button>
+        <el-button
+          v-if="canToggleRawFormat"
+          text
+          size="small"
+          data-testid="sql-code-format-toggle"
+          @click.stop="toggleRawFormat"
+        >
+          {{ showFormattedRaw ? rawLabel : formatLabel }}
+        </el-button>
+      </div>
     </div>
     <!-- eslint-disable-next-line vue/no-v-html -->
     <pre class="sql-code-panel__body" :style="{ maxHeight }"><code v-html="highlightedSql" /></pre>
@@ -85,6 +123,13 @@ const copySql = () => copyTextToClipboard(displaySql.value)
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.sql-code-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .sql-code-panel__body {

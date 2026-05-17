@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-FORMATTER-NESTED-20260517: 多层嵌套 SQL 格式化全局增强
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat(frontend): improve nested SQL formatting`
+- Priority: 1
+- Depends on: USER-CN-RECOMMENDATION-DIFF-DUAL-PANE-20260517
+- Scope: 将前端共享 SQL formatter 升级为 sql-formatter trino dialect，覆盖 SQL 输入、输出和推荐 diff；raw evidence 默认保留原文但提供格式化切换；加固 SQL UI 与推荐页契约，确保深层嵌套 SQL 可读格式化且不改变后端 API、SQL 执行语义、推荐状态机、审批、发布或审计数据。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-FORMATTER-NESTED-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added sql-formatter as the shared frontend SQL formatter using the Trino dialect, preserved formatter failure fallback to normalized raw SQL, added raw evidence format/raw display toggling in SqlCodeBlock without mutating incoming SQL, replaced the acceleration governance SQL textarea with SqlEditorField, and strengthened SQL UI/recommendation/browser smoke contracts with deeply nested SQL fixtures.
+  - Validation evidence: npm run test:sql-ui-contract; node scripts/check-recommendation-page-contract.mjs; npm run test:form-governance; npm run test:frontend-page-governance; npm run lint; npm run build; npm run smoke:frontend-dev; npm run smoke:production-rewrite-closed-loop; git diff --check; python3 scripts/foreman.py validate USER-CN-SQL-FORMATTER-NESTED-20260517 --include-task-audit --extra-command node scripts/check-recommendation-page-contract.mjs --extra-command npm run smoke:frontend-dev --extra-command npm run smoke:production-rewrite-closed-loop --extra-command git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: sql-formatter may still fall back to raw text for unsupported Hetu-specific syntax; this remains a UI-only fallback and does not change submitted SQL, persisted history, backend APIs, recommendation state, approval, publish, or audit semantics.
+  - Next step: No immediate follow-up required; future SQL UI regressions are guarded by the deep nesting contract and recommendation browser smokes.
+
 ### USER-CN-RECOMMENDATION-DIFF-DUAL-PANE-20260517: 推荐中心 SQL diff 双 Pane 滚动与操作按钮
 
 - Status: done

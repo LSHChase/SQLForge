@@ -26,6 +26,7 @@ import {
 } from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import SqlEditorField from '../common/SqlEditorField.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 
 const { t } = useI18n()
@@ -1011,10 +1012,13 @@ function queryAccelerationApplied(result) {
           </el-select>
         </label>
       </div>
-      <label class="field-block field-block-wide">
-        <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.sqlText') }}</span>
-        <el-input v-model="form.sqlText" type="textarea" :rows="3" data-testid="acceleration-workbench-sql-text" />
-      </label>
+      <SqlEditorField
+        v-model="form.sqlText"
+        class="field-block-wide"
+        :label="t('accelerationGovernanceWorkbench.fields.sqlText')"
+        :rows="4"
+        data-testid="acceleration-workbench-sql-text"
+      />
     </ToolbarShell>
 
     <section class="route-strip">

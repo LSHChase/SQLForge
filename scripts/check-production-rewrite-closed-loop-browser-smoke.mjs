@@ -24,10 +24,35 @@ const longPredicates = Array.from(
   { length: 42 },
   (_, index) => `AND metric_${index} = '${longPredicateLiteral}_${index}'`
 ).join(' ')
+const deepNestedPredicate = `query_date IN (
+  SELECT query_date FROM mart.calendar_day WHERE calendar_key IN (
+    SELECT calendar_key FROM mart.calendar_acl WHERE EXISTS (
+      SELECT 1 FROM security.acl acl WHERE acl.calendar_key = mart.calendar_acl.calendar_key AND acl.tenant_id IN (
+        SELECT tenant_id FROM security.tenant_scope WHERE scope_id IN (
+          SELECT scope_id FROM security.scope_group WHERE group_id IN (
+            SELECT group_id FROM security.group_owner WHERE owner_note = 'literal select from production smoke'
+          )
+        )
+      )
+    )
+  )
+)`
 const originalSql = `-- report_code=RPT_PRW_012
 /* owner: production rewrite smoke */
-SELECT * FROM orders WHERE query_date = '2026-05-12' ${longPredicates}`
-const recommendedSql = `SELECT id FROM orders WHERE query_date = '2026-05-12' ${longPredicates}`
+SELECT * FROM (
+  SELECT order_id, id, query_date, metric_0 FROM orders WHERE ${deepNestedPredicate} ${longPredicates}
+) d WHERE EXISTS (
+  SELECT 1 FROM mart.order_quality q WHERE q.order_id = d.order_id AND q.status IN (
+    SELECT status FROM mart.valid_status WHERE status_note = 'select/from literal'
+  )
+)`
+const recommendedSql = `SELECT id FROM (
+  SELECT order_id, id, query_date, metric_0 FROM orders WHERE ${deepNestedPredicate} ${longPredicates}
+) d WHERE EXISTS (
+  SELECT 1 FROM mart.order_quality q WHERE q.order_id = d.order_id AND q.status IN (
+    SELECT status FROM mart.valid_status WHERE status_note = 'select/from literal'
+  )
+)`
 const sqlFingerprint = 'fp_prw_012_orders'
 const browserCandidates = [
   process.env.FRONTEND_RUNTIME_BROWSER_BIN,
@@ -682,9 +707,23 @@ const runBrowserSmoke = async baseUrl => {
     const recommendationCompare = page.getByTestId('recommendation-sql-compare')
     await recommendationCompare.waitFor({ timeout: defaultTimeoutMs })
     const compareText = await recommendationCompare.textContent()
+    const compareCodeText = await recommendationCompare
+      .locator('.sql-compare-code')
+      .evaluateAll(nodes => nodes.map(node => node.textContent || '').join('\n'))
     assert(compareText.includes('-- report_code=RPT_PRW_012'), 'Recommendation SQL compare must carry source leading comments.')
     assert(compareText.includes('*'), 'Recommendation SQL compare must expose the original SQL fragment.')
     assert(compareText.includes('id'), 'Recommendation SQL compare must expose the recommended SQL fragment.')
+    assert(compareCodeText.includes('EXISTS'), 'Recommendation SQL compare must render nested EXISTS predicates.')
+    assert(compareCodeText.includes('IN ('), 'Recommendation SQL compare must render nested IN subqueries.')
+    assert(
+      compareCodeText.includes("'literal select from production smoke'") &&
+        compareCodeText.includes("'select/from literal'"),
+      'Recommendation SQL compare must preserve SQL-like quoted literals inside nested SQL.'
+    )
+    assert(
+      (compareCodeText.match(/\n\s{8,}SELECT\b/g) || []).length >= 2,
+      'Recommendation SQL compare must show multi-level nested SELECT indentation.'
+    )
     assert(
       (await recommendationCompare.locator('.sql-compare-token-mark--delete').count()) > 0,
       'Recommendation SQL compare must expose token-level delete marks.'

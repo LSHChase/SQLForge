@@ -47,12 +47,52 @@ if (!formattedSql.includes('SELECT') || !formattedSql.includes('\nFROM') || !for
 if (!formattedSql.includes("'select from orders'")) {
   errors.push('formatSqlText must preserve quoted literal content while formatting SQL clauses.')
 }
+const deeplyNestedSql = `
+with base as (
+  select order_id, customer_id from sales.orders where exists (
+    select 1 from sales.order_items i where i.order_id = sales.orders.order_id and i.sku in (
+      select sku from dim.sku_map where category_id in (
+        select category_id from dim.category where parent_id in (
+          select parent_id from dim.category_parent where exists (
+            select 1 from dim.parent_acl acl where acl.parent_id = dim.category_parent.parent_id and acl.tenant_id in (
+              select tenant_id from security.tenant_acl where note = 'literal select from untouched'
+            )
+          )
+        )
+      )
+    )
+  )
+)
+select * from (select * from base where customer_id in (select customer_id from dim.customer where active = 1)) d
+where d.order_id in (select order_id from sales.order_audit where status = 'select/from literal')
+`
+const formattedDeeplyNestedSql = formatSqlText(deeplyNestedSql)
+const nestedSelectLineCount = formattedDeeplyNestedSql.split('\n').filter(line => /^\s*SELECT\b/.test(line)).length
+if (
+  nestedSelectLineCount < 6 ||
+  !formattedDeeplyNestedSql.includes('WITH') ||
+  !formattedDeeplyNestedSql.includes('EXISTS') ||
+  !formattedDeeplyNestedSql.includes('IN (') ||
+  !formattedDeeplyNestedSql.includes('\n        SELECT')
+) {
+  errors.push('formatSqlText must use the shared formatter for deep CTE, EXISTS, IN subquery, and derived-table nesting.')
+}
+if (
+  !formattedDeeplyNestedSql.includes("'literal select from untouched'") ||
+  !formattedDeeplyNestedSql.includes("'select/from literal'")
+) {
+  errors.push('formatSqlText must preserve quoted literal content in deeply nested SQL.')
+}
 
 const highlightedSql = highlightSql(formattedSql)
 for (const tokenClass of ['sql-token-keyword', 'sql-token-literal', 'sql-token-comment']) {
   if (!highlightedSql.includes(tokenClass)) {
     errors.push(`highlightSql must emit ${tokenClass} markup.`)
   }
+}
+const rawHighlightedSql = highlightSql('select * from raw_table')
+if (!rawHighlightedSql.includes('>select<')) {
+  errors.push('highlightSql must preserve raw keyword casing while applying keyword markup.')
 }
 const mixedSql = "select 名称, amount from orders where city = '北京' and note = '@@@@'"
 const highlightedMixedSql = highlightSql(mixedSql)
@@ -101,7 +141,19 @@ const requiredFiles = {
     'copyTextToClipboard',
     'formatSqlText',
     'highlightSql',
+    'showFormattedRaw',
+    'canToggleRawFormat',
+    'data-testid="sql-code-format-toggle"',
+    'rawLabel',
     'maxHeight'
+  ],
+  'src/views/common/sqlFormatting.mjs': [
+    "from 'sql-formatter'",
+    "language: 'trino'",
+    "keywordCase: 'upper'",
+    'tabWidth: 2',
+    'try {',
+    'catch {'
   ],
   'src/views/query/SqlQueryView.vue': [
     'SqlEditorField',
@@ -174,6 +226,11 @@ const requiredFiles = {
     'sql-compare-token-mark--insert',
     'sql-compare-token-mark--delete'
   ],
+  'src/views/acceleration-governance/AccelerationGovernanceWorkbenchView.vue': [
+    'SqlEditorField',
+    'acceleration-workbench-sql-text',
+    'SqlCodeBlock'
+  ],
   'src/views/benchmark/BenchmarkView.vue': ['SqlEditorField', 'benchmark-sql-input']
 }
 
@@ -215,6 +272,9 @@ if (/<pre[^>]*sql-code-panel__body[^>]*>\s+<code/.test(sqlCodeBlock)) {
 }
 if (!/<pre[^>]*sql-code-panel__body[^>]*><code\s+v-html="highlightedSql"\s*\/><\/pre>/.test(sqlCodeBlock)) {
   errors.push('SqlCodeBlock body pre/code must stay adjacent so SQL output starts at column one.')
+}
+if (!/v-if="canToggleRawFormat"[\s\S]{0,220}data-testid="sql-code-format-toggle"/.test(sqlCodeBlock)) {
+  errors.push('SqlCodeBlock raw SQL output must expose a format/raw toggle without changing the incoming value.')
 }
 
 const rawSqlTextareaPattern =

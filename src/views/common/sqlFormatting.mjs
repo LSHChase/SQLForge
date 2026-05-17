@@ -1,3 +1,11 @@
+import { format as formatSql } from 'sql-formatter'
+
+const SQL_FORMATTER_OPTIONS = {
+  language: 'trino',
+  keywordCase: 'upper',
+  tabWidth: 2
+}
+
 const KEYWORDS = new Set([
   'ADD',
   'ALTER',
@@ -49,15 +57,6 @@ const KEYWORDS = new Set([
   'WHERE',
   'WITH'
 ])
-
-const KEYWORD_PATTERN =
-  /\b(select|from|where|group\s+by|order\s+by|having|limit|join|left\s+join|right\s+join|inner\s+join|full\s+join|on|and|or|with|union|case|when|then|else|end|insert\s+into|values|update|set|delete\s+from|explain)\b/gi
-
-const CLAUSE_PATTERN =
-  /\s+(FROM|WHERE|GROUP BY|ORDER BY|HAVING|LIMIT|UNION|WITH|INSERT INTO|VALUES|UPDATE|SET|DELETE FROM|EXPLAIN)\b/g
-
-const JOIN_PATTERN = /\s+(LEFT JOIN|RIGHT JOIN|INNER JOIN|FULL JOIN|JOIN)\b/g
-const BOOLEAN_PATTERN = /\s+(AND|OR)\b/g
 
 const normalizeInput = value =>
   String(value ?? '')
@@ -140,37 +139,21 @@ const splitSqlSegments = value => {
   return segments
 }
 
-const mapSqlCode = (value, mapper) =>
-  splitSqlSegments(value)
-    .map(segment => (segment.type === 'code' ? mapper(segment.text) : segment.text))
-    .join('')
-
 export const formatSqlText = value => {
   const input = normalizeInput(value)
   if (!input) {
     return ''
   }
 
-  const uppercased = mapSqlCode(input, segment =>
-    segment
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\s*,\s*/g, ', ')
-      .replace(KEYWORD_PATTERN, match => match.replace(/\s+/g, ' ').toUpperCase())
-  )
-
-  const lineBroken = mapSqlCode(uppercased, segment =>
-    segment
-      .replace(CLAUSE_PATTERN, '\n$1')
-      .replace(JOIN_PATTERN, '\n  $1')
-      .replace(BOOLEAN_PATTERN, '\n    $1')
-  )
-
-  return lineBroken
-    .split('\n')
-    .map(line => line.trimEnd())
-    .filter((line, index, lines) => line.trim() || (lines[index - 1] && lines[index - 1].trim()))
-    .join('\n')
-    .trim()
+  try {
+    return formatSql(input, SQL_FORMATTER_OPTIONS)
+      .split('\n')
+      .map(line => line.trimEnd())
+      .join('\n')
+      .trim()
+  } catch {
+    return input
+  }
 }
 
 const escapeHtml = value =>
@@ -192,7 +175,7 @@ const highlightCodeSegment = value => {
       const word = wordMatch[0]
       const upper = word.toUpperCase()
       html += KEYWORDS.has(upper)
-        ? `<span class="sql-token sql-token-keyword">${escapeHtml(upper)}</span>`
+        ? `<span class="sql-token sql-token-keyword">${escapeHtml(word)}</span>`
         : `<span class="sql-token sql-token-identifier">${escapeHtml(word)}</span>`
       cursor += word.length
       continue
