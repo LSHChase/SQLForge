@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517: 推荐结果页布局与 SQL Compare 收口
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat: reshape recommendation layout USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517`
+- Priority: 1
+- Depends on: `HARN-146`,`HARN-FE-006`,`HARN-FE-007`,`PRW-010`
+- Scope: 推荐页必须以后端分页接口作为列表真值，详情通过右侧抽屉承载，SQL compare 只做 display evidence，不改变后端 diff、审批、发布、dispatch 或自动应用语义。 Tech: `JAVA-BE`,`SQL`,`VUE-FE`,`OPS`. Layer: `sql-optimization application(controller/service)/domain/infrastructure`,`mybatis mapper xml`,`frontend api client`,`frontend views/components/styles`,`deployments/ci/scripts`.
+- Plan ref: docs/exec-plans/completed/USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517-full-auto-execution-plan.md
+- Matrix context: Phase-E / Story `E-STORY-015` 加速与改写治理工作台闭环
+- Human confirmation point: 若实现需要改变数据库 schema、推荐状态机、diff 权威语义、审批/发布/dispatch/自动应用行为，或让前端排序字段直接进入 SQL 拼接，必须暂停并人工确认。
+- Data impact: 只新增后端查询面和前端展示/契约/测试；不新增表、不迁移数据、不改变 SQL 执行或推荐生命周期数据语义。
+- Rollback / recovery: 回退本任务单 commit 可恢复 legacy 推荐页布局和新增分页接口接线；保留旧 recommendations 数组接口不变以降低回滚风险。
+- Validation:
+  - `mvn -pl sql-optimization,sqlforge-shared -am test、npm run lint、npm run build、npm run test:sql-ui-contract、npm run test:frontend-page-governance、node scripts/check-recommendation-page-contract.mjs、npm run smoke:frontend-dev、npm run smoke:production-rewrite-closed-loop、git diff --check`
+  - `python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增推荐结果分页/过滤/安全排序接口并保留 legacy 数组接口；推荐页改为顶部查询条件、远程分页表格和右侧详情抽屉；SQL 差异页签改用公共 SqlCompareBlock 展示行级 side-by-side compare，保留原始 diff/AST 证据入口且不改变审批、发布、dispatch 或自动应用语义。
+  - Validation evidence: java -version 确认为 1.8.0_112；mvn -pl sql-optimization,sqlforge-shared -am test 通过；npm run lint 通过；npm run build 通过；npm run test:sql-ui-contract 通过；npm run test:frontend-page-governance 通过；node scripts/check-recommendation-page-contract.mjs 通过；npm run smoke:frontend-dev 通过；npm run smoke:production-rewrite-closed-loop 通过；git diff --check 通过；foreman validate --include-task-audit 与 task_audit pre-closeout 通过。
+  - Residual risk: SQL compare 前端行级差异仅作为 display evidence；后端 diff、验证结果、审批发布和 dispatch 仍为权威语义。真实外部 Hetu/MRS 环境验证继续由既有 HARN-016 / INBOX-002 跟踪。
+  - Next step: 无本任务内后续步骤；如需真实环境端到端证据，按 HARN-016 外部验证窗口执行。
+
 ### HARN-FE-008: 参考页治理与最终验证
 
 - Status: done

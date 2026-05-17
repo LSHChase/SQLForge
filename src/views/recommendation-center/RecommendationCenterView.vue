@@ -9,7 +9,7 @@ import {
   getDispatchEvents,
   getRecommendationDetail,
   getRecommendationDiff,
-  getRecommendations,
+  getRecommendationPage,
   getRecommendationTrace,
   getRewriteValidationRuns,
   getRewritePublishEligibility,
@@ -22,8 +22,8 @@ import {
 } from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
+import SqlCompareBlock from '../common/SqlCompareBlock.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
-import { highlightSql } from '../common/sqlFormatting.mjs'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -62,7 +62,15 @@ const loading = reactive({
   validationRuns: false
 })
 
-const activeFilter = ref('ALL')
+const recommendationFilters = reactive({
+  recommendationType: '',
+  status: '',
+  benefitLevel: '',
+  riskLevel: '',
+  validationStatus: '',
+  requiresDispatch: '',
+  manualReviewRequired: ''
+})
 const recommendations = ref([])
 const dispatchContract = ref(null)
 const dispatchEvents = ref([])
@@ -86,66 +94,32 @@ const selectedRuleDiffId = ref('')
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
 const evidenceDrawerPayload = ref(null)
+const recommendationDetailDrawerVisible = ref(false)
 const recommendationPager = reactive({
   page: 1,
-  size: 8
+  size: 8,
+  totalCount: 0,
+  pageCount: 0,
+  hasMore: false,
+  sortBy: 'createdAt',
+  sortOrder: 'DESC'
 })
 const dispatchEventPager = reactive({
   page: 1,
   size: 6
 })
 
-// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, compareRows.
+// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, SqlCompareBlock.
 
-const filterOptions = computed(() => {
-  const counts = {
-    ALL: recommendations.value.length,
-    REQUIRES_DISPATCH: 0,
-    DISPATCH_READY: 0,
-    HIGH_BENEFIT: 0,
-    HIGH_RISK: 0,
-    ACCELERATION: 0,
-    REWRITE: 0
-  }
-  for (const item of recommendations.value) {
-    if (item.requiresDispatch) {
-      counts.REQUIRES_DISPATCH += 1
-    }
-    if (String(item.status || '').toUpperCase() === 'DISPATCH_READY') {
-      counts.DISPATCH_READY += 1
-    }
-    if (String(item.benefitLevel || '').toUpperCase() === 'HIGH') {
-      counts.HIGH_BENEFIT += 1
-    }
-    if (['HIGH', 'CRITICAL'].includes(String(item.riskLevel || '').toUpperCase())) {
-      counts.HIGH_RISK += 1
-    }
-    if (String(item.recommendationType || '').toUpperCase() === 'ACCELERATION') {
-      counts.ACCELERATION += 1
-    }
-    if (String(item.recommendationType || '').toUpperCase() === 'REWRITE') {
-      counts.REWRITE += 1
-    }
-  }
-  return [
-    option('ALL', t('inline.viewsRecommendationCenterRecommendationCenterView.text001'), counts.ALL),
-    option('REQUIRES_DISPATCH', t('inline.viewsRecommendationCenterRecommendationCenterView.text002'), counts.REQUIRES_DISPATCH),
-    option('DISPATCH_READY', 'Dispatch ready', counts.DISPATCH_READY),
-    option('HIGH_BENEFIT', t('inline.viewsRecommendationCenterRecommendationCenterView.text003'), counts.HIGH_BENEFIT),
-    option('HIGH_RISK', t('inline.viewsRecommendationCenterRecommendationCenterView.text004'), counts.HIGH_RISK),
-    option('ACCELERATION', 'ACCELERATION', counts.ACCELERATION),
-    option('REWRITE', 'REWRITE', counts.REWRITE)
-  ]
-})
-
-const filteredRecommendations = computed(() =>
-  recommendations.value.filter(item => matchesFilter(item, activeFilter.value))
-)
-
-const pagedRecommendations = computed(() => {
-  const start = (recommendationPager.page - 1) * recommendationPager.size
-  return filteredRecommendations.value.slice(start, start + recommendationPager.size)
-})
+const recommendationTypeOptions = ['REWRITE', 'ACCELERATION', 'CREATE_TABLE', 'PREWARM', 'MAINTENANCE']
+const recommendationStatusOptions = ['RECOMMENDED', 'REVIEWING', 'DISPATCH_READY', 'CANCELLED']
+const benefitLevelOptions = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH']
+const riskLevelOptions = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+const validationStatusOptions = ['NOT_VALIDATED', 'VALIDATING', 'EQUIVALENT', 'DIVERGED', 'FAILED', 'EXPIRED']
+const booleanFilterOptions = [
+  { label: 'true', value: true },
+  { label: 'false', value: false }
+]
 
 const selectedDispatchEvents = computed(() => {
   const traceEvents = recommendationTrace.value?.dispatchEvents || []
@@ -296,32 +270,6 @@ const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
 const semanticRiskRows = computed(() => normalizeArray(selectedRecommendation.value?.semanticRisks))
 const unappliedRuleRows = computed(() => normalizeArray(selectedRecommendation.value?.unappliedRules))
-
-const compareRows = computed(() =>
-  textDiffRows.value.map((hunk, index) => ({
-    hunkId: String(hunk?.hunkId || `hunk-${index + 1}`),
-    type: String(hunk?.type || 'REPLACE').toUpperCase(),
-    granularity: String(hunk?.granularity || 'LINE').toUpperCase(),
-    originalPosition: comparePosition(hunk, 'original'),
-    recommendedPosition: comparePosition(hunk, 'recommended'),
-    originalText: displayValue(hunk?.originalText),
-    recommendedText: displayValue(hunk?.recommendedText),
-    originalEmpty: !hasDisplayValue(hunk?.originalText),
-    recommendedEmpty: !hasDisplayValue(hunk?.recommendedText),
-    originalHtml: highlightCompareSql(hunk?.originalText),
-    recommendedHtml: highlightCompareSql(hunk?.recommendedText),
-    selected: hunkSelected(hunk)
-  }))
-)
-
-const selectedRuleDiff = computed(() =>
-  ruleDiffRows.value.find(item => item.diffId === selectedRuleDiffId.value) || null
-)
-
-const highlightedHunkIds = computed(() => {
-  const ids = selectedRuleDiff.value?.textHunkIds
-  return Array.isArray(ids) ? ids.map(item => String(item)) : []
-})
 
 const requiresReviewGuard = computed(() => {
   const riskLevel = String(selectedRecommendation.value?.riskLevel || '').toUpperCase()
@@ -565,9 +513,9 @@ const refreshPage = async () => {
   loading.page = true
   errorMessage.value = ''
   try {
-    const [recommendationList, contract, events] = await Promise.all([
-      getRecommendations(form.tenantId, {
-        requestPrefix: 'frontend-recommendation-center-list'
+    const [recommendationPage, contract, events] = await Promise.all([
+      getRecommendationPage(form.tenantId, buildRecommendationPageQuery(), {
+        requestPrefix: 'frontend-recommendation-center-page'
       }),
       getDispatchContract(form.tenantId, {
         requestPrefix: 'frontend-recommendation-center-contract'
@@ -576,17 +524,17 @@ const refreshPage = async () => {
         requestPrefix: 'frontend-recommendation-center-events'
       })
     ])
-    recommendations.value = Array.isArray(recommendationList) ? recommendationList : []
+    recommendations.value = Array.isArray(recommendationPage?.items) ? recommendationPage.items : []
+    recommendationPager.page = Number(recommendationPage?.pageNo || recommendationPager.page || 1)
+    recommendationPager.size = Number(recommendationPage?.pageSize || recommendationPager.size || 8)
+    recommendationPager.totalCount = Number(recommendationPage?.totalCount || 0)
+    recommendationPager.pageCount = Number(recommendationPage?.pageCount || 0)
+    recommendationPager.hasMore = Boolean(recommendationPage?.hasMore)
     dispatchContract.value = contract
     dispatchEvents.value = Array.isArray(events) ? events : []
 
-    const fallbackId =
-      selectedRecommendationId.value && recommendations.value.some(item => item.recommendationId === selectedRecommendationId.value)
-        ? selectedRecommendationId.value
-        : filteredRecommendations.value[0]?.recommendationId || recommendations.value[0]?.recommendationId || ''
-
-    if (fallbackId) {
-      await loadRecommendation(fallbackId)
+    if (selectedRecommendationId.value) {
+      await loadRecommendation(selectedRecommendationId.value)
     } else {
       selectedRecommendationId.value = ''
       selectedRecommendation.value = null
@@ -595,6 +543,7 @@ const refreshPage = async () => {
       activeDetailTab.value = 'summary'
       syncActiveDetailTabFromRoute()
       resetRewriteLifecycle()
+      recommendationDetailDrawerVisible.value = false
     }
   } catch (error) {
     errorMessage.value = formatRuntimeError(error)
@@ -624,6 +573,7 @@ const loadRecommendation = async recommendationId => {
   recommendationDiff.value = null
   selectedRuleDiffId.value = ''
   selectedRecommendationId.value = recommendationId
+  recommendationDetailDrawerVisible.value = true
   try {
     const [detail, trace] = await Promise.all([
       getRecommendationDetail(form.tenantId, recommendationId, {
@@ -654,18 +604,69 @@ const loadRecommendation = async recommendationId => {
   }
 }
 
-const selectFilter = filter => {
-  activeFilter.value = filter
+const buildRecommendationPageQuery = () => ({
+  pageNo: recommendationPager.page,
+  pageSize: recommendationPager.size,
+  sortBy: recommendationPager.sortBy,
+  sortOrder: recommendationPager.sortOrder,
+  recommendationType: recommendationFilters.recommendationType,
+  status: recommendationFilters.status,
+  benefitLevel: recommendationFilters.benefitLevel,
+  riskLevel: recommendationFilters.riskLevel,
+  validationStatus: recommendationFilters.validationStatus,
+  requiresDispatch: recommendationFilters.requiresDispatch,
+  manualReviewRequired: recommendationFilters.manualReviewRequired
+})
+
+const refreshRecommendationFromFirstPage = () => {
   recommendationPager.page = 1
+  refreshPage()
+}
+
+const resetRecommendationFilters = () => {
+  recommendationFilters.recommendationType = ''
+  recommendationFilters.status = ''
+  recommendationFilters.benefitLevel = ''
+  recommendationFilters.riskLevel = ''
+  recommendationFilters.validationStatus = ''
+  recommendationFilters.requiresDispatch = ''
+  recommendationFilters.manualReviewRequired = ''
+  recommendationPager.page = 1
+  recommendationPager.size = 8
+  recommendationPager.sortBy = 'createdAt'
+  recommendationPager.sortOrder = 'DESC'
+  refreshPage()
+}
+
+const openRecommendationDetail = row => {
+  const recommendationId = typeof row === 'string' ? row : row?.recommendationId
+  if (recommendationId) {
+    loadRecommendation(recommendationId)
+  }
+}
+
+const handleRecommendationDrawerClosed = () => {
+  selectedRecommendationId.value = ''
+  selectedRewriteRecordId.value = ''
+}
+
+const handleRecommendationSortChange = sortState => {
+  const prop = sortState?.prop || 'createdAt'
+  recommendationPager.sortBy = prop
+  recommendationPager.sortOrder = sortState?.order === 'ascending' ? 'ASC' : 'DESC'
+  recommendationPager.page = 1
+  refreshPage()
 }
 
 const handleRecommendationPageChange = page => {
   recommendationPager.page = page
+  refreshPage()
 }
 
 const handleRecommendationSizeChange = size => {
   recommendationPager.size = size
   recommendationPager.page = 1
+  refreshPage()
 }
 
 const handleDispatchPageChange = page => {
@@ -814,31 +815,7 @@ const openAccelerationWorkbench = () => {
   })
 }
 
-const option = (value, label, count) => ({
-  value,
-  label: `${label} (${count})`
-})
-
 const field = (key, label, value) => ({ key, label, value })
-
-const matchesFilter = (item, filter) => {
-  if (filter === 'ALL') {
-    return true
-  }
-  if (filter === 'REQUIRES_DISPATCH') {
-    return Boolean(item.requiresDispatch)
-  }
-  if (filter === 'DISPATCH_READY') {
-    return String(item.status || '').toUpperCase() === 'DISPATCH_READY'
-  }
-  if (filter === 'HIGH_BENEFIT') {
-    return String(item.benefitLevel || '').toUpperCase() === 'HIGH'
-  }
-  if (filter === 'HIGH_RISK') {
-    return ['HIGH', 'CRITICAL'].includes(String(item.riskLevel || '').toUpperCase())
-  }
-  return String(item.recommendationType || '').toUpperCase() === filter
-}
 
 const hasDisplayValue = value => !(value === null || value === undefined || String(value).trim() === '')
 
@@ -901,50 +878,6 @@ const summarizeEvidenceItem = item => {
   return parts.length ? parts.join(' · ') : formatJson(item)
 }
 
-const hunkSelected = hunk => {
-  if (!highlightedHunkIds.value.length) {
-    return false
-  }
-  return highlightedHunkIds.value.includes(String(hunk?.hunkId || ''))
-}
-
-const comparePosition = (hunk, side) => {
-  const lineKey = side === 'original' ? 'originalStartLine' : 'recommendedStartLine'
-  const unitKey = side === 'original' ? 'originalStartUnit' : 'recommendedStartUnit'
-  const line = hunk?.[lineKey]
-  const unit = hunk?.[unitKey]
-  if (Number.isFinite(Number(line)) && Number(line) > 0) {
-    return `L${line}`
-  }
-  if (Number.isFinite(Number(unit)) && Number(unit) > 0) {
-    return `U${unit}`
-  }
-  return '-'
-}
-
-const highlightCompareSql = value => {
-  if (!hasDisplayValue(value)) {
-    return '-'
-  }
-  return highlightSql(value)
-}
-
-const comparePaneClass = (row, side) => ({
-  'compare-pane-delete': side === 'original' && ['DELETE', 'REPLACE'].includes(row.type),
-  'compare-pane-insert': side === 'recommended' && ['INSERT', 'REPLACE'].includes(row.type),
-  'compare-pane-empty': side === 'original' ? row.originalEmpty : row.recommendedEmpty
-})
-
-const hunkTagType = type => {
-  if (type === 'INSERT') {
-    return 'success'
-  }
-  if (type === 'DELETE') {
-    return 'danger'
-  }
-  return 'warning'
-}
-
 const formatJson = value => JSON.stringify(value, null, 2)
 
 onMounted(() => {
@@ -979,10 +912,55 @@ watch(
       <div class="filter-grid">
         <label class="field-block">
           <span class="field-label">{{ t('common.fields.tenant') }}</span>
-          <el-input v-model.trim="form.tenantId" data-testid="recommendation-tenant-input" />
+          <el-input v-model.trim="form.tenantId" data-testid="recommendation-tenant-input" @keyup.enter="refreshRecommendationFromFirstPage" />
         </label>
-        <el-button type="primary" :loading="loading.page" data-testid="recommendation-refresh" @click="refreshPage">
+        <label class="field-block">
+          <span class="field-label">{{ t('inline.viewsRecommendationCenterRecommendationCenterView.text005') }}</span>
+          <el-select v-model="recommendationFilters.recommendationType" clearable data-testid="recommendation-type-filter">
+            <el-option v-for="item in recommendationTypeOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.status') }}</span>
+          <el-select v-model="recommendationFilters.status" clearable data-testid="recommendation-status-filter">
+            <el-option v-for="item in recommendationStatusOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('recommendationCenter.fields.benefitLevel') }}</span>
+          <el-select v-model="recommendationFilters.benefitLevel" clearable data-testid="recommendation-benefit-filter">
+            <el-option v-for="item in benefitLevelOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('recommendationCenter.fields.riskLevel') }}</span>
+          <el-select v-model="recommendationFilters.riskLevel" clearable data-testid="recommendation-risk-filter">
+            <el-option v-for="item in riskLevelOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('recommendationCenter.fields.validationStatus') }}</span>
+          <el-select v-model="recommendationFilters.validationStatus" clearable data-testid="recommendation-validation-filter">
+            <el-option v-for="item in validationStatusOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="field-block field-block-compact">
+          <span class="field-label">{{ t('recommendationCenter.fields.dispatch') }}</span>
+          <el-select v-model="recommendationFilters.requiresDispatch" clearable data-testid="recommendation-dispatch-filter">
+            <el-option v-for="item in booleanFilterOptions" :key="`dispatch-${item.label}`" :label="item.label" :value="item.value" />
+          </el-select>
+        </label>
+        <label class="field-block field-block-compact">
+          <span class="field-label">{{ t('recommendationCenter.fields.manualReviewRequired') }}</span>
+          <el-select v-model="recommendationFilters.manualReviewRequired" clearable data-testid="recommendation-manual-review-filter">
+            <el-option v-for="item in booleanFilterOptions" :key="`review-${item.label}`" :label="item.label" :value="item.value" />
+          </el-select>
+        </label>
+        <el-button type="primary" :loading="loading.page" data-testid="recommendation-refresh" @click="refreshRecommendationFromFirstPage">
           {{ t('recommendationCenter.actions.refresh') }}
+        </el-button>
+        <el-button data-testid="recommendation-reset-filters" @click="resetRecommendationFilters">
+          {{ t('common.actions.reset') }}
         </el-button>
         <el-button @click="openRoutingGovernance">
           {{ t('recommendationCenter.actions.openRouting') }}
@@ -995,82 +973,82 @@ watch(
 
     <p v-if="errorMessage" class="error-banner" data-testid="recommendation-error">{{ errorMessage }}</p>
 
-    <section class="workspace-frame">
-      <div class="list-pane">
-        <SectionHeader
-          :eyebrow="t('recommendationCenter.list.eyebrow')"
-          :title="t('recommendationCenter.list.title')"
-          :summary="t('recommendationCenter.list.summary', { count: recommendations.length })"
-          size="compact"
-        />
+    <section class="recommendation-list-panel" data-testid="recommendation-list">
+      <SectionHeader
+        :eyebrow="t('recommendationCenter.list.eyebrow')"
+        :title="t('recommendationCenter.list.title')"
+        :summary="t('recommendationCenter.list.summary', { count: recommendationPager.totalCount })"
+        size="compact"
+      />
 
-        <el-tabs
-          :model-value="activeFilter"
-          class="filter-tabs"
-          data-testid="recommendation-filter"
-          @tab-change="selectFilter"
-        >
-          <el-tab-pane
-            v-for="item in filterOptions"
-            :key="item.value"
-            :label="item.label"
-            :name="item.value"
-          />
-        </el-tabs>
+      <el-table
+        v-loading="loading.page"
+        :data="recommendations"
+        row-key="recommendationId"
+        highlight-current-row
+        data-testid="recommendation-item"
+        @row-click="openRecommendationDetail"
+        @sort-change="handleRecommendationSortChange"
+      >
+        <el-table-column prop="recommendationType" :label="t('inline.viewsRecommendationCenterRecommendationCenterView.text005')" min-width="140" sortable="custom" />
+        <el-table-column prop="summary" :label="t('recommendationCenter.detail.title')" min-width="260">
+          <template #default="{ row }">
+            <strong class="table-main-text">{{ row.summary || row.recommendationId }}</strong>
+            <span class="table-muted-text">{{ row.expectedGain || row.reason || '-' }}</span>
+            <span class="table-muted-text">
+              {{ t('recommendationCenter.fields.sourceKind') }}:
+              {{ displayValue(firstDisplayValue(row.sourceKind, row.sourceType)) }}
+              · {{ t('recommendationCenter.fields.sourceId') }}:
+              {{ displayValue(firstDisplayValue(row.sourceId, row.reportCode, row.historyId, row.logicalObjectKey)) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130" sortable="custom">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'FAILED' ? 'danger' : 'info'">{{ row.status || 'UNKNOWN' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="benefitLevel" :label="t('recommendationCenter.fields.benefitLevel')" min-width="120" sortable="custom" />
+        <el-table-column prop="riskLevel" :label="t('recommendationCenter.fields.riskLevel')" min-width="120" sortable="custom">
+          <template #default="{ row }">
+            <el-tag :type="['HIGH', 'CRITICAL'].includes(String(row.riskLevel || '').toUpperCase()) ? 'warning' : 'info'">
+              {{ row.riskLevel || 'UNKNOWN' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="validationStatus" :label="t('recommendationCenter.fields.validationStatus')" min-width="150" sortable="custom" />
+        <el-table-column prop="requiresDispatch" :label="t('recommendationCenter.fields.dispatch')" min-width="120" sortable="custom">
+          <template #default="{ row }">{{ boolText(row.requiresDispatch) || 'false' }}</template>
+        </el-table-column>
+        <el-table-column prop="manualReviewRequired" :label="t('recommendationCenter.fields.manualReviewRequired')" min-width="170" sortable="custom">
+          <template #default="{ row }">{{ boolText(row.manualReviewRequired) || 'false' }}</template>
+        </el-table-column>
+        <el-table-column prop="createdAt" :label="t('recommendationCenter.fields.createdAt')" min-width="170" sortable="custom" />
+        <el-table-column prop="recommendationId" :label="t('accelerationGovernanceWorkbench.fields.recommendationId')" min-width="190" sortable="custom" />
+      </el-table>
 
-        <el-table
-          :data="pagedRecommendations"
-          row-key="recommendationId"
-          highlight-current-row
-          data-testid="recommendation-item"
-          @row-click="row => loadRecommendation(row.recommendationId)"
-        >
-          <el-table-column prop="recommendationType" :label="t('inline.viewsRecommendationCenterRecommendationCenterView.text005')" min-width="140" />
-          <el-table-column prop="summary" :label="t('recommendationCenter.detail.title')" min-width="260">
-            <template #default="{ row }">
-              <strong class="table-main-text">{{ row.summary || row.recommendationId }}</strong>
-              <span class="table-muted-text">{{ row.expectedGain || row.reason || '-' }}</span>
-              <span class="table-muted-text">
-                {{ t('recommendationCenter.fields.sourceKind') }}:
-                {{ displayValue(firstDisplayValue(row.sourceKind, row.sourceType)) }}
-                · {{ t('recommendationCenter.fields.sourceId') }}:
-                {{ displayValue(firstDisplayValue(row.sourceId, row.reportCode, row.historyId, row.logicalObjectKey)) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 'FAILED' ? 'danger' : 'info'">{{ row.status || 'UNKNOWN' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="benefitLevel" :label="t('recommendationCenter.fields.benefitLevel')" min-width="110" />
-          <el-table-column prop="riskLevel" :label="t('recommendationCenter.fields.riskLevel')" min-width="110">
-            <template #default="{ row }">
-              <el-tag :type="['HIGH', 'CRITICAL'].includes(String(row.riskLevel || '').toUpperCase()) ? 'warning' : 'info'">
-                {{ row.riskLevel || 'UNKNOWN' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="requiresDispatch" :label="t('recommendationCenter.fields.dispatch')" min-width="110">
-            <template #default="{ row }">{{ boolText(row.requiresDispatch) || 'false' }}</template>
-          </el-table-column>
-          <el-table-column prop="recommendationId" :label="t('accelerationGovernanceWorkbench.fields.recommendationId')" min-width="180" />
-        </el-table>
+      <el-pagination
+        v-if="recommendationPager.totalCount > recommendationPager.size"
+        v-model:current-page="recommendationPager.page"
+        background
+        data-testid="recommendation-pagination"
+        layout="total, sizes, prev, pager, next"
+        :page-sizes="[8, 16, 32, 64]"
+        :page-size="recommendationPager.size"
+        :total="recommendationPager.totalCount"
+        @current-change="handleRecommendationPageChange"
+        @size-change="handleRecommendationSizeChange"
+      />
+    </section>
 
-        <el-pagination
-          v-if="filteredRecommendations.length > recommendationPager.size"
-          v-model:current-page="recommendationPager.page"
-          background
-          layout="sizes, prev, pager, next"
-          :page-sizes="[8, 16, 32]"
-          :page-size="recommendationPager.size"
-          :total="filteredRecommendations.length"
-          @current-change="handleRecommendationPageChange"
-          @size-change="handleRecommendationSizeChange"
-        />
-      </div>
-
-      <div class="detail-pane" data-testid="recommendation-detail">
+    <el-drawer
+      v-model="recommendationDetailDrawerVisible"
+      data-testid="recommendation-detail-drawer"
+      size="72%"
+      :title="selectedRecommendation?.recommendationId || t('recommendationCenter.detail.title')"
+      @closed="handleRecommendationDrawerClosed"
+    >
+      <div class="detail-drawer-body" data-testid="recommendation-detail">
         <SectionHeader
           :eyebrow="t('recommendationCenter.detail.eyebrow')"
           :title="t('recommendationCenter.detail.title')"
@@ -1146,85 +1124,21 @@ watch(
                     <dd>{{ displayValue(item.value) }}</dd>
                   </div>
                 </dl>
-                <div class="sql-grid">
-                  <SqlCodeBlock
-                    :value="recommendationDiff.originalSql || selectedRecommendation.sourceSqlText || ''"
-                    :label="t('recommendationCenter.fields.originalSql')"
-                    :copy-label="t('common.actions.copy')"
-                    compact
-                  />
-                  <SqlCodeBlock
-                    :value="recommendationDiff.recommendedSql || selectedRecommendation.recommendedSqlText || ''"
-                    :label="t('recommendationCenter.fields.recommendedSql')"
-                    :copy-label="t('common.actions.copy')"
-                    compact
-                  />
-                </div>
-                <section class="evidence-table" data-testid="recommendation-sql-compare">
+                <section class="evidence-table">
                   <div class="evidence-heading">
                     <h3>{{ t('recommendationCenter.sections.compareView') }}</h3>
-                    <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.compareView'), compareRows)">
-                      {{ t('common.actions.viewRawEvidence') }}
-                    </el-button>
-                  </div>
-                  <p v-if="!compareRows.length" class="muted-copy">{{ t('recommendationCenter.states.noDiffHunks') }}</p>
-                  <div v-else class="compare-shell">
-                    <div class="compare-header">
-                      <span>{{ t('recommendationCenter.fields.originalSql') }}</span>
-                      <span>{{ t('recommendationCenter.fields.recommendedSql') }}</span>
-                    </div>
-                    <article
-                      v-for="row in compareRows"
-                      :key="row.hunkId"
-                      class="compare-row"
-                      :class="{ 'compare-row-active': row.selected }"
-                    >
-                      <div class="compare-row__meta">
-                        <el-tag :type="hunkTagType(row.type)" size="small">{{ row.type }}</el-tag>
-                        <span>{{ row.hunkId }}</span>
-                        <span>{{ row.granularity }}</span>
-                      </div>
-                      <div class="compare-pane" :class="comparePaneClass(row, 'original')">
-                        <div class="compare-pane__header">
-                          <span>{{ t('recommendationCenter.fields.originalSql') }}</span>
-                          <code>{{ row.originalPosition }}</code>
-                        </div>
-                        <!-- eslint-disable-next-line vue/no-v-html -->
-                        <pre class="compare-code"><code v-html="row.originalHtml" /></pre>
-                      </div>
-                      <div class="compare-pane" :class="comparePaneClass(row, 'recommended')">
-                        <div class="compare-pane__header">
-                          <span>{{ t('recommendationCenter.fields.recommendedSql') }}</span>
-                          <code>{{ row.recommendedPosition }}</code>
-                        </div>
-                        <!-- eslint-disable-next-line vue/no-v-html -->
-                        <pre class="compare-code"><code v-html="row.recommendedHtml" /></pre>
-                      </div>
-                    </article>
-                  </div>
-                </section>
-                <section class="evidence-table" data-testid="recommendation-text-diff">
-                  <div class="evidence-heading">
-                    <h3>{{ t('recommendationCenter.sections.textDiff') }}</h3>
                     <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.textDiff'), textDiffRows)">
                       {{ t('common.actions.viewRawEvidence') }}
                     </el-button>
                   </div>
-                  <p v-if="!textDiffRows.length" class="muted-copy">{{ t('recommendationCenter.states.noDiffHunks') }}</p>
-                  <el-table v-else :data="textDiffRows" row-key="hunkId">
-                    <el-table-column prop="hunkId" :label="t('recommendationCenter.fields.hunk')" min-width="120" />
-                    <el-table-column prop="type" :label="t('accelerationGovernanceWorkbench.fields.sourceType')" min-width="120" />
-                    <el-table-column prop="originalText" :label="t('recommendationCenter.fields.originalSql')" min-width="220">
-                      <template #default="{ row }">
-                        <pre class="inline-code" :class="{ 'inline-code-active': hunkSelected(row) }">{{ displayValue(row.originalText) }}</pre>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="recommendedText" :label="t('recommendationCenter.fields.recommendedSql')" min-width="220">
-                      <template #default="{ row }">
-                        <pre class="inline-code" :class="{ 'inline-code-active': hunkSelected(row) }">{{ displayValue(row.recommendedText) }}</pre>
-                      </template>
-                    </el-table-column>
-                  </el-table>
+                  <SqlCompareBlock
+                    :original-sql="recommendationDiff.originalSql || selectedRecommendation.sourceSqlText || ''"
+                    :recommended-sql="recommendationDiff.recommendedSql || selectedRecommendation.recommendedSqlText || ''"
+                    :original-label="t('recommendationCenter.fields.originalSql')"
+                    :recommended-label="t('recommendationCenter.fields.recommendedSql')"
+                    :empty-text="t('recommendationCenter.states.noDiffHunks')"
+                    data-testid="recommendation-sql-compare"
+                  />
                 </section>
                 <section class="evidence-table" data-testid="recommendation-ast-summary-diff">
                   <div class="evidence-heading">
@@ -1618,7 +1532,7 @@ watch(
           </el-tabs>
         </template>
       </div>
-    </section>
+    </el-drawer>
 
     <el-drawer v-model="evidenceDrawerVisible" :title="evidenceDrawerTitle" size="52%">
       <pre class="code-block">{{ formatJson(evidenceDrawerPayload) }}</pre>
@@ -1633,17 +1547,8 @@ watch(
   gap: var(--sqlforge-space-5);
 }
 
-.workspace-frame {
-  display: grid;
-  grid-template-columns: minmax(420px, 0.95fr) minmax(0, 1.35fr);
-  min-width: 0;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-surface-2);
-}
-
-.list-pane,
-.detail-pane {
+.recommendation-list-panel,
+.detail-drawer-body {
   display: flex;
   flex-direction: column;
   gap: var(--sqlforge-space-4);
@@ -1651,8 +1556,14 @@ watch(
   padding: var(--sqlforge-space-5);
 }
 
-.list-pane {
-  border-right: 1px solid var(--sqlforge-border-default);
+.recommendation-list-panel {
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-surface-2);
+}
+
+.detail-drawer-body {
+  padding: 0 var(--sqlforge-space-2) var(--sqlforge-space-5);
 }
 
 .muted-copy {
@@ -1678,6 +1589,10 @@ watch(
   display: grid;
   gap: var(--sqlforge-space-2);
   min-width: 220px;
+}
+
+.field-block-compact {
+  min-width: 170px;
 }
 
 .field-label,
@@ -1714,10 +1629,6 @@ watch(
   border-radius: var(--sqlforge-radius-sm);
   background: rgba(21, 98, 73, 0.2);
   color: #bdf6dd;
-}
-
-.filter-tabs :deep(.el-tabs__header) {
-  margin: 0;
 }
 
 .detail-tabs :deep(.el-tabs__header) {
@@ -1790,107 +1701,6 @@ watch(
 
 .sql-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.compare-shell {
-  display: grid;
-  gap: var(--sqlforge-space-3);
-  min-width: 0;
-}
-
-.compare-header,
-.compare-row {
-  display: grid;
-  grid-template-columns: minmax(96px, 0.2fr) repeat(2, minmax(0, 1fr));
-  gap: var(--sqlforge-space-3);
-  min-width: 0;
-}
-
-.compare-header {
-  color: var(--sqlforge-text-muted);
-  font-family: var(--sqlforge-font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.compare-header::before {
-  content: '';
-}
-
-.compare-row {
-  align-items: stretch;
-  padding-block: var(--sqlforge-space-2);
-  border-top: 1px solid var(--sqlforge-border-subtle);
-}
-
-.compare-row-active {
-  background: rgba(62, 207, 142, 0.06);
-}
-
-.compare-row__meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sqlforge-space-2);
-  align-items: flex-start;
-  min-width: 0;
-  color: var(--sqlforge-text-secondary);
-  font-family: var(--sqlforge-font-mono);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.compare-pane {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: var(--sqlforge-radius-sm);
-  background: var(--sqlforge-bg-page-deep);
-}
-
-.compare-pane-delete {
-  border-color: rgba(212, 96, 96, 0.45);
-  background: rgba(120, 28, 28, 0.16);
-}
-
-.compare-pane-insert {
-  border-color: rgba(62, 207, 142, 0.45);
-  background: rgba(21, 98, 73, 0.18);
-}
-
-.compare-pane-empty {
-  opacity: 0.72;
-}
-
-.compare-pane__header {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sqlforge-space-2);
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--sqlforge-border-subtle);
-  color: var(--sqlforge-text-secondary);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.compare-pane__header code {
-  color: var(--sqlforge-text-muted);
-  font-family: var(--sqlforge-font-mono);
-}
-
-.compare-code {
-  min-height: 64px;
-  max-height: 260px;
-  margin: 0;
-  padding: 12px;
-  color: var(--sqlforge-text-primary);
-  font-family: var(--sqlforge-font-mono);
-  font-size: 12px;
-  line-height: 1.6;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 .description-item {
@@ -1999,14 +1809,8 @@ watch(
 }
 
 @media (max-width: 1280px) {
-  .workspace-frame,
   .sql-grid {
     grid-template-columns: 1fr;
-  }
-
-  .list-pane {
-    border-right: 0;
-    border-bottom: 1px solid var(--sqlforge-border-default);
   }
 }
 
@@ -2020,19 +1824,6 @@ watch(
 
   .rewrite-action-grid {
     grid-template-columns: 1fr;
-  }
-
-  .compare-header {
-    display: none;
-  }
-
-  .compare-row {
-    grid-template-columns: 1fr;
-  }
-
-  .compare-row__meta {
-    flex-direction: row;
-    flex-wrap: wrap;
   }
 
   .detail-tabs :deep(.el-tabs__nav) {

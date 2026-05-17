@@ -26,6 +26,7 @@ export default {
     actions: {
       copy: 'Copy',
       format: 'Format',
+      reset: 'Reset',
       viewRawJson: 'View raw JSON',
       viewRawEvidence: 'View raw evidence'
     },

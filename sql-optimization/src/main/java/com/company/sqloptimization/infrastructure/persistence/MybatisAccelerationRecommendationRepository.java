@@ -6,6 +6,7 @@ import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
@@ -56,6 +57,21 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
     @Override
     public List<AccelerationRecommendation> findByTenantId(String tenantId) {
         List<AccelerationRecommendationRecord> records = recommendationMapper.selectByTenantId(tenantId);
+        return toDomains(records);
+    }
+
+    @Override
+    public List<AccelerationRecommendation> findPage(AccelerationRecommendationFilter filter) {
+        List<AccelerationRecommendationRecord> records = recommendationMapper.selectPage(filter);
+        return toDomains(records);
+    }
+
+    @Override
+    public int count(AccelerationRecommendationFilter filter) {
+        return recommendationMapper.count(filter);
+    }
+
+    private List<AccelerationRecommendation> toDomains(List<AccelerationRecommendationRecord> records) {
         List<AccelerationRecommendation> result = new ArrayList<AccelerationRecommendation>();
         for (AccelerationRecommendationRecord record : records) {
             result.add(toDomain(record));

@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -9,6 +10,7 @@ import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationPageVO;
 import com.company.sqloptimization.application.service.AccelerationRecommendationApplicationService;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -83,6 +85,59 @@ class AccelerationRecommendationControllerTest {
             .andExpect(jsonPath("$.evidenceLevel").value("RUNTIME_HISTORY"))
             .andExpect(jsonPath("$.diffStatus").value("READY"))
             .andExpect(jsonPath("$.textDiff[0].type").value("REPLACE"));
+    }
+
+    @Test
+    void shouldExposeRecommendationPageEndpointWithFiltersAndMetadata() throws Exception {
+        AccelerationRecommendationVO recommendation = new AccelerationRecommendationVO();
+        recommendation.setRecommendationId("rec-page-001");
+        recommendation.setTenantId("tenant-a");
+        recommendation.setRecommendationType("REWRITE");
+        recommendation.setStatus("DISPATCH_READY");
+        recommendation.setBenefitLevel("HIGH");
+        recommendation.setRiskLevel("LOW");
+        recommendation.setValidationStatus("DIVERGED");
+        RecommendationPageVO page = new RecommendationPageVO(
+            Collections.singletonList(recommendation),
+            Integer.valueOf(2),
+            Integer.valueOf(50),
+            Integer.valueOf(123),
+            Integer.valueOf(3),
+            Boolean.TRUE
+        );
+        when(recommendationApplicationService.listRecommendationPage(
+            eq("REWRITE"),
+            eq("DISPATCH_READY"),
+            eq("HIGH"),
+            eq("LOW"),
+            eq("DIVERGED"),
+            eq(Boolean.TRUE),
+            eq(Boolean.FALSE),
+            eq("riskLevel"),
+            eq("ASC"),
+            eq(Integer.valueOf(2)),
+            eq(Integer.valueOf(50))
+        )).thenReturn(page);
+
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/recommendations/page")
+                .param("pageNo", "2")
+                .param("pageSize", "50")
+                .param("sortBy", "riskLevel")
+                .param("sortOrder", "ASC")
+                .param("recommendationType", "REWRITE")
+                .param("status", "DISPATCH_READY")
+                .param("benefitLevel", "HIGH")
+                .param("riskLevel", "LOW")
+                .param("validationStatus", "DIVERGED")
+                .param("requiresDispatch", "true")
+                .param("manualReviewRequired", "false")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].recommendationId").value("rec-page-001"))
+            .andExpect(jsonPath("$.pageNo").value(2))
+            .andExpect(jsonPath("$.pageSize").value(50))
+            .andExpect(jsonPath("$.totalCount").value(123))
+            .andExpect(jsonPath("$.pageCount").value(3))
+            .andExpect(jsonPath("$.hasMore").value(true));
     }
 
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {

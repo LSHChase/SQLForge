@@ -3,20 +3,25 @@ package com.company.sqloptimization.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationPageVO;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
+import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RiskLevel;
 import com.company.sqloptimization.infrastructure.repository.InMemoryAccelerationRecommendationRepository;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -120,6 +125,112 @@ class AccelerationRecommendationApplicationServiceTest {
     }
 
     @Test
+    void shouldPageFilterSortAndKeepLegacyRecommendationList() {
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            2L
+        );
+        InMemoryAccelerationRecommendationRepository repository =
+            new InMemoryAccelerationRecommendationRepository();
+        repository.save(recommendation(
+            "rec-old-high",
+            "tenant-a",
+            RecommendationType.REWRITE,
+            RecommendationStatus.RECOMMENDED,
+            BenefitLevel.HIGH,
+            RiskLevel.LOW,
+            RewriteValidationStatus.NOT_VALIDATED,
+            true,
+            true,
+            Instant.parse("2026-05-17T10:00:00Z")
+        ));
+        repository.save(recommendation(
+            "rec-new-high",
+            "tenant-a",
+            RecommendationType.PREWARM,
+            RecommendationStatus.REVIEWING,
+            BenefitLevel.HIGH,
+            RiskLevel.MEDIUM,
+            RewriteValidationStatus.EQUIVALENT,
+            true,
+            true,
+            Instant.parse("2026-05-17T11:00:00Z")
+        ));
+        repository.save(recommendation(
+            "rec-low-risk",
+            "tenant-a",
+            RecommendationType.ACCELERATION,
+            RecommendationStatus.DISPATCH_READY,
+            BenefitLevel.LOW,
+            RiskLevel.HIGH,
+            RewriteValidationStatus.DIVERGED,
+            false,
+            false,
+            Instant.parse("2026-05-17T12:00:00Z")
+        ));
+        repository.save(recommendation(
+            "rec-cross-tenant",
+            "tenant-b",
+            RecommendationType.REWRITE,
+            RecommendationStatus.RECOMMENDED,
+            BenefitLevel.HIGH,
+            RiskLevel.CRITICAL,
+            RewriteValidationStatus.FAILED,
+            true,
+            true,
+            Instant.parse("2026-05-17T13:00:00Z")
+        ));
+        AccelerationRecommendationApplicationService service =
+            new AccelerationRecommendationApplicationService(repository);
+
+        RecommendationPageVO highBenefitPage = service.listRecommendationPage(
+            null,
+            null,
+            "high",
+            null,
+            null,
+            null,
+            null,
+            "createdAt",
+            "ASC",
+            Integer.valueOf(1),
+            Integer.valueOf(1)
+        );
+        RecommendationPageVO filteredPage = service.listRecommendationPage(
+            "ACCELERATION",
+            "DISPATCH_READY",
+            null,
+            "HIGH",
+            "DIVERGED",
+            Boolean.FALSE,
+            Boolean.FALSE,
+            "unsafe_sql",
+            "ASC",
+            Integer.valueOf(0),
+            Integer.valueOf(500)
+        );
+        List<AccelerationRecommendationVO> legacyList = service.listRecommendations();
+
+        assertEquals(1, highBenefitPage.getItems().size());
+        assertEquals("rec-old-high", highBenefitPage.getItems().get(0).getRecommendationId());
+        assertEquals(Integer.valueOf(2), highBenefitPage.getTotalCount());
+        assertEquals(Integer.valueOf(2), highBenefitPage.getPageCount());
+        assertTrue(Boolean.TRUE.equals(highBenefitPage.getHasMore()));
+        assertEquals(Integer.valueOf(1), filteredPage.getPageNo());
+        assertEquals(Integer.valueOf(100), filteredPage.getPageSize());
+        assertEquals(Integer.valueOf(1), filteredPage.getTotalCount());
+        assertEquals("rec-low-risk", filteredPage.getItems().get(0).getRecommendationId());
+        assertEquals(3, legacyList.size());
+        assertEquals("rec-low-risk", legacyList.get(0).getRecommendationId());
+    }
+
+    @Test
     void shouldRejectCrossTenantRecommendationCreation() {
         RequestContext.set(
             "tenant-a",
@@ -148,6 +259,36 @@ class AccelerationRecommendationApplicationServiceTest {
             }
         }
         return false;
+    }
+
+    private AccelerationRecommendation recommendation(String recommendationId,
+                                                       String tenantId,
+                                                       RecommendationType recommendationType,
+                                                       RecommendationStatus status,
+                                                       BenefitLevel benefitLevel,
+                                                       RiskLevel riskLevel,
+                                                       RewriteValidationStatus validationStatus,
+                                                       boolean requiresDispatch,
+                                                       boolean manualReviewRequired,
+                                                       Instant createdAt) {
+        return AccelerationRecommendation.builder()
+            .recommendationId(recommendationId)
+            .tenantId(tenantId)
+            .recommendationType(recommendationType)
+            .sourceSqlText("SELECT * FROM orders")
+            .recommendedSqlText("SELECT order_id FROM orders")
+            .summary(recommendationId)
+            .benefitLevel(benefitLevel)
+            .riskLevel(riskLevel)
+            .requiresDispatch(requiresDispatch)
+            .status(status)
+            .validationStatus(validationStatus)
+            .autoApplyAllowed(Boolean.FALSE)
+            .manualReviewRequired(Boolean.valueOf(manualReviewRequired))
+            .createdBy("operator-001")
+            .createdAt(createdAt)
+            .updatedAt(createdAt)
+            .build();
     }
 
     private Map<String, Object> rule(String rule, String level) {

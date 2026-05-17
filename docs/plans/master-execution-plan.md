@@ -901,6 +901,7 @@ Tasks:
 | `PRW-011` | SQL 历史页面展示改写前后链路 | 在 SQL 历史列表和详情中展示自动改写状态、原始 SQL、实际执行 SQL、diff、改写记录、运行时绑定和规则版本，并提供跳转到改写记录详情的入口。 | `PRW-008`,`PRW-010`,`HARN-145` | npm run lint、npm run build、node scripts/check-history-page-contract.mjs、node scripts/check-history-detail-contract.mjs、python3 scripts/foreman.py validate PRW-011 |
 | `PRW-012` | 生产闭环端到端测试与 smoke | 补齐生产自动改写闭环的后端端到端测试和前端 smoke，覆盖推荐生成、改写记录、审批、验证、发布、命中自动改写、历史留痕以及差异暂停。 | `PRW-009`,`PRW-010`,`PRW-011` | mvn test、npm run lint、npm run build、npm run smoke:acceleration-governance、python3 scripts/foreman.py validate PRW-012 |
 | `PRW-013` | JDBC Agent Redis 改写规则桥接 | 在生产主闭环完成后，按需把已发布的 query-execution 运行时改写绑定同步到 JDBC Agent 现有 Redis 改写规则格式，并处理同步失败、过期、撤销和版本覆盖策略。 | `PRW-012` | mvn -pl query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-013 |
+| `USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517` | 推荐结果页布局与 SQL Compare 收口 | 新增推荐分页过滤接口并重排推荐结果页为顶部查询条件、列表分页和详情抽屉；抽取公共 SQL compare 组件，收口 SQL diff tab 展示。 | `HARN-146`,`HARN-FE-006`,`HARN-FE-007`,`PRW-010` | mvn -pl sql-optimization,sqlforge-shared -am test、npm run lint、npm run build、npm run test:sql-ui-contract、npm run test:frontend-page-governance、node scripts/check-recommendation-page-contract.mjs、npm run smoke:frontend-dev、npm run smoke:production-rewrite-closed-loop、git diff --check |
 
 ### Phase-F 部署、运维、生产就绪
 

@@ -12,6 +12,7 @@ import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
 import com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationRecommendationMapper;
@@ -19,6 +20,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -69,6 +71,33 @@ class MybatisAccelerationRecommendationRepositoryTest {
         assertEquals("NOT_REAL_EXECUTION_GAIN", restored.getExpectedBenefit().get("claimBoundary"));
         assertFalse(restored.isAutoApplyAllowed());
         assertEquals(true, restored.isManualReviewRequired());
+    }
+
+    @Test
+    void shouldDelegatePagedRecommendationFilterAndCount() {
+        AccelerationRecommendationMapper mapper = org.mockito.Mockito.mock(AccelerationRecommendationMapper.class);
+        AccelerationRecommendationFilter filter = new AccelerationRecommendationFilter();
+        filter.setTenantId("tenant-a");
+        filter.setRecommendationType("REWRITE");
+        filter.setBenefitLevel("HIGH");
+        filter.setRequiresDispatch(Boolean.TRUE);
+        filter.setManualReviewRequired(Boolean.TRUE);
+        filter.setOrderByClause("created_at DESC, recommendation_id DESC");
+        filter.setOffset(8);
+        filter.setLimit(9);
+        when(mapper.selectPage(filter)).thenReturn(Collections.singletonList(sampleRecord()));
+        when(mapper.count(filter)).thenReturn(Integer.valueOf(11));
+        MybatisAccelerationRecommendationRepository repository =
+            new MybatisAccelerationRecommendationRepository(mapper);
+
+        List<AccelerationRecommendation> rows = repository.findPage(filter);
+        int totalCount = repository.count(filter);
+
+        assertEquals(1, rows.size());
+        assertEquals("recommendation-002", rows.get(0).getRecommendationId());
+        assertEquals(11, totalCount);
+        verify(mapper).selectPage(filter);
+        verify(mapper).count(filter);
     }
 
     private AccelerationRecommendation sampleRecommendation() {

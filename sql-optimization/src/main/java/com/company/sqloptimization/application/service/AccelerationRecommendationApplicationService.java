@@ -6,15 +6,18 @@ import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
+import com.company.sqloptimization.application.controller.vo.RecommendationPageVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter;
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,10 @@ import org.springframework.util.StringUtils;
 
 @Service
 public class AccelerationRecommendationApplicationService {
+
+    private static final int DEFAULT_PAGE_NO = 1;
+    private static final int DEFAULT_PAGE_SIZE = 8;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final AccelerationRecommendationRepository recommendationRepository;
     private final SqlDiffApplicationService sqlDiffApplicationService;
@@ -106,6 +113,55 @@ public class AccelerationRecommendationApplicationService {
             result.add(toVo(recommendation));
         }
         return result;
+    }
+
+    public RecommendationPageVO listRecommendationPage(String recommendationType,
+                                                       String status,
+                                                       String benefitLevel,
+                                                       String riskLevel,
+                                                       String validationStatus,
+                                                       Boolean requiresDispatch,
+                                                       Boolean manualReviewRequired,
+                                                       String sortBy,
+                                                       String sortOrder,
+                                                       Integer pageNo,
+                                                       Integer pageSize) {
+        String tenantId = requireContextTenant();
+        int resolvedPageNo = normalizePageNo(pageNo);
+        int resolvedPageSize = normalizePageSize(pageSize);
+        AccelerationRecommendationFilter filter = new AccelerationRecommendationFilter();
+        filter.setTenantId(tenantId);
+        filter.setRecommendationType(normalizeFilterValue(recommendationType));
+        filter.setStatus(normalizeFilterValue(status));
+        filter.setBenefitLevel(normalizeFilterValue(benefitLevel));
+        filter.setRiskLevel(normalizeFilterValue(riskLevel));
+        filter.setValidationStatus(normalizeFilterValue(validationStatus));
+        filter.setRequiresDispatch(requiresDispatch);
+        filter.setManualReviewRequired(manualReviewRequired);
+        filter.setOrderByClause(resolveRecommendationOrderBy(sortBy, sortOrder));
+        filter.setOffset((resolvedPageNo - 1) * resolvedPageSize);
+        filter.setLimit(resolvedPageSize + 1);
+
+        List<AccelerationRecommendation> rows = recommendationRepository.findPage(filter);
+        boolean hasMore = rows.size() > resolvedPageSize;
+        if (hasMore) {
+            rows = new ArrayList<AccelerationRecommendation>(rows.subList(0, resolvedPageSize));
+        }
+        filter.setLimit(resolvedPageSize);
+        int totalCount = recommendationRepository.count(filter);
+        List<AccelerationRecommendationVO> items =
+            new ArrayList<AccelerationRecommendationVO>(rows.size());
+        for (AccelerationRecommendation recommendation : rows) {
+            items.add(toVo(recommendation));
+        }
+        return new RecommendationPageVO(
+            items,
+            Integer.valueOf(resolvedPageNo),
+            Integer.valueOf(resolvedPageSize),
+            Integer.valueOf(totalCount),
+            Integer.valueOf(pageCount(totalCount, resolvedPageSize)),
+            Boolean.valueOf(hasMore)
+        );
     }
 
     public AccelerationRecommendationVO getRecommendation(String recommendationId) {
@@ -276,5 +332,56 @@ public class AccelerationRecommendationApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private String normalizeFilterValue(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null || "ALL".equalsIgnoreCase(normalized)) {
+            return null;
+        }
+        return normalized.toUpperCase(Locale.ROOT);
+    }
+
+    private String resolveRecommendationOrderBy(String sortBy, String sortOrder) {
+        String normalizedSortBy = trimToNull(sortBy);
+        String column = "created_at";
+        if ("updatedAt".equals(normalizedSortBy)) {
+            column = "updated_at";
+        } else if ("recommendationType".equals(normalizedSortBy)) {
+            column = "recommendation_type";
+        } else if ("status".equals(normalizedSortBy)) {
+            column = "status";
+        } else if ("benefitLevel".equals(normalizedSortBy)) {
+            column = "benefit_level";
+        } else if ("riskLevel".equals(normalizedSortBy)) {
+            column = "risk_level";
+        } else if ("validationStatus".equals(normalizedSortBy)) {
+            column = "validation_status";
+        } else if ("requiresDispatch".equals(normalizedSortBy)) {
+            column = "requires_dispatch";
+        } else if ("manualReviewRequired".equals(normalizedSortBy)) {
+            column = "manual_review_required";
+        } else if ("recommendationId".equals(normalizedSortBy)) {
+            column = "recommendation_id";
+        }
+        String direction = "ASC".equalsIgnoreCase(trimToNull(sortOrder)) ? "ASC" : "DESC";
+        return column + " " + direction + ", recommendation_id DESC";
+    }
+
+    private int normalizePageNo(Integer pageNo) {
+        return pageNo == null || pageNo.intValue() <= 0 ? DEFAULT_PAGE_NO : pageNo.intValue();
+    }
+
+    private int normalizePageSize(Integer pageSize) {
+        return pageSize == null || pageSize.intValue() <= 0
+            ? DEFAULT_PAGE_SIZE
+            : Math.min(MAX_PAGE_SIZE, pageSize.intValue());
+    }
+
+    private int pageCount(int totalCount, int pageSize) {
+        if (totalCount <= 0) {
+            return 0;
+        }
+        return (totalCount + pageSize - 1) / pageSize;
     }
 }

@@ -624,6 +624,39 @@ export const getRecommendations = (tenantId, requestOptions = {}) =>
     }
   })
 
+export const getRecommendationPage = (tenantId, filters = {}, requestOptions = {}) => {
+  const params = new URLSearchParams()
+  const queryKeys = [
+    'pageNo',
+    'pageSize',
+    'sortBy',
+    'sortOrder',
+    'recommendationType',
+    'status',
+    'benefitLevel',
+    'riskLevel',
+    'validationStatus',
+    'requiresDispatch',
+    'manualReviewRequired'
+  ]
+  queryKeys.forEach(key => {
+    const value = filters?.[key]
+    if (value !== null && value !== undefined && String(value).trim() !== '') {
+      params.set(key, String(value))
+    }
+  })
+
+  return request({
+    method: 'get',
+    url: `/api/sql-optimization/recommendations/page?${params.toString()}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-recommendation-page',
+      ...requestOptions
+    }
+  })
+}
+
 export const getRecommendationDetail = (tenantId, recommendationId, requestOptions = {}) =>
   request({
     method: 'get',

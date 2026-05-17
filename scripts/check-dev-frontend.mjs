@@ -214,6 +214,17 @@ const runBrowserSmoke = async baseUrl => {
         await fulfillJson(route, [])
         return
       }
+      if (pathname === '/api/sql-optimization/recommendations/page') {
+        await fulfillJson(route, {
+          items: [],
+          pageNo: 1,
+          pageSize: 8,
+          totalCount: 0,
+          pageCount: 0,
+          hasMore: false
+        })
+        return
+      }
       if (pathname === '/api/sql-optimization/recommendations') {
         await fulfillJson(route, [])
         return
@@ -362,30 +373,40 @@ const runBrowserSmoke = async baseUrl => {
       return
     }
 
-    if (pathname === '/api/sql-optimization/recommendations' && requestPrefix === 'frontend-recommendation-center-list') {
-      await fulfillJson(route, [
-        {
-          recommendationId: 'rec-dev-1',
-          recommendationType: 'REWRITE',
-          status: 'DISPATCH_READY',
-          benefitLevel: 'HIGH',
-          riskLevel: 'MEDIUM',
-          validationStatus: 'DIVERGED',
-          alertStatus: 'OPEN',
-          sourceSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
-          recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
-          logicalObjectKey: 'sales.orders',
-          targetEngine: 'HETU',
-          targetDatasource: 'hetu_main',
-          requiresDispatch: true,
-          manualReviewRequired: true,
-          autoApplyAllowed: false,
-          ruleChain: [{ ruleCode: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
-          preconditions: [],
-          semanticRisks: [{ type: 'COLUMN_PROJECTION', severity: 'MEDIUM' }],
-          unappliedRules: []
-        }
-      ])
+    if (pathname === '/api/sql-optimization/recommendations/page' && requestPrefix === 'frontend-recommendation-center-page') {
+      assert(requestUrl.searchParams.get('pageNo') === '1', '推荐页必须从第一页加载远程分页结果。')
+      assert(requestUrl.searchParams.get('pageSize') === '8', '推荐页默认分页大小必须为 8。')
+      assert(requestUrl.searchParams.get('sortBy') === 'createdAt', '推荐页默认排序字段必须为 createdAt。')
+      await fulfillJson(route, {
+        items: [
+          {
+            recommendationId: 'rec-dev-1',
+            recommendationType: 'REWRITE',
+            status: 'DISPATCH_READY',
+            benefitLevel: 'HIGH',
+            riskLevel: 'MEDIUM',
+            validationStatus: 'DIVERGED',
+            alertStatus: 'OPEN',
+            sourceSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
+            recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+            logicalObjectKey: 'sales.orders',
+            targetEngine: 'HETU',
+            targetDatasource: 'hetu_main',
+            requiresDispatch: true,
+            manualReviewRequired: true,
+            autoApplyAllowed: false,
+            ruleChain: [{ ruleCode: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
+            preconditions: [],
+            semanticRisks: [{ type: 'COLUMN_PROJECTION', severity: 'MEDIUM' }],
+            unappliedRules: []
+          }
+        ],
+        pageNo: 1,
+        pageSize: 8,
+        totalCount: 1,
+        pageCount: 1,
+        hasMore: false
+      })
       return
     }
 
@@ -688,8 +709,16 @@ const runBrowserSmoke = async baseUrl => {
     const rewriteRecordUrl = new URL(page.url())
     assert(rewriteRecordUrl.pathname === ROUTE_PATHS.recommendationCenter, '改写记录导航必须复用推荐结果路由。')
     assert(rewriteRecordUrl.searchParams.get('tab') === 'rewriteLifecycle', '改写记录导航必须进入 rewriteLifecycle tab。')
+    await page.getByTestId('recommendation-item').locator('tr').filter({ hasText: 'rec-dev-1' }).first().click()
+    await page.getByTestId('recommendation-detail-drawer').waitFor({ timeout: defaultTimeoutMs })
     await page.getByTestId('recommendation-rewrite-lifecycle').waitFor({ timeout: defaultTimeoutMs })
+    await page.getByRole('tab', { name: /SQL 差异|SQL diff/ }).click()
+    await page.getByTestId('recommendation-sql-compare').waitFor({ timeout: defaultTimeoutMs })
+    await expectTextInLocator(page.getByTestId('recommendation-sql-compare'), 'SELECT')
+    await page.getByRole('tab', { name: /改写复核与发布|Rewrite review and publish/ }).click()
     await expectTextInLocator(page.getByTestId('recommendation-rewrite-validation-run-table'), 'validation-rec-dev-1')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('recommendation-detail-drawer').waitFor({ state: 'hidden', timeout: defaultTimeoutMs })
 
     await page.locator('.app-menu').getByText('改写历史', { exact: true }).click()
     await page.getByTestId('sql-history-page').waitFor({ timeout: defaultTimeoutMs })

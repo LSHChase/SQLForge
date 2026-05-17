@@ -26,6 +26,7 @@ export default {
     actions: {
       copy: '复制',
       format: '格式化',
+      reset: '重置',
       viewRawJson: '查看原始 JSON',
       viewRawEvidence: '查看原始证据'
     },

@@ -99,8 +99,14 @@ const requiredFiles = {
   ],
   'src/views/recommendation-center/RecommendationCenterView.vue': [
     'SqlCodeBlock',
+    'SqlCompareBlock',
     'recommendation-source-sql',
     'recommendation-recommended-sql'
+  ],
+  'src/views/common/SqlCompareBlock.vue': [
+    'formatSqlText',
+    'highlightSql',
+    'sql-compare-block__viewport'
   ],
   'src/views/benchmark/BenchmarkView.vue': ['SqlEditorField', 'benchmark-sql-input']
 }

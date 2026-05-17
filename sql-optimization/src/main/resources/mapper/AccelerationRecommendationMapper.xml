@@ -61,6 +61,31 @@
         auto_apply_allowed, manual_review_required, created_by, created_at, updated_at
     </sql>
 
+    <sql id="FilterWhere">
+        WHERE tenant_id = #{tenantId}
+        <if test="recommendationType != null and recommendationType != ''">
+            AND recommendation_type = #{recommendationType}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="benefitLevel != null and benefitLevel != ''">
+            AND benefit_level = #{benefitLevel}
+        </if>
+        <if test="riskLevel != null and riskLevel != ''">
+            AND risk_level = #{riskLevel}
+        </if>
+        <if test="validationStatus != null and validationStatus != ''">
+            AND validation_status = #{validationStatus}
+        </if>
+        <if test="requiresDispatch != null">
+            AND requires_dispatch = #{requiresDispatch}
+        </if>
+        <if test="manualReviewRequired != null">
+            AND manual_review_required = #{manualReviewRequired}
+        </if>
+    </sql>
+
     <select id="selectByRecommendationId" resultMap="AccelerationRecommendationRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM acceleration_recommendation
@@ -72,6 +97,20 @@
         FROM acceleration_recommendation
         WHERE tenant_id = #{tenantId}
         ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPage" parameterType="com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter" resultMap="AccelerationRecommendationRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM acceleration_recommendation
+        <include refid="FilterWhere"/>
+        ORDER BY ${orderByClause}
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" parameterType="com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter" resultType="int">
+        SELECT COUNT(1)
+        FROM acceleration_recommendation
+        <include refid="FilterWhere"/>
     </select>
 
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">

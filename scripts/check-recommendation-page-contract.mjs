@@ -5,8 +5,17 @@ const targets = [
     path: 'src/views/recommendation-center/RecommendationCenterView.vue',
     tokens: [
       'data-testid="recommendation-page"',
-      'data-testid="recommendation-filter"',
+      'data-testid="recommendation-list"',
+      'data-testid="recommendation-detail-drawer"',
       'data-testid="recommendation-detail"',
+      'data-testid="recommendation-type-filter"',
+      'data-testid="recommendation-status-filter"',
+      'data-testid="recommendation-benefit-filter"',
+      'data-testid="recommendation-risk-filter"',
+      'data-testid="recommendation-validation-filter"',
+      'data-testid="recommendation-dispatch-filter"',
+      'data-testid="recommendation-manual-review-filter"',
+      'data-testid="recommendation-pagination"',
       'data-testid="recommendation-focus-summary"',
       'data-testid="recommendation-dispatch-contract"',
       'data-testid="recommendation-dispatch-event"',
@@ -14,7 +23,6 @@ const targets = [
       'data-testid="recommendation-review-guard"',
       'data-testid="recommendation-sql-diff"',
       'data-testid="recommendation-sql-compare"',
-      'data-testid="recommendation-text-diff"',
       'data-testid="recommendation-ast-summary-diff"',
       'data-testid="recommendation-rule-diff"',
       'data-testid="recommendation-rule-chain"',
@@ -49,11 +57,10 @@ const targets = [
       'riskLevel',
       'recommendedSqlText',
       'logicalObjectKey',
+      'getRecommendationPage',
       'getRecommendationDiff',
       'textDiff',
-      'compareRows',
-      'comparePaneClass',
-      'hunkTagType',
+      'SqlCompareBlock',
       'astSummaryDiff',
       'focusSummaryCards',
       'ruleChain',
@@ -93,14 +100,30 @@ const targets = [
       '<el-table',
       '<el-pagination',
       '<el-drawer',
-      'pagedRecommendations',
+      'recommendationPager.totalCount',
+      'buildRecommendationPageQuery',
+      'handleRecommendationSortChange',
       'openEvidenceDrawer'
+    ]
+  },
+  {
+    path: 'src/views/common/SqlCompareBlock.vue',
+    tokens: [
+      'formatSqlText',
+      'highlightSql',
+      'buildCompareRows',
+      'sql-compare-block__viewport',
+      'sql-compare-row--insert',
+      'sql-compare-row--delete',
+      'sql-compare-row--replace'
     ]
   },
   {
     path: 'src/services/runtimeGateApi.js',
     tokens: [
       'getRecommendations',
+      'getRecommendationPage',
+      '/api/sql-optimization/recommendations/page',
       'getRecommendationDiff',
       'getRecommendationTrace',
       'getDispatchContract',
@@ -137,7 +160,21 @@ for (const target of targets) {
     }
   }
   if (target.path === 'src/views/recommendation-center/RecommendationCenterView.vue') {
-    const forbiddenTokens = ['class="recommendation-row"', 'class="dispatch-event-row"', 'class="evidence-group"', '<el-card']
+    const forbiddenTokens = [
+      'class="recommendation-row"',
+      'class="dispatch-event-row"',
+      'class="evidence-group"',
+      '<el-card',
+      'class="workspace-frame"',
+      'class="list-pane"',
+      'class="detail-pane"',
+      'data-testid="recommendation-text-diff"',
+      'filteredRecommendations',
+      'pagedRecommendations',
+      'comparePaneClass',
+      'hunkTagType',
+      'getRecommendations'
+    ]
     for (const token of forbiddenTokens) {
       if (content.includes(token)) {
         throw new Error(`Recommendation page must not reintroduce stacked card/list token ${JSON.stringify(token)}`)

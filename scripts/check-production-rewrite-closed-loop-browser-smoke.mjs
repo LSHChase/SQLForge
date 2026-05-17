@@ -15,6 +15,7 @@ if (!process.env.TMPDIR || process.env.TMPDIR === '/tmp' || process.env.TMPDIR.s
 const tenantId = 'tenant-a'
 const recommendationId = 'rec-prw-012'
 const rewriteRecordId = 'rewrite-prw-012'
+const validationRunId = 'validation-prw-012'
 const runtimeBindingId = 'rwb-prw-012'
 const runtimeRuleVersion = 'runtime-rewrite-v1'
 const historyId = 'history-prw-012'
@@ -361,9 +362,19 @@ const runBrowserSmoke = async baseUrl => {
     const key = `${method} ${pathname}`
     assertFrontendHeaders(request)
 
-    if (method === 'GET' && pathname === '/api/sql-optimization/recommendations') {
+    if (method === 'GET' && pathname === '/api/sql-optimization/recommendations/page') {
+      assert(searchParams.get('pageNo') === '1', 'Recommendation page must request pageNo=1 by default.')
+      assert(searchParams.get('pageSize') === '8', 'Recommendation page must request pageSize=8 by default.')
+      assert(searchParams.get('sortBy') === 'createdAt', 'Recommendation page must use the governed sort key.')
       seen.add(key)
-      await fulfillJson(route, [recommendation])
+      await fulfillJson(route, {
+        items: [recommendation],
+        pageNo: 1,
+        pageSize: 8,
+        totalCount: 1,
+        pageCount: 1,
+        hasMore: false
+      })
       return
     }
 
@@ -471,6 +482,24 @@ const runBrowserSmoke = async baseUrl => {
     if (method === 'GET' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/publish-eligibility`) {
       seen.add(key)
       await fulfillJson(route, publishEligibility())
+      return
+    }
+
+    if (method === 'GET' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/validation-runs`) {
+      seen.add(key)
+      await fulfillJson(route, [
+        {
+          validationRunId: validationRunId,
+          rewriteRecordId,
+          recommendationId,
+          status: 'FINISHED',
+          comparisonStatus: rewriteRecord.validationStatus,
+          differenceType: 'RESULT_SET',
+          autoApplyPaused: true,
+          startedAt: '2026-05-12T01:10:00Z',
+          finishedAt: '2026-05-12T01:10:05Z'
+        }
+      ])
       return
     }
 
@@ -606,8 +635,6 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByRole('tab', { name: /SQL diff|SQL 差异/ }).click()
     await page.getByTestId('recommendation-sql-compare').waitFor({ timeout: defaultTimeoutMs })
     const compareText = await page.getByTestId('recommendation-sql-compare').textContent()
-    assert(compareText.includes('hunk-1'), 'Recommendation SQL compare must expose the backend diff hunk id.')
-    assert(compareText.includes('REPLACE'), 'Recommendation SQL compare must expose the replacement type.')
     assert(compareText.includes('*'), 'Recommendation SQL compare must expose the original SQL fragment.')
     assert(compareText.includes('id'), 'Recommendation SQL compare must expose the recommended SQL fragment.')
 
@@ -658,11 +685,12 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
 
     const requiredSeen = [
-      'GET /api/sql-optimization/recommendations',
+      'GET /api/sql-optimization/recommendations/page',
       `GET /api/sql-optimization/recommendations/${recommendationId}`,
       `GET /api/sql-optimization/recommendations/${recommendationId}/diff`,
       `GET /api/sql-optimization/recommendations/${recommendationId}/trace`,
       'GET /api/sql-optimization/rewrite-records?recommendationId',
+      `GET /api/sql-optimization/rewrite-records/${rewriteRecordId}/validation-runs`,
       `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/review`,
       `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/publish`,
       `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/pause`,
