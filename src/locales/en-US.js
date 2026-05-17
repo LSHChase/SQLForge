@@ -1618,7 +1618,12 @@ export default {
   },
   acceleration: {
     title: 'SQL Parse',
-    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.'
+    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.',
+    eyebrow: 'sql optimization SQL Parse',
+    rewriteValidationTitle: 'SQL Rewrite Validation',
+    rewriteValidationSummary: 'Reuse the single-SQL parse path to trial rewrite candidates, rule hits, access evidence, and risks.',
+    rewriteValidationEyebrow: 'sql optimization Rewrite Validation',
+    rewriteValidationBoundary: 'This entry shows trial-validation evidence only; recommendation governance belongs to Recommendation Results / Rewrite Records, and real production rewrite history must come from SQL execution-history audit fields.'
   },
   system: {
     title: 'System Management',
@@ -2956,6 +2961,7 @@ export default {
       batchParseCenter: 'Batch parse center',
       parseHistorySearch: 'Parse history',
       accelerationRewriteCenter: 'Recommendation results',
+      rewriteValidation: 'SQL rewrite validation',
       rewriteRecords: 'Rewrite records',
       rewriteHistory: 'Rewrite history',
       routingEvidence: 'Trace search',

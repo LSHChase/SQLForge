@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-REWRITE-VALIDATION-ENTRY-20260517: SQL 改写验证入口语义补齐
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat(frontend): expose SQL rewrite validation entry`
+- Priority: 1
+- Depends on: USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517,HARN-FE-007,USER-CN-SQL-REWRITE-HISTORY-EVIDENCE-COPY-20260517
+- Scope: 复用现有单条 SQL 解析 route，将 SQL 改写验证作为设计第一功能面的正式入口语义补齐；更新导航、Dashboard/页面文案和静态契约，明确试算验证不等于推荐治理对象或真实生产改写历史；不新增后端 API、route、schema，不改变审批发布、运行时绑定或 SQL 执行语义。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-REWRITE-VALIDATION-ENTRY-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 复用现有 /acceleration route 增加 SQL 改写验证正式深链入口；在改写治理导航中补齐 SQL 改写验证、改写记录、改写历史三分层入口；单条 SQL 解析页在 mode=rewriteValidation 时显示试算验证标题和边界，明确推荐治理对象归推荐结果 / 改写记录，真实生产改写历史只能来自 SQL 执行历史审计字段；未新增后端 API、route、schema，未改变审批发布、运行时绑定或 SQL 执行语义。
+  - Validation evidence: node scripts/check-navigation-shell-contract.mjs; node scripts/check-parse-workbench-contract.mjs; node scripts/check-frontend-i18n-copy.mjs; node scripts/check-developer-copy-language.mjs --changed; npm run test:sql-ui-contract; npm run test:frontend-page-governance; npm run lint; npm run build; npm run smoke:frontend-dev; git diff --check; python3 scripts/foreman.py validate USER-CN-SQL-REWRITE-VALIDATION-ENTRY-20260517 --include-task-audit; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 本任务仅补齐前端入口语义、页面文案和契约/smoke 覆盖；SQL 改写验证仍复用现有单条 SQL 解析链路，不新增独立验证页面或后端能力。真实外部 Hetu/MRS 环境验证继续按 HARN-016/INBOX-002 跟踪。
+  - Next step: 若后续需要独立 SQL 改写验证页面或新增验证 API，需先按 sql-rewrite-function-boundary-design.md 重新 materialize 任务并人工确认新增 route/API/schema 边界。
+
 ### USER-CN-SQL-REWRITE-HISTORY-EVIDENCE-COPY-20260517: 显式区分改写记录关联与本次自动改写事实
 
 - Status: done

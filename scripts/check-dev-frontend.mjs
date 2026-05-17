@@ -716,6 +716,7 @@ const runBrowserSmoke = async baseUrl => {
 
     if (pathname === '/api/governance/datasources') {
       assertDevHeaders(request, 'tenant-a', [
+        'frontend-parse-workbench-governance-datasources',
         'frontend-parse-record-datasource-options',
         'frontend-sql-history-datasource-options'
       ])
@@ -809,6 +810,14 @@ const runBrowserSmoke = async baseUrl => {
       `Expected history-mode dashboard route, got ${page.url()}`
     )
     await page.getByText('改写治理', { exact: true }).click()
+    await page.locator('.app-menu').getByText('SQL 改写验证', { exact: true }).click()
+    await page.getByTestId('parse-workbench-page').waitFor({ timeout: defaultTimeoutMs })
+    const rewriteValidationUrl = new URL(page.url())
+    assert(rewriteValidationUrl.pathname === ROUTE_PATHS.acceleration, 'SQL 改写验证导航必须复用单条 SQL 解析路由。')
+    assert(rewriteValidationUrl.searchParams.get('mode') === 'rewriteValidation', 'SQL 改写验证导航必须带 mode=rewriteValidation。')
+    await expectTextInLocator(page.getByTestId('parse-workbench-title'), 'SQL 改写验证')
+    await expectTextInLocator(page.getByTestId('parse-workbench-rewrite-validation-boundary'), '试算验证证据')
+
     await page.locator('.app-menu').getByText('改写记录', { exact: true }).click()
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
     const rewriteRecordUrl = new URL(page.url())

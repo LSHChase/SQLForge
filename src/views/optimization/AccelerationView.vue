@@ -113,6 +113,22 @@ const loading = reactive({
 })
 
 const isChinese = computed(() => locale.value === 'zh-CN')
+const isRewriteValidationEntry = computed(() => route.query.mode === 'rewriteValidation')
+const pageEyebrow = computed(() =>
+  isRewriteValidationEntry.value
+    ? t('acceleration.rewriteValidationEyebrow')
+    : t('acceleration.eyebrow')
+)
+const pageTitle = computed(() =>
+  isRewriteValidationEntry.value
+    ? t('acceleration.rewriteValidationTitle')
+    : t('acceleration.title')
+)
+const pageSummary = computed(() =>
+  isRewriteValidationEntry.value
+    ? t('acceleration.rewriteValidationSummary')
+    : t('acceleration.summary')
+)
 const bindingModeOptions = ['POSITIONAL', 'NAMED']
 const parserModeOptions = [
   { label: 'JSQLParser', value: 'JSQLPARSER' },
@@ -1040,9 +1056,16 @@ watch(
   <section class="runtime-page parse-workbench-page" data-testid="parse-workbench-page">
     <div class="runtime-hero surface-card">
       <div>
-        <p class="runtime-eyebrow sqlforge-code-label">sql optimization SQL Parse · SQL解析</p>
-        <h1 class="runtime-title">{{ t('acceleration.title') }}</h1>
-        <p class="runtime-summary">{{ t('acceleration.summary') }}</p>
+        <p class="runtime-eyebrow sqlforge-code-label">{{ pageEyebrow }}</p>
+        <h1 class="runtime-title" data-testid="parse-workbench-title">{{ pageTitle }}</h1>
+        <p class="runtime-summary" data-testid="parse-workbench-summary">{{ pageSummary }}</p>
+        <p
+          v-if="isRewriteValidationEntry"
+          class="runtime-summary runtime-summary-compact"
+          data-testid="parse-workbench-rewrite-validation-boundary"
+        >
+          {{ t('acceleration.rewriteValidationBoundary') }}
+        </p>
       </div>
       <div class="hero-side">
         <div class="action-row action-row-wrap">
@@ -2108,6 +2131,11 @@ watch(
   margin: 0;
   color: var(--sqlforge-text-secondary);
   line-height: 1.6;
+}
+
+.runtime-summary-compact {
+  margin-top: 8px;
+  max-width: 920px;
 }
 
 .result-copy-muted {

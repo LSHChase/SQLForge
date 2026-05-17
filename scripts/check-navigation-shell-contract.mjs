@@ -148,10 +148,11 @@ check(recommendationModule?.directItem?.routeKey === 'recommendationCenter', 'Re
 check(
   JSON.stringify(rewriteGovernanceModule?.items?.map(item => item.menuKey)) ===
     JSON.stringify([
+      '/acceleration?mode=rewriteValidation',
       '/governance/recommendations?tab=rewriteLifecycle',
       '/governance/history/sql-history?detailTab=rewriteRecords&hasRewriteRecord=true'
     ]),
-  '改写治理正式导航入口必须指向推荐改写生命周期与 SQL 改写历史深链。'
+  '改写治理正式导航入口必须指向 SQL 改写验证、推荐改写生命周期与 SQL 改写历史深链。'
 )
 check(Array.isArray(auxiliaryModule?.sections), 'Auxiliary governance must group audit, trace, alert and runtime evidence.')
 check(
@@ -210,6 +211,11 @@ const parseRecordItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATH
 check(parseRecordItem?.moduleKey === 'parse-history', 'Parse record active item must stay under parse history.')
 check(JSON.stringify(parseRecordItem?.defaultOpeneds) === JSON.stringify([]), 'Parse record open state drifted.')
 
+const rewriteValidationItem = findActiveNavigationItem(defaultTree, {
+  path: ROUTE_PATHS.acceleration,
+  query: { mode: 'rewriteValidation' }
+})
+check(rewriteValidationItem?.moduleKey === 'rewrite-governance', 'SQL 改写验证深链必须命中改写治理导航分组。')
 const rewriteRecordItem = findActiveNavigationItem(defaultTree, {
   path: ROUTE_PATHS.recommendationCenter,
   query: { tab: 'rewriteLifecycle' }

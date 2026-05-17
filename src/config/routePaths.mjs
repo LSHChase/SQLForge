@@ -465,6 +465,11 @@ export const NAVIGATION_TREE = [
     key: 'rewrite-governance',
     label: 'navigation.modules.rewriteGovernance',
     items: [
+      navItem('acceleration', 'acceleration.rewriteValidationTitle', 'navigation.items.rewriteValidation', {
+        query: {
+          mode: 'rewriteValidation'
+        }
+      }),
       navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.rewriteRecords', {
         query: {
           tab: 'rewriteLifecycle'

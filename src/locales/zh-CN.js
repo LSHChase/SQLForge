@@ -1602,7 +1602,12 @@ export default {
   },
   acceleration: {
     title: 'SQL解析',
-    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。'
+    summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。',
+    eyebrow: 'SQL 解析',
+    rewriteValidationTitle: 'SQL 改写验证',
+    rewriteValidationSummary: '复用单条 SQL 解析链路试算改写候选、规则命中、访问证据和风险。',
+    rewriteValidationEyebrow: 'SQL 改写验证',
+    rewriteValidationBoundary: '这里只展示试算验证证据；推荐治理对象进入推荐结果 / 改写记录，真实生产改写历史只能来自 SQL 执行历史审计字段。'
   },
   system: {
     title: '系统管理',
@@ -2940,6 +2945,7 @@ export default {
       batchParseCenter: '批量解析中心',
       parseHistorySearch: '解析历史',
       accelerationRewriteCenter: '推荐结果',
+      rewriteValidation: 'SQL 改写验证',
       rewriteRecords: '改写记录',
       rewriteHistory: '改写历史',
       routingEvidence: '追踪查询',

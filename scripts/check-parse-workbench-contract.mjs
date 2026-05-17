@@ -4,9 +4,13 @@ import path from 'node:path'
 const root = process.cwd()
 const viewPath = path.join(root, 'src/views/optimization/AccelerationView.vue')
 const helperPath = path.join(root, 'src/views/common/issueSceneHelp.mjs')
+const zhLocalePath = path.join(root, 'src/locales/zh-CN.js')
+const enLocalePath = path.join(root, 'src/locales/en-US.js')
 const source = [
   fs.readFileSync(viewPath, 'utf8'),
-  fs.readFileSync(helperPath, 'utf8')
+  fs.readFileSync(helperPath, 'utf8'),
+  fs.readFileSync(zhLocalePath, 'utf8'),
+  fs.readFileSync(enLocalePath, 'utf8')
 ].join('\n')
 
 const requiredTokens = [
@@ -14,6 +18,16 @@ const requiredTokens = [
   'class="parse-workbench__grid"',
   'SQL解析',
   'SQL Parse',
+  "route.query.mode === 'rewriteValidation'",
+  'pageEyebrow',
+  'pageTitle',
+  'pageSummary',
+  'data-testid="parse-workbench-title"',
+  'data-testid="parse-workbench-summary"',
+  'data-testid="parse-workbench-rewrite-validation-boundary"',
+  'rewriteValidationTitle',
+  'rewriteValidationSummary',
+  'rewriteValidationBoundary',
   'single sql input',
   'parse result',
   'Parse result note',
