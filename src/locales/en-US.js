@@ -2046,7 +2046,8 @@ export default {
       text242: 'Import batch',
       text243: 'Raw evidence',
       text244: 'Field help',
-      text245: 'Close'
+      text245: 'Close',
+      text246: 'Open recommendation results'
     },
     viewsParseBatchParseBatchCenterView: {
       text001: 'Batch filters',

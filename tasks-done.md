@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-VALIDATION-RECOMMENDATION-DEEPLINK-20260517: SQL 改写验证到推荐结果来源深链
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat(frontend): link rewrite validation to recommendations`
+- Priority: 1
+- Depends on: USER-CN-SQL-REWRITE-VALIDATION-ENTRY-20260517,USER-CN-RECOMMENDATION-SOURCE-FILTER-20260517
+- Scope: 复用现有 /acceleration 与 /governance/recommendations route，让 SQL 改写验证结果能按 parse history / parse task 来源打开推荐结果筛选；推荐页消费 URL 中的 sourceCategory/sourceObjectId/historyId/parseTaskId/sourceType/sourceKind 并保持后端分页接口为列表真值；不新增后端 API、route、schema，不改变推荐审批、发布、运行时绑定或 SQL 执行语义。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-VALIDATION-RECOMMENDATION-DEEPLINK-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 复用现有 /acceleration 与 /governance/recommendations 路由，在 SQL 改写验证结果区新增查看推荐结果入口；深链携带 tenantId、sourceCategory=SQL_PARSE、sourceObjectId、historyId、parseTaskId、sourceType、sourceKind，推荐结果页按 URL 恢复来源分类与来源对象并把 parse history / parse task 条件传给后端分页接口；保留推荐页列表以后端分页接口为真值，不新增后端 API、route、schema，不改变推荐审批、发布、运行时绑定或 SQL 执行语义。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-VALIDATION-RECOMMENDATION-DEEPLINK-20260517 --include-task-audit --extra-command node scripts/check-parse-workbench-contract.mjs --extra-command node scripts/check-recommendation-page-contract.mjs --extra-command node scripts/check-frontend-i18n-copy.mjs --extra-command npm run smoke:frontend-dev --extra-command git diff --check passed; direct npm run smoke:frontend-dev passed after adding historyId+parseTaskId browser assertions.
+  - Residual risk: 推荐结果来源对象下拉仍沿用既有第一页 pageSize=50 选项加载策略；较大租户需要后续服务端搜索增强。真实外部 Hetu/MRS 环境验证仍按 HARN-016/INBOX-002 跟踪。
+  - Next step: None.
+
 ### USER-CN-SQL-REWRITE-VALIDATION-ENTRY-20260517: SQL 改写验证入口语义补齐
 
 - Status: done

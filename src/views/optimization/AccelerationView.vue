@@ -551,6 +551,8 @@ function currentSingleSqlInputKey() {
 function normalizeStructureResult(structureOnlyResult) {
   return {
     parseTaskId: structureOnlyResult.parseTaskId,
+    historyId: structureOnlyResult.historyId || structureOnlyResult.parseHistoryId || '',
+    parseHistoryId: structureOnlyResult.parseHistoryId || structureOnlyResult.historyId || '',
     status: 'STRUCTURE_ONLY',
     structureParse: structureOnlyResult,
     accessParse: null,
@@ -594,6 +596,38 @@ function openParseHistoryDetail() {
       tenantId: form.tenantId,
       historyId: parseResult.value.historyId
     }
+  })
+}
+
+function compactQuery(query) {
+  return Object.fromEntries(
+    Object.entries(query).filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+  )
+}
+
+function openRecommendationResultsForParseResult() {
+  if (!parseResult.value) {
+    return
+  }
+  const parseTaskId = parseResult.value.parseTaskId || structureParse.value?.parseTaskId || ''
+  const historyId =
+    parseResult.value.historyId ||
+    parseResult.value.parseHistoryId ||
+    structureParse.value?.historyId ||
+    structureParse.value?.parseHistoryId ||
+    ''
+  const sourceObjectId = historyId || parseTaskId
+  router.push({
+    path: ROUTE_PATHS.recommendationCenter,
+    query: compactQuery({
+      tenantId: form.tenantId,
+      sourceCategory: 'SQL_PARSE',
+      sourceObjectId,
+      historyId,
+      parseTaskId,
+      sourceType: 'PARSE',
+      sourceKind: lastRunMode.value === 'combined' ? 'COMBINED_PARSE' : 'STRUCTURE_PARSE'
+    })
   })
 }
 
@@ -1226,6 +1260,9 @@ watch(
           </el-button>
           <el-button v-if="parseResult?.historyId" text data-testid="parse-workbench-open-history" @click="openParseHistoryDetail">
             {{ t('inline.viewsOptimizationAccelerationView.text138') }}
+          </el-button>
+          <el-button v-if="parseResult" text data-testid="parse-workbench-open-recommendations" @click="openRecommendationResultsForParseResult">
+            {{ t('inline.viewsOptimizationAccelerationView.text246') }}
           </el-button>
         </div>
 

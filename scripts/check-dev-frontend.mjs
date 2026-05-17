@@ -253,6 +253,7 @@ const runBrowserSmoke = async baseUrl => {
   let sqlHistoryRewriteRecordCalls = 0
   let recommendationRewriteValidationRunCalls = 0
   const sqlHistoryPageRequests = []
+  const recommendationPageRequests = []
   let parseHistoryPageCalls = 0
 
   page.on('pageerror', error => {
@@ -338,6 +339,40 @@ const runBrowserSmoke = async baseUrl => {
         await fulfillJson(route, [])
         return
       }
+    }
+
+    if (pathname === '/api/sql-optimization/parse/structure' && requestPrefix === 'frontend-parse-workbench-structure') {
+      assertDevHeaders(request, 'tenant-a', ['frontend-parse-workbench-structure'])
+      const payload = parseJsonBody(request)
+      assert(payload.sqlText, 'SQL 改写验证结构解析请求必须携带 SQL 文本。')
+      await fulfillJson(route, {
+        parseTaskId: 'dev-parse-structure-1',
+        historyId: 'dev-parse-history-structure-1',
+        sqlFingerprint: 'dev-parse-fingerprint-1',
+        analysisStatus: 'SUCCEEDED',
+        structureAnalysisStatus: 'SUCCEEDED',
+        syntaxStatus: 'VALID',
+        complexityLevel: 'LOW',
+        sqlType: 'SELECT',
+        priorityLevel: 'P2',
+        priorityScore: 42,
+        important: false,
+        urgent: false,
+        featureSummary: {
+          parserEngine: 'JSQLPARSER',
+          scanMode: 'TABLE_SCAN',
+          tableCount: 1,
+          duplicateOrderByKeyCount: 1,
+          duplicateGroupByKeyCount: 0,
+          repeatedSubqueryCount: 0
+        },
+        logicalObjectHits: [{ objectType: 'TABLE', objectKey: 'sales.orders' }],
+        riskTags: ['DUPLICATE_GROUP_OR_ORDER_KEY_RISK'],
+        rewriteCandidates: ['DUPLICATE_GROUP_ORDER_KEY'],
+        riskChecklist: [],
+        issues: []
+      })
+      return
     }
 
     if (pathname === '/api/governance/query-history' && requestPrefix === 'frontend-sql-history-page') {
@@ -482,6 +517,13 @@ const runBrowserSmoke = async baseUrl => {
       assert(requestUrl.searchParams.get('pageNo') === '1', '推荐页必须从第一页加载远程分页结果。')
       assert(requestUrl.searchParams.get('pageSize') === '8', '推荐页默认分页大小必须为 8。')
       assert(requestUrl.searchParams.get('sortBy') === 'createdAt', '推荐页默认排序字段必须为 createdAt。')
+      recommendationPageRequests.push({
+        sourceType: requestUrl.searchParams.get('sourceType') || '',
+        sourceKind: requestUrl.searchParams.get('sourceKind') || '',
+        historyId: requestUrl.searchParams.get('historyId') || '',
+        parseTaskId: requestUrl.searchParams.get('parseTaskId') || '',
+        sourceId: requestUrl.searchParams.get('sourceId') || ''
+      })
       await fulfillJson(route, {
         items: [
           {
@@ -817,6 +859,24 @@ const runBrowserSmoke = async baseUrl => {
     assert(rewriteValidationUrl.searchParams.get('mode') === 'rewriteValidation', 'SQL 改写验证导航必须带 mode=rewriteValidation。')
     await expectTextInLocator(page.getByTestId('parse-workbench-title'), 'SQL 改写验证')
     await expectTextInLocator(page.getByTestId('parse-workbench-rewrite-validation-boundary'), '试算验证证据')
+    await page.getByTestId('parse-workbench-structure-preview').click()
+    await expectTextInLocator(page.getByTestId('parse-workbench-status'), 'STRUCTURE_ONLY')
+    await page.getByTestId('parse-workbench-open-recommendations').click()
+    await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
+    const recommendationDeepLinkUrl = new URL(page.url())
+    assert(recommendationDeepLinkUrl.pathname === ROUTE_PATHS.recommendationCenter, '改写验证推荐入口必须复用推荐结果路由。')
+    assert(recommendationDeepLinkUrl.searchParams.get('sourceCategory') === 'SQL_PARSE', '改写验证推荐入口必须带 sourceCategory=SQL_PARSE。')
+    assert(recommendationDeepLinkUrl.searchParams.get('historyId') === 'dev-parse-history-structure-1', '改写验证推荐入口必须带 parse history 来源。')
+    assert(recommendationDeepLinkUrl.searchParams.get('parseTaskId') === 'dev-parse-structure-1', '改写验证推荐入口必须带 parseTaskId。')
+    assert(
+      recommendationPageRequests.some(item =>
+        item.sourceType === 'PARSE' &&
+        item.sourceKind === 'STRUCTURE_PARSE' &&
+        item.historyId === 'dev-parse-history-structure-1' &&
+        item.parseTaskId === 'dev-parse-structure-1'
+      ),
+      `推荐结果分页请求必须消费改写验证来源深链，实际为 ${JSON.stringify(recommendationPageRequests)}`
+    )
 
     await page.locator('.app-menu').getByText('改写记录', { exact: true }).click()
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })

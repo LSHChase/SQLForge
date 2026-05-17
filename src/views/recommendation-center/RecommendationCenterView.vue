@@ -164,6 +164,51 @@ const selectedSourceCategory = computed(() =>
   sourceCategoryOptions.value.find(item => item.value === recommendationFilters.sourceCategory) || null
 )
 
+const normalizeSourceCategoryFromRoute = () => {
+  const explicit = normalizeQueryValue(route.query.sourceCategory).toUpperCase()
+  if (sourceCategoryOptions.value.some(item => item.value === explicit)) {
+    return explicit
+  }
+  const sourceType = normalizeQueryValue(route.query.sourceType).toUpperCase()
+  const sourceKind = normalizeQueryValue(route.query.sourceKind).toUpperCase()
+  if (sourceType === 'QUERY') {
+    return 'QUERY'
+  }
+  if (sourceType === 'PARSE' && sourceKind.includes('REPORT_BATCH')) {
+    return 'REPORT_BATCH'
+  }
+  if (sourceType === 'PARSE' && sourceKind.includes('PARSE_BATCH')) {
+    return 'PARSE_BATCH'
+  }
+  if (sourceType === 'PARSE' || sourceKind.includes('STRUCTURE_PARSE') || sourceKind.includes('COMBINED_PARSE')) {
+    return 'SQL_PARSE'
+  }
+  return ''
+}
+
+const routeSourceObjectId = () =>
+  normalizeQueryValue(route.query.sourceObjectId) ||
+  normalizeQueryValue(route.query.historyId) ||
+  normalizeQueryValue(route.query.parseHistoryId) ||
+  normalizeQueryValue(route.query.parseTaskId) ||
+  normalizeQueryValue(route.query.batchId)
+
+const routeSourceMeta = () => {
+  const objectId = routeSourceObjectId()
+  if (!objectId || objectId !== recommendationFilters.sourceObjectId) {
+    return {}
+  }
+  return {
+    sourceType: normalizeQueryValue(route.query.sourceType),
+    sourceKind: normalizeQueryValue(route.query.sourceKind),
+    historyId: normalizeQueryValue(route.query.historyId) || normalizeQueryValue(route.query.parseHistoryId),
+    parseTaskId: normalizeQueryValue(route.query.parseTaskId),
+    sourceId: normalizeQueryValue(route.query.sourceId),
+    batchId: normalizeQueryValue(route.query.batchId),
+    reportCode: normalizeQueryValue(route.query.reportCode)
+  }
+}
+
 const selectedDispatchEvents = computed(() => {
   const traceEvents = recommendationTrace.value?.dispatchEvents || []
   if (traceEvents.length) {
@@ -455,6 +500,14 @@ const syncActiveDetailTabFromRoute = () => {
 
 const syncRouteQueryState = () => {
   form.tenantId = normalizeQueryValue(route.query.tenantId) || 'tenant-a'
+  const nextSourceCategory = normalizeSourceCategoryFromRoute()
+  if (nextSourceCategory) {
+    if (recommendationFilters.sourceCategory !== nextSourceCategory) {
+      sourceObjectOptions.value = []
+    }
+    recommendationFilters.sourceCategory = nextSourceCategory
+    recommendationFilters.sourceObjectId = routeSourceObjectId()
+  }
   selectedRecommendationId.value = normalizeQueryValue(route.query.recommendationId)
   selectedRewriteRecordId.value = normalizeQueryValue(route.query.rewriteRecordId)
   preferredDetailTab.value = normalizeDetailTab(route.query.tab || route.query.detailTab)
@@ -774,15 +827,28 @@ const buildSourceFilterQuery = () => {
     sourceKind: category.sourceKind
   }
   const selectedObject = sourceObjectOptions.value.find(item => item.value === recommendationFilters.sourceObjectId)
-  const meta = selectedObject?.meta || {}
+  const meta = {
+    ...routeSourceMeta(),
+    ...(selectedObject?.meta || {})
+  }
+  if (meta.sourceType && meta.sourceType === category.sourceType) {
+    query.sourceType = meta.sourceType
+  }
+  if (meta.sourceKind) {
+    query.sourceKind = meta.sourceKind
+  }
   if (recommendationFilters.sourceObjectId) {
     if (category.objectMode === 'QUERY_HISTORY') {
       query.historyId = meta.historyId || recommendationFilters.sourceObjectId
       query.sourceId = meta.sourceId || recommendationFilters.sourceObjectId
     } else if (category.objectMode === 'SQL_PARSE') {
-      query.historyId = meta.historyId || recommendationFilters.sourceObjectId
+      if (meta.historyId) {
+        query.historyId = meta.historyId
+      }
       if (meta.parseTaskId) {
         query.parseTaskId = meta.parseTaskId
+      } else if (!meta.historyId) {
+        query.parseTaskId = recommendationFilters.sourceObjectId
       }
       if (meta.sourceId) {
         query.sourceId = meta.sourceId

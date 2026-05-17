@@ -2030,7 +2030,8 @@ export default {
       text242: '导入批次',
       text243: '原始证据',
       text244: '字段说明',
-      text245: '知道了'
+      text245: '知道了',
+      text246: '查看推荐结果'
     },
     viewsParseBatchParseBatchCenterView: {
       text001: '批次筛选',

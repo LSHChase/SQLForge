@@ -26,8 +26,8 @@ query-execution:
 
 logging:
   level:
-    root: DEBUG
-    com.company.queryexecution: DEBUG
+    root: INFO
+    com.company.queryexecution: INFO
 
 auth:
   enabled: false
