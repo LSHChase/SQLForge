@@ -7,9 +7,14 @@ const TOKEN_MARK_CLASSES = {
 
 const normalizeSqlText = value => String(value ?? '').replace(/\r\n?/g, '\n')
 
-const splitFormattedSqlLines = value => {
+export const buildFormattedSqlDisplayText = value => {
   const raw = normalizeSqlText(value)
   const formatted = formatSqlText(raw) || raw.trim()
+  return formatted
+}
+
+const splitFormattedSqlLines = value => {
+  const formatted = buildFormattedSqlDisplayText(value)
   return formatted ? formatted.split('\n') : []
 }
 

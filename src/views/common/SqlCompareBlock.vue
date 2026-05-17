@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
-import { buildSqlCompareRows } from './sqlCompare.mjs'
+import { computed, ref, watch } from 'vue'
+import { buildFormattedSqlDisplayText, buildSqlCompareRows } from './sqlCompare.mjs'
+import { copyTextToClipboard, highlightSql } from './sqlFormatting.mjs'
 
 const props = defineProps({
   originalSql: {
@@ -22,39 +23,171 @@ const props = defineProps({
   emptyText: {
     type: String,
     default: '-'
+  },
+  copyLabel: {
+    type: String,
+    default: 'Copy'
+  },
+  formatLabel: {
+    type: String,
+    default: 'Format'
   }
 })
 
-const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.recommendedSql))
+const originalDisplaySql = ref('')
+const recommendedDisplaySql = ref('')
+const originalPaneViewportRef = ref(null)
+const recommendedPaneViewportRef = ref(null)
+let syncPaneScrollGuard = false
+
+watch(
+  () => [props.originalSql, props.recommendedSql],
+  ([originalSql, recommendedSql]) => {
+    originalDisplaySql.value = buildFormattedSqlDisplayText(originalSql)
+    recommendedDisplaySql.value = buildFormattedSqlDisplayText(recommendedSql)
+  },
+  { immediate: true }
+)
+
+const compareRows = computed(() => buildSqlCompareRows(originalDisplaySql.value, recommendedDisplaySql.value))
+
+const paneRows = side =>
+  compareRows.value.map(row => ({
+    key: `${row.key}-${side}`,
+    type: row.type.toLowerCase(),
+    line: side === 'original' ? row.originalIndex : row.recommendedIndex,
+    html: side === 'original' ? row.originalHtml : row.recommendedHtml
+  }))
+
+const originalPaneRows = computed(() => paneRows('original'))
+const recommendedPaneRows = computed(() => paneRows('recommended'))
+const emptyLineHtml = computed(() => highlightSql(props.emptyText))
+
+const currentPaneDisplayText = pane => (pane === 'original' ? originalDisplaySql.value : recommendedDisplaySql.value)
+
+const setPaneDisplayText = (pane, value) => {
+  if (pane === 'original') {
+    originalDisplaySql.value = value
+    return
+  }
+  recommendedDisplaySql.value = value
+}
+
+const currentPaneCopyText = pane => currentPaneDisplayText(pane) || props.emptyText
+
+const copyPaneSql = pane => copyTextToClipboard(currentPaneCopyText(pane))
+
+const formatPaneSql = pane => {
+  setPaneDisplayText(pane, buildFormattedSqlDisplayText(currentPaneDisplayText(pane)))
+}
+
+const peerViewportForPane = pane => (pane === 'original' ? recommendedPaneViewportRef.value : originalPaneViewportRef.value)
+
+const syncPaneScroll = (pane, event) => {
+  if (syncPaneScrollGuard) {
+    return
+  }
+
+  const peer = peerViewportForPane(pane)
+  if (!peer) {
+    return
+  }
+
+  syncPaneScrollGuard = true
+  peer.scrollTop = event.target.scrollTop
+  peer.scrollLeft = event.target.scrollLeft
+  requestAnimationFrame(() => {
+    syncPaneScrollGuard = false
+  })
+}
 </script>
 
 <template>
   <section class="sql-compare-block">
-    <div class="sql-compare-block__labels">
-      <span>{{ originalLabel }}</span>
-      <span>{{ recommendedLabel }}</span>
-    </div>
-    <p v-if="!compareRows.length" class="sql-compare-block__empty">{{ emptyText }}</p>
-    <div v-else class="sql-compare-block__viewport">
-      <div class="sql-compare-block__grid sql-compare-block__grid--header">
-        <span>#</span>
-        <span>{{ originalLabel }}</span>
-        <span>#</span>
-        <span>{{ recommendedLabel }}</span>
-      </div>
-      <div
-        v-for="row in compareRows"
-        :key="row.key"
-        class="sql-compare-block__grid sql-compare-row"
-        :class="`sql-compare-row--${row.type.toLowerCase()}`"
-      >
-        <span class="sql-compare-line">{{ row.originalIndex || '' }}</span>
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <pre class="sql-compare-code"><code v-html="row.originalHtml" /></pre>
-        <span class="sql-compare-line">{{ row.recommendedIndex || '' }}</span>
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <pre class="sql-compare-code"><code v-html="row.recommendedHtml" /></pre>
-      </div>
+    <div class="sql-compare-block__panes">
+      <section class="sql-compare-pane sql-compare-pane--original" data-testid="sql-compare-pane-original">
+        <div class="sql-compare-pane__toolbar">
+          <span class="sql-compare-pane__label">{{ originalLabel }}</span>
+          <div class="sql-compare-pane__actions">
+            <el-button text size="small" data-testid="sql-compare-copy-original" @click.stop="copyPaneSql('original')">
+              {{ copyLabel }}
+            </el-button>
+            <el-button text size="small" data-testid="sql-compare-format-original" @click.stop="formatPaneSql('original')">
+              {{ formatLabel }}
+            </el-button>
+          </div>
+        </div>
+        <div
+          ref="originalPaneViewportRef"
+          class="sql-compare-block__viewport sql-compare-pane__viewport"
+          data-testid="sql-compare-original-viewport"
+          @scroll="syncPaneScroll('original', $event)"
+        >
+          <div class="sql-compare-pane__content">
+            <div class="sql-compare-pane__header">
+              <span>#</span>
+              <span>{{ originalLabel }}</span>
+            </div>
+            <div
+              v-for="row in originalPaneRows"
+              :key="row.key"
+              class="sql-compare-pane__row sql-compare-row"
+              :class="`sql-compare-row--${row.type}`"
+            >
+              <span class="sql-compare-line">{{ row.line || '' }}</span>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <pre class="sql-compare-code"><code v-html="row.html" /></pre>
+            </div>
+            <div v-if="!originalPaneRows.length" class="sql-compare-pane__row sql-compare-row sql-compare-row--empty">
+              <span class="sql-compare-line" />
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <pre class="sql-compare-code sql-compare-code--empty"><code v-html="emptyLineHtml" /></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sql-compare-pane sql-compare-pane--recommended" data-testid="sql-compare-pane-recommended">
+        <div class="sql-compare-pane__toolbar">
+          <span class="sql-compare-pane__label">{{ recommendedLabel }}</span>
+          <div class="sql-compare-pane__actions">
+            <el-button text size="small" data-testid="sql-compare-copy-recommended" @click.stop="copyPaneSql('recommended')">
+              {{ copyLabel }}
+            </el-button>
+            <el-button text size="small" data-testid="sql-compare-format-recommended" @click.stop="formatPaneSql('recommended')">
+              {{ formatLabel }}
+            </el-button>
+          </div>
+        </div>
+        <div
+          ref="recommendedPaneViewportRef"
+          class="sql-compare-block__viewport sql-compare-pane__viewport"
+          data-testid="sql-compare-recommended-viewport"
+          @scroll="syncPaneScroll('recommended', $event)"
+        >
+          <div class="sql-compare-pane__content">
+            <div class="sql-compare-pane__header">
+              <span>#</span>
+              <span>{{ recommendedLabel }}</span>
+            </div>
+            <div
+              v-for="row in recommendedPaneRows"
+              :key="row.key"
+              class="sql-compare-pane__row sql-compare-row"
+              :class="`sql-compare-row--${row.type}`"
+            >
+              <span class="sql-compare-line">{{ row.line || '' }}</span>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <pre class="sql-compare-code"><code v-html="row.html" /></pre>
+            </div>
+            <div v-if="!recommendedPaneRows.length" class="sql-compare-pane__row sql-compare-row sql-compare-row--empty">
+              <span class="sql-compare-line" />
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <pre class="sql-compare-code sql-compare-code--empty"><code v-html="emptyLineHtml" /></pre>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </section>
 </template>
@@ -67,54 +200,95 @@ const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.
   min-width: 0;
 }
 
-.sql-compare-block__labels,
-.sql-compare-block__grid {
+.sql-compare-block__panes {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
   gap: var(--sqlforge-space-3);
   min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
-.sql-compare-block__labels {
-  color: var(--sqlforge-text-muted);
-  font-family: var(--sqlforge-font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.sql-compare-block__empty {
-  margin: 0;
-  color: var(--sqlforge-text-secondary);
-}
-
-.sql-compare-block__viewport {
-  max-height: 520px;
-  overflow: auto;
+.sql-compare-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 360px;
+  min-height: 0;
+  overflow: hidden;
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-sm);
   background: var(--sqlforge-bg-page-deep);
 }
 
-.sql-compare-block__grid {
-  grid-template-columns: 54px minmax(360px, 1fr) 54px minmax(360px, 1fr);
-  gap: 0;
-  min-width: 880px;
+.sql-compare-pane--recommended {
+  border-color: var(--sqlforge-border-strong);
 }
 
-.sql-compare-block__grid--header {
+.sql-compare-pane__toolbar {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 10px 8px 12px;
   border-bottom: 1px solid var(--sqlforge-border-default);
   background: var(--sqlforge-surface-2);
+}
+
+.sql-compare-pane__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--sqlforge-text-muted);
+  font-family: var(--sqlforge-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sql-compare-pane__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sql-compare-block__viewport {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.sql-compare-pane__content {
+  width: max-content;
+  min-width: 100%;
+}
+
+.sql-compare-pane__header,
+.sql-compare-pane__row {
+  display: grid;
+  grid-template-columns: 54px minmax(320px, max-content);
+  min-width: 100%;
+  width: max-content;
+}
+
+.sql-compare-pane__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--sqlforge-border-default);
+  background: var(--sqlforge-surface-3);
   color: var(--sqlforge-text-muted);
   font-family: var(--sqlforge-font-mono);
   font-size: 12px;
   font-weight: 700;
 }
 
-.sql-compare-block__grid--header span,
+.sql-compare-pane__header span,
 .sql-compare-line {
   padding: 8px 10px;
 }
@@ -128,6 +302,7 @@ const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.
 }
 
 .sql-compare-line {
+  background: rgba(255, 255, 255, 0.012);
   color: var(--sqlforge-text-muted);
   font-family: var(--sqlforge-font-mono);
   font-size: 12px;
@@ -137,6 +312,7 @@ const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.
 
 .sql-compare-code {
   min-height: 34px;
+  min-width: 320px;
   margin: 0;
   padding: 8px 12px;
   border-left: 1px solid var(--sqlforge-border-subtle);
@@ -147,22 +323,21 @@ const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.
   white-space: pre;
 }
 
-.sql-compare-code:nth-child(4) {
-  border-left-color: var(--sqlforge-border-default);
-  box-shadow: inset 10px 0 0 rgba(255, 255, 255, 0.025);
+.sql-compare-code--empty {
+  color: var(--sqlforge-text-secondary);
 }
 
-.sql-compare-row--delete .sql-compare-line:first-child,
-.sql-compare-row--delete .sql-compare-code:nth-child(2),
-.sql-compare-row--replace .sql-compare-line:first-child,
-.sql-compare-row--replace .sql-compare-code:nth-child(2) {
+.sql-compare-pane--original .sql-compare-row--delete .sql-compare-line,
+.sql-compare-pane--original .sql-compare-row--delete .sql-compare-code,
+.sql-compare-pane--original .sql-compare-row--replace .sql-compare-line,
+.sql-compare-pane--original .sql-compare-row--replace .sql-compare-code {
   background: rgba(120, 28, 28, 0.2);
 }
 
-.sql-compare-row--insert .sql-compare-line:nth-child(3),
-.sql-compare-row--insert .sql-compare-code:nth-child(4),
-.sql-compare-row--replace .sql-compare-line:nth-child(3),
-.sql-compare-row--replace .sql-compare-code:nth-child(4) {
+.sql-compare-pane--recommended .sql-compare-row--insert .sql-compare-line,
+.sql-compare-pane--recommended .sql-compare-row--insert .sql-compare-code,
+.sql-compare-pane--recommended .sql-compare-row--replace .sql-compare-line,
+.sql-compare-pane--recommended .sql-compare-row--replace .sql-compare-code {
   background: rgba(21, 98, 73, 0.22);
 }
 
@@ -214,13 +389,21 @@ const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.
 }
 
 @media (max-width: 760px) {
-  .sql-compare-block__labels {
-    display: none;
+  .sql-compare-block__panes {
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
   }
 
-  .sql-compare-block__grid {
-    grid-template-columns: 44px minmax(300px, 1fr) 44px minmax(300px, 1fr);
-    min-width: 700px;
+  .sql-compare-pane {
+    min-width: 320px;
+  }
+
+  .sql-compare-pane__header,
+  .sql-compare-pane__row {
+    grid-template-columns: 44px minmax(280px, max-content);
+  }
+
+  .sql-compare-code {
+    min-width: 280px;
   }
 }
 </style>

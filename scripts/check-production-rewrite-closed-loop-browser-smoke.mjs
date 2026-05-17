@@ -19,8 +19,15 @@ const validationRunId = 'validation-prw-012'
 const runtimeBindingId = 'rwb-prw-012'
 const runtimeRuleVersion = 'runtime-rewrite-v1'
 const historyId = 'history-prw-012'
-const originalSql = "-- report_code=RPT_PRW_012\n/* owner: production rewrite smoke */\nSELECT * FROM orders WHERE query_date = '2026-05-12'"
-const recommendedSql = "SELECT id FROM orders WHERE query_date = '2026-05-12'"
+const longPredicateLiteral = `production_rewrite_scroll_marker_${'x'.repeat(180)}`
+const longPredicates = Array.from(
+  { length: 42 },
+  (_, index) => `AND metric_${index} = '${longPredicateLiteral}_${index}'`
+).join(' ')
+const originalSql = `-- report_code=RPT_PRW_012
+/* owner: production rewrite smoke */
+SELECT * FROM orders WHERE query_date = '2026-05-12' ${longPredicates}`
+const recommendedSql = `SELECT id FROM orders WHERE query_date = '2026-05-12' ${longPredicates}`
 const sqlFingerprint = 'fp_prw_012_orders'
 const browserCandidates = [
   process.env.FRONTEND_RUNTIME_BROWSER_BIN,
@@ -142,6 +149,45 @@ const fulfillJson = (route, body) =>
     contentType: 'application/json; charset=utf-8',
     body: JSON.stringify(body)
   })
+
+const assertSqlCompareDualPane = async compareLocator => {
+  const originalPane = compareLocator.getByTestId('sql-compare-pane-original')
+  const recommendedPane = compareLocator.getByTestId('sql-compare-pane-recommended')
+  const originalViewport = compareLocator.getByTestId('sql-compare-original-viewport')
+  const recommendedViewport = compareLocator.getByTestId('sql-compare-recommended-viewport')
+
+  await originalPane.waitFor({ timeout: defaultTimeoutMs })
+  await recommendedPane.waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-copy-original').waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-format-original').waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-copy-recommended').waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-format-recommended').waitFor({ timeout: defaultTimeoutMs })
+
+  const originalMetrics = await originalViewport.evaluate(element => ({
+    maxLeft: element.scrollWidth - element.clientWidth,
+    maxTop: element.scrollHeight - element.clientHeight
+  }))
+  assert(originalMetrics.maxLeft > 0, 'Recommendation SQL compare original pane must scroll horizontally.')
+  assert(originalMetrics.maxTop > 0, 'Recommendation SQL compare original pane must scroll vertically.')
+
+  await originalViewport.evaluate(element => {
+    element.scrollLeft = Math.min(180, element.scrollWidth - element.clientWidth)
+    element.scrollTop = Math.min(160, element.scrollHeight - element.clientHeight)
+    element.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+  await compareLocator.page().waitForTimeout(120)
+
+  const originalScroll = await originalViewport.evaluate(element => ({
+    left: element.scrollLeft,
+    top: element.scrollTop
+  }))
+  const recommendedScroll = await recommendedViewport.evaluate(element => ({
+    left: element.scrollLeft,
+    top: element.scrollTop
+  }))
+  assert(Math.abs(recommendedScroll.left - originalScroll.left) <= 1, 'Recommendation SQL compare must sync right pane horizontal scroll.')
+  assert(Math.abs(recommendedScroll.top - originalScroll.top) <= 1, 'Recommendation SQL compare must sync right pane vertical scroll.')
+}
 
 const recommendation = {
   recommendationId,
@@ -647,6 +693,7 @@ const runBrowserSmoke = async baseUrl => {
       (await recommendationCompare.locator('.sql-compare-token-mark--insert').count()) > 0,
       'Recommendation SQL compare must expose token-level insert marks.'
     )
+    await assertSqlCompareDualPane(recommendationCompare)
     await page.getByRole('tab', { name: /SQL evidence|SQL 证据/ }).click()
     const recommendedSqlEvidenceText = await page.getByTestId('recommendation-recommended-sql').textContent()
     assert(

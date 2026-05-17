@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RECOMMENDATION-DIFF-DUAL-PANE-20260517: 推荐中心 SQL diff 双 Pane 滚动与操作按钮
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat(frontend): add dual pane sql diff USER-CN-RECOMMENDATION-DIFF-DUAL-PANE-20260517`
+- Priority: 1
+- Depends on: N/A
+- Scope: Frontend-only follow-up for recommendation center SQL compare: split original and recommended SQL into independent linked-scroll panes, add per-pane copy and idempotent format actions, keep formatted frontend display/diff behavior and do not change backend diff API, recommendation lifecycle, approval, publish, dispatch, or SQL execution semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-DIFF-DUAL-PANE-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Frontend-only recommendation SQL diff display follow-up: refactored SqlCompareBlock into original/recommended independent panes with per-pane copy and idempotent format actions, linked horizontal/vertical scroll, formatted display/copy text, empty-state pane rendering, and retained formatted LCS plus token-level replacement highlighting and leading-comment carry-over behavior.
+  - Validation evidence: npm run test:sql-ui-contract; node scripts/check-recommendation-page-contract.mjs; npm run test:frontend-page-governance; npm run lint; npm run build; npm run smoke:frontend-dev; npm run smoke:production-rewrite-closed-loop; git diff --check; python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-DIFF-DUAL-PANE-20260517 --include-task-audit
+  - Residual risk: No backend API, schema, recommendation lifecycle, approval, publish, dispatch, runtime binding, or SQL execution semantics changed. Copy and format actions are frontend-local display operations; browser smoke evidence uses repo-closed mock data.
+  - Next step: None.
+
 ### USER-CN-RECOMMENDATION-DIFF-FORMAT-HIGHLIGHT-20260517: 推荐中心 SQL diff 前端格式化与词级高亮
 
 - Status: done

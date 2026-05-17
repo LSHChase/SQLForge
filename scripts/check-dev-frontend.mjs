@@ -23,9 +23,16 @@ const assert = (condition, message) => {
   }
 }
 
-const recommendationSourceSql = '-- report_code=DEV_RPT_REWRITE\n/* owner: recommendation smoke */\nSELECT * FROM sales.orders WHERE dt = ?'
-const recommendationDiffOriginalSql = 'SELECT * FROM sales.orders WHERE dt = ?'
-const recommendationRecommendedSql = 'SELECT id FROM sales.orders WHERE dt = ?'
+const recommendationLongLiteral = `recommendation_scroll_marker_${'x'.repeat(180)}`
+const recommendationLongPredicates = Array.from(
+  { length: 42 },
+  (_, index) => `AND metric_${index} = '${recommendationLongLiteral}_${index}'`
+).join(' ')
+const recommendationSourceSql = `-- report_code=DEV_RPT_REWRITE
+/* owner: recommendation smoke */
+SELECT * FROM sales.orders WHERE dt = ? ${recommendationLongPredicates}`
+const recommendationDiffOriginalSql = `SELECT * FROM sales.orders WHERE dt = ? ${recommendationLongPredicates}`
+const recommendationRecommendedSql = `SELECT id FROM sales.orders WHERE dt = ? ${recommendationLongPredicates}`
 
 const resolveExecutablePath = () => browserCandidates.find(candidate => fs.existsSync(candidate))
 
@@ -88,6 +95,69 @@ const expectTextInLocator = async (locator, expectedText) => {
   }
 
   throw new Error(`Expected locator to include "${expectedText}"`)
+}
+
+const assertSqlCompareDualPane = async compareLocator => {
+  const originalPane = compareLocator.getByTestId('sql-compare-pane-original')
+  const recommendedPane = compareLocator.getByTestId('sql-compare-pane-recommended')
+  const originalViewport = compareLocator.getByTestId('sql-compare-original-viewport')
+  const recommendedViewport = compareLocator.getByTestId('sql-compare-recommended-viewport')
+
+  await originalPane.waitFor({ timeout: defaultTimeoutMs })
+  await recommendedPane.waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-copy-original').waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-format-original').waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-copy-recommended').waitFor({ timeout: defaultTimeoutMs })
+  await compareLocator.getByTestId('sql-compare-format-recommended').waitFor({ timeout: defaultTimeoutMs })
+
+  const originalMetrics = await originalViewport.evaluate(element => ({
+    maxLeft: element.scrollWidth - element.clientWidth,
+    maxTop: element.scrollHeight - element.clientHeight
+  }))
+  assert(originalMetrics.maxLeft > 0, '推荐 SQL compare 左侧 pane 必须能独立横向滚动。')
+  assert(originalMetrics.maxTop > 0, '推荐 SQL compare 左侧 pane 必须能独立纵向滚动。')
+
+  await originalViewport.evaluate(element => {
+    element.scrollLeft = Math.min(180, element.scrollWidth - element.clientWidth)
+    element.scrollTop = Math.min(160, element.scrollHeight - element.clientHeight)
+    element.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+  await compareLocator.page().waitForTimeout(120)
+
+  const originalScroll = await originalViewport.evaluate(element => ({
+    left: element.scrollLeft,
+    top: element.scrollTop
+  }))
+  const recommendedScroll = await recommendedViewport.evaluate(element => ({
+    left: element.scrollLeft,
+    top: element.scrollTop
+  }))
+  assert(Math.abs(recommendedScroll.left - originalScroll.left) <= 1, '推荐 SQL compare 右侧 pane 必须同步左侧横向滚动。')
+  assert(Math.abs(recommendedScroll.top - originalScroll.top) <= 1, '推荐 SQL compare 右侧 pane 必须同步左侧纵向滚动。')
+
+  await recommendedViewport.evaluate(element => {
+    element.scrollLeft = Math.min(90, element.scrollWidth - element.clientWidth)
+    element.scrollTop = Math.min(80, element.scrollHeight - element.clientHeight)
+    element.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+  await compareLocator.page().waitForTimeout(120)
+
+  const originalSyncedBack = await originalViewport.evaluate(element => ({
+    left: element.scrollLeft,
+    top: element.scrollTop
+  }))
+  const recommendedSyncedBack = await recommendedViewport.evaluate(element => ({
+    left: element.scrollLeft,
+    top: element.scrollTop
+  }))
+  assert(
+    Math.abs(originalSyncedBack.left - recommendedSyncedBack.left) <= 1,
+    '推荐 SQL compare 左侧 pane 必须同步右侧横向滚动。'
+  )
+  assert(
+    Math.abs(originalSyncedBack.top - recommendedSyncedBack.top) <= 1,
+    '推荐 SQL compare 左侧 pane 必须同步右侧纵向滚动。'
+  )
 }
 
 const parseJsonBody = request => {
@@ -729,6 +799,7 @@ const runBrowserSmoke = async baseUrl => {
       (await recommendationCompare.locator('.sql-compare-token-mark--insert').count()) > 0,
       '推荐 SQL compare 必须标记插入侧 token 差异。'
     )
+    await assertSqlCompareDualPane(recommendationCompare)
     await page.getByRole('tab', { name: /SQL 证据|SQL evidence/ }).click()
     await expectTextInLocator(page.getByTestId('recommendation-recommended-sql'), '-- report_code=DEV_RPT_REWRITE')
     await expectTextInLocator(page.getByTestId('recommendation-recommended-sql'), 'SELECT')

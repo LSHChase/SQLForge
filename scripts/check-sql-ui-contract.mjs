@@ -30,7 +30,12 @@ const errors = []
 const { formatSqlText, highlightSql } = await import(
   pathToFileURL(path.join(root, 'src/views/common/sqlFormatting.mjs')).href
 )
-const { buildRecommendedSqlDisplay, buildSqlCompareRows, extractLeadingSqlComments } = await import(
+const {
+  buildFormattedSqlDisplayText,
+  buildRecommendedSqlDisplay,
+  buildSqlCompareRows,
+  extractLeadingSqlComments
+} = await import(
   pathToFileURL(path.join(root, 'src/views/common/sqlCompare.mjs')).href
 )
 
@@ -78,6 +83,10 @@ if (
   !replaceRow.recommendedHtml.includes('sql-compare-token-mark--insert')
 ) {
   errors.push('buildSqlCompareRows must emit token-level delete/insert marks for replacement lines.')
+}
+const formattedDisplaySql = buildFormattedSqlDisplayText("select * from sales.orders where dt = '2026-05-17'")
+if (!formattedDisplaySql.includes('SELECT') || !formattedDisplaySql.includes('\nFROM')) {
+  errors.push('buildFormattedSqlDisplayText must provide the formatted display and copy text for SQL compare panes.')
 }
 
 const requiredFiles = {
@@ -132,12 +141,34 @@ const requiredFiles = {
   ],
   'src/views/common/SqlCompareBlock.vue': [
     'buildSqlCompareRows',
+    'buildFormattedSqlDisplayText',
+    'copyTextToClipboard',
+    'currentPaneCopyText',
+    'copyTextToClipboard(currentPaneCopyText(pane))',
+    'formatPaneSql',
+    'syncPaneScroll',
+    'syncPaneScrollGuard',
+    'originalPaneViewportRef',
+    'recommendedPaneViewportRef',
     'sql-compare-block__viewport',
+    'sql-compare-block__panes',
+    'sql-compare-pane--original',
+    'sql-compare-pane--recommended',
+    'sql-compare-pane__toolbar',
+    'data-testid="sql-compare-pane-original"',
+    'data-testid="sql-compare-pane-recommended"',
+    'data-testid="sql-compare-original-viewport"',
+    'data-testid="sql-compare-recommended-viewport"',
+    'data-testid="sql-compare-copy-original"',
+    'data-testid="sql-compare-format-original"',
+    'data-testid="sql-compare-copy-recommended"',
+    'data-testid="sql-compare-format-recommended"',
     'sql-compare-token-mark--insert',
     'sql-compare-token-mark--delete'
   ],
   'src/views/common/sqlCompare.mjs': [
     'extractLeadingSqlComments',
+    'buildFormattedSqlDisplayText',
     'buildRecommendedSqlDisplay',
     'buildSqlCompareRows',
     'sql-compare-token-mark--insert',

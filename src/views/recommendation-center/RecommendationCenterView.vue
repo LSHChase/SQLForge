@@ -1153,6 +1153,8 @@ watch(
                     :original-label="t('recommendationCenter.fields.originalSql')"
                     :recommended-label="t('recommendationCenter.fields.recommendedSql')"
                     :empty-text="t('recommendationCenter.states.noDiffHunks')"
+                    :copy-label="t('common.actions.copy')"
+                    :format-label="t('common.actions.format')"
                     data-testid="recommendation-sql-compare"
                   />
                 </section>
