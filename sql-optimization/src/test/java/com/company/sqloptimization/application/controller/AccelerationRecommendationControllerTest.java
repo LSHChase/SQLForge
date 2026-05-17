@@ -113,6 +113,13 @@ class AccelerationRecommendationControllerTest {
             eq("DIVERGED"),
             eq(Boolean.TRUE),
             eq(Boolean.FALSE),
+            eq("QUERY"),
+            eq("QUERY_HISTORY"),
+            eq("history-001"),
+            eq("history-001"),
+            eq("parse-task-001"),
+            eq("batch-001"),
+            eq("RPT_001"),
             eq("riskLevel"),
             eq("ASC"),
             eq(Integer.valueOf(2)),
@@ -130,7 +137,14 @@ class AccelerationRecommendationControllerTest {
                 .param("riskLevel", "LOW")
                 .param("validationStatus", "DIVERGED")
                 .param("requiresDispatch", "true")
-                .param("manualReviewRequired", "false")))
+                .param("manualReviewRequired", "false")
+                .param("sourceType", "QUERY")
+                .param("sourceKind", "QUERY_HISTORY")
+                .param("sourceId", "history-001")
+                .param("historyId", "history-001")
+                .param("parseTaskId", "parse-task-001")
+                .param("batchId", "batch-001")
+                .param("reportCode", "RPT_001")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[0].recommendationId").value("rec-page-001"))
             .andExpect(jsonPath("$.pageNo").value(2))

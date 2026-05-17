@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RECOMMENDATION-SOURCE-FILTER-20260517: 推荐结果来源类型联动筛选
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat: add recommendation source filters USER-CN-RECOMMENDATION-SOURCE-FILTER-20260517`
+- Priority: 1
+- Depends on: USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517
+- Scope: 在推荐结果页增加来源类型筛选及来源对象联动选择，后端补齐推荐分页筛选参数，保留推荐详情/diff/审批发布边界；同时提供第2类改写验证SQL样例和第3类PULL_ONLY边界说明。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-SOURCE-FILTER-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added recommendation result source-category filtering with linked source-object selectors for query history, SQL parse history, parse batches, and report import batches; extended recommendation page API filtering through controller, service, repository, MyBatis XML, frontend API client, i18n, page contract, and focused backend coverage without changing recommendation diff, review, publish, dispatch, runtime binding, or SQL execution semantics.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-SOURCE-FILTER-20260517 --include-task-audit --extra-command mvn... --extra-command node scripts/check-recommendation-page-contract.mjs --extra-command git diff --check passed; focused Maven recommendation service/controller tests passed; npm lint/build/sql-ui/frontend-page-governance passed.
+  - Residual risk: Linked source-object option lists use the existing first-page list APIs with pageSize=50; larger tenants may need server-side search in a later UX hardening task. Semantic correctness for manual-review rewrite candidates still requires operator review and result-diff evidence.
+  - Next step: Use the provided item-2 SQL samples for batch parse and inspect recommended SQL/result-diff evidence before approving any rewrite.
+
 ### USER-CN-SQL-FORMATTER-NESTED-20260517: 多层嵌套 SQL 格式化全局增强
 
 - Status: done

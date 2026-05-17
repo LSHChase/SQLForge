@@ -1191,6 +1191,12 @@ export default {
       eyebrow: '推荐筛选',
       title: '租户与刷新'
     },
+    sourceCategories: {
+      query: '查询',
+      sqlParse: 'SQL 解析',
+      parseBatch: '批量解析',
+      reportBatch: '报表导入解析'
+    },
     actions: {
       refresh: '刷新推荐结果',
       openRouting: '打开路由治理',
@@ -1234,6 +1240,8 @@ export default {
       sourceType: '来源类型',
       sourceKind: '来源种类',
       sourceId: '来源 ID',
+      sourceCategory: '来源类型',
+      sourceObject: '具体来源',
       evidenceLevel: '证据等级',
       sqlFingerprint: 'SQL 指纹',
       changeCount: '差异数',

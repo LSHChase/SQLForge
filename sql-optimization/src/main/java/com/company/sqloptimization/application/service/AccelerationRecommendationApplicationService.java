@@ -16,6 +16,7 @@ import com.company.sqloptimization.domain.recommendation.AccelerationRecommendat
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -126,6 +127,46 @@ public class AccelerationRecommendationApplicationService {
                                                        String sortOrder,
                                                        Integer pageNo,
                                                        Integer pageSize) {
+        return listRecommendationPage(
+            recommendationType,
+            status,
+            benefitLevel,
+            riskLevel,
+            validationStatus,
+            requiresDispatch,
+            manualReviewRequired,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            sortBy,
+            sortOrder,
+            pageNo,
+            pageSize
+        );
+    }
+
+    public RecommendationPageVO listRecommendationPage(String recommendationType,
+                                                       String status,
+                                                       String benefitLevel,
+                                                       String riskLevel,
+                                                       String validationStatus,
+                                                       Boolean requiresDispatch,
+                                                       Boolean manualReviewRequired,
+                                                       String sourceType,
+                                                       String sourceKind,
+                                                       String sourceId,
+                                                       String historyId,
+                                                       String parseTaskId,
+                                                       String batchId,
+                                                       String reportCode,
+                                                       String sortBy,
+                                                       String sortOrder,
+                                                       Integer pageNo,
+                                                       Integer pageSize) {
         String tenantId = requireContextTenant();
         int resolvedPageNo = normalizePageNo(pageNo);
         int resolvedPageSize = normalizePageSize(pageSize);
@@ -138,6 +179,14 @@ public class AccelerationRecommendationApplicationService {
         filter.setValidationStatus(normalizeFilterValue(validationStatus));
         filter.setRequiresDispatch(requiresDispatch);
         filter.setManualReviewRequired(manualReviewRequired);
+        filter.setSourceType(normalizeFilterValue(sourceType));
+        filter.setSourceKind(normalizeFilterValue(sourceKind));
+        filter.setSourceKinds(normalizeSourceKinds(sourceKind));
+        filter.setSourceId(trimToNull(sourceId));
+        filter.setHistoryId(trimToNull(historyId));
+        filter.setParseTaskId(trimToNull(parseTaskId));
+        filter.setBatchId(trimToNull(batchId));
+        filter.setReportCode(trimToNull(reportCode));
         filter.setOrderByClause(resolveRecommendationOrderBy(sortBy, sortOrder));
         filter.setOffset((resolvedPageNo - 1) * resolvedPageSize);
         filter.setLimit(resolvedPageSize + 1);
@@ -340,6 +389,21 @@ public class AccelerationRecommendationApplicationService {
             return null;
         }
         return normalized.toUpperCase(Locale.ROOT);
+    }
+
+    private List<String> normalizeSourceKinds(String value) {
+        String normalized = normalizeFilterValue(value);
+        if (normalized == null) {
+            return null;
+        }
+        List<String> sourceKinds = new ArrayList<String>();
+        for (String part : Arrays.asList(normalized.split(","))) {
+            String sourceKind = trimToNull(part);
+            if (sourceKind != null && !"ALL".equalsIgnoreCase(sourceKind)) {
+                sourceKinds.add(sourceKind.toUpperCase(Locale.ROOT));
+            }
+        }
+        return sourceKinds.isEmpty() ? null : sourceKinds;
     }
 
     private String resolveRecommendationOrderBy(String sortBy, String sortOrder) {

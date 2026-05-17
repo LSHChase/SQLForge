@@ -84,6 +84,37 @@
         <if test="manualReviewRequired != null">
             AND manual_review_required = #{manualReviewRequired}
         </if>
+        <if test="sourceType != null and sourceType != ''">
+            AND source_type = #{sourceType}
+        </if>
+        <choose>
+            <when test="sourceKinds != null and sourceKinds.size() > 0">
+                AND source_kind IN
+                <foreach collection="sourceKinds" item="sourceKindItem" open="(" separator="," close=")">
+                    #{sourceKindItem}
+                </foreach>
+            </when>
+            <otherwise>
+                <if test="sourceKind != null and sourceKind != ''">
+                    AND source_kind = #{sourceKind}
+                </if>
+            </otherwise>
+        </choose>
+        <if test="sourceId != null and sourceId != ''">
+            AND source_id = #{sourceId}
+        </if>
+        <if test="historyId != null and historyId != ''">
+            AND history_id = #{historyId}
+        </if>
+        <if test="parseTaskId != null and parseTaskId != ''">
+            AND parse_task_id = #{parseTaskId}
+        </if>
+        <if test="batchId != null and batchId != ''">
+            AND batch_id = #{batchId}
+        </if>
+        <if test="reportCode != null and reportCode != ''">
+            AND report_code = #{reportCode}
+        </if>
     </sql>
 
     <select id="selectByRecommendationId" resultMap="AccelerationRecommendationRecordMap">

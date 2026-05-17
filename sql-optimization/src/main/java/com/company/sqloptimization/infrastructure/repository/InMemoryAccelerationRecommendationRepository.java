@@ -95,8 +95,33 @@ public class InMemoryAccelerationRecommendationRepository implements Acceleratio
             && filter.getRequiresDispatch().booleanValue() != recommendation.isRequiresDispatch()) {
             return false;
         }
-        return filter.getManualReviewRequired() == null
-            || filter.getManualReviewRequired().booleanValue() == recommendation.isManualReviewRequired();
+        if (filter.getManualReviewRequired() != null
+            && filter.getManualReviewRequired().booleanValue() != recommendation.isManualReviewRequired()) {
+            return false;
+        }
+        if (!matchesText(filter.getSourceType(),
+            recommendation.getSourceType() == null ? null : recommendation.getSourceType().name())) {
+            return false;
+        }
+        if (!matchesSourceKind(filter, recommendation.getSourceKind() == null ? null : recommendation.getSourceKind().name())) {
+            return false;
+        }
+        if (!matchesText(filter.getSourceId(), recommendation.getSourceId())) {
+            return false;
+        }
+        if (!matchesText(filter.getHistoryId(), recommendation.getHistoryId())) {
+            return false;
+        }
+        if (!matchesText(filter.getParseTaskId(), recommendation.getParseTaskId())) {
+            return false;
+        }
+        if (!matchesText(filter.getBatchId(), recommendation.getBatchId())) {
+            return false;
+        }
+        if (!matchesText(filter.getReportCode(), recommendation.getReportCode())) {
+            return false;
+        }
+        return true;
     }
 
     private boolean equalsText(String expected, String actual) {
@@ -105,6 +130,13 @@ public class InMemoryAccelerationRecommendationRepository implements Acceleratio
 
     private boolean matchesText(String expected, String actual) {
         return expected == null || expected.equals(actual);
+    }
+
+    private boolean matchesSourceKind(AccelerationRecommendationFilter filter, String actual) {
+        if (filter.getSourceKinds() != null && !filter.getSourceKinds().isEmpty()) {
+            return filter.getSourceKinds().contains(actual);
+        }
+        return matchesText(filter.getSourceKind(), actual);
     }
 
     private void sortMatches(List<AccelerationRecommendation> matches, String orderByClause) {

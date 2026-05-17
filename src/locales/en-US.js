@@ -1207,6 +1207,12 @@ export default {
       eyebrow: 'recommendation filters',
       title: 'Tenant and refresh'
     },
+    sourceCategories: {
+      query: 'Query',
+      sqlParse: 'SQL parse',
+      parseBatch: 'Batch parse',
+      reportBatch: 'Report import parse'
+    },
     actions: {
       refresh: 'Refresh recommendation results',
       openRouting: 'Open routing governance',
@@ -1250,6 +1256,8 @@ export default {
       sourceType: 'sourceType',
       sourceKind: 'sourceKind',
       sourceId: 'sourceId',
+      sourceCategory: 'Source type',
+      sourceObject: 'Source object',
       evidenceLevel: 'evidenceLevel',
       sqlFingerprint: 'sqlFingerprint',
       changeCount: 'Change count',

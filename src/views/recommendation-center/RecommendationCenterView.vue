@@ -7,14 +7,18 @@ import {
   formatRuntimeError,
   getDispatchContract,
   getDispatchEvents,
+  getGovernanceQueryHistoryPage,
   getRecommendationDetail,
   getRecommendationDiff,
   getRecommendationPage,
   getRecommendationTrace,
   getRewriteValidationRuns,
+  getSqlParseHistoryPage,
   getRewritePublishEligibility,
   getSqlRewriteRecord,
   getSqlRewriteRecords,
+  listParseBatches,
+  listReportBatches,
   pauseSqlRewriteRecord,
   publishSqlRewriteRecord,
   reviewSqlRewriteRecord,
@@ -60,7 +64,8 @@ const loading = reactive({
   detail: false,
   lifecycle: false,
   lifecycleAction: '',
-  validationRuns: false
+  validationRuns: false,
+  sourceOptions: false
 })
 
 const recommendationFilters = reactive({
@@ -70,9 +75,12 @@ const recommendationFilters = reactive({
   riskLevel: '',
   validationStatus: '',
   requiresDispatch: '',
-  manualReviewRequired: ''
+  manualReviewRequired: '',
+  sourceCategory: '',
+  sourceObjectId: ''
 })
 const recommendations = ref([])
+const sourceObjectOptions = ref([])
 const dispatchContract = ref(null)
 const dispatchEvents = ref([])
 const selectedRecommendationId = ref(normalizeQueryValue(route.query.recommendationId))
@@ -121,6 +129,40 @@ const booleanFilterOptions = [
   { label: 'true', value: true },
   { label: 'false', value: false }
 ]
+const sourceCategoryOptions = computed(() => [
+  {
+    label: t('recommendationCenter.sourceCategories.query'),
+    value: 'QUERY',
+    sourceType: 'QUERY',
+    sourceKind: 'QUERY_HISTORY',
+    objectMode: 'QUERY_HISTORY'
+  },
+  {
+    label: t('recommendationCenter.sourceCategories.sqlParse'),
+    value: 'SQL_PARSE',
+    sourceType: 'PARSE',
+    sourceKind: 'STRUCTURE_PARSE,COMBINED_PARSE',
+    objectMode: 'SQL_PARSE'
+  },
+  {
+    label: t('recommendationCenter.sourceCategories.parseBatch'),
+    value: 'PARSE_BATCH',
+    sourceType: 'PARSE',
+    sourceKind: 'PARSE_BATCH',
+    objectMode: 'PARSE_BATCH'
+  },
+  {
+    label: t('recommendationCenter.sourceCategories.reportBatch'),
+    value: 'REPORT_BATCH',
+    sourceType: 'PARSE',
+    sourceKind: 'REPORT_BATCH',
+    objectMode: 'REPORT_BATCH'
+  }
+])
+
+const selectedSourceCategory = computed(() =>
+  sourceCategoryOptions.value.find(item => item.value === recommendationFilters.sourceCategory) || null
+)
 
 const selectedDispatchEvents = computed(() => {
   const traceEvents = recommendationTrace.value?.dispatchEvents || []
@@ -617,6 +659,144 @@ const loadRecommendation = async recommendationId => {
   }
 }
 
+const normalizePagedItems = payload => {
+  if (Array.isArray(payload)) {
+    return payload
+  }
+  return Array.isArray(payload?.items) ? payload.items : []
+}
+
+const sourceOption = (value, label, meta = {}) => ({
+  value,
+  label: label || value,
+  meta
+})
+
+const optionLabel = (...parts) => parts.map(part => String(part || '').trim()).filter(Boolean).join(' · ')
+
+const buildSourceObjectOptions = (mode, rows) => {
+  if (mode === 'QUERY_HISTORY') {
+    return rows
+      .filter(row => row?.historyId)
+      .map(row => sourceOption(
+        row.historyId,
+        optionLabel(row.historyId, row.reportCode, row.datasourceCode, row.status),
+        { historyId: row.historyId, sourceId: row.historyId }
+      ))
+  }
+  if (mode === 'SQL_PARSE') {
+    return rows
+      .filter(row => row?.parseHistoryId || row?.historyId || row?.parseTaskId)
+      .map(row => {
+        const historyId = row.parseHistoryId || row.historyId || ''
+        const parseTaskId = row.parseTaskId || row.sourceId || ''
+        return sourceOption(
+          historyId || parseTaskId,
+          optionLabel(historyId || parseTaskId, row.reportCode, row.datasourceCode, row.resultStatus),
+          { historyId, parseTaskId, sourceId: row.sourceId || parseTaskId }
+        )
+      })
+  }
+  if (mode === 'PARSE_BATCH' || mode === 'REPORT_BATCH') {
+    return rows
+      .filter(row => row?.batchId)
+      .map(row => sourceOption(
+        row.batchId,
+        optionLabel(row.batchName || row.batchId, row.batchId, row.datasourceCode, row.status),
+        { batchId: row.batchId, reportCode: row.reportCode }
+      ))
+  }
+  return []
+}
+
+const loadSourceObjectOptions = async () => {
+  const category = selectedSourceCategory.value
+  if (!category || !form.tenantId) {
+    sourceObjectOptions.value = []
+    return
+  }
+  loading.sourceOptions = true
+  try {
+    let payload = null
+    if (category.objectMode === 'QUERY_HISTORY') {
+      payload = await getGovernanceQueryHistoryPage(
+        {
+          tenantId: form.tenantId,
+          requestTenantId: form.tenantId,
+          pageNo: 1,
+          pageSize: 50,
+          sortBy: 'submittedAt',
+          sortOrder: 'DESC'
+        },
+        { requestPrefix: 'frontend-recommendation-source-query-history' }
+      )
+    } else if (category.objectMode === 'SQL_PARSE') {
+      payload = await getSqlParseHistoryPage(
+        {
+          tenantId: form.tenantId,
+          requestTenantId: form.tenantId,
+          pageNo: 1,
+          pageSize: 50,
+          sortBy: 'submittedAt',
+          sortOrder: 'DESC'
+        },
+        { requestPrefix: 'frontend-recommendation-source-parse-history' }
+      )
+    } else if (category.objectMode === 'PARSE_BATCH') {
+      payload = await listParseBatches(
+        form.tenantId,
+        { pageNo: 1, pageSize: 50 },
+        { requestPrefix: 'frontend-recommendation-source-parse-batch' }
+      )
+    } else if (category.objectMode === 'REPORT_BATCH') {
+      payload = await listReportBatches(
+        form.tenantId,
+        { pageNo: 1, pageSize: 50 },
+        { requestPrefix: 'frontend-recommendation-source-report-batch' }
+      )
+    }
+    sourceObjectOptions.value = buildSourceObjectOptions(category.objectMode, normalizePagedItems(payload))
+  } catch (error) {
+    sourceObjectOptions.value = []
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.sourceOptions = false
+  }
+}
+
+const buildSourceFilterQuery = () => {
+  const category = selectedSourceCategory.value
+  if (!category) {
+    return {}
+  }
+  const query = {
+    sourceType: category.sourceType,
+    sourceKind: category.sourceKind
+  }
+  const selectedObject = sourceObjectOptions.value.find(item => item.value === recommendationFilters.sourceObjectId)
+  const meta = selectedObject?.meta || {}
+  if (recommendationFilters.sourceObjectId) {
+    if (category.objectMode === 'QUERY_HISTORY') {
+      query.historyId = meta.historyId || recommendationFilters.sourceObjectId
+      query.sourceId = meta.sourceId || recommendationFilters.sourceObjectId
+    } else if (category.objectMode === 'SQL_PARSE') {
+      query.historyId = meta.historyId || recommendationFilters.sourceObjectId
+      if (meta.parseTaskId) {
+        query.parseTaskId = meta.parseTaskId
+      }
+      if (meta.sourceId) {
+        query.sourceId = meta.sourceId
+      }
+    } else if (category.objectMode === 'PARSE_BATCH' || category.objectMode === 'REPORT_BATCH') {
+      query.batchId = meta.batchId || recommendationFilters.sourceObjectId
+      if (meta.reportCode) {
+        query.reportCode = meta.reportCode
+      }
+    }
+  }
+  return query
+}
+
 const buildRecommendationPageQuery = () => ({
   pageNo: recommendationPager.page,
   pageSize: recommendationPager.size,
@@ -628,12 +808,19 @@ const buildRecommendationPageQuery = () => ({
   riskLevel: recommendationFilters.riskLevel,
   validationStatus: recommendationFilters.validationStatus,
   requiresDispatch: recommendationFilters.requiresDispatch,
-  manualReviewRequired: recommendationFilters.manualReviewRequired
+  manualReviewRequired: recommendationFilters.manualReviewRequired,
+  ...buildSourceFilterQuery()
 })
 
 const refreshRecommendationFromFirstPage = () => {
   recommendationPager.page = 1
   refreshPage()
+}
+
+const handleSourceCategoryChange = () => {
+  recommendationFilters.sourceObjectId = ''
+  sourceObjectOptions.value = []
+  loadSourceObjectOptions()
 }
 
 const resetRecommendationFilters = () => {
@@ -644,6 +831,9 @@ const resetRecommendationFilters = () => {
   recommendationFilters.validationStatus = ''
   recommendationFilters.requiresDispatch = ''
   recommendationFilters.manualReviewRequired = ''
+  recommendationFilters.sourceCategory = ''
+  recommendationFilters.sourceObjectId = ''
+  sourceObjectOptions.value = []
   recommendationPager.page = 1
   recommendationPager.size = 8
   recommendationPager.sortBy = 'createdAt'
@@ -899,6 +1089,14 @@ onMounted(() => {
 })
 
 watch(
+  () => form.tenantId,
+  () => {
+    recommendationFilters.sourceObjectId = ''
+    sourceObjectOptions.value = []
+  }
+)
+
+watch(
   () => route.fullPath,
   async () => {
     syncRouteQueryState()
@@ -926,6 +1124,33 @@ watch(
         <label class="field-block">
           <span class="field-label">{{ t('common.fields.tenant') }}</span>
           <el-input v-model.trim="form.tenantId" data-testid="recommendation-tenant-input" @keyup.enter="refreshRecommendationFromFirstPage" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">{{ t('recommendationCenter.fields.sourceCategory') }}</span>
+          <el-select
+            v-model="recommendationFilters.sourceCategory"
+            clearable
+            data-testid="recommendation-source-category-filter"
+            @change="handleSourceCategoryChange"
+          >
+            <el-option v-for="item in sourceCategoryOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </label>
+        <label class="field-block field-block-wide">
+          <span class="field-label">{{ t('recommendationCenter.fields.sourceObject') }}</span>
+          <el-select
+            v-model="recommendationFilters.sourceObjectId"
+            clearable
+            filterable
+            :disabled="!selectedSourceCategory"
+            :loading="loading.sourceOptions"
+            data-testid="recommendation-source-object-filter"
+            @visible-change="visible => visible && loadSourceObjectOptions()"
+          >
+            <el-option v-for="item in sourceObjectOptions" :key="item.value" :label="item.label" :value="item.value">
+              <span>{{ item.label }}</span>
+            </el-option>
+          </el-select>
         </label>
         <label class="field-block">
           <span class="field-label">{{ t('inline.viewsRecommendationCenterRecommendationCenterView.text005') }}</span>
@@ -1611,6 +1836,10 @@ watch(
 
 .field-block-compact {
   min-width: 170px;
+}
+
+.field-block-wide {
+  min-width: 300px;
 }
 
 .field-label,

@@ -637,7 +637,14 @@ export const getRecommendationPage = (tenantId, filters = {}, requestOptions = {
     'riskLevel',
     'validationStatus',
     'requiresDispatch',
-    'manualReviewRequired'
+    'manualReviewRequired',
+    'sourceType',
+    'sourceKind',
+    'sourceId',
+    'historyId',
+    'parseTaskId',
+    'batchId',
+    'reportCode'
   ]
   queryKeys.forEach(key => {
     const value = filters?.[key]

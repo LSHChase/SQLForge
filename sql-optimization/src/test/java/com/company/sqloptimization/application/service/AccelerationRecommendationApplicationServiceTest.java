@@ -231,6 +231,148 @@ class AccelerationRecommendationApplicationServiceTest {
     }
 
     @Test
+    void shouldFilterRecommendationPageBySourceCategoryAndLinkedObject() {
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            2L
+        );
+        InMemoryAccelerationRecommendationRepository repository =
+            new InMemoryAccelerationRecommendationRepository();
+        repository.save(recommendationWithSource(
+            "rec-query",
+            GovernanceSourceType.QUERY,
+            GovernanceSourceKind.QUERY_HISTORY,
+            "history-001",
+            "history-001",
+            null,
+            null,
+            null,
+            Instant.parse("2026-05-17T10:00:00Z")
+        ));
+        repository.save(recommendationWithSource(
+            "rec-structure-parse",
+            GovernanceSourceType.PARSE,
+            GovernanceSourceKind.STRUCTURE_PARSE,
+            "parse-task-001",
+            "parse-history-001",
+            "parse-task-001",
+            null,
+            null,
+            Instant.parse("2026-05-17T11:00:00Z")
+        ));
+        repository.save(recommendationWithSource(
+            "rec-combined-parse",
+            GovernanceSourceType.PARSE,
+            GovernanceSourceKind.COMBINED_PARSE,
+            "parse-task-002",
+            "parse-history-002",
+            "parse-task-002",
+            null,
+            null,
+            Instant.parse("2026-05-17T12:00:00Z")
+        ));
+        repository.save(recommendationWithSource(
+            "rec-parse-batch",
+            GovernanceSourceType.PARSE,
+            GovernanceSourceKind.PARSE_BATCH,
+            "batch-001",
+            "parse-history-003",
+            "parse-task-003",
+            "batch-001",
+            null,
+            Instant.parse("2026-05-17T13:00:00Z")
+        ));
+        repository.save(recommendationWithSource(
+            "rec-report-batch",
+            GovernanceSourceType.PARSE,
+            GovernanceSourceKind.REPORT_BATCH,
+            "batch-002",
+            "parse-history-004",
+            "parse-task-004",
+            "batch-002",
+            "RPT_001",
+            Instant.parse("2026-05-17T14:00:00Z")
+        ));
+        AccelerationRecommendationApplicationService service =
+            new AccelerationRecommendationApplicationService(repository);
+
+        RecommendationPageVO queryPage = service.listRecommendationPage(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "query",
+            "query_history",
+            "history-001",
+            "history-001",
+            null,
+            null,
+            null,
+            "createdAt",
+            "DESC",
+            Integer.valueOf(1),
+            Integer.valueOf(10)
+        );
+        RecommendationPageVO sqlParsePage = service.listRecommendationPage(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "parse",
+            "structure_parse, combined_parse",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "createdAt",
+            "DESC",
+            Integer.valueOf(1),
+            Integer.valueOf(10)
+        );
+        RecommendationPageVO reportBatchPage = service.listRecommendationPage(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "PARSE",
+            "REPORT_BATCH",
+            null,
+            null,
+            null,
+            "batch-002",
+            "RPT_001",
+            "createdAt",
+            "DESC",
+            Integer.valueOf(1),
+            Integer.valueOf(10)
+        );
+
+        assertEquals(Integer.valueOf(1), queryPage.getTotalCount());
+        assertEquals("rec-query", queryPage.getItems().get(0).getRecommendationId());
+        assertEquals(Integer.valueOf(2), sqlParsePage.getTotalCount());
+        assertEquals("rec-combined-parse", sqlParsePage.getItems().get(0).getRecommendationId());
+        assertEquals("rec-structure-parse", sqlParsePage.getItems().get(1).getRecommendationId());
+        assertEquals(Integer.valueOf(1), reportBatchPage.getTotalCount());
+        assertEquals("rec-report-batch", reportBatchPage.getItems().get(0).getRecommendationId());
+    }
+
+    @Test
     void shouldRejectCrossTenantRecommendationCreation() {
         RequestContext.set(
             "tenant-a",
@@ -285,6 +427,42 @@ class AccelerationRecommendationApplicationServiceTest {
             .validationStatus(validationStatus)
             .autoApplyAllowed(Boolean.FALSE)
             .manualReviewRequired(Boolean.valueOf(manualReviewRequired))
+            .createdBy("operator-001")
+            .createdAt(createdAt)
+            .updatedAt(createdAt)
+            .build();
+    }
+
+    private AccelerationRecommendation recommendationWithSource(String recommendationId,
+                                                                GovernanceSourceType sourceType,
+                                                                GovernanceSourceKind sourceKind,
+                                                                String sourceId,
+                                                                String historyId,
+                                                                String parseTaskId,
+                                                                String batchId,
+                                                                String reportCode,
+                                                                Instant createdAt) {
+        return AccelerationRecommendation.builder()
+            .recommendationId(recommendationId)
+            .tenantId("tenant-a")
+            .recommendationType(RecommendationType.REWRITE)
+            .sourceSqlText("SELECT * FROM orders")
+            .recommendedSqlText("SELECT order_id FROM orders")
+            .summary(recommendationId)
+            .benefitLevel(BenefitLevel.MEDIUM)
+            .riskLevel(RiskLevel.MEDIUM)
+            .requiresDispatch(false)
+            .status(RecommendationStatus.RECOMMENDED)
+            .sourceType(sourceType)
+            .sourceKind(sourceKind)
+            .sourceId(sourceId)
+            .historyId(historyId)
+            .parseTaskId(parseTaskId)
+            .batchId(batchId)
+            .reportCode(reportCode)
+            .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
+            .autoApplyAllowed(Boolean.FALSE)
+            .manualReviewRequired(Boolean.TRUE)
             .createdBy("operator-001")
             .createdAt(createdAt)
             .updatedAt(createdAt)
