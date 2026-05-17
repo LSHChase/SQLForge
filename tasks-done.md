@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RECOMMENDATION-DIFF-FORMAT-HIGHLIGHT-20260517: 推荐中心 SQL diff 前端格式化与词级高亮
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `feat: format recommendation sql diff USER-CN-RECOMMENDATION-DIFF-FORMAT-HIGHLIGHT-20260517`
+- Priority: 1
+- Depends on: USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517
+- Scope: Frontend-only follow-up for recommendation center SQL compare formatting, leading comment display carry-over, word/token-level highlighting, and smoke/contract updates without backend API or execution semantic changes.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-DIFF-FORMAT-HIGHLIGHT-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Frontend-only recommendation SQL diff formatting follow-up: extracted compare helper, carried source leading comments into recommended display SQL, rendered frontend line/token diff from formatted SQL, kept backend diff as raw evidence, and updated contract/browser smoke coverage.
+  - Validation evidence: npm run test:sql-ui-contract; node scripts/check-recommendation-page-contract.mjs; npm run test:frontend-page-governance; npm run lint; npm run build; npm run smoke:frontend-dev; npm run smoke:production-rewrite-closed-loop; git diff --check; python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-DIFF-FORMAT-HIGHLIGHT-20260517 --include-task-audit; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No backend API, schema, recommendation lifecycle, dispatch, approval, publish, or execution semantics changed. Visual evidence remains frontend-derived; backend diff is retained only as raw evidence/AST/rule source.
+  - Next step: None.
+
 ### USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517: 推荐结果页布局与 SQL Compare 收口
 
 - Status: done

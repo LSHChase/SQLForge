@@ -23,6 +23,10 @@ const assert = (condition, message) => {
   }
 }
 
+const recommendationSourceSql = '-- report_code=DEV_RPT_REWRITE\n/* owner: recommendation smoke */\nSELECT * FROM sales.orders WHERE dt = ?'
+const recommendationDiffOriginalSql = 'SELECT * FROM sales.orders WHERE dt = ?'
+const recommendationRecommendedSql = 'SELECT id FROM sales.orders WHERE dt = ?'
+
 const resolveExecutablePath = () => browserCandidates.find(candidate => fs.existsSync(candidate))
 
 const getAvailablePort = () =>
@@ -361,9 +365,9 @@ const runBrowserSmoke = async baseUrl => {
             lastValidationRunId: 'validation-dev-1',
             lastComparedAt: '2026-05-08T22:31:00',
             alertStatus: 'OPEN',
-            originalSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
-            recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
-            executedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+            originalSqlText: recommendationSourceSql,
+            recommendedSqlText: recommendationRecommendedSql,
+            executedSqlText: recommendationRecommendedSql,
             ruleChain: [{ ruleCode: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
             diffSummary: { changed: 1, manualReviewRequired: true },
             traceRefs: { alertRefs: [{ alertId: 'alert-dev-1', alertStatus: 'OPEN' }] }
@@ -387,8 +391,8 @@ const runBrowserSmoke = async baseUrl => {
             riskLevel: 'MEDIUM',
             validationStatus: 'DIVERGED',
             alertStatus: 'OPEN',
-            sourceSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
-            recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+            sourceSqlText: recommendationSourceSql,
+            recommendedSqlText: recommendationRecommendedSql,
             logicalObjectKey: 'sales.orders',
             targetEngine: 'HETU',
             targetDatasource: 'hetu_main',
@@ -453,8 +457,8 @@ const runBrowserSmoke = async baseUrl => {
         sourceId: 'dev-history-nav-1',
         evidenceLevel: 'RUNTIME_HISTORY',
         sqlFingerprint: 'fingerprint-dev-history-nav-1',
-        originalSql: 'SELECT * FROM sales.orders WHERE dt = ?',
-        recommendedSql: 'SELECT id FROM sales.orders WHERE dt = ?',
+        originalSql: recommendationDiffOriginalSql,
+        recommendedSql: recommendationRecommendedSql,
         diffSummary: {
           changeCount: 1,
           ruleDiffCount: 1,
@@ -469,8 +473,8 @@ const runBrowserSmoke = async baseUrl => {
             type: 'REPLACE',
             originalStartLine: 1,
             recommendedStartLine: 1,
-            originalText: 'SELECT * FROM sales.orders WHERE dt = ?',
-            recommendedText: 'SELECT id FROM sales.orders WHERE dt = ?'
+            originalText: recommendationDiffOriginalSql,
+            recommendedText: recommendationRecommendedSql
           }
         ],
         ruleDiff: [{ diffId: 'rule-dev-1', rule: 'SELECT_STAR', action: 'PROJECT_COLUMNS' }],
@@ -489,8 +493,8 @@ const runBrowserSmoke = async baseUrl => {
         validationMethod: 'SQL_COMPARE',
         validationStatus: 'DIVERGED',
         alertStatus: 'OPEN',
-        sourceSqlText: 'SELECT * FROM sales.orders WHERE dt = ?',
-        recommendedSqlText: 'SELECT id FROM sales.orders WHERE dt = ?',
+        sourceSqlText: recommendationSourceSql,
+        recommendedSqlText: recommendationRecommendedSql,
         logicalObjectKey: 'sales.orders',
         targetEngine: 'HETU',
         targetDatasource: 'hetu_main',
@@ -713,8 +717,21 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('recommendation-detail-drawer').waitFor({ timeout: defaultTimeoutMs })
     await page.getByTestId('recommendation-rewrite-lifecycle').waitFor({ timeout: defaultTimeoutMs })
     await page.getByRole('tab', { name: /SQL 差异|SQL diff/ }).click()
-    await page.getByTestId('recommendation-sql-compare').waitFor({ timeout: defaultTimeoutMs })
-    await expectTextInLocator(page.getByTestId('recommendation-sql-compare'), 'SELECT')
+    const recommendationCompare = page.getByTestId('recommendation-sql-compare')
+    await recommendationCompare.waitFor({ timeout: defaultTimeoutMs })
+    await expectTextInLocator(recommendationCompare, 'SELECT')
+    await expectTextInLocator(recommendationCompare, '-- report_code=DEV_RPT_REWRITE')
+    assert(
+      (await recommendationCompare.locator('.sql-compare-token-mark--delete').count()) > 0,
+      '推荐 SQL compare 必须标记删除侧 token 差异。'
+    )
+    assert(
+      (await recommendationCompare.locator('.sql-compare-token-mark--insert').count()) > 0,
+      '推荐 SQL compare 必须标记插入侧 token 差异。'
+    )
+    await page.getByRole('tab', { name: /SQL 证据|SQL evidence/ }).click()
+    await expectTextInLocator(page.getByTestId('recommendation-recommended-sql'), '-- report_code=DEV_RPT_REWRITE')
+    await expectTextInLocator(page.getByTestId('recommendation-recommended-sql'), 'SELECT')
     await page.getByRole('tab', { name: /改写复核与发布|Rewrite review and publish/ }).click()
     await expectTextInLocator(page.getByTestId('recommendation-rewrite-validation-run-table'), 'validation-rec-dev-1')
     await page.keyboard.press('Escape')

@@ -61,14 +61,19 @@ const targets = [
       'getRecommendationDiff',
       'textDiff',
       'SqlCompareBlock',
+      'buildRecommendedSqlDisplay',
       'astSummaryDiff',
       'focusSummaryCards',
+      'frontendCompareOriginalSql',
+      'frontendCompareRecommendedSql',
+      'hasFrontendCompareSql',
       'ruleChain',
       'preconditions',
       'semanticRisks',
       'unappliedRules',
       'summarizeEvidenceItem',
-      "activeDetailTab.value = recommendationDiff.value ? 'sqlDiff' : 'summary'",
+      "activeDetailTab.value = recommendationDiff.value || hasFrontendCompareSql.value ? 'sqlDiff' : 'summary'",
+      "activeDetailTab.value = hasFrontendCompareSql.value ? 'sqlDiff' : 'summary'",
       'normalizeDetailTab(route.query.tab || route.query.detailTab)',
       'manualReviewRequired',
       'reviewSqlRewriteRecord',
@@ -109,13 +114,23 @@ const targets = [
   {
     path: 'src/views/common/SqlCompareBlock.vue',
     tokens: [
-      'formatSqlText',
-      'highlightSql',
-      'buildCompareRows',
+      'buildSqlCompareRows',
       'sql-compare-block__viewport',
       'sql-compare-row--insert',
       'sql-compare-row--delete',
-      'sql-compare-row--replace'
+      'sql-compare-row--replace',
+      'sql-compare-token-mark--insert',
+      'sql-compare-token-mark--delete'
+    ]
+  },
+  {
+    path: 'src/views/common/sqlCompare.mjs',
+    tokens: [
+      'formatSqlText',
+      'highlightSql',
+      'extractLeadingSqlComments',
+      'buildRecommendedSqlDisplay',
+      'buildSqlCompareRows'
     ]
   },
   {

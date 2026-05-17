@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { formatSqlText, highlightSql } from './sqlFormatting.mjs'
+import { buildSqlCompareRows } from './sqlCompare.mjs'
 
 const props = defineProps({
   originalSql: {
@@ -25,118 +25,7 @@ const props = defineProps({
   }
 })
 
-const originalLines = computed(() => splitSqlLines(props.originalSql))
-const recommendedLines = computed(() => splitSqlLines(props.recommendedSql))
-const compareRows = computed(() => buildCompareRows(originalLines.value, recommendedLines.value))
-
-const splitSqlLines = value => {
-  const raw = String(value ?? '')
-  const formatted = formatSqlText(raw) || raw.trim()
-  return formatted ? formatted.split('\n') : []
-}
-
-const buildCompareRows = (original, recommended) => {
-  if (!original.length && !recommended.length) {
-    return []
-  }
-  const ops = buildDiffOps(original, recommended)
-  const rows = []
-  let cursor = 0
-  while (cursor < ops.length) {
-    const op = ops[cursor]
-    if (op.type === 'EQUAL') {
-      rows.push(rowFromPair('EQUAL', op.originalLine, op.recommendedLine, op.originalIndex, op.recommendedIndex))
-      cursor += 1
-      continue
-    }
-    const group = []
-    while (cursor < ops.length && ops[cursor].type !== 'EQUAL') {
-      group.push(ops[cursor])
-      cursor += 1
-    }
-    rows.push(...coalesceChangeGroup(group))
-  }
-  return rows.map((row, index) => ({ ...row, key: `${row.type}-${index}` }))
-}
-
-const buildDiffOps = (original, recommended) => {
-  const dp = Array.from({ length: original.length + 1 }, () => Array(recommended.length + 1).fill(0))
-  for (let left = original.length - 1; left >= 0; left -= 1) {
-    for (let right = recommended.length - 1; right >= 0; right -= 1) {
-      if (original[left] === recommended[right]) {
-        dp[left][right] = dp[left + 1][right + 1] + 1
-      } else {
-        dp[left][right] = Math.max(dp[left + 1][right], dp[left][right + 1])
-      }
-    }
-  }
-
-  const ops = []
-  let left = 0
-  let right = 0
-  while (left < original.length || right < recommended.length) {
-    if (left < original.length && right < recommended.length && original[left] === recommended[right]) {
-      ops.push({
-        type: 'EQUAL',
-        originalLine: original[left],
-        recommendedLine: recommended[right],
-        originalIndex: left + 1,
-        recommendedIndex: right + 1
-      })
-      left += 1
-      right += 1
-    } else if (right >= recommended.length || (left < original.length && dp[left + 1][right] >= dp[left][right + 1])) {
-      ops.push({
-        type: 'DELETE',
-        originalLine: original[left],
-        originalIndex: left + 1
-      })
-      left += 1
-    } else {
-      ops.push({
-        type: 'INSERT',
-        recommendedLine: recommended[right],
-        recommendedIndex: right + 1
-      })
-      right += 1
-    }
-  }
-  return ops
-}
-
-const coalesceChangeGroup = group => {
-  const deletes = group.filter(item => item.type === 'DELETE')
-  const inserts = group.filter(item => item.type === 'INSERT')
-  const count = Math.max(deletes.length, inserts.length)
-  const rows = []
-  for (let index = 0; index < count; index += 1) {
-    const deleted = deletes[index]
-    const inserted = inserts[index]
-    if (deleted && inserted) {
-      rows.push(rowFromPair('REPLACE', deleted.originalLine, inserted.recommendedLine, deleted.originalIndex, inserted.recommendedIndex))
-    } else if (deleted) {
-      rows.push(rowFromPair('DELETE', deleted.originalLine, '', deleted.originalIndex, null))
-    } else if (inserted) {
-      rows.push(rowFromPair('INSERT', '', inserted.recommendedLine, null, inserted.recommendedIndex))
-    }
-  }
-  return rows
-}
-
-const rowFromPair = (type, originalLine, recommendedLine, originalIndex, recommendedIndex) => ({
-  type,
-  originalLine: originalLine || '',
-  recommendedLine: recommendedLine || '',
-  originalIndex,
-  recommendedIndex,
-  originalHtml: lineHtml(originalLine),
-  recommendedHtml: lineHtml(recommendedLine)
-})
-
-const lineHtml = value => {
-  const text = String(value ?? '')
-  return text ? highlightSql(text) : '&nbsp;'
-}
+const compareRows = computed(() => buildSqlCompareRows(props.originalSql, props.recommendedSql))
 </script>
 
 <template>
@@ -258,6 +147,11 @@ const lineHtml = value => {
   white-space: pre;
 }
 
+.sql-compare-code:nth-child(4) {
+  border-left-color: var(--sqlforge-border-default);
+  box-shadow: inset 10px 0 0 rgba(255, 255, 255, 0.025);
+}
+
 .sql-compare-row--delete .sql-compare-line:first-child,
 .sql-compare-row--delete .sql-compare-code:nth-child(2),
 .sql-compare-row--replace .sql-compare-line:first-child,
@@ -299,6 +193,24 @@ const lineHtml = value => {
 :deep(.sql-token-operator) {
   color: #d6a7ff;
   font-weight: 700;
+}
+
+:deep(.sql-compare-token-mark) {
+  display: inline-block;
+  min-width: 0.7em;
+  padding: 0 3px;
+  border-radius: 4px;
+  outline: 1px solid transparent;
+}
+
+:deep(.sql-compare-token-mark--delete) {
+  background: rgba(238, 90, 90, 0.3);
+  outline-color: rgba(238, 90, 90, 0.45);
+}
+
+:deep(.sql-compare-token-mark--insert) {
+  background: rgba(59, 196, 139, 0.28);
+  outline-color: rgba(59, 196, 139, 0.42);
 }
 
 @media (max-width: 760px) {

@@ -23,6 +23,7 @@ import {
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlCompareBlock from '../common/SqlCompareBlock.vue'
+import { buildRecommendedSqlDisplay } from '../common/sqlCompare.mjs'
 import ToolbarShell from '../common/ToolbarShell.vue'
 
 const { t } = useI18n()
@@ -270,6 +271,18 @@ const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
 const semanticRiskRows = computed(() => normalizeArray(selectedRecommendation.value?.semanticRisks))
 const unappliedRuleRows = computed(() => normalizeArray(selectedRecommendation.value?.unappliedRules))
+const frontendCompareOriginalSql = computed(() =>
+  firstDisplayValue(selectedRecommendation.value?.sourceSqlText, recommendationDiff.value?.originalSql) || ''
+)
+const frontendCompareRecommendedSql = computed(() =>
+  buildRecommendedSqlDisplay(
+    frontendCompareOriginalSql.value,
+    firstDisplayValue(selectedRecommendation.value?.recommendedSqlText, recommendationDiff.value?.recommendedSql) || ''
+  )
+)
+const hasFrontendCompareSql = computed(
+  () => String(frontendCompareOriginalSql.value || '').trim() && String(frontendCompareRecommendedSql.value || '').trim()
+)
 
 const requiresReviewGuard = computed(() => {
   const riskLevel = String(selectedRecommendation.value?.riskLevel || '').toUpperCase()
@@ -589,11 +602,11 @@ const loadRecommendation = async recommendationId => {
       recommendationDiff.value = await getRecommendationDiff(form.tenantId, recommendationId, {
         requestPrefix: 'frontend-recommendation-center-diff'
       })
-      activeDetailTab.value = recommendationDiff.value ? 'sqlDiff' : 'summary'
+      activeDetailTab.value = recommendationDiff.value || hasFrontendCompareSql.value ? 'sqlDiff' : 'summary'
       syncActiveDetailTabFromRoute()
     } catch (error) {
       diffErrorMessage.value = formatRuntimeError(error)
-      activeDetailTab.value = 'summary'
+      activeDetailTab.value = hasFrontendCompareSql.value ? 'sqlDiff' : 'summary'
       syncActiveDetailTabFromRoute()
     }
     await loadRewriteRecordsForRecommendation(recommendationId, selectedRewriteRecordId.value)
@@ -1113,34 +1126,37 @@ watch(
             </el-tab-pane>
 
             <el-tab-pane :label="t('recommendationCenter.tabs.sqlDiff')" name="sqlDiff">
-              <p v-if="diffErrorMessage" class="error-banner" data-testid="recommendation-diff-error">{{ diffErrorMessage }}</p>
-              <p v-if="!recommendationDiff && !diffErrorMessage" class="muted-copy">
-                {{ t('recommendationCenter.states.emptyDiff') }}
-              </p>
-              <template v-else-if="recommendationDiff">
-                <dl class="description-grid" data-testid="recommendation-sql-diff">
+              <div data-testid="recommendation-sql-diff">
+                <p v-if="diffErrorMessage" class="error-banner" data-testid="recommendation-diff-error">{{ diffErrorMessage }}</p>
+                <p v-if="!recommendationDiff && !hasFrontendCompareSql && !diffErrorMessage" class="muted-copy">
+                  {{ t('recommendationCenter.states.emptyDiff') }}
+                </p>
+                <dl v-if="recommendationDiff" class="description-grid">
                   <div v-for="item in diffSummaryCards" :key="item.key" class="description-item">
                     <dt>{{ item.label }}</dt>
                     <dd>{{ displayValue(item.value) }}</dd>
                   </div>
                 </dl>
-                <section class="evidence-table">
+                <section v-if="hasFrontendCompareSql" class="evidence-table">
                   <div class="evidence-heading">
                     <h3>{{ t('recommendationCenter.sections.compareView') }}</h3>
-                    <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.textDiff'), textDiffRows)">
+                    <el-button
+                      v-if="textDiffRows.length"
+                      @click="openEvidenceDrawer(t('recommendationCenter.sections.textDiff'), textDiffRows)"
+                    >
                       {{ t('common.actions.viewRawEvidence') }}
                     </el-button>
                   </div>
                   <SqlCompareBlock
-                    :original-sql="recommendationDiff.originalSql || selectedRecommendation.sourceSqlText || ''"
-                    :recommended-sql="recommendationDiff.recommendedSql || selectedRecommendation.recommendedSqlText || ''"
+                    :original-sql="frontendCompareOriginalSql"
+                    :recommended-sql="frontendCompareRecommendedSql"
                     :original-label="t('recommendationCenter.fields.originalSql')"
                     :recommended-label="t('recommendationCenter.fields.recommendedSql')"
                     :empty-text="t('recommendationCenter.states.noDiffHunks')"
                     data-testid="recommendation-sql-compare"
                   />
                 </section>
-                <section class="evidence-table" data-testid="recommendation-ast-summary-diff">
+                <section v-if="recommendationDiff" class="evidence-table" data-testid="recommendation-ast-summary-diff">
                   <div class="evidence-heading">
                     <h3>{{ t('recommendationCenter.sections.astSummary') }}</h3>
                     <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.astSummary'), recommendationDiff.astSummaryDiff || {})">
@@ -1154,7 +1170,7 @@ watch(
                     </div>
                   </dl>
                 </section>
-              </template>
+              </div>
             </el-tab-pane>
 
             <el-tab-pane :label="t('recommendationCenter.tabs.rulesRisk')" name="rulesRisk">
@@ -1249,7 +1265,7 @@ watch(
                   data-testid="recommendation-source-sql"
                 />
                 <SqlCodeBlock
-                  :value="selectedRecommendation.recommendedSqlText || ''"
+                  :value="frontendCompareRecommendedSql"
                   :label="t('recommendationCenter.fields.recommendedSql')"
                   :copy-label="t('common.actions.copy')"
                   compact

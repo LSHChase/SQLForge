@@ -19,7 +19,7 @@ const validationRunId = 'validation-prw-012'
 const runtimeBindingId = 'rwb-prw-012'
 const runtimeRuleVersion = 'runtime-rewrite-v1'
 const historyId = 'history-prw-012'
-const originalSql = "SELECT * FROM orders WHERE query_date = '2026-05-12'"
+const originalSql = "-- report_code=RPT_PRW_012\n/* owner: production rewrite smoke */\nSELECT * FROM orders WHERE query_date = '2026-05-12'"
 const recommendedSql = "SELECT id FROM orders WHERE query_date = '2026-05-12'"
 const sqlFingerprint = 'fp_prw_012_orders'
 const browserCandidates = [
@@ -633,10 +633,26 @@ const runBrowserSmoke = async baseUrl => {
     )
     await page.getByTestId('recommendation-page').waitFor({ timeout: defaultTimeoutMs })
     await page.getByRole('tab', { name: /SQL diff|SQL 差异/ }).click()
-    await page.getByTestId('recommendation-sql-compare').waitFor({ timeout: defaultTimeoutMs })
-    const compareText = await page.getByTestId('recommendation-sql-compare').textContent()
+    const recommendationCompare = page.getByTestId('recommendation-sql-compare')
+    await recommendationCompare.waitFor({ timeout: defaultTimeoutMs })
+    const compareText = await recommendationCompare.textContent()
+    assert(compareText.includes('-- report_code=RPT_PRW_012'), 'Recommendation SQL compare must carry source leading comments.')
     assert(compareText.includes('*'), 'Recommendation SQL compare must expose the original SQL fragment.')
     assert(compareText.includes('id'), 'Recommendation SQL compare must expose the recommended SQL fragment.')
+    assert(
+      (await recommendationCompare.locator('.sql-compare-token-mark--delete').count()) > 0,
+      'Recommendation SQL compare must expose token-level delete marks.'
+    )
+    assert(
+      (await recommendationCompare.locator('.sql-compare-token-mark--insert').count()) > 0,
+      'Recommendation SQL compare must expose token-level insert marks.'
+    )
+    await page.getByRole('tab', { name: /SQL evidence|SQL 证据/ }).click()
+    const recommendedSqlEvidenceText = await page.getByTestId('recommendation-recommended-sql').textContent()
+    assert(
+      recommendedSqlEvidenceText.includes('-- report_code=RPT_PRW_012'),
+      'Recommendation SQL evidence must carry source leading comments on the recommended display SQL.'
+    )
 
     await page.getByRole('tab', { name: /Rewrite review and publish|改写复核与发布/ }).click()
     await page.getByTestId('recommendation-rewrite-lifecycle').waitFor({ timeout: defaultTimeoutMs })

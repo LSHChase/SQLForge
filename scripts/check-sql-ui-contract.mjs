@@ -30,6 +30,9 @@ const errors = []
 const { formatSqlText, highlightSql } = await import(
   pathToFileURL(path.join(root, 'src/views/common/sqlFormatting.mjs')).href
 )
+const { buildRecommendedSqlDisplay, buildSqlCompareRows, extractLeadingSqlComments } = await import(
+  pathToFileURL(path.join(root, 'src/views/common/sqlCompare.mjs')).href
+)
 
 const sampleSql = "--report_code=RPT\nselect * from orders where name = 'select from orders' and ds = '2026-04-01'"
 const formattedSql = formatSqlText(sampleSql)
@@ -53,6 +56,28 @@ if (!highlightedMixedSql.includes('名称') || !highlightedMixedSql.includes('sq
 }
 if (!highlightedMixedSql.includes('&#39;北京&#39;') || !highlightedMixedSql.includes('&#39;@@@@&#39;')) {
   errors.push('highlightSql must preserve Chinese and symbol content inside quoted literals.')
+}
+const sourceSqlWithHeader = "-- report_code=RPT_DIFF\n/* owner: bi */\nselect * from sales.orders where dt = ?"
+const recommendedSqlWithoutHeader = 'select id from sales.orders where dt = ?'
+const leadingComments = extractLeadingSqlComments(sourceSqlWithHeader)
+const recommendedDisplaySql = buildRecommendedSqlDisplay(sourceSqlWithHeader, recommendedSqlWithoutHeader)
+if (!leadingComments.includes('-- report_code=RPT_DIFF') || !leadingComments.includes('/* owner: bi */')) {
+  errors.push('extractLeadingSqlComments must read the opening contiguous SQL comments.')
+}
+if (!recommendedDisplaySql.startsWith(`${leadingComments}\nselect id`)) {
+  errors.push('buildRecommendedSqlDisplay must prepend source SQL opening comments to recommended SQL display text.')
+}
+if (buildRecommendedSqlDisplay(sourceSqlWithHeader, recommendedDisplaySql).split('-- report_code=RPT_DIFF').length !== 2) {
+  errors.push('buildRecommendedSqlDisplay must not duplicate an already-carried leading comment block.')
+}
+const compareRows = buildSqlCompareRows(sourceSqlWithHeader, recommendedDisplaySql)
+const replaceRow = compareRows.find(row => row.type === 'REPLACE')
+if (
+  !replaceRow ||
+  !replaceRow.originalHtml.includes('sql-compare-token-mark--delete') ||
+  !replaceRow.recommendedHtml.includes('sql-compare-token-mark--insert')
+) {
+  errors.push('buildSqlCompareRows must emit token-level delete/insert marks for replacement lines.')
 }
 
 const requiredFiles = {
@@ -100,13 +125,23 @@ const requiredFiles = {
   'src/views/recommendation-center/RecommendationCenterView.vue': [
     'SqlCodeBlock',
     'SqlCompareBlock',
+    'buildRecommendedSqlDisplay',
+    'frontendCompareRecommendedSql',
     'recommendation-source-sql',
     'recommendation-recommended-sql'
   ],
   'src/views/common/SqlCompareBlock.vue': [
-    'formatSqlText',
-    'highlightSql',
-    'sql-compare-block__viewport'
+    'buildSqlCompareRows',
+    'sql-compare-block__viewport',
+    'sql-compare-token-mark--insert',
+    'sql-compare-token-mark--delete'
+  ],
+  'src/views/common/sqlCompare.mjs': [
+    'extractLeadingSqlComments',
+    'buildRecommendedSqlDisplay',
+    'buildSqlCompareRows',
+    'sql-compare-token-mark--insert',
+    'sql-compare-token-mark--delete'
   ],
   'src/views/benchmark/BenchmarkView.vue': ['SqlEditorField', 'benchmark-sql-input']
 }
