@@ -592,7 +592,9 @@ export default {
       runtimeRuleVersion: 'Runtime rule version',
       runtimeRewriteStatus: 'Runtime rewrite status',
       publishStatusSnapshot: 'Publish status snapshot',
-      rewriteFallbackReason: 'Rewrite fallback reason'
+      rewriteFallbackReason: 'Rewrite fallback reason',
+      linkedNotAppliedTitle: 'Linked governance object, no rewrite in this execution',
+      linkedNotAppliedMessage: 'This execution history does not have rewriteApplied=true; linked recommendations or rewrite records are governance evidence, not real rewrite history.'
     },
     sql: {
       sqlFingerprint: 'SQL fingerprint',

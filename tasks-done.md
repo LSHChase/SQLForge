@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-REWRITE-HISTORY-EVIDENCE-COPY-20260517: 显式区分改写记录关联与本次自动改写事实
+
+- Status: done
+- Completed at: 2026-05-17
+- Commit subject: `fix(frontend): clarify rewrite history evidence copy`
+- Priority: 1
+- Depends on: HARN-FE-007,PRW-011,USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517
+- Scope: 补齐 SQL 历史详情在存在改写记录但 rewriteApplied=false 时的显式提示和契约检查，落实 SQL 改写功能分层设计；不新增后端 API、route、schema，不改变审批发布或运行时绑定语义。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-REWRITE-HISTORY-EVIDENCE-COPY-20260517`
+- Progress log:
+  - 2026-05-17: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: SQL 历史详情在存在关联推荐/改写记录但本次 rewriteApplied 不是 true 时，执行取证与改写记录 tab 均显示显式提示；同步中英文文案和历史详情契约检查，避免把治理对象关联误写成真实自动改写历史。
+  - Validation evidence: node scripts/check-history-detail-contract.mjs; node scripts/check-history-page-contract.mjs; npm run lint; npm run build; npm run test:sql-ui-contract; npm run test:frontend-page-governance; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed; git diff --check; python3 scripts/foreman.py validate USER-CN-SQL-REWRITE-HISTORY-EVIDENCE-COPY-20260517 --include-task-audit --extra-command 'node scripts/check-history-detail-contract.mjs' --extra-command 'node scripts/check-history-page-contract.mjs' --extra-command 'npm run lint' --extra-command 'npm run build' --extra-command 'npm run test:frontend-page-governance' --extra-command 'npm run test:sql-ui-contract' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 本任务只补齐前端显式证据提示，不新增后端字段、API、独立 route 或运行时行为；真实环境回归仍沿用既有 PRW/HARN 环境增强项。
+  - Next step: None.
+
 ### USER-CN-SQL-REWRITE-FUNCTION-DESIGN-20260517: Write SQL rewrite function boundary design
 
 - Status: done

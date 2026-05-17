@@ -576,7 +576,9 @@ export default {
       runtimeRuleVersion: '运行时规则版本',
       runtimeRewriteStatus: '运行时改写状态',
       publishStatusSnapshot: '发布状态快照',
-      rewriteFallbackReason: '改写回退原因'
+      rewriteFallbackReason: '改写回退原因',
+      linkedNotAppliedTitle: '有关联治理对象，但本次未发生自动改写',
+      linkedNotAppliedMessage: '本次执行历史的 rewriteApplied 不是 true；关联推荐或改写记录只作为治理证据展示，不能写成真实改写历史。'
     },
     sql: {
       sqlFingerprint: '执行指纹',

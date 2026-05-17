@@ -833,6 +833,17 @@ const referenceGroups = computed(() => {
 
 const rewriteRecordRows = computed(() => rewriteRecordsResponse.value?.items || [])
 
+const hasRewriteAssociationEvidence = computed(() =>
+  rewriteRecordRows.value.length > 0 ||
+  recommendationRefRows.value.length > 0 ||
+  hasDisplayValue(rewriteAudit.value.rewriteRecordId) ||
+  hasDisplayValue(rewriteAudit.value.runtimeBindingId)
+)
+
+const rewriteLinkedButNotApplied = computed(() =>
+  hasRewriteAssociationEvidence.value && rewriteAudit.value.rewriteApplied !== true
+)
+
 const rewriteRecordSummaryCards = computed(() => [
   {
     key: 'count',
@@ -1508,6 +1519,14 @@ watch(
           </el-tab-pane>
 
           <el-tab-pane :label="t('sqlHistory.tabs.execution')" name="execution">
+            <div
+              v-if="rewriteLinkedButNotApplied"
+              class="inline-banner inline-banner-warning"
+              data-testid="sql-history-rewrite-linked-not-applied"
+            >
+              <strong>{{ t('sqlHistory.rewriteAudit.linkedNotAppliedTitle') }}</strong>
+              <span>{{ t('sqlHistory.rewriteAudit.linkedNotAppliedMessage') }}</span>
+            </div>
             <div class="detail-grid">
               <div v-for="item in executionCards" :key="item.label" class="detail-grid__item">
                 <span>{{ item.label }}</span>
@@ -1567,6 +1586,14 @@ watch(
                 >
                   {{ t('sqlHistory.actions.refreshRewriteRecords') }}
                 </el-button>
+              </div>
+              <div
+                v-if="rewriteLinkedButNotApplied"
+                class="inline-banner inline-banner-warning"
+                data-testid="sql-history-rewrite-records-not-applied"
+              >
+                <strong>{{ t('sqlHistory.rewriteAudit.linkedNotAppliedTitle') }}</strong>
+                <span>{{ t('sqlHistory.rewriteAudit.linkedNotAppliedMessage') }}</span>
               </div>
               <div
                 v-if="rewriteRecordErrorMessage"
@@ -2064,6 +2091,12 @@ watch(
   border: 1px solid rgba(235, 85, 60, 0.34);
   background: var(--sqlforge-status-danger);
   color: #ffb09f;
+}
+
+.inline-banner-warning {
+  border: 1px solid rgba(255, 205, 64, 0.34);
+  background: var(--sqlforge-status-warning);
+  color: #f4c84a;
 }
 
 .table-link {
