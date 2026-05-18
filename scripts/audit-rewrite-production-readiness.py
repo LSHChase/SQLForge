@@ -432,6 +432,105 @@ def overall_status(checklist: list[dict[str, Any]]) -> str:
     return "PASSED"
 
 
+def checklist_item(checklist: list[dict[str, Any]], requirement: str) -> dict[str, Any]:
+    for item in checklist:
+        if item.get("requirement") == requirement:
+            return item
+    return check_item(requirement, "FAILED", "audit checklist", ["requirement not evaluated"])
+
+
+def prompt_mapping_item(criterion: str,
+                        checklist_entry: dict[str, Any],
+                        artifacts: list[str],
+                        verification: str) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "criterion": criterion,
+        "status": checklist_entry.get("status", "FAILED"),
+        "artifacts": artifacts,
+        "verification": verification,
+        "sourceRequirement": checklist_entry.get("requirement"),
+    }
+    if checklist_entry.get("missing"):
+        result["missing"] = checklist_entry["missing"]
+    if checklist_entry.get("details"):
+        result["details"] = checklist_entry["details"]
+    return result
+
+
+def build_completion_audit(checklist: list[dict[str, Any]], status: str) -> dict[str, Any]:
+    research = checklist_item(checklist, "latest_sql_rewrite_research_archived")
+    rules = checklist_item(checklist, "select_rewrite_rule_coverage_at_least_36")
+    production_gate = checklist_item(checklist, "rewrite_recommendation_payload_carries_production_scale_gate")
+    external = checklist_item(checklist, "external_production_scale_evidence_verified")
+    prompt_to_artifact = [
+        prompt_mapping_item(
+            "查询并分析最新 SQL 推荐改写方案、方法、专利、工具",
+            research,
+            ["docs/references/sql-rewrite-recommendation-research-2026-05-18.md"],
+            "Research artifact must include current optimizer tools, cloud engine behavior, patents, and recent papers.",
+        ),
+        prompt_mapping_item(
+            "不断优化本项目推荐改写核心逻辑",
+            rules,
+            [
+                "sql-optimization/src/main/java/com/company/sqloptimization/application/service/SqlOptimizationPipelineService.java",
+                "sql-optimization/src/test/java/com/company/sqloptimization/application/service/SqlOptimizationPipelineServiceTest.java",
+            ],
+            "Rule coverage is accepted only as implementation evidence; it is not production-scale proof.",
+        ),
+        prompt_mapping_item(
+            "支持不少于 36 种常见且复杂的 SELECT 推荐改写",
+            rules,
+            ["SqlOptimizationPipelineServiceTest.shouldExposeAtLeastFiftySelectRewriteRecommendationScenarios"],
+            "Audited coveredRuleCount must be >= 36; current audit also requires the stronger >=50 assertion.",
+        ),
+        prompt_mapping_item(
+            "BI 大数据场景必须携带生产规模 gate，避免静态改写被误判为可投产",
+            production_gate,
+            [
+                "sql-optimization/src/main/java/com/company/sqloptimization/application/service/SqlOptimizationPipelineService.java",
+                "sql-optimization/src/test/java/com/company/sqloptimization/application/service/RewriteTrialApplicationServiceTest.java",
+            ],
+            "Recommendation payload must carry productionScaleGate and external evidence requirements.",
+        ),
+        prompt_mapping_item(
+            "真实可用于 30PB 存储、千万级日查询",
+            external,
+            [
+                "scripts/verify-benchmark-production-evidence.py",
+                "scripts/audit-rewrite-production-readiness.py",
+                "docs/deployments/benchmark-production-evidence-runbook.md",
+                "<external-evidence-dir>/provenance.json",
+                "<external-evidence-dir>/verification-result.json",
+            ],
+            "Completion requires verified external production/pre-production artifacts, raw evidence digest replay, provenance match, 10000 concurrency, 10M daily query volume, 30PB layout, 24h replay, latency, scan, CPU, queue wait, and cost bill.",
+        ),
+    ]
+    missing_or_weak = [
+        item for item in prompt_to_artifact
+        if item.get("status") != "PASSED"
+    ]
+    return {
+        "completionDecision": "ACHIEVED" if status == "PASSED" else "NOT_ACHIEVED",
+        "successCriteria": [
+            "latest SQL rewrite research covering方案/方法/专利/工具",
+            "core recommendation rewrite logic implemented and regression-covered",
+            ">=36 distinct common/complex SELECT rewrite recommendation types",
+            "production-scale BI readiness gate carried by recommendation payloads",
+            "external production/pre-production evidence proving 30PB storage and 10M daily queries",
+        ],
+        "promptToArtifactChecklist": prompt_to_artifact,
+        "missingOrWeakEvidence": missing_or_weak,
+        "proxySignalsRejected": [
+            "repo-side self-tests or fixtures do not prove production scale",
+            "rewrite rule count does not prove 30PB or 10M daily query usability",
+            "verification-result.json without raw --evidence-dir is insufficient",
+            "digest maps without recomputed raw file SHA-256/sizeBytes are insufficient",
+            "manifest provenance without matching raw provenance.json is insufficient",
+        ],
+    }
+
+
 def audit(root: Path, verification_result: Path | None, evidence_dir: Path | None) -> dict[str, Any]:
     checklist = [
         check_research(root),
@@ -448,6 +547,7 @@ def audit(root: Path, verification_result: Path | None, evidence_dir: Path | Non
         "overallStatus": status,
         "complete": status == "PASSED",
         "checklist": checklist,
+        "completionAudit": build_completion_audit(checklist, status),
     }
 
 
@@ -559,6 +659,8 @@ def successful_verification_payload(evidence_file_digests: dict[str, dict[str, A
 def run_self_test() -> int:
     blocked = audit(REPO_ROOT, None, None)
     assert blocked["overallStatus"] == "BLOCKED", blocked
+    assert blocked["completionAudit"]["completionDecision"] == "NOT_ACHIEVED", blocked
+    assert blocked["completionAudit"]["missingOrWeakEvidence"], blocked
     with tempfile.TemporaryDirectory(prefix="rewrite-readiness-") as temp:
         evidence_dir = Path(temp) / "evidence"
         write_self_test_evidence_dir(evidence_dir)
@@ -569,6 +671,8 @@ def run_self_test() -> int:
         assert missing_raw["overallStatus"] == "BLOCKED", missing_raw
         passed = audit(REPO_ROOT, passed_path, evidence_dir)
         assert passed["overallStatus"] == "PASSED", passed
+        assert passed["completionAudit"]["completionDecision"] == "ACHIEVED", passed
+        assert not passed["completionAudit"]["missingOrWeakEvidence"], passed
         failed_payload = successful_verification_payload(evidence_file_digests)
         failed_payload["scaleTargetEvidenceManifest"]["verificationBundle"].pop("observedDailyQueryVolume")
         failed_path = Path(temp) / "verification-result-missing-daily.json"

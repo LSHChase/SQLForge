@@ -53,6 +53,8 @@ python3 scripts/audit-rewrite-production-readiness.py \
 
 该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json`、没有原始 `--evidence-dir`、缺少 `provenance.json` 或千万级日查询等任一外部证据、缺少来源元数据、manifest 来源元数据与原始 `provenance.json` 不一致、顶层与 manifest 内的 `evidenceFileDigests` 不一致，或复算原始文件 SHA-256/sizeBytes 不匹配时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
 
+输出中的 `completionAudit.promptToArtifactChecklist` 是最终完成度复核清单，会把用户目标逐项映射到调研文档、核心改写逻辑、覆盖测试、生产规模 gate 和外部证据 artifacts。只有 `completionAudit.completionDecision=ACHIEVED` 且 `missingOrWeakEvidence` 为空时，才允许声明该 SQL 推荐改写目标已完成。
+
 归档 `verification-result.json` 时必须同时保存原始 evidence directory。评审者可用 `evidenceFileDigests` 对照原始文件重新计算 SHA-256；若缺少任一必需文件摘要，完成度审计必须保持 `BLOCKED`。
 
 ## Submission Boundary

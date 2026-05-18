@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-REWRITE-GOAL-COMPLETION-AUDIT-20260518: 输出目标完成度映射审计
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-GOAL-COMPLETION-AUDIT-20260518 add completion audit checklist`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-EVIDENCE-PROVENANCE-AUDIT-20260518
+- Scope: 强化 audit-rewrite-production-readiness.py 输出，将用户目标拆解为 prompt-to-artifact checklist，逐项映射最新调研、方案/方法/专利/工具、>=36 SELECT 改写、生产规模 gate、30PB/千万级日查询外部证据和不可接受的 proxy signals；任何缺口必须在 completionAudit.missingOrWeakEvidence 中显式阻断完成。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-GOAL-COMPLETION-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: readiness audit 已输出 `completionAudit.promptToArtifactChecklist`，将用户目标逐项映射到调研、核心逻辑、覆盖测试、生产规模 gate 与外部证据，并显式阻断缺口。
+- Context closeout:
+  - Completed scope: readiness audit 现在输出 completionAudit.promptToArtifactChecklist，将用户目标拆解为调研、核心逻辑、>=36 SELECT 改写、生产规模 gate 和外部 30PB/千万级日查询证据，并用 missingOrWeakEvidence 阻断未覆盖要求；runbook 已说明 completionAudit 是最终完成度复核清单。
+  - Validation evidence: python3 scripts/audit-rewrite-production-readiness.py --self-test; python3 scripts/audit-rewrite-production-readiness.py (expected BLOCKED without external evidence); git diff --check; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate USER-CN-REWRITE-GOAL-COMPLETION-AUDIT-20260518; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，completionAudit 明确显示目标 NOT_ACHIEVED。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts；只有 audit 输出 completionAudit.completionDecision=ACHIEVED 且 missingOrWeakEvidence 为空时才能标记目标完成。
+
 ### USER-CN-BENCHMARK-EVIDENCE-PROVENANCE-AUDIT-20260518: 校验生产证据来源元数据
 
 - Status: done
