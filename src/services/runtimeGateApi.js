@@ -731,6 +731,29 @@ export const getRecommendationDiff = (tenantId, recommendationId, requestOptions
     }
   })
 
+export const createRewriteTrial = (payload, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: '/api/sql-optimization/rewrite-trials',
+    data: payload,
+    tenantId: payload.tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-trial-create',
+      ...requestOptions
+    }
+  })
+
+export const getRewriteTrial = (tenantId, runId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/rewrite-trials/${encodeURIComponent(runId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-trial-detail',
+      ...requestOptions
+    }
+  })
+
 export const submitAccelerationPlan = (payload, requestOptions = {}) =>
   request({
     method: 'post',
@@ -1024,6 +1047,32 @@ export const retryParseBatchAccess = (batchId, tenantId, payload = {}, requestOp
     }
   })
 
+export const createParseBatchRewriteTrials = (batchId, tenantId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/parse-batches/${encodeURIComponent(batchId)}/rewrite-trials`,
+    data: {
+      tenantId,
+      ...payload
+    },
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-rewrite-trial-create',
+      ...requestOptions
+    }
+  })
+
+export const getLatestParseBatchRewriteTrial = (batchId, tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/sql-optimization/parse-batches/${encodeURIComponent(batchId)}/rewrite-trials/latest`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-batch-rewrite-trial-latest',
+      ...requestOptions
+    }
+  })
+
 export const listReportBatches = (tenantId, filters = {}, requestOptions = {}) =>
   request({
     method: 'get',
@@ -1153,6 +1202,28 @@ export const getParseStatisticsImportantUrgent = (tenantId, requestOptions = {})
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-parse-statistics-important-urgent',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsRewriteTrialOverview = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/rewrite-trials/overview',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-rewrite-trial-overview',
+      ...requestOptions
+    }
+  })
+
+export const getParseStatisticsRewriteTrialsBySourceIssue = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/sql-optimization/parse-statistics/rewrite-trials/by-source-issue',
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-parse-statistics-rewrite-trial-by-source-issue',
       ...requestOptions
     }
   })

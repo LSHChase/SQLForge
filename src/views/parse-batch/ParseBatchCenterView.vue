@@ -40,6 +40,7 @@ const {
   selectedParseItem,
   selectedReportItem,
   reportSqlDetailSearchCode,
+  parseRewriteTrialRun,
   reportSqlPagination,
   parseBatchListPagination,
   reportBatchListPagination,
@@ -64,6 +65,8 @@ const {
   parseImportedRecords,
   parseIssueStatistics,
   parseReportStatistics,
+  parseRewriteTrialItems,
+  parseRewriteTrialCards,
   reportParseStatistics,
   reportImportanceStatistics,
   reportBackendSqlStatistics,
@@ -119,6 +122,9 @@ const {
   buildDiagnosticSummary,
   issueSceneCodesForItem,
   issueLocationText,
+  rewriteTrialForParseItem,
+  sourceProblemLabels,
+  issueRuleLinkLabels,
   parseTemplatePreview,
   reportTemplatePreview,
   handleParseFileChange,
@@ -127,6 +133,7 @@ const {
   downloadTemplate,
   ingestParseBatchFlow,
   refreshParseBatchDetail,
+  createBatchRewriteTrialFlow,
   retryAccessFlow,
   openParseItemDetail,
   importReportBatchFlow,
@@ -231,10 +238,24 @@ const {
                 <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-parse-statistics" @click="parseStatisticsDialogVisible = true">
                   {{ t('inline.viewsParseBatchParseBatchCenterView.text016') }}
                 </el-button>
+                <el-button
+                  :disabled="!parseBatchDetail?.batchId"
+                  :loading="loading.rewriteTrial"
+                  data-testid="batch-import-create-rewrite-trial"
+                  @click="createBatchRewriteTrialFlow"
+                >
+                  {{ t('rewriteTrial.batchCreate') }}
+                </el-button>
               </div>
             </div>
 
             <BatchSummaryCards v-if="parseBatchDetail" :items="parseBatchStatusCards" />
+
+            <BatchSummaryCards
+              v-if="parseRewriteTrialRun"
+              data-testid="batch-import-rewrite-trial-summary"
+              :items="parseRewriteTrialCards"
+            />
 
             <div v-else class="empty-stage">
               <strong>{{ t('inline.viewsParseBatchParseBatchCenterView.text017') }}</strong>
@@ -531,6 +552,49 @@ const {
             </article>
           </div>
         </el-tab-pane>
+        <el-tab-pane :label="t('rewriteTrial.title')" name="rewriteTrial">
+          <section class="detail-card" data-testid="batch-import-rewrite-trial-tab">
+            <p class="section-kicker sqlforge-code-label">rewrite trial</p>
+            <div v-if="parseRewriteTrialRun" class="summary-grid">
+              <article v-for="item in parseRewriteTrialCards" :key="item.label" class="summary-card">
+                <span class="summary-card-label">{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </article>
+            </div>
+            <div v-if="parseRewriteTrialItems.length" class="report-list">
+              <article
+                v-for="item in parseRewriteTrialItems"
+                :key="item.trialItemId"
+                class="report-item"
+                data-testid="batch-import-rewrite-trial-item"
+              >
+                <div class="session-item-top">
+                  <strong>{{ item.trialStatus }}</strong>
+                  <span class="status-pill">{{ displayValue(item.validationStatus || 'NOT_VALIDATED') }}</span>
+                </div>
+                <p>{{ t('rewriteTrial.sourceProblems') }}: {{ displayValue(sourceProblemLabels(item)) }}</p>
+                <p>{{ t('rewriteTrial.issueRuleLinks') }}: {{ displayValue(issueRuleLinkLabels(item)) }}</p>
+                <p>
+                  taskId: {{ displayValue(item.taskId) }}
+                  · recommendationId: {{ displayValue(item.recommendationId) }}
+                  · rewriteRecordId: {{ displayValue(item.rewriteRecordId) }}
+                </p>
+                <SqlCodeBlock
+                  v-if="item.candidateSql"
+                  :value="item.candidateSql"
+                  :label="t('rewriteTrial.candidateSql')"
+                  :copy-label="t('common.actions.copy')"
+                  compact
+                  data-testid="batch-import-rewrite-trial-candidate-sql"
+                />
+                <p v-if="item.failureReason" class="diagnostic-line">{{ item.failureReason }}</p>
+              </article>
+            </div>
+            <div v-else class="empty-state">
+              {{ t('rewriteTrial.emptyBatch') }}
+            </div>
+          </section>
+        </el-tab-pane>
         <el-tab-pane :label="t('inline.viewsParseBatchParseBatchCenterView.text069')" name="sql">
           <section class="detail-card">
             <p class="section-kicker sqlforge-code-label">SQL-level parse detail</p>
@@ -573,6 +637,12 @@ const {
                     :data-tooltip="issueSceneListHelp(issueSceneCodesForItem(item))"
                   >?</span>
                   {{ displayValue(issueSceneCodesForItem(item)) }}
+                </p>
+                <p v-if="rewriteTrialForParseItem(item)" data-testid="batch-import-parse-rewrite-trial-status">
+                  {{ t('rewriteTrial.title') }}:
+                  {{ displayValue(rewriteTrialForParseItem(item).trialStatus) }}
+                  · {{ t('rewriteTrial.sourceProblems') }} {{ displayValue(sourceProblemLabels(rewriteTrialForParseItem(item))) }}
+                  · {{ t('rewriteTrial.validationStatus') }} {{ displayValue(rewriteTrialForParseItem(item).validationStatus) }}
                 </p>
                 <p
                   v-if="hasIssueOrFailure(item)"
@@ -690,6 +760,30 @@ const {
             :label="t('inline.viewsParseBatchParseBatchCenterView.text085')"
             :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text086')"
             data-testid="batch-import-selected-parse-sql"
+          />
+        </section>
+        <section v-if="rewriteTrialForParseItem(selectedParseItem)" class="detail-card" data-testid="batch-import-selected-parse-rewrite-trial">
+          <p class="section-kicker sqlforge-code-label">rewrite trial</p>
+          <div class="summary-chip-row">
+            <span class="summary-chip">
+              {{ t('rewriteTrial.status') }}: <strong>{{ displayValue(rewriteTrialForParseItem(selectedParseItem).trialStatus) }}</strong>
+            </span>
+            <span class="summary-chip">
+              {{ t('rewriteTrial.sourceProblems') }}: <strong>{{ displayValue(sourceProblemLabels(rewriteTrialForParseItem(selectedParseItem))) }}</strong>
+            </span>
+            <span class="summary-chip">
+              {{ t('rewriteTrial.validationStatus') }}: <strong>{{ displayValue(rewriteTrialForParseItem(selectedParseItem).validationStatus) }}</strong>
+            </span>
+          </div>
+          <p class="diagnostic-line">
+            {{ t('rewriteTrial.issueRuleLinks') }}: {{ displayValue(issueRuleLinkLabels(rewriteTrialForParseItem(selectedParseItem))) }}
+          </p>
+          <SqlCodeBlock
+            v-if="rewriteTrialForParseItem(selectedParseItem).candidateSql"
+            :value="rewriteTrialForParseItem(selectedParseItem).candidateSql"
+            :label="t('rewriteTrial.candidateSql')"
+            :copy-label="t('common.actions.copy')"
+            compact
           />
         </section>
       </div>

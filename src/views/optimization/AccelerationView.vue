@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   createParseBatch,
+  createRewriteTrial,
   formatRuntimeError,
   getCombinedParseStatus,
   getGovernanceDatasources,
@@ -77,6 +78,7 @@ const reportBatchForm = reactive({
 const running = ref(false)
 const lastRunMode = ref('combined')
 const parseResult = ref(null)
+const rewriteTrialRun = ref(null)
 const errorMessage = ref('')
 
 const batchDialogVisible = ref(false)
@@ -110,7 +112,8 @@ const loading = reactive({
   retryParseBatch: false,
   importReportBatch: false,
   resolveReportBatch: false,
-  refreshReportBatch: false
+  refreshReportBatch: false,
+  rewriteTrial: false
 })
 
 const isChinese = computed(() => locale.value === 'zh-CN')
@@ -277,6 +280,24 @@ const summaryCards = computed(() => {
   ].filter(item => hasDisplayValue(item.value))
 })
 
+const rewriteTrialItems = computed(() => Array.isArray(rewriteTrialRun.value?.items) ? rewriteTrialRun.value.items : [])
+const primaryRewriteTrialItem = computed(() => rewriteTrialItems.value[0] || null)
+const canCreateRewriteTrial = computed(() =>
+  Boolean(parseResult.value && hasDisplayValue(form.sqlText) && (structureParse.value || parseResult.value.parseTaskId))
+)
+const rewriteTrialCards = computed(() => {
+  if (!rewriteTrialRun.value) {
+    return []
+  }
+  return [
+    card(t('rewriteTrial.status'), rewriteTrialRun.value.trialStatus),
+    card(t('rewriteTrial.acceptedSql'), rewriteTrialRun.value.acceptedCount),
+    card(t('rewriteTrial.candidateGenerated'), rewriteTrialRun.value.candidateGeneratedCount || rewriteTrialRun.value.recommendedCount),
+    card(t('rewriteTrial.noSafeRewrite'), rewriteTrialRun.value.noSafeRewriteCount),
+    card(t('rewriteTrial.recommendationId'), primaryRewriteTrialItem.value?.recommendationId)
+  ].filter(item => hasDisplayValue(item.value))
+})
+
 const requestSummary = computed(() => [
   { label: t('inline.viewsOptimizationAccelerationView.text060'), value: form.tenantId },
   { label: t('inline.viewsOptimizationAccelerationView.text061'), value: form.datasourceCode || (t('inline.viewsOptimizationAccelerationView.text062')) },
@@ -435,6 +456,109 @@ function riskDisplayText(risk, field) {
   return localizedDisplayText(sharedRiskDisplayText(risk, field, isChinese.value))
 }
 
+function sourceProblemScene(value) {
+  if (!value) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  return value.issueScene || value.riskCode || value.issueCode || value.rewriteCandidate || value.candidateCode || ''
+}
+
+function sourceProblemSummary(value) {
+  if (!value || typeof value === 'string') {
+    return ''
+  }
+  return localizedDisplayText(value.summary || value.detail || value.evidence || value.suggestedAction || '')
+}
+
+function buildSourceProblem(value, problemType = 'ISSUE_SCENE') {
+  const issueScene = sourceProblemScene(value)
+  if (!hasDisplayValue(issueScene)) {
+    return null
+  }
+  return {
+    problemType,
+    issueScene,
+    issueCode: typeof value === 'object' ? value.issueCode || value.riskCode || '' : '',
+    severity: typeof value === 'object' ? value.severity || '' : '',
+    priorityLevel: typeof value === 'object' ? value.priorityLevel || structureParse.value?.priorityLevel || '' : structureParse.value?.priorityLevel || '',
+    summary: sourceProblemSummary(value),
+    evidenceRef: {
+      parseTaskId: parseResult.value?.parseTaskId || structureParse.value?.parseTaskId,
+      parseHistoryId: parseResult.value?.parseHistoryId || parseResult.value?.historyId || structureParse.value?.parseHistoryId,
+      historyId: parseResult.value?.historyId || structureParse.value?.historyId
+    }
+  }
+}
+
+function buildRewriteTrialSourceProblems(focusProblem = null) {
+  if (focusProblem) {
+    return [buildSourceProblem(focusProblem)].filter(Boolean)
+  }
+  const problems = []
+  ;(structureParse.value?.riskTags || []).forEach(item => problems.push(buildSourceProblem(item)))
+  ;(structureParse.value?.rewriteCandidates || []).forEach(item => problems.push(buildSourceProblem(item, 'REWRITE_CANDIDATE')))
+  structureRiskChecklist.value.forEach(item => problems.push(buildSourceProblem(item)))
+  structureIssues.value.forEach(item => problems.push(buildSourceProblem(item)))
+  const seen = new Set()
+  return problems.filter(item => {
+    if (!item || seen.has(item.issueScene)) {
+      return false
+    }
+    seen.add(item.issueScene)
+    return true
+  })
+}
+
+function sourceProblemLabel(item) {
+  return item?.issueScene || item?.sourceIssueScene || item?.problemType || '-'
+}
+
+async function createRewriteTrialFromParseResult(focusProblem = null) {
+  if (!canCreateRewriteTrial.value) {
+    return
+  }
+  loading.rewriteTrial = true
+  errorMessage.value = ''
+  try {
+    rewriteTrialRun.value = await createRewriteTrial({
+      tenantId: form.tenantId,
+      sqlText: form.sqlText,
+      datasourceCode: form.datasourceCode,
+      sourceKind: lastRunMode.value === 'combined' ? 'COMBINED_PARSE' : 'STRUCTURE_PARSE',
+      sourceId: parseResult.value?.historyId || parseResult.value?.parseTaskId || structureParse.value?.parseTaskId,
+      parseTaskId: parseResult.value?.parseTaskId || structureParse.value?.parseTaskId,
+      parseHistoryId: parseResult.value?.parseHistoryId || parseResult.value?.historyId || structureParse.value?.parseHistoryId,
+      historyId: parseResult.value?.historyId || structureParse.value?.historyId,
+      sourceProblems: buildRewriteTrialSourceProblems(focusProblem)
+    }, {
+      requestPrefix: 'frontend-parse-workbench-rewrite-trial'
+    })
+  } catch (error) {
+    errorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.rewriteTrial = false
+  }
+}
+
+function openRewriteTrialRecommendation(item = primaryRewriteTrialItem.value) {
+  if (!item?.recommendationId) {
+    return
+  }
+  router.push({
+    path: ROUTE_PATHS.recommendationCenter,
+    query: compactQuery({
+      tenantId: form.tenantId,
+      recommendationId: item.recommendationId,
+      sourceCategory: 'SQL_PARSE',
+      historyId: parseResult.value?.historyId,
+      parseTaskId: parseResult.value?.parseTaskId || structureParse.value?.parseTaskId
+    })
+  })
+}
+
 function resultValueClass(item) {
   const key = String(item?.key || '')
   const value = String(item?.value || '').toUpperCase()
@@ -578,6 +702,7 @@ function normalizeStructureResult(structureOnlyResult) {
 
 function resetResult() {
   parseResult.value = null
+  rewriteTrialRun.value = null
   errorMessage.value = ''
 }
 
@@ -636,6 +761,7 @@ async function runStructurePreview() {
   running.value = true
   lastRunMode.value = 'structure'
   errorMessage.value = ''
+  rewriteTrialRun.value = null
   const inputKey = currentSingleSqlInputKey()
   try {
     const payload = buildRequestPayload()
@@ -659,6 +785,7 @@ async function runCombinedParseFlow() {
   running.value = true
   lastRunMode.value = 'combined'
   errorMessage.value = ''
+  rewriteTrialRun.value = null
   const inputKey = currentSingleSqlInputKey()
   try {
     const payload = buildRequestPayload()
@@ -1266,6 +1393,16 @@ watch(
           <el-button v-if="parseResult" text data-testid="parse-workbench-open-recommendations" @click="openRecommendationResultsForParseResult">
             {{ t('inline.viewsOptimizationAccelerationView.text246') }}
           </el-button>
+          <el-button
+            v-if="parseResult"
+            text
+            :disabled="!canCreateRewriteTrial"
+            :loading="loading.rewriteTrial"
+            data-testid="parse-workbench-create-rewrite-trial"
+            @click="createRewriteTrialFromParseResult()"
+          >
+            {{ t('rewriteTrial.create') }}
+          </el-button>
         </div>
 
         <p v-if="!parseResult && !errorMessage" class="empty-state">
@@ -1299,6 +1436,55 @@ watch(
           </div>
 
           <div class="parse-card-grid">
+            <article v-if="rewriteTrialRun" class="parse-card" data-testid="parse-workbench-rewrite-trial-card">
+              <div class="parse-card__header">
+                <div>
+                  <p class="section-kicker sqlforge-code-label">rewrite trial</p>
+                  <h3 class="detail-title">{{ t('rewriteTrial.title') }}</h3>
+                </div>
+                <span class="status-pill">{{ rewriteTrialRun.trialStatus || '-' }}</span>
+              </div>
+              <div class="highlight-grid highlight-grid-compact">
+                <div v-for="item in rewriteTrialCards" :key="item.label" class="highlight-chip">
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </div>
+              </div>
+              <div class="issue-list issue-list-compact">
+                <article
+                  v-for="item in rewriteTrialItems"
+                  :key="item.trialItemId"
+                  class="issue-card"
+                  data-testid="parse-workbench-rewrite-trial-item"
+                >
+                  <div class="issue-card__header">
+                    <strong>{{ item.trialStatus }}</strong>
+                    <span>{{ item.validationStatus || 'NOT_VALIDATED' }}</span>
+                  </div>
+                  <p class="issue-card__summary">
+                    {{ t('rewriteTrial.sourceProblems') }}: {{ displayValue((item.sourceProblems || []).map(sourceProblemLabel)) }}
+                  </p>
+                  <p class="issue-card__detail">
+                    {{ t('rewriteTrial.issueRuleLinks') }}: {{ displayValue((item.issueRuleLinks || []).map(link => `${link.sourceIssueScene || '-'} / ${link.ruleCode || '-'} / ${link.trialConclusion || '-'}`)) }}
+                  </p>
+                  <p v-if="item.failureReason" class="issue-card__detail">{{ item.failureReason }}</p>
+                  <SqlCodeBlock
+                    v-if="item.candidateSql"
+                    :value="item.candidateSql"
+                    :label="t('rewriteTrial.candidateSql')"
+                    :copy-label="t('common.actions.copy')"
+                    compact
+                    data-testid="parse-workbench-rewrite-trial-candidate-sql"
+                  />
+                  <div class="item-actions">
+                    <el-button text :disabled="!item.recommendationId" @click="openRewriteTrialRecommendation(item)">
+                      {{ t('rewriteTrial.recommendationDetail') }}
+                    </el-button>
+                  </div>
+                </article>
+              </div>
+            </article>
+
             <article class="parse-card" data-testid="parse-workbench-structure-card">
               <div class="parse-card__header">
                 <div>
@@ -1454,6 +1640,16 @@ watch(
                       <p class="issue-card__summary">{{ riskDisplayText(risk, 'summary') }}</p>
                       <p class="issue-card__detail">{{ riskDisplayText(risk, 'evidence') }}</p>
                       <p class="issue-card__detail">{{ t('inline.viewsOptimizationAccelerationView.text157') }}: {{ riskDisplayText(risk, 'suggestedAction') }}</p>
+                      <div class="item-actions">
+                        <el-button
+                          text
+                          :loading="loading.rewriteTrial"
+                          data-testid="parse-workbench-risk-rewrite-trial"
+                          @click="createRewriteTrialFromParseResult(risk)"
+                        >
+                          {{ t('rewriteTrial.trial') }}
+                        </el-button>
+                      </div>
                     </article>
                   </div>
                   <p v-else class="empty-inline">
@@ -1481,6 +1677,16 @@ watch(
                       <span v-if="issue.failureSnippet"> · {{ issue.failureSnippet }}</span>
                     </p>
                     <p class="issue-card__detail">{{ t('inline.viewsOptimizationAccelerationView.text160') }}: {{ localizedDisplayText(issue.suggestedAction) }}</p>
+                    <div class="item-actions">
+                      <el-button
+                        text
+                        :loading="loading.rewriteTrial"
+                        data-testid="parse-workbench-issue-rewrite-trial"
+                        @click="createRewriteTrialFromParseResult(issue)"
+                      >
+                        {{ t('rewriteTrial.trial') }}
+                      </el-button>
+                    </div>
                   </article>
                 </div>
               </template>

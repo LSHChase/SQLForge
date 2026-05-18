@@ -9,12 +9,14 @@ import {
   getParseStatisticsBySql,
   getParseStatisticsImportantUrgent,
   getParseStatisticsOverview,
-  getParseStatisticsPriorityMatrix
+  getParseStatisticsPriorityMatrix,
+  getParseStatisticsRewriteTrialOverview,
+  getParseStatisticsRewriteTrialsBySourceIssue
 } from '../../services/runtimeGateApi'
 
 const route = useRoute()
 const { t } = useI18n()
-const statisticsTabs = new Set(['issue', 'important', 'report', 'sql', 'severity', 'priority', 'logical-object', 'parse-status'])
+const statisticsTabs = new Set(['issue', 'important', 'report', 'sql', 'rewrite-trial', 'severity', 'priority', 'logical-object', 'parse-status'])
 
 const form = reactive({
   tenantId: 'tenant-a'
@@ -40,13 +42,17 @@ const sqlStats = ref([])
 const reportStats = ref([])
 const priorityMatrix = ref([])
 const importantUrgent = ref([])
+const rewriteTrialOverview = ref(null)
+const rewriteTrialBySourceIssue = ref([])
 const statisticErrors = reactive({
   overview: '',
   issueScenes: '',
   sqlStats: '',
   reportStats: '',
   priorityMatrix: '',
-  importantUrgent: ''
+  importantUrgent: '',
+  rewriteTrialOverview: '',
+  rewriteTrialBySourceIssue: ''
 })
 
 const statisticErrorMessages = computed(() =>
@@ -180,6 +186,19 @@ const parseStatusStats = computed(() => {
   })
   return Array.from(groups.values()).sort((left, right) => right.sampleCount - left.sampleCount)
 })
+const rewriteTrialOverviewCards = computed(() => {
+  if (!rewriteTrialOverview.value) {
+    return []
+  }
+  return [
+    card(t('rewriteTrial.eligibleSql'), rewriteTrialOverview.value.eligibleSqlCount, 'eligibleSqlCount'),
+    card(t('rewriteTrial.trialedSql'), rewriteTrialOverview.value.trialedSqlCount, 'trialedSqlCount'),
+    card(t('rewriteTrial.candidateGenerated'), rewriteTrialOverview.value.candidateGeneratedCount, 'candidateGeneratedCount'),
+    card(t('rewriteTrial.noSafeRewrite'), rewriteTrialOverview.value.noSafeRewriteCount, 'noSafeRewriteCount'),
+    card(t('rewriteTrial.manualReview'), rewriteTrialOverview.value.manualReviewRequiredCount, 'manualReviewRequiredCount'),
+    card(t('rewriteTrial.validatedEquivalent'), rewriteTrialOverview.value.validatedEquivalentCount, 'validatedEquivalentCount')
+  ]
+})
 
 const card = (label, value, key = '') => ({ label, value, key })
 
@@ -195,7 +214,9 @@ const statisticErrorLabel = key => {
     sqlStats: t('parseStatisticsCenter.errorLabels.sqlStats'),
     reportStats: t('parseStatisticsCenter.errorLabels.reportStats'),
     priorityMatrix: t('parseStatisticsCenter.errorLabels.priorityMatrix'),
-    importantUrgent: t('parseStatisticsCenter.errorLabels.importantUrgent')
+    importantUrgent: t('parseStatisticsCenter.errorLabels.importantUrgent'),
+    rewriteTrialOverview: t('rewriteTrial.statisticsOverview'),
+    rewriteTrialBySourceIssue: t('rewriteTrial.bySourceIssue')
   }
   return labels[key] || key
 }
@@ -341,6 +362,26 @@ const statisticLoaders = [
     },
     clear: () => {
       importantUrgent.value = []
+    }
+  },
+  {
+    key: 'rewriteTrialOverview',
+    load: tenantId => getParseStatisticsRewriteTrialOverview(tenantId),
+    assign: value => {
+      rewriteTrialOverview.value = value && typeof value === 'object' && !Array.isArray(value) ? value : null
+    },
+    clear: () => {
+      rewriteTrialOverview.value = null
+    }
+  },
+  {
+    key: 'rewriteTrialBySourceIssue',
+    load: tenantId => getParseStatisticsRewriteTrialsBySourceIssue(tenantId),
+    assign: value => {
+      rewriteTrialBySourceIssue.value = Array.isArray(value) ? value : []
+    },
+    clear: () => {
+      rewriteTrialBySourceIssue.value = []
     }
   }
 ]
@@ -621,6 +662,44 @@ watch(
               <el-table-column prop="issueCount" :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text049')" min-width="110" />
               <el-table-column :label="t('inline.viewsParseStatisticsParseStatisticsCenterView.text050')" min-width="220">
                 <template #default="{ row }">{{ displayList(row.issueScenes) }}</template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+
+          <el-tab-pane :label="t('rewriteTrial.title')" name="rewrite-trial">
+            <div class="table-heading">
+              <div>
+                <p class="section-kicker sqlforge-code-label">rewrite trial</p>
+                <h2 class="section-title">{{ t('rewriteTrial.statisticsTitle') }}</h2>
+              </div>
+            </div>
+            <div class="summary-grid" data-testid="statistics-rewrite-trial-overview">
+              <article v-for="item in rewriteTrialOverviewCards" :key="item.key" class="summary-card">
+                <span class="summary-card-label">{{ item.label }}</span>
+                <strong>{{ item.value ?? 0 }}</strong>
+              </article>
+            </div>
+            <el-table :data="rewriteTrialBySourceIssue" border data-testid="statistics-rewrite-trial-by-source-issue">
+              <el-table-column prop="sourceIssueScene" :label="t('rewriteTrial.sourceProblems')" min-width="220">
+                <template #default="{ row }">
+                  <button type="button" class="table-link" @click="openDetailDialog(row.sourceIssueScene, row)">
+                    {{ row.sourceIssueScene }}
+                  </button>
+                </template>
+              </el-table-column>
+              <el-table-column prop="eligibleSqlCount" :label="t('rewriteTrial.eligibleSql')" min-width="120" />
+              <el-table-column prop="trialedSqlCount" :label="t('rewriteTrial.trialedSql')" min-width="100" />
+              <el-table-column :label="t('rewriteTrial.candidateGeneratedRate')" min-width="120">
+                <template #default="{ row }">{{ formatRate(row.candidateGeneratedRate) }}</template>
+              </el-table-column>
+              <el-table-column :label="t('rewriteTrial.noSafeRewriteRate')" min-width="130">
+                <template #default="{ row }">{{ formatRate(row.noSafeRewriteRate) }}</template>
+              </el-table-column>
+              <el-table-column :label="t('rewriteTrial.manualReviewRate')" min-width="120">
+                <template #default="{ row }">{{ formatRate(row.manualReviewRate) }}</template>
+              </el-table-column>
+              <el-table-column :label="t('rewriteTrial.validationPassedRate')" min-width="120">
+                <template #default="{ row }">{{ formatRate(row.validationPassedRate) }}</template>
               </el-table-column>
             </el-table>
           </el-tab-pane>

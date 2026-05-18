@@ -3,7 +3,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
   createParseBatch,
+  createParseBatchRewriteTrials,
   formatRuntimeError,
+  getLatestParseBatchRewriteTrial,
   getParseBatch,
   getReportBatch,
   getReportBatchParseStatistics,
@@ -55,6 +57,7 @@ export function useParseBatchCenter() {
   const selectedReportGroupCode = ref('')
   const reportSqlDetail = ref(null)
   const reportSqlDetailSearchCode = ref('')
+  const parseRewriteTrialRun = ref(null)
 
   const reportSqlPagination = reactive({
     pageNumber: 1,
@@ -94,7 +97,8 @@ export function useParseBatchCenter() {
     resolveReportBatch: false,
     refreshReportBatch: false,
     reportSqlDetail: false,
-    reportStatistics: false
+    reportStatistics: false,
+    rewriteTrial: false
   })
 
   const parseBatchForm = reactive({
@@ -218,6 +222,20 @@ export function useParseBatchCenter() {
     return Array.isArray(items) ? items : []
   })
   const reportParseStatistics = computed(() => objectValue(reportBatchDetail.value?.parseStatistics))
+  const parseRewriteTrialItems = computed(() => arrayValue(parseRewriteTrialRun.value?.items))
+  const parseRewriteTrialCards = computed(() => {
+    if (!parseRewriteTrialRun.value) {
+      return []
+    }
+    return [
+      card(t('rewriteTrial.status'), parseRewriteTrialRun.value.trialStatus),
+      card(t('rewriteTrial.acceptedSql'), parseRewriteTrialRun.value.acceptedCount),
+      card(t('rewriteTrial.skippedSql'), parseRewriteTrialRun.value.skippedCount),
+      card(t('rewriteTrial.candidateGenerated'), parseRewriteTrialRun.value.candidateGeneratedCount || parseRewriteTrialRun.value.recommendedCount),
+      card(t('rewriteTrial.noSafeRewrite'), parseRewriteTrialRun.value.noSafeRewriteCount),
+      card(t('rewriteTrial.failed'), parseRewriteTrialRun.value.failedCount)
+    ].filter(item => hasDisplayValue(item.value))
+  })
   const reportParseStatisticsOverview = computed(() => objectValue(reportParseStatistics.value.overview))
   const reportIssueSceneStatistics = computed(() => arrayValue(reportParseStatistics.value.issueSceneStatistics))
   const reportImportanceStatistics = computed(() => arrayValue(reportParseStatistics.value.importanceStatistics))
@@ -732,6 +750,33 @@ export function useParseBatchCenter() {
       .join(' / ')
   }
 
+  const trialItemMatches = (trialItem, parseItem) => {
+    if (!trialItem || !parseItem) {
+      return false
+    }
+    return [
+      ['batchItemId', 'itemId'],
+      ['parseHistoryId', 'historyId'],
+      ['historyId', 'historyId'],
+      ['parseTaskId', 'parseTaskId']
+    ].some(([leftKey, rightKey]) =>
+      hasDisplayValue(trialItem[leftKey]) &&
+      hasDisplayValue(parseItem[rightKey]) &&
+      String(trialItem[leftKey]) === String(parseItem[rightKey])
+    )
+  }
+
+  const rewriteTrialForParseItem = item =>
+    parseRewriteTrialItems.value.find(trialItem => trialItemMatches(trialItem, item)) || null
+
+  const sourceProblemLabels = item =>
+    arrayValue(item?.sourceProblems).map(problem => problem.issueScene || problem.problemType || '-')
+
+  const issueRuleLinkLabels = item =>
+    arrayValue(item?.issueRuleLinks).map(link =>
+      `${link.sourceIssueScene || '-'} / ${link.ruleCode || '-'} / ${link.trialConclusion || '-'}`
+    )
+
   const upsertSession = (collection, item) => {
     const next = collection.value.filter(entry => entry.batchId !== item.batchId)
     collection.value = [item, ...next]
@@ -980,10 +1025,54 @@ export function useParseBatchCenter() {
     try {
       parseBatchDetail.value = await getParseBatch(targetBatchId, parseBatchForm.tenantId)
       upsertSession(parseBatchSessions, parseBatchDetail.value)
+      await loadLatestParseBatchRewriteTrial(targetBatchId)
     } catch (error) {
       errorMessage.value = formatRuntimeError(error)
     } finally {
       loading.refreshParseBatch = false
+    }
+  }
+
+  const loadLatestParseBatchRewriteTrial = async batchId => {
+    const targetBatchId = batchId || parseBatchDetail.value?.batchId
+    if (!targetBatchId) {
+      parseRewriteTrialRun.value = null
+      return
+    }
+    try {
+      parseRewriteTrialRun.value = await getLatestParseBatchRewriteTrial(targetBatchId, parseBatchForm.tenantId, {
+        requestPrefix: 'frontend-parse-batch-rewrite-trial-latest'
+      })
+    } catch {
+      parseRewriteTrialRun.value = null
+    }
+  }
+
+  const createBatchRewriteTrialFlow = async () => {
+    if (!parseBatchDetail.value?.batchId) {
+      errorMessage.value = t('rewriteTrial.selectBatchFirst')
+      return
+    }
+    loading.rewriteTrial = true
+    clearError()
+    try {
+      parseRewriteTrialRun.value = await createParseBatchRewriteTrials(
+        parseBatchDetail.value.batchId,
+        parseBatchForm.tenantId,
+        {
+          forceRecalculate: false,
+          maxItems: 200
+        },
+        {
+          requestPrefix: 'frontend-parse-batch-rewrite-trial-create'
+        }
+      )
+      activeParseResultTab.value = 'rewriteTrial'
+      parseResultDialogVisible.value = true
+    } catch (error) {
+      errorMessage.value = formatRuntimeError(error)
+    } finally {
+      loading.rewriteTrial = false
     }
   }
 
@@ -1016,6 +1105,9 @@ export function useParseBatchCenter() {
       return
     }
     selectedParseItem.value = item
+    if (!parseRewriteTrialRun.value && parseBatchDetail.value?.batchId) {
+      loadLatestParseBatchRewriteTrial(parseBatchDetail.value.batchId)
+    }
     parseItemDetailDialogVisible.value = true
   }
 
@@ -1347,6 +1439,7 @@ export function useParseBatchCenter() {
     selectedReportGroupCode,
     reportSqlDetail,
     reportSqlDetailSearchCode,
+    parseRewriteTrialRun,
     reportSqlPagination,
     parseBatchListPagination,
     reportBatchListPagination,
@@ -1374,6 +1467,8 @@ export function useParseBatchCenter() {
     parseImportedRecords,
     parseIssueStatistics,
     parseReportStatistics,
+    parseRewriteTrialItems,
+    parseRewriteTrialCards,
     reportParseStatistics,
     reportParseStatisticsOverview,
     reportIssueSceneStatistics,
@@ -1449,6 +1544,9 @@ export function useParseBatchCenter() {
     issueLocationItems,
     issueSceneCodesForItem,
     issueLocationText,
+    rewriteTrialForParseItem,
+    sourceProblemLabels,
+    issueRuleLinkLabels,
     upsertSession,
     normalizePagedList,
     applyPaginationResult,
@@ -1469,6 +1567,8 @@ export function useParseBatchCenter() {
     downloadTemplate,
     ingestParseBatchFlow,
     refreshParseBatchDetail,
+    loadLatestParseBatchRewriteTrial,
+    createBatchRewriteTrialFlow,
     retryAccessFlow,
     openParseItemDetail,
     importReportBatchFlow,

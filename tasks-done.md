@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-TRIALS-UI-20260518: 改写试算前端入口与展示
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-TRIALS-UI-20260518 wire rewrite trial frontend`
+- Priority: 1
+- Depends on: N/A
+- Scope: 在现有 Vue 前端接入解析问题驱动改写试算 API：单条解析页试算入口与结果、批量解析中心批量试算入口/状态、解析统计中心试算统计 tab，并补充前端契约验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-TRIALS-UI-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 接入改写试算前端服务 API，补齐单条 SQL 解析页试算入口/结果、批量解析中心批量试算入口/状态/详情、解析统计中心试算统计 tab，以及推荐详情来源问题与问题到规则 trace 展示。
+  - Validation evidence: npm run build；npm run lint；npm run test:sql-ui-contract；npm run test:frontend-page-governance；python3 scripts/foreman.py validate USER-CN-REWRITE-TRIALS-UI-20260518；python3 scripts/task_audit.py --check --phase pre-closeout；git diff --check
+  - Residual risk: 未启动浏览器后端联调；本次通过构建、lint 与前端治理脚本验证静态契约。
+  - Next step: 联调真实 rewrite-trials 后端数据后，可按运营反馈微调列表密度和默认筛选。
+
 ### USER-CN-REWRITE-TRIALS-20260518: 解析问题驱动的 SQL 改写试算
 
 - Status: done

@@ -355,6 +355,8 @@ const reviewGuardCards = computed(() => {
 const textDiffRows = computed(() => normalizeArray(recommendationDiff.value?.textDiff))
 const ruleDiffRows = computed(() => normalizeArray(recommendationDiff.value?.ruleDiff))
 const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value?.ruleChain))
+const sourceProblemRows = computed(() => normalizeArray(selectedRecommendation.value?.sourceProblems))
+const issueRuleLinkRows = computed(() => normalizeArray(selectedRecommendation.value?.issueRuleLinks))
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
 const semanticRiskRows = computed(() => normalizeArray(selectedRecommendation.value?.semanticRisks))
 const unappliedRuleRows = computed(() => normalizeArray(selectedRecommendation.value?.unappliedRules))
@@ -1414,6 +1416,21 @@ watch(
                   <dd>{{ selectedRecommendation.reason || '-' }}</dd>
                 </div>
               </dl>
+              <section v-if="sourceProblemRows.length" class="evidence-table" data-testid="recommendation-source-problems">
+                <div class="evidence-heading">
+                  <h3>{{ t('rewriteTrial.sourceProblems') }}</h3>
+                  <el-button @click="openEvidenceDrawer(t('rewriteTrial.sourceProblems'), sourceProblemRows)">
+                    {{ t('common.actions.viewRawEvidence') }}
+                  </el-button>
+                </div>
+                <el-table :data="sourceProblemRows" border>
+                  <el-table-column prop="issueScene" :label="t('rewriteTrial.issueScene')" min-width="180" />
+                  <el-table-column prop="problemType" :label="t('rewriteTrial.problemType')" min-width="150" />
+                  <el-table-column prop="severity" :label="t('rewriteTrial.severity')" min-width="110" />
+                  <el-table-column prop="priorityLevel" :label="t('rewriteTrial.priority')" min-width="100" />
+                  <el-table-column prop="summary" :label="t('rewriteTrial.summary')" min-width="260" show-overflow-tooltip />
+                </el-table>
+              </section>
             </el-tab-pane>
 
             <el-tab-pane :label="t('recommendationCenter.tabs.sqlDiff')" name="sqlDiff">
@@ -1503,6 +1520,22 @@ watch(
                     {{ summarizeEvidenceItem(item) }}
                   </li>
                 </ul>
+              </section>
+              <section v-if="issueRuleLinkRows.length" class="evidence-table" data-testid="recommendation-issue-rule-links">
+                <div class="evidence-heading">
+                  <h3>{{ t('rewriteTrial.issueRuleLinks') }}</h3>
+                  <el-button @click="openEvidenceDrawer(t('rewriteTrial.issueRuleLinks'), issueRuleLinkRows)">
+                    {{ t('common.actions.viewRawEvidence') }}
+                  </el-button>
+                </div>
+                <el-table :data="issueRuleLinkRows" border>
+                  <el-table-column prop="sourceIssueScene" :label="t('rewriteTrial.sourceProblems')" min-width="180" />
+                  <el-table-column prop="ruleCode" :label="t('rewriteTrial.ruleCode')" min-width="180" />
+                  <el-table-column prop="ruleLevel" :label="t('rewriteTrial.ruleLevel')" min-width="90" />
+                  <el-table-column prop="ruleAction" :label="t('rewriteTrial.ruleAction')" min-width="120" />
+                  <el-table-column prop="trialConclusion" :label="t('rewriteTrial.trialConclusion')" min-width="170" />
+                  <el-table-column prop="riskReason" :label="t('rewriteTrial.riskReason')" min-width="220" show-overflow-tooltip />
+                </el-table>
               </section>
               <section class="evidence-table" data-testid="recommendation-preconditions">
                 <div class="evidence-heading">
