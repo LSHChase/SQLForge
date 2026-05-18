@@ -62,6 +62,8 @@ public class SqlRewriteRecordCreateRequest {
 
     private String executedSqlText;
     private List<Map<String, Object>> ruleChain;
+    private List<Map<String, Object>> sourceProblems;
+    private List<Map<String, Object>> issueRuleLinks;
     private Map<String, Object> diffSummary;
     private Map<String, Object> risk;
     private Map<String, Object> traceRefs;
@@ -130,6 +132,10 @@ public class SqlRewriteRecordCreateRequest {
     public void setExecutedSqlText(String executedSqlText) { this.executedSqlText = executedSqlText; }
     public List<Map<String, Object>> getRuleChain() { return ruleChain; }
     public void setRuleChain(List<Map<String, Object>> ruleChain) { this.ruleChain = ruleChain; }
+    public List<Map<String, Object>> getSourceProblems() { return sourceProblems; }
+    public void setSourceProblems(List<Map<String, Object>> sourceProblems) { this.sourceProblems = sourceProblems; }
+    public List<Map<String, Object>> getIssueRuleLinks() { return issueRuleLinks; }
+    public void setIssueRuleLinks(List<Map<String, Object>> issueRuleLinks) { this.issueRuleLinks = issueRuleLinks; }
     public Map<String, Object> getDiffSummary() { return diffSummary; }
     public void setDiffSummary(Map<String, Object> diffSummary) { this.diffSummary = diffSummary; }
     public Map<String, Object> getRisk() { return risk; }

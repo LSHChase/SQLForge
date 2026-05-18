@@ -3,9 +3,12 @@ package com.company.sqloptimization.application.controller;
 import com.company.sqloptimization.application.controller.dto.ParseBatchCreateRequest;
 import com.company.sqloptimization.application.controller.dto.ParseBatchIngestRequest;
 import com.company.sqloptimization.application.controller.dto.ParseBatchRetryAccessRequest;
+import com.company.sqloptimization.application.controller.dto.RewriteTrialBatchRequest;
 import com.company.sqloptimization.application.controller.vo.BatchPageResponse;
 import com.company.sqloptimization.application.controller.vo.ParseBatchStatusResponse;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialRunVO;
 import com.company.sqloptimization.application.service.ParseBatchApplicationService;
+import com.company.sqloptimization.application.service.RewriteTrialApplicationService;
 import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ParseBatchController {
 
     private final ParseBatchApplicationService parseBatchApplicationService;
+    private final RewriteTrialApplicationService rewriteTrialApplicationService;
 
-    public ParseBatchController(ParseBatchApplicationService parseBatchApplicationService) {
+    public ParseBatchController(ParseBatchApplicationService parseBatchApplicationService,
+                                RewriteTrialApplicationService rewriteTrialApplicationService) {
         this.parseBatchApplicationService = parseBatchApplicationService;
+        this.rewriteTrialApplicationService = rewriteTrialApplicationService;
     }
 
     @PostMapping
@@ -46,6 +52,17 @@ public class ParseBatchController {
     @GetMapping("/{batchId}")
     public ParseBatchStatusResponse getBatch(@PathVariable("batchId") String batchId) {
         return parseBatchApplicationService.getBatch(batchId);
+    }
+
+    @PostMapping("/{batchId}/rewrite-trials")
+    public RewriteTrialRunVO createRewriteTrials(@PathVariable("batchId") String batchId,
+                                                 @RequestBody(required = false) RewriteTrialBatchRequest request) {
+        return rewriteTrialApplicationService.createBatchTrial(batchId, request);
+    }
+
+    @GetMapping("/{batchId}/rewrite-trials/latest")
+    public RewriteTrialRunVO latestRewriteTrial(@PathVariable("batchId") String batchId) {
+        return rewriteTrialApplicationService.latestBatchTrial(batchId);
     }
 
     @PostMapping("/{batchId}/retry-access")

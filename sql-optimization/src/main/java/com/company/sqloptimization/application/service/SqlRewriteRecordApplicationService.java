@@ -155,7 +155,7 @@ public class SqlRewriteRecordApplicationService {
             .ruleChain(request.getRuleChain())
             .diffSummary(request.getDiffSummary())
             .risk(request.getRisk())
-            .traceRefs(request.getTraceRefs())
+            .traceRefs(enrichRewriteTrialTraceRefs(request.getTraceRefs(), request.getSourceProblems(), request.getIssueRuleLinks()))
             .build();
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(rewriteRecord));
     }
@@ -1001,12 +1001,37 @@ public class SqlRewriteRecordApplicationService {
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
         vo.setRuleChain(record.getRuleChain());
+        vo.setSourceProblems(traceList(record.getTraceRefs(), "sourceProblems"));
+        vo.setIssueRuleLinks(traceList(record.getTraceRefs(), "issueRuleLinks"));
         vo.setDiffSummary(record.getDiffSummary());
         vo.setRisk(record.getRisk());
         vo.setTraceRefs(record.getTraceRefs());
         vo.setContractStage(CONTRACT_STAGE);
         vo.setImplementationStage(IMPLEMENTATION_STAGE);
         return vo;
+    }
+
+    private Map<String, Object> enrichRewriteTrialTraceRefs(Map<String, Object> traceRefs,
+                                                            List<Map<String, Object>> sourceProblems,
+                                                            List<Map<String, Object>> issueRuleLinks) {
+        Map<String, Object> result = traceRefs == null
+            ? new LinkedHashMap<String, Object>()
+            : new LinkedHashMap<String, Object>(traceRefs);
+        if (sourceProblems != null && !sourceProblems.isEmpty()) {
+            result.put("sourceProblems", sourceProblems);
+        }
+        if (issueRuleLinks != null && !issueRuleLinks.isEmpty()) {
+            result.put("issueRuleLinks", issueRuleLinks);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> traceList(Map<String, Object> traceRefs, String key) {
+        if (traceRefs == null || !(traceRefs.get(key) instanceof List)) {
+            return Collections.emptyList();
+        }
+        return (List<Map<String, Object>>) traceRefs.get(key);
     }
 
     private RewritePublishEligibilityVO toPublishEligibilityVo(RewritePublishEligibility eligibility) {

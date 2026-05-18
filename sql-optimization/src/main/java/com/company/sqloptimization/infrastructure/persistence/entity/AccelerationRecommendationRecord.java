@@ -44,6 +44,8 @@ public class AccelerationRecommendationRecord {
     private String validationStatus;
     private Boolean autoApplyAllowed;
     private Boolean manualReviewRequired;
+    private String sourceProblemsJson;
+    private String issueRuleLinksJson;
     private String createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -128,6 +130,10 @@ public class AccelerationRecommendationRecord {
     public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
     public Boolean getManualReviewRequired() { return manualReviewRequired; }
     public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
+    public String getSourceProblemsJson() { return sourceProblemsJson; }
+    public void setSourceProblemsJson(String sourceProblemsJson) { this.sourceProblemsJson = sourceProblemsJson; }
+    public String getIssueRuleLinksJson() { return issueRuleLinksJson; }
+    public void setIssueRuleLinksJson(String issueRuleLinksJson) { this.issueRuleLinksJson = issueRuleLinksJson; }
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }

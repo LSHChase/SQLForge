@@ -1,0 +1,1146 @@
+package com.company.sqloptimization.application.service;
+
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.constants.ErrorCodeConstants;
+import com.company.sqlforge.common.context.RequestContext;
+import com.company.sqlforge.common.exception.AccessDeniedException;
+import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
+import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
+import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
+import com.company.sqloptimization.application.controller.dto.RewriteTrialBatchRequest;
+import com.company.sqloptimization.application.controller.dto.RewriteTrialRequest;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialItemVO;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialOverviewVO;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialRunVO;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialSourceIssueStatisticVO;
+import com.company.sqloptimization.domain.batch.ParseBatch;
+import com.company.sqloptimization.domain.batch.ParseBatchItem;
+import com.company.sqloptimization.domain.batch.repository.ParseBatchItemRepository;
+import com.company.sqloptimization.domain.batch.repository.ParseBatchRepository;
+import com.company.sqloptimization.domain.governance.EvidenceLevel;
+import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
+import com.company.sqloptimization.domain.governance.GovernanceSourceType;
+import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RiskLevel;
+import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
+import com.company.sqloptimization.domain.task.OptimizationParseDepth;
+import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
+import com.company.sqloptimization.domain.task.OptimizationTaskPriority;
+import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
+import com.company.sqloptimization.domain.task.OptimizationTaskType;
+import com.company.sqloptimization.domain.trial.RewriteTrialItem;
+import com.company.sqloptimization.domain.trial.RewriteTrialRun;
+import com.company.sqloptimization.domain.trial.RewriteTrialStatus;
+import com.company.sqloptimization.domain.trial.repository.RewriteTrialRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+@Service
+public class RewriteTrialApplicationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RewriteTrialApplicationService.class);
+
+    private static final int DEFAULT_BATCH_MAX_ITEMS = 500;
+    private static final int HARD_BATCH_MAX_ITEMS = 2000;
+    private static final String SOURCE_KIND_STRUCTURE_PARSE = "STRUCTURE_PARSE";
+    private static final String SOURCE_KIND_PARSE_BATCH = "PARSE_BATCH";
+    private static final Set<String> SAFE_REWRITE_PROBLEMS = Collections.unmodifiableSet(
+        new LinkedHashSet<String>(Arrays.asList(
+            "COUNT_LITERAL_TO_COUNT_STAR",
+            "DEDUPLICATE_WHERE_PREDICATES",
+            "DEDUPLICATE_HAVING_PREDICATES",
+            "DEDUPLICATE_GROUP_BY_KEYS",
+            "DEDUPLICATE_ORDER_BY_KEYS"
+        ))
+    );
+    private static final Set<String> MANUAL_REVIEW_PROBLEMS = Collections.unmodifiableSet(
+        new LinkedHashSet<String>(Arrays.asList(
+            "SELECT_STAR",
+            "OR_PREDICATE_INDEX_RISK",
+            "NESTED_SUBQUERY_RISK",
+            "LEADING_WILDCARD_LIKE_RISK"
+        ))
+    );
+    private static final Set<String> SKIPPED_PROBLEMS = Collections.unmodifiableSet(
+        new LinkedHashSet<String>(Arrays.asList("SQL_SYNTAX_INVALID", "SQL_TOO_LONG"))
+    );
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<List<String>>() {
+    };
+
+    private final RewriteTrialRepository rewriteTrialRepository;
+    private final ParseBatchRepository parseBatchRepository;
+    private final ParseBatchItemRepository parseBatchItemRepository;
+    private final AccelerationRecommendationRepository recommendationRepository;
+    private final SqlOptimizationPipelineService pipelineService;
+    private final OptimizationTaskApplicationService optimizationTaskApplicationService;
+    private final ObjectMapper objectMapper;
+
+    public RewriteTrialApplicationService(RewriteTrialRepository rewriteTrialRepository,
+                                          ParseBatchRepository parseBatchRepository,
+                                          ParseBatchItemRepository parseBatchItemRepository,
+                                          AccelerationRecommendationRepository recommendationRepository,
+                                          SqlOptimizationPipelineService pipelineService,
+                                          OptimizationTaskApplicationService optimizationTaskApplicationService) {
+        this.rewriteTrialRepository = rewriteTrialRepository;
+        this.parseBatchRepository = parseBatchRepository;
+        this.parseBatchItemRepository = parseBatchItemRepository;
+        this.recommendationRepository = recommendationRepository;
+        this.pipelineService = pipelineService;
+        this.optimizationTaskApplicationService = optimizationTaskApplicationService;
+        this.objectMapper = JsonUtils.objectMapper();
+    }
+
+    public RewriteTrialRunVO createTrial(RewriteTrialRequest request) {
+        String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
+        if (request == null || !StringUtils.hasText(request.getSqlText())) {
+            throw invalidArgument("sqlText", "sqlText 为必填项");
+        }
+        Instant now = Instant.now();
+        RewriteTrialRun run = RewriteTrialRun.builder()
+            .runId(UUID.randomUUID().toString())
+            .tenantId(tenantId)
+            .sourceKind(firstText(request.getSourceKind(), SOURCE_KIND_STRUCTURE_PARSE))
+            .sourceId(firstText(request.getSourceId(), request.getParseHistoryId(), request.getParseTaskId(), request.getHistoryId()))
+            .status(RewriteTrialStatus.RUNNING)
+            .createdBy(RequestContext.getUserId())
+            .createdAt(now)
+            .build();
+        rewriteTrialRepository.saveRun(run);
+        RewriteTrialItem item = evaluateSql(
+            run,
+            null,
+            request.getParseTaskId(),
+            request.getParseHistoryId(),
+            request.getHistoryId(),
+            request.getDatasourceCode(),
+            request.getSqlText(),
+            request.getSourceProblems(),
+            Collections.<String>emptySet(),
+            now
+        );
+        rewriteTrialRepository.saveItem(item);
+        refreshRunSummary(run, Collections.singletonList(item), now);
+        rewriteTrialRepository.saveRun(run);
+        LOGGER.info(
+            "操作日志 operation=REWRITE_TRIAL_CREATE entity={} tenantId={} sourceKind={} status={} accepted={} skipped={}",
+            run.getRunId(),
+            tenantId,
+            run.getSourceKind(),
+            run.getStatus(),
+            Integer.valueOf(run.getAcceptedCount()),
+            Integer.valueOf(run.getSkippedCount())
+        );
+        return toRunVo(run, Collections.singletonList(item));
+    }
+
+    public RewriteTrialRunVO createBatchTrial(String batchId, RewriteTrialBatchRequest request) {
+        String tenantId = requireAuthorizedTenant(request == null ? null : request.getTenantId());
+        ParseBatch batch = requireBatch(batchId, tenantId);
+        if (!Boolean.TRUE.equals(request == null ? null : request.getForceRecalculate())) {
+            RewriteTrialRun latest = rewriteTrialRepository.findLatestRunByBatchId(tenantId, batch.getBatchId());
+            if (latest != null) {
+                return toRunVo(latest, rewriteTrialRepository.findItemsByRunId(latest.getRunId()));
+            }
+        }
+        Set<String> issueFilter = normalizeFilter(request == null ? null : request.getIssueSceneFilter());
+        int maxItems = normalizeMaxItems(request == null ? null : request.getMaxItems());
+        Instant now = Instant.now();
+        RewriteTrialRun run = RewriteTrialRun.builder()
+            .runId(UUID.randomUUID().toString())
+            .tenantId(tenantId)
+            .sourceKind(SOURCE_KIND_PARSE_BATCH)
+            .sourceId(batch.getBatchId())
+            .batchId(batch.getBatchId())
+            .status(RewriteTrialStatus.RUNNING)
+            .createdBy(RequestContext.getUserId())
+            .createdAt(now)
+            .build();
+        rewriteTrialRepository.saveRun(run);
+
+        List<RewriteTrialItem> trialItems = new ArrayList<RewriteTrialItem>();
+        List<ParseBatchItem> batchItems = parseBatchItemRepository.findByBatchId(batch.getBatchId());
+        int processed = 0;
+        for (ParseBatchItem batchItem : batchItems) {
+            if (processed >= maxItems) {
+                trialItems.add(skippedItem(run, batchItem, "超过本次批量试算 maxItems 限制", now));
+                continue;
+            }
+            if (!"VALID".equals(batchItem.getStructureSyntaxStatus())) {
+                trialItems.add(skippedItem(run, batchItem, "结构解析未通过，跳过改写试算", now));
+                continue;
+            }
+            RewriteTrialItem item = evaluateSql(
+                run,
+                batchItem.getItemId(),
+                batchItem.getParseTaskId(),
+                batchItem.getHistoryId(),
+                batchItem.getHistoryId(),
+                batchItem.getDatasourceCode(),
+                batchItem.getSqlText(),
+                null,
+                issueFilter,
+                now
+            );
+            if (item.getTrialStatus() != RewriteTrialStatus.NOT_REQUESTED) {
+                processed++;
+            }
+            trialItems.add(item);
+        }
+        for (RewriteTrialItem item : trialItems) {
+            rewriteTrialRepository.saveItem(item);
+        }
+        refreshRunSummary(run, trialItems, now);
+        rewriteTrialRepository.saveRun(run);
+        LOGGER.info(
+            "操作日志 operation=REWRITE_TRIAL_BATCH_CREATE entity={} tenantId={} batchId={} status={} total={} accepted={} skipped={}",
+            run.getRunId(),
+            tenantId,
+            batch.getBatchId(),
+            run.getStatus(),
+            Integer.valueOf(run.getTotalCount()),
+            Integer.valueOf(run.getAcceptedCount()),
+            Integer.valueOf(run.getSkippedCount())
+        );
+        return toRunVo(run, trialItems);
+    }
+
+    public RewriteTrialRunVO getTrial(String runId) {
+        RewriteTrialRun run = requireRun(runId);
+        return toRunVo(run, rewriteTrialRepository.findItemsByRunId(run.getRunId()));
+    }
+
+    public RewriteTrialRunVO latestBatchTrial(String batchId) {
+        String tenantId = requireContextTenant();
+        RewriteTrialRun run = rewriteTrialRepository.findLatestRunByBatchId(tenantId, requireText(batchId, "batchId"));
+        if (run == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
+                "解析批次尚未生成改写试算，batchId=" + batchId
+            );
+        }
+        return toRunVo(run, rewriteTrialRepository.findItemsByRunId(run.getRunId()));
+    }
+
+    public RewriteTrialOverviewVO overview() {
+        List<RewriteTrialItem> items = rewriteTrialRepository.findItemsByTenantId(requireContextTenant());
+        RewriteTrialOverviewVO vo = new RewriteTrialOverviewVO();
+        vo.setEligibleSqlCount(Integer.valueOf(countEligible(items)));
+        vo.setTrialedSqlCount(Integer.valueOf(countTrialed(items)));
+        vo.setCandidateGeneratedCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.CANDIDATE_GENERATED)
+            + countStatus(items, RewriteTrialStatus.RECOMMENDED)
+            + countStatus(items, RewriteTrialStatus.RECORD_CREATED)));
+        vo.setNoSafeRewriteCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.NO_SAFE_REWRITE)));
+        vo.setManualReviewRequiredCount(Integer.valueOf(countManualReview(items)));
+        vo.setValidatedEquivalentCount(Integer.valueOf(countValidation(items, "EQUIVALENT", "VERIFIED")));
+        vo.setValidatedDivergedCount(Integer.valueOf(countValidation(items, "DIVERGED", "FAILED")));
+        return vo;
+    }
+
+    public List<RewriteTrialSourceIssueStatisticVO> bySourceIssue() {
+        List<RewriteTrialItem> items = rewriteTrialRepository.findItemsByTenantId(requireContextTenant());
+        Map<String, SourceIssueAccumulator> accumulators = new LinkedHashMap<String, SourceIssueAccumulator>();
+        for (RewriteTrialItem item : items) {
+            Set<String> scenes = sourceIssueScenes(item.getSourceProblems());
+            for (String scene : scenes) {
+                SourceIssueAccumulator accumulator = accumulators.get(scene);
+                if (accumulator == null) {
+                    accumulator = new SourceIssueAccumulator(scene);
+                    accumulators.put(scene, accumulator);
+                }
+                accumulator.eligibleSqlCount++;
+                if (isTrialed(item)) {
+                    accumulator.trialedSqlCount++;
+                }
+                if (hasCandidate(item)) {
+                    accumulator.candidateGeneratedCount++;
+                }
+                if (item.getTrialStatus() == RewriteTrialStatus.NO_SAFE_REWRITE) {
+                    accumulator.noSafeRewriteCount++;
+                }
+                if (manualReviewRequired(item)) {
+                    accumulator.manualReviewRequiredCount++;
+                }
+                if (matchesValidation(item.getValidationStatus(), "EQUIVALENT", "VERIFIED")) {
+                    accumulator.validationPassedCount++;
+                }
+            }
+        }
+        List<RewriteTrialSourceIssueStatisticVO> result = new ArrayList<RewriteTrialSourceIssueStatisticVO>();
+        for (SourceIssueAccumulator accumulator : accumulators.values()) {
+            RewriteTrialSourceIssueStatisticVO vo = new RewriteTrialSourceIssueStatisticVO();
+            vo.setSourceIssueScene(accumulator.sourceIssueScene);
+            vo.setEligibleSqlCount(Integer.valueOf(accumulator.eligibleSqlCount));
+            vo.setTrialedSqlCount(Integer.valueOf(accumulator.trialedSqlCount));
+            vo.setCandidateGeneratedRate(ratio(accumulator.candidateGeneratedCount, accumulator.trialedSqlCount));
+            vo.setNoSafeRewriteRate(ratio(accumulator.noSafeRewriteCount, accumulator.trialedSqlCount));
+            vo.setManualReviewRate(ratio(accumulator.manualReviewRequiredCount, accumulator.trialedSqlCount));
+            vo.setValidationPassedRate(ratio(accumulator.validationPassedCount, accumulator.trialedSqlCount));
+            result.add(vo);
+        }
+        return result;
+    }
+
+    private RewriteTrialItem evaluateSql(RewriteTrialRun run,
+                                         String batchItemId,
+                                         String parseTaskId,
+                                         String parseHistoryId,
+                                         String historyId,
+                                         String datasourceCode,
+                                         String sqlText,
+                                         List<Map<String, Object>> requestedSourceProblems,
+                                         Set<String> issueFilter,
+                                         Instant now) {
+        String sqlFingerprint = StringUtils.hasText(sqlText) ? SqlFingerprintUtils.fingerprint(sqlText.trim()) : null;
+        try {
+            SqlOptimizationPipelineService.ParsedSqlProfile profile =
+                pipelineService.analyze(sqlText, DataSourceTypeEnum.AUTO);
+            OptimizationTaskSuggestion suggestion = pipelineService.buildRewriteSuggestion(profile);
+            List<String> appliedRules = readAppliedRules(suggestion);
+            List<Map<String, Object>> sourceProblems = requestedSourceProblems == null || requestedSourceProblems.isEmpty()
+                ? deriveSourceProblems(profile, appliedRules, parseTaskId, parseHistoryId, historyId, batchItemId)
+                : normalizeSourceProblems(requestedSourceProblems, parseTaskId, parseHistoryId, historyId, batchItemId);
+            sourceProblems = applyIssueFilter(sourceProblems, issueFilter);
+            if (sourceProblems.isEmpty()) {
+                return RewriteTrialItem.builder()
+                    .trialItemId(UUID.randomUUID().toString())
+                    .runId(run.getRunId())
+                    .batchItemId(batchItemId)
+                    .parseTaskId(parseTaskId)
+                    .parseHistoryId(parseHistoryId)
+                    .historyId(historyId)
+                    .sqlFingerprint(sqlFingerprint)
+                    .datasourceCode(trimToNull(datasourceCode))
+                    .sourceSqlText(sqlText)
+                    .trialStatus(RewriteTrialStatus.NOT_REQUESTED)
+                    .failureReason("未发现可试算来源问题")
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+            }
+            List<Map<String, Object>> issueRuleLinks = buildIssueRuleLinks(sourceProblems, appliedRules);
+            List<String> selectedAppliedRules = selectedAppliedRules(sourceProblems, appliedRules);
+            boolean candidateGenerated = !selectedAppliedRules.isEmpty();
+            String candidateSql = candidateGenerated ? artifactContent(suggestion, "REWRITTEN_SQL", "candidateSql") : null;
+            String taskId = candidateGenerated ? taskIdFor(idempotencyKey(run, sqlFingerprint, sourceProblems)) : null;
+            if (candidateGenerated) {
+                submitRewriteTaskIfPossible(taskId, run, parseTaskId, parseHistoryId, historyId, datasourceCode, sqlText, sqlFingerprint, sourceProblems);
+            }
+            String recommendationId = candidateGenerated
+                ? persistRecommendation(run, parseTaskId, parseHistoryId, historyId, datasourceCode, sqlText, sqlFingerprint,
+                    candidateSql, sourceProblems, issueRuleLinks, profile, suggestion)
+                : null;
+            return RewriteTrialItem.builder()
+                .trialItemId(UUID.randomUUID().toString())
+                .runId(run.getRunId())
+                .batchItemId(batchItemId)
+                .parseTaskId(parseTaskId)
+                .parseHistoryId(parseHistoryId)
+                .historyId(historyId)
+                .sqlFingerprint(sqlFingerprint)
+                .datasourceCode(trimToNull(datasourceCode))
+                .sourceSqlText(sqlText)
+                .sourceProblems(sourceProblems)
+                .taskId(taskId)
+                .recommendationId(recommendationId)
+                .trialStatus(candidateGenerated ? RewriteTrialStatus.RECOMMENDED : RewriteTrialStatus.NO_SAFE_REWRITE)
+                .candidateSql(candidateGenerated ? candidateSql : null)
+                .validationStatus(RewriteValidationStatus.NOT_VALIDATED.name())
+                .issueRuleLinks(issueRuleLinks)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        } catch (RuntimeException ex) {
+            return RewriteTrialItem.builder()
+                .trialItemId(UUID.randomUUID().toString())
+                .runId(run.getRunId())
+                .batchItemId(batchItemId)
+                .parseTaskId(parseTaskId)
+                .parseHistoryId(parseHistoryId)
+                .historyId(historyId)
+                .sqlFingerprint(sqlFingerprint)
+                .datasourceCode(trimToNull(datasourceCode))
+                .sourceSqlText(sqlText)
+                .sourceProblems(skipProblem("SQL_SYNTAX_INVALID", parseTaskId, parseHistoryId, historyId, batchItemId))
+                .trialStatus(RewriteTrialStatus.FAILED)
+                .failureReason(ex.getMessage())
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        }
+    }
+
+    private RewriteTrialItem skippedItem(RewriteTrialRun run, ParseBatchItem batchItem, String reason, Instant now) {
+        return RewriteTrialItem.builder()
+            .trialItemId(UUID.randomUUID().toString())
+            .runId(run.getRunId())
+            .batchItemId(batchItem.getItemId())
+            .parseTaskId(batchItem.getParseTaskId())
+            .parseHistoryId(batchItem.getHistoryId())
+            .historyId(batchItem.getHistoryId())
+            .sqlFingerprint(StringUtils.hasText(batchItem.getSqlText()) ? SqlFingerprintUtils.fingerprint(batchItem.getSqlText()) : null)
+            .datasourceCode(batchItem.getDatasourceCode())
+            .sourceSqlText(batchItem.getSqlText())
+            .sourceProblems(skipProblem(firstText(batchItem.getStructureSyntaxStatus(), "SQL_SYNTAX_INVALID"),
+                batchItem.getParseTaskId(), batchItem.getHistoryId(), batchItem.getHistoryId(), batchItem.getItemId()))
+            .trialStatus(RewriteTrialStatus.NOT_REQUESTED)
+            .failureReason(reason)
+            .createdAt(now)
+            .updatedAt(now)
+            .build();
+    }
+
+    private List<Map<String, Object>> deriveSourceProblems(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                           List<String> appliedRules,
+                                                           String parseTaskId,
+                                                           String parseHistoryId,
+                                                           String historyId,
+                                                           String batchItemId) {
+        LinkedHashMap<String, Map<String, Object>> problems = new LinkedHashMap<String, Map<String, Object>>();
+        for (String appliedRule : appliedRules) {
+            if (SAFE_REWRITE_PROBLEMS.contains(appliedRule)) {
+                problems.put(appliedRule, sourceProblem("REWRITE_CANDIDATE", appliedRule, null, "LOW", "P3",
+                    safeRuleSummary(appliedRule), parseTaskId, parseHistoryId, historyId, batchItemId));
+            }
+        }
+        for (String warning : profile.getWarnings()) {
+            if (MANUAL_REVIEW_PROBLEMS.contains(warning)) {
+                problems.put(warning, sourceProblem("ISSUE_SCENE", warning, warning, severityFor(warning), priorityFor(warning),
+                    manualProblemSummary(warning), parseTaskId, parseHistoryId, historyId, batchItemId));
+            }
+        }
+        return new ArrayList<Map<String, Object>>(problems.values());
+    }
+
+    private List<Map<String, Object>> normalizeSourceProblems(List<Map<String, Object>> requested,
+                                                              String parseTaskId,
+                                                              String parseHistoryId,
+                                                              String historyId,
+                                                              String batchItemId) {
+        LinkedHashMap<String, Map<String, Object>> result = new LinkedHashMap<String, Map<String, Object>>();
+        for (Map<String, Object> problem : requested) {
+            if (problem == null || problem.isEmpty()) {
+                continue;
+            }
+            String scene = objectText(firstValue(problem, "issueScene", "issueCode", "ruleCode"));
+            if (!isEligibleProblem(scene)) {
+                continue;
+            }
+            LinkedHashMap<String, Object> normalized = new LinkedHashMap<String, Object>(problem);
+            normalized.put("problemType", firstText(objectText(normalized.get("problemType")),
+                SAFE_REWRITE_PROBLEMS.contains(scene) ? "REWRITE_CANDIDATE" : "ISSUE_SCENE"));
+            normalized.put("issueScene", scene);
+            if (!normalized.containsKey("issueCode")) {
+                normalized.put("issueCode", scene);
+            }
+            normalized.put("severity", firstText(objectText(normalized.get("severity")), severityFor(scene)));
+            normalized.put("priorityLevel", firstText(objectText(normalized.get("priorityLevel")), priorityFor(scene)));
+            normalized.put("summary", firstText(objectText(normalized.get("summary")), summaryFor(scene)));
+            normalized.put("evidenceRef", evidenceRef(parseTaskId, parseHistoryId, historyId, batchItemId));
+            result.put(scene, normalized);
+        }
+        return new ArrayList<Map<String, Object>>(result.values());
+    }
+
+    private List<Map<String, Object>> applyIssueFilter(List<Map<String, Object>> sourceProblems, Set<String> issueFilter) {
+        if (issueFilter == null || issueFilter.isEmpty()) {
+            return sourceProblems;
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> problem : sourceProblems) {
+            String scene = objectText(problem.get("issueScene"));
+            if (issueFilter.contains(scene)) {
+                result.add(problem);
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> buildIssueRuleLinks(List<Map<String, Object>> sourceProblems, List<String> appliedRules) {
+        List<Map<String, Object>> links = new ArrayList<Map<String, Object>>();
+        Set<String> applied = new LinkedHashSet<String>(appliedRules);
+        for (Map<String, Object> problem : sourceProblems) {
+            String scene = objectText(problem.get("issueScene"));
+            if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
+                links.add(issueRuleLink(scene, scene, "L0", applied.contains(scene) ? "APPLIED" : "SKIPPED",
+                    applied.contains(scene) ? "CANDIDATE_GENERATED" : "NO_SAFE_REWRITE", null));
+            } else if ("SELECT_STAR".equals(scene)) {
+                links.add(issueRuleLink(scene, "SELECT_STAR_EXPANSION", "L1", "UNAPPLIED", "REQUIRES_METADATA",
+                    "缺少可信列元数据，不自动展开 SELECT *"));
+            } else if ("OR_PREDICATE_INDEX_RISK".equals(scene)) {
+                links.add(issueRuleLink(scene, "OR_TO_UNION_ALL", "L1", "UNAPPLIED", "REQUIRES_SEMANTIC_PROOF",
+                    "OR 转 UNION ALL 需要互斥或去重证明"));
+            } else if ("NESTED_SUBQUERY_RISK".equals(scene)) {
+                links.add(issueRuleLink(scene, "SUBQUERY_TO_JOIN_OR_CTE", "L1", "UNAPPLIED", "REQUIRES_SEMANTIC_PROOF",
+                    "子查询改 JOIN/CTE 需要唯一性、NULL 语义和引擎行为证明"));
+            } else if ("LEADING_WILDCARD_LIKE_RISK".equals(scene)) {
+                links.add(issueRuleLink(scene, "LEADING_LIKE_REVIEW", "L1", "SKIPPED", "NO_SAFE_REWRITE",
+                    "前导通配符更偏搜索索引或文本能力治理，默认不生成 SQL 候选"));
+            } else {
+                links.add(issueRuleLink(scene, scene, "L1", "SKIPPED", "NO_SAFE_REWRITE", "当前来源问题没有安全自动改写规则"));
+            }
+        }
+        return links;
+    }
+
+    private Map<String, Object> issueRuleLink(String sourceIssueScene,
+                                              String ruleCode,
+                                              String ruleLevel,
+                                              String ruleAction,
+                                              String trialConclusion,
+                                              String riskReason) {
+        LinkedHashMap<String, Object> link = new LinkedHashMap<String, Object>();
+        link.put("sourceIssueScene", sourceIssueScene);
+        link.put("ruleCode", ruleCode);
+        link.put("ruleLevel", ruleLevel);
+        link.put("ruleAction", ruleAction);
+        link.put("trialConclusion", trialConclusion);
+        link.put("riskReason", riskReason);
+        return link;
+    }
+
+    private List<String> selectedAppliedRules(List<Map<String, Object>> sourceProblems, List<String> appliedRules) {
+        Set<String> selectedProblems = sourceIssueScenes(sourceProblems);
+        List<String> result = new ArrayList<String>();
+        for (String appliedRule : appliedRules) {
+            if (selectedProblems.contains(appliedRule)) {
+                result.add(appliedRule);
+            }
+        }
+        return result;
+    }
+
+    private void submitRewriteTaskIfPossible(String taskId,
+                                             RewriteTrialRun run,
+                                             String parseTaskId,
+                                             String parseHistoryId,
+                                             String historyId,
+                                             String datasourceCode,
+                                             String sqlText,
+                                             String sqlFingerprint,
+                                             List<Map<String, Object>> sourceProblems) {
+        if (optimizationTaskApplicationService == null) {
+            return;
+        }
+        OptimizationTaskContextDTO context = new OptimizationTaskContextDTO();
+        context.setPriority(OptimizationTaskPriority.NORMAL);
+        context.setParseDepth(OptimizationParseDepth.DEEP);
+        context.setSourceType(run.getSourceKind());
+        context.setSourceId(firstText(run.getSourceId(), parseHistoryId, parseTaskId, historyId));
+        context.setBatchId(run.getBatchId());
+        context.setHistoryId(historyId);
+        context.setParseTaskId(parseTaskId);
+        context.setDatasourceCode(trimToNull(datasourceCode));
+        context.setIssueScenes(new ArrayList<String>(sourceIssueScenes(sourceProblems)));
+
+        OptimizationTaskSubmitRequest submitRequest = new OptimizationTaskSubmitRequest();
+        submitRequest.setTenantId(run.getTenantId());
+        submitRequest.setTaskType(OptimizationTaskType.REWRITE);
+        submitRequest.setSqlText(sqlText);
+        submitRequest.setSqlFingerprint(sqlFingerprint);
+        submitRequest.setDatasourceType(DataSourceTypeEnum.AUTO);
+        submitRequest.setTaskContext(context);
+        try {
+            optimizationTaskApplicationService.submitInternalTaskIfAbsent(submitRequest, taskId);
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "操作日志 operation=REWRITE_TRIAL_TASK_SUBMIT entity={} tenantId={} status=DEGRADED reason={}",
+                taskId,
+                run.getTenantId(),
+                ex.getMessage()
+            );
+        }
+    }
+
+    private String persistRecommendation(RewriteTrialRun run,
+                                         String parseTaskId,
+                                         String parseHistoryId,
+                                         String historyId,
+                                         String datasourceCode,
+                                         String sqlText,
+                                         String sqlFingerprint,
+                                         String candidateSql,
+                                         List<Map<String, Object>> sourceProblems,
+                                         List<Map<String, Object>> issueRuleLinks,
+                                         SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                         OptimizationTaskSuggestion suggestion) {
+        String recommendationId = recommendationIdFor(idempotencyKey(run, sqlFingerprint, sourceProblems));
+        if (recommendationRepository.findByRecommendationId(recommendationId) != null) {
+            return recommendationId;
+        }
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel ruleModel =
+            pipelineService.buildRecommendationRuleOutputModel(profile);
+        Instant now = Instant.now();
+        AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
+            .recommendationId(recommendationId)
+            .tenantId(run.getTenantId())
+            .recommendationType(RecommendationType.REWRITE)
+            .sourceSqlId(firstText(run.getSourceId(), parseHistoryId, parseTaskId, historyId))
+            .historyId(historyId)
+            .parseTaskId(parseTaskId)
+            .batchId(run.getBatchId())
+            .sqlFingerprint(sqlFingerprint)
+            .sourceSqlText(sqlText)
+            .recommendedSqlText(firstText(candidateSql, sqlText))
+            .targetEngine(DataSourceTypeEnum.AUTO.name())
+            .targetDatasource(trimToNull(datasourceCode))
+            .summary("解析问题已生成改写试算候选：" + String.join(", ", sourceIssueScenes(sourceProblems)))
+            .reason(firstText(suggestion.getPrimaryRecommendation(), "已根据解析问题生成保守改写试算。"))
+            .expectedGain(firstBenefitSummary(suggestion))
+            .benefitLevel(BenefitLevel.LOW)
+            .riskLevel(RiskLevel.MEDIUM)
+            .riskSummary("试算候选仅作为推荐证据，发布前必须通过改写记录审批与结果校验。")
+            .requiresDispatch(false)
+            .status(RecommendationStatus.RECOMMENDED)
+            .sourceType(GovernanceSourceType.PARSE)
+            .sourceKind(resolveGovernanceSourceKind(run.getSourceKind()))
+            .sourceId(firstText(run.getSourceId(), parseHistoryId, parseTaskId, historyId, run.getBatchId()))
+            .evidenceLevel(EvidenceLevel.STATIC_PARSE)
+            .sourceProblems(sourceProblems)
+            .issueRuleLinks(issueRuleLinks)
+            .ruleChain(ruleModel.getRuleChain())
+            .unappliedRules(ruleModel.getUnappliedRules())
+            .preconditions(ruleModel.getPreconditions())
+            .semanticRisks(ruleModel.getSemanticRisks())
+            .expectedBenefit(ruleModel.getExpectedBenefit())
+            .estimatedCost(ruleModel.getEstimatedCost())
+            .confidence(ruleModel.getConfidence())
+            .validationMethod(ruleModel.getValidationMethod())
+            .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
+            .autoApplyAllowed(Boolean.FALSE)
+            .manualReviewRequired(Boolean.valueOf(ruleModel.isManualReviewRequired()))
+            .createdBy("SYSTEM_REWRITE_TRIAL")
+            .createdAt(now)
+            .updatedAt(now)
+            .build();
+        recommendationRepository.save(recommendation);
+        return recommendationId;
+    }
+
+    private GovernanceSourceKind resolveGovernanceSourceKind(String sourceKind) {
+        String normalized = firstText(sourceKind, SOURCE_KIND_STRUCTURE_PARSE);
+        try {
+            return GovernanceSourceKind.valueOf(normalized);
+        } catch (RuntimeException ex) {
+            return GovernanceSourceKind.STRUCTURE_PARSE;
+        }
+    }
+
+    private String firstBenefitSummary(OptimizationTaskSuggestion suggestion) {
+        if (suggestion != null && suggestion.getBenefits() != null && !suggestion.getBenefits().isEmpty()) {
+            return suggestion.getBenefits().get(0).getSummary();
+        }
+        return "已生成可进入结果校验的静态试算候选。";
+    }
+
+    private List<String> readAppliedRules(OptimizationTaskSuggestion suggestion) {
+        String content = artifactContent(suggestion, "REWRITE_RULE_TRACE", "appliedRules");
+        if (!StringUtils.hasText(content)) {
+            return Collections.emptyList();
+        }
+        try {
+            List<String> values = objectMapper.readValue(content, STRING_LIST_TYPE);
+            List<String> result = new ArrayList<String>();
+            for (String value : values) {
+                if (StringUtils.hasText(value)) {
+                    result.add(value.trim());
+                }
+            }
+            return result;
+        } catch (Exception ex) {
+            return Collections.emptyList();
+        }
+    }
+
+    private String artifactContent(OptimizationTaskSuggestion suggestion, String category, String name) {
+        if (suggestion == null || suggestion.getArtifacts() == null) {
+            return null;
+        }
+        for (OptimizationTaskArtifact artifact : suggestion.getArtifacts()) {
+            if (artifact != null && category.equals(artifact.getCategory()) && name.equals(artifact.getName())) {
+                return artifact.getContent();
+            }
+        }
+        return null;
+    }
+
+    private void refreshRunSummary(RewriteTrialRun run, List<RewriteTrialItem> items, Instant now) {
+        int accepted = 0;
+        int skipped = 0;
+        int failed = 0;
+        int recommended = 0;
+        int noSafe = 0;
+        int running = 0;
+        for (RewriteTrialItem item : items) {
+            if (item.getTrialStatus() == RewriteTrialStatus.NOT_REQUESTED) {
+                skipped++;
+            } else {
+                accepted++;
+            }
+            if (item.getTrialStatus() == RewriteTrialStatus.FAILED) {
+                failed++;
+            } else if (item.getTrialStatus() == RewriteTrialStatus.RECOMMENDED) {
+                recommended++;
+            } else if (item.getTrialStatus() == RewriteTrialStatus.NO_SAFE_REWRITE) {
+                noSafe++;
+            } else if (item.getTrialStatus() == RewriteTrialStatus.QUEUED || item.getTrialStatus() == RewriteTrialStatus.RUNNING) {
+                running++;
+            }
+        }
+        RewriteTrialStatus status = aggregateStatus(items.size(), accepted, failed, recommended, noSafe, running);
+        run.refreshSummary(items.size(), accepted, skipped, status, now);
+    }
+
+    private RewriteTrialStatus aggregateStatus(int total, int accepted, int failed, int recommended, int noSafe, int running) {
+        if (total == 0 || accepted == 0) {
+            return RewriteTrialStatus.NOT_REQUESTED;
+        }
+        if (running > 0) {
+            return RewriteTrialStatus.RUNNING;
+        }
+        if (failed == accepted) {
+            return RewriteTrialStatus.FAILED;
+        }
+        if (recommended > 0) {
+            return RewriteTrialStatus.RECOMMENDED;
+        }
+        if (noSafe > 0) {
+            return RewriteTrialStatus.NO_SAFE_REWRITE;
+        }
+        return RewriteTrialStatus.CANDIDATE_GENERATED;
+    }
+
+    private RewriteTrialRunVO toRunVo(RewriteTrialRun run, List<RewriteTrialItem> items) {
+        RewriteTrialRunVO vo = new RewriteTrialRunVO();
+        vo.setRunId(run.getRunId());
+        vo.setTenantId(run.getTenantId());
+        vo.setSourceKind(run.getSourceKind());
+        vo.setSourceId(run.getSourceId());
+        vo.setBatchId(run.getBatchId());
+        vo.setTrialStatus(run.getStatus().name());
+        vo.setTotalCount(Integer.valueOf(run.getTotalCount()));
+        vo.setAcceptedCount(Integer.valueOf(run.getAcceptedCount()));
+        vo.setSkippedCount(Integer.valueOf(run.getSkippedCount()));
+        vo.setQueuedCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.QUEUED)));
+        vo.setRunningCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.RUNNING)));
+        vo.setCandidateGeneratedCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.CANDIDATE_GENERATED)
+            + countStatus(items, RewriteTrialStatus.RECOMMENDED)
+            + countStatus(items, RewriteTrialStatus.RECORD_CREATED)));
+        vo.setNoSafeRewriteCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.NO_SAFE_REWRITE)));
+        vo.setFailedCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.FAILED)));
+        vo.setRecommendedCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.RECOMMENDED)));
+        vo.setRecordCreatedCount(Integer.valueOf(countStatus(items, RewriteTrialStatus.RECORD_CREATED)));
+        vo.setCreatedBy(run.getCreatedBy());
+        vo.setCreatedAt(run.getCreatedAt());
+        vo.setUpdatedAt(run.getUpdatedAt());
+        List<RewriteTrialItemVO> itemVos = new ArrayList<RewriteTrialItemVO>(items.size());
+        for (RewriteTrialItem item : items) {
+            itemVos.add(toItemVo(item));
+        }
+        vo.setItems(itemVos);
+        return vo;
+    }
+
+    private RewriteTrialItemVO toItemVo(RewriteTrialItem item) {
+        RewriteTrialItemVO vo = new RewriteTrialItemVO();
+        vo.setTrialItemId(item.getTrialItemId());
+        vo.setRunId(item.getRunId());
+        vo.setBatchItemId(item.getBatchItemId());
+        vo.setParseTaskId(item.getParseTaskId());
+        vo.setParseHistoryId(item.getParseHistoryId());
+        vo.setHistoryId(item.getHistoryId());
+        vo.setSqlFingerprint(item.getSqlFingerprint());
+        vo.setDatasourceCode(item.getDatasourceCode());
+        vo.setSourceSqlText(item.getSourceSqlText());
+        vo.setSourceProblems(item.getSourceProblems());
+        vo.setTaskId(item.getTaskId());
+        vo.setRecommendationId(item.getRecommendationId());
+        vo.setRewriteRecordId(item.getRewriteRecordId());
+        vo.setTrialStatus(item.getTrialStatus().name());
+        vo.setFailureReason(item.getFailureReason());
+        vo.setCandidateSql(item.getCandidateSql());
+        vo.setValidationStatus(item.getValidationStatus());
+        vo.setIssueRuleLinks(item.getIssueRuleLinks());
+        vo.setCreatedAt(item.getCreatedAt());
+        vo.setUpdatedAt(item.getUpdatedAt());
+        return vo;
+    }
+
+    private int countStatus(List<RewriteTrialItem> items, RewriteTrialStatus status) {
+        int count = 0;
+        for (RewriteTrialItem item : items) {
+            if (item.getTrialStatus() == status) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countEligible(List<RewriteTrialItem> items) {
+        int count = 0;
+        for (RewriteTrialItem item : items) {
+            if (!item.getSourceProblems().isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countTrialed(List<RewriteTrialItem> items) {
+        int count = 0;
+        for (RewriteTrialItem item : items) {
+            if (isTrialed(item)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean isTrialed(RewriteTrialItem item) {
+        return item.getTrialStatus() != RewriteTrialStatus.NOT_REQUESTED;
+    }
+
+    private boolean hasCandidate(RewriteTrialItem item) {
+        return item.getTrialStatus() == RewriteTrialStatus.CANDIDATE_GENERATED
+            || item.getTrialStatus() == RewriteTrialStatus.RECOMMENDED
+            || item.getTrialStatus() == RewriteTrialStatus.RECORD_CREATED;
+    }
+
+    private int countManualReview(List<RewriteTrialItem> items) {
+        int count = 0;
+        for (RewriteTrialItem item : items) {
+            if (manualReviewRequired(item)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean manualReviewRequired(RewriteTrialItem item) {
+        for (Map<String, Object> link : item.getIssueRuleLinks()) {
+            String action = objectText(link.get("ruleAction"));
+            String conclusion = objectText(link.get("trialConclusion"));
+            if (!"APPLIED".equals(action) || !"CANDIDATE_GENERATED".equals(conclusion)) {
+                return true;
+            }
+        }
+        return item.getTrialStatus() == RewriteTrialStatus.NO_SAFE_REWRITE;
+    }
+
+    private int countValidation(List<RewriteTrialItem> items, String first, String second) {
+        int count = 0;
+        for (RewriteTrialItem item : items) {
+            if (matchesValidation(item.getValidationStatus(), first, second)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean matchesValidation(String validationStatus, String first, String second) {
+        return first.equals(validationStatus) || second.equals(validationStatus);
+    }
+
+    private Set<String> sourceIssueScenes(List<Map<String, Object>> sourceProblems) {
+        LinkedHashSet<String> scenes = new LinkedHashSet<String>();
+        if (sourceProblems == null) {
+            return scenes;
+        }
+        for (Map<String, Object> problem : sourceProblems) {
+            String scene = objectText(problem.get("issueScene"));
+            if (StringUtils.hasText(scene)) {
+                scenes.add(scene);
+            }
+        }
+        return scenes;
+    }
+
+    private Double ratio(int numerator, int denominator) {
+        return Double.valueOf(denominator <= 0 ? 0D : (double) numerator / (double) denominator);
+    }
+
+    private List<Map<String, Object>> skipProblem(String issueScene,
+                                                  String parseTaskId,
+                                                  String parseHistoryId,
+                                                  String historyId,
+                                                  String batchItemId) {
+        return Collections.singletonList(sourceProblem("ISSUE_SCENE", issueScene, issueScene, "HIGH", "P1",
+            "该 SQL 无法进入安全改写试算", parseTaskId, parseHistoryId, historyId, batchItemId));
+    }
+
+    private Map<String, Object> sourceProblem(String problemType,
+                                              String issueScene,
+                                              String issueCode,
+                                              String severity,
+                                              String priorityLevel,
+                                              String summary,
+                                              String parseTaskId,
+                                              String parseHistoryId,
+                                              String historyId,
+                                              String batchItemId) {
+        LinkedHashMap<String, Object> problem = new LinkedHashMap<String, Object>();
+        problem.put("problemType", problemType);
+        problem.put("issueScene", issueScene);
+        problem.put("issueCode", issueCode);
+        problem.put("severity", severity);
+        problem.put("priorityLevel", priorityLevel);
+        problem.put("summary", summary);
+        problem.put("evidenceRef", evidenceRef(parseTaskId, parseHistoryId, historyId, batchItemId));
+        return problem;
+    }
+
+    private Map<String, Object> evidenceRef(String parseTaskId,
+                                            String parseHistoryId,
+                                            String historyId,
+                                            String batchItemId) {
+        LinkedHashMap<String, Object> evidenceRef = new LinkedHashMap<String, Object>();
+        evidenceRef.put("parseTaskId", trimToNull(parseTaskId));
+        evidenceRef.put("parseHistoryId", trimToNull(parseHistoryId));
+        evidenceRef.put("historyId", trimToNull(historyId));
+        evidenceRef.put("batchItemId", trimToNull(batchItemId));
+        return evidenceRef;
+    }
+
+    private Object firstValue(Map<String, Object> map, String first, String second, String third) {
+        Object value = map.get(first);
+        if (value != null) {
+            return value;
+        }
+        value = map.get(second);
+        return value == null ? map.get(third) : value;
+    }
+
+    private String severityFor(String scene) {
+        if ("OR_PREDICATE_INDEX_RISK".equals(scene) || "NESTED_SUBQUERY_RISK".equals(scene)) {
+            return "HIGH";
+        }
+        if ("SELECT_STAR".equals(scene) || "LEADING_WILDCARD_LIKE_RISK".equals(scene)) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String priorityFor(String scene) {
+        if ("OR_PREDICATE_INDEX_RISK".equals(scene) || "NESTED_SUBQUERY_RISK".equals(scene)) {
+            return "P2";
+        }
+        return SAFE_REWRITE_PROBLEMS.contains(scene) ? "P3" : "P2";
+    }
+
+    private String summaryFor(String scene) {
+        return SAFE_REWRITE_PROBLEMS.contains(scene) ? safeRuleSummary(scene) : manualProblemSummary(scene);
+    }
+
+    private String safeRuleSummary(String rule) {
+        if ("COUNT_LITERAL_TO_COUNT_STAR".equals(rule)) {
+            return "COUNT 非空字面量可保守改写为 COUNT(*)";
+        }
+        if ("DEDUPLICATE_WHERE_PREDICATES".equals(rule)) {
+            return "WHERE 中存在重复谓词，可保守去重";
+        }
+        if ("DEDUPLICATE_HAVING_PREDICATES".equals(rule)) {
+            return "HAVING 中存在重复谓词，可保守去重";
+        }
+        if ("DEDUPLICATE_GROUP_BY_KEYS".equals(rule)) {
+            return "GROUP BY 中存在重复分组键，可保守去重";
+        }
+        if ("DEDUPLICATE_ORDER_BY_KEYS".equals(rule)) {
+            return "ORDER BY 中存在重复排序键，可保守去重";
+        }
+        return "命中保守语法改写候选";
+    }
+
+    private String manualProblemSummary(String scene) {
+        if ("SELECT_STAR".equals(scene)) {
+            return "SELECT * 需要列元数据后才能展开投影";
+        }
+        if ("OR_PREDICATE_INDEX_RISK".equals(scene)) {
+            return "OR 谓词存在索引风险，但自动改写需要互斥或去重证明";
+        }
+        if ("NESTED_SUBQUERY_RISK".equals(scene)) {
+            return "嵌套子查询改写需要语义等价证明";
+        }
+        if ("LEADING_WILDCARD_LIKE_RISK".equals(scene)) {
+            return "前导通配符 LIKE 更适合索引或搜索能力治理";
+        }
+        return "解析问题需要人工评审";
+    }
+
+    private boolean isEligibleProblem(String scene) {
+        return StringUtils.hasText(scene)
+            && !SKIPPED_PROBLEMS.contains(scene)
+            && (SAFE_REWRITE_PROBLEMS.contains(scene) || MANUAL_REVIEW_PROBLEMS.contains(scene));
+    }
+
+    private Set<String> normalizeFilter(List<String> issueSceneFilter) {
+        if (issueSceneFilter == null || issueSceneFilter.isEmpty()) {
+            return Collections.emptySet();
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<String>();
+        for (String issueScene : issueSceneFilter) {
+            String normalized = trimToNull(issueScene);
+            if (normalized != null) {
+                result.add(normalized);
+            }
+        }
+        return result;
+    }
+
+    private int normalizeMaxItems(Integer maxItems) {
+        if (maxItems == null || maxItems.intValue() <= 0) {
+            return DEFAULT_BATCH_MAX_ITEMS;
+        }
+        return Math.min(maxItems.intValue(), HARD_BATCH_MAX_ITEMS);
+    }
+
+    private ParseBatch requireBatch(String batchId, String tenantId) {
+        ParseBatch batch = parseBatchRepository.findByBatchId(requireText(batchId, "batchId"));
+        if (batch == null) {
+            throw new BizException(
+                ErrorCodeConstants.SQL_OPTIMIZATION_TASK_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
+                "解析批次不存在，batchId=" + batchId
+            );
+        }
+        if (!tenantId.equals(batch.getTenantId())) {
+            throw new AccessDeniedException("当前认证租户无权访问该解析批次");
+        }
+        return batch;
+    }
+
+    private RewriteTrialRun requireRun(String runId) {
+        RewriteTrialRun run = rewriteTrialRepository.findRunById(requireText(runId, "runId"));
+        if (run == null) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_RESOURCE_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
+                "改写试算不存在，runId=" + runId
+            );
+        }
+        verifyTenantAccess(run.getTenantId());
+        return run;
+    }
+
+    private String requireAuthorizedTenant(String requestTenantId) {
+        String contextTenantId = requireContextTenant();
+        if (StringUtils.hasText(requestTenantId) && !contextTenantId.equals(requestTenantId.trim())) {
+            throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
+        }
+        return contextTenantId;
+    }
+
+    private String requireContextTenant() {
+        String tenantId = RequestContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            throw new BizException(
+                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
+                HttpStatus.UNAUTHORIZED,
+                "已认证请求上下文缺少 tenantId"
+            );
+        }
+        return tenantId;
+    }
+
+    private void verifyTenantAccess(String tenantId) {
+        if (!requireContextTenant().equals(tenantId)) {
+            throw new AccessDeniedException("当前认证租户无权访问该改写试算");
+        }
+    }
+
+    private BizException invalidArgument(String field, String message) {
+        return new BizException(ErrorCodeConstants.SQL_OPTIMIZATION_TASK_INVALID, HttpStatus.BAD_REQUEST,
+            field + ": " + message);
+    }
+
+    private String requireText(String value, String field) {
+        if (!StringUtils.hasText(value)) {
+            throw invalidArgument(field, field + " 为必填项");
+        }
+        return value.trim();
+    }
+
+    private String trimToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String firstText(String first, String second) {
+        return StringUtils.hasText(first) ? first.trim() : trimToNull(second);
+    }
+
+    private String firstText(String first, String second, String third) {
+        return firstText(firstText(first, second), third);
+    }
+
+    private String firstText(String first, String second, String third, String fourth) {
+        return firstText(firstText(first, second, third), fourth);
+    }
+
+    private String firstText(String first, String second, String third, String fourth, String fifth) {
+        return firstText(firstText(first, second, third, fourth), fifth);
+    }
+
+    private String objectText(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value);
+        return StringUtils.hasText(text) ? text.trim().toUpperCase(Locale.ROOT) : null;
+    }
+
+    private String idempotencyKey(RewriteTrialRun run, String sqlFingerprint, List<Map<String, Object>> sourceProblems) {
+        return run.getTenantId()
+            + "|REWRITE_TRIAL|"
+            + firstText(run.getSourceKind(), "UNKNOWN")
+            + "|"
+            + firstText(run.getSourceId(), run.getBatchId(), "NO_SOURCE")
+            + "|"
+            + firstText(sqlFingerprint, "NO_FINGERPRINT")
+            + "|"
+            + String.join(",", sourceIssueScenes(sourceProblems));
+    }
+
+    private String taskIdFor(String key) {
+        return "rewrite-trial-task-" + UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private String recommendationIdFor(String key) {
+        return "rewrite-trial-reco-" + UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private static final class SourceIssueAccumulator {
+        private final String sourceIssueScene;
+        private int eligibleSqlCount;
+        private int trialedSqlCount;
+        private int candidateGeneratedCount;
+        private int noSafeRewriteCount;
+        private int manualReviewRequiredCount;
+        private int validationPassedCount;
+
+        private SourceIssueAccumulator(String sourceIssueScene) {
+            this.sourceIssueScene = sourceIssueScene;
+        }
+    }
+}

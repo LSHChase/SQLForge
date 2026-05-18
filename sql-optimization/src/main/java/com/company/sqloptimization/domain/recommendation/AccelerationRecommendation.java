@@ -55,6 +55,8 @@ public class AccelerationRecommendation {
     private final RewriteValidationStatus validationStatus;
     private final boolean autoApplyAllowed;
     private final boolean manualReviewRequired;
+    private final List<Map<String, Object>> sourceProblems;
+    private final List<Map<String, Object>> issueRuleLinks;
     private final String createdBy;
     private final Instant createdAt;
     private final Instant updatedAt;
@@ -104,6 +106,8 @@ public class AccelerationRecommendation {
         this.manualReviewRequired = builder.manualReviewRequired == null
             ? true
             : Boolean.TRUE.equals(builder.manualReviewRequired);
+        this.sourceProblems = immutableListCopy(builder.sourceProblems);
+        this.issueRuleLinks = immutableListCopy(builder.issueRuleLinks);
         this.createdBy = builder.createdBy;
         this.createdAt = builder.createdAt;
         this.updatedAt = builder.updatedAt == null ? builder.createdAt : builder.updatedAt;
@@ -190,6 +194,8 @@ public class AccelerationRecommendation {
     public RewriteValidationStatus getValidationStatus() { return validationStatus; }
     public boolean isAutoApplyAllowed() { return autoApplyAllowed; }
     public boolean isManualReviewRequired() { return manualReviewRequired; }
+    public List<Map<String, Object>> getSourceProblems() { return sourceProblems; }
+    public List<Map<String, Object>> getIssueRuleLinks() { return issueRuleLinks; }
     public String getCreatedBy() { return createdBy; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -265,6 +271,8 @@ public class AccelerationRecommendation {
         private RewriteValidationStatus validationStatus;
         private Boolean autoApplyAllowed;
         private Boolean manualReviewRequired;
+        private List<Map<String, Object>> sourceProblems;
+        private List<Map<String, Object>> issueRuleLinks;
         private String createdBy;
         private Instant createdAt;
         private Instant updatedAt;
@@ -312,6 +320,8 @@ public class AccelerationRecommendation {
         public Builder validationStatus(RewriteValidationStatus validationStatus) { this.validationStatus = validationStatus; return this; }
         public Builder autoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; return this; }
         public Builder manualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; return this; }
+        public Builder sourceProblems(List<Map<String, Object>> sourceProblems) { this.sourceProblems = sourceProblems; return this; }
+        public Builder issueRuleLinks(List<Map<String, Object>> issueRuleLinks) { this.issueRuleLinks = issueRuleLinks; return this; }
         public Builder createdBy(String createdBy) { this.createdBy = createdBy; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }

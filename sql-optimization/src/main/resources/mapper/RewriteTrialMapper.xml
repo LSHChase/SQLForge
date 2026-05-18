@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.RewriteTrialMapper">
+
+    <resultMap id="RewriteTrialRunRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord">
+        <id property="runId" column="run_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sourceKind" column="source_kind"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="batchId" column="batch_id"/>
+        <result property="status" column="status"/>
+        <result property="totalCount" column="total_count"/>
+        <result property="acceptedCount" column="accepted_count"/>
+        <result property="skippedCount" column="skipped_count"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="RewriteTrialItemRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialItemRecord">
+        <id property="trialItemId" column="trial_item_id"/>
+        <result property="runId" column="run_id"/>
+        <result property="batchItemId" column="batch_item_id"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="parseHistoryId" column="parse_history_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="sourceSqlText" column="source_sql_text"/>
+        <result property="sourceProblemsJson" column="source_problems_json"/>
+        <result property="taskId" column="task_id"/>
+        <result property="recommendationId" column="recommendation_id"/>
+        <result property="rewriteRecordId" column="rewrite_record_id"/>
+        <result property="trialStatus" column="trial_status"/>
+        <result property="failureReason" column="failure_reason"/>
+        <result property="candidateSql" column="candidate_sql"/>
+        <result property="validationStatus" column="validation_status"/>
+        <result property="issueRuleLinksJson" column="issue_rule_links_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="RunColumns">
+        run_id, tenant_id, source_kind, source_id, batch_id, status, total_count, accepted_count,
+        skipped_count, created_by, created_at, updated_at
+    </sql>
+
+    <sql id="ItemColumns">
+        trial_item_id, run_id, batch_item_id, parse_task_id, parse_history_id, history_id,
+        sql_fingerprint, datasource_code, source_sql_text, source_problems_json, task_id,
+        recommendation_id, rewrite_record_id, trial_status, failure_reason, candidate_sql,
+        validation_status, issue_rule_links_json, created_at, updated_at
+    </sql>
+
+    <select id="selectRunById" resultMap="RewriteTrialRunRecordMap">
+        SELECT <include refid="RunColumns"/>
+        FROM rewrite_trial_run
+        WHERE run_id = #{runId}
+    </select>
+
+    <select id="selectRunsByTenantId" resultMap="RewriteTrialRunRecordMap">
+        SELECT <include refid="RunColumns"/>
+        FROM rewrite_trial_run
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectLatestRunByBatchId" resultMap="RewriteTrialRunRecordMap">
+        SELECT <include refid="RunColumns"/>
+        FROM rewrite_trial_run
+        WHERE tenant_id = #{tenantId}
+          AND batch_id = #{batchId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertRun" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord">
+        INSERT INTO rewrite_trial_run (
+            run_id, tenant_id, source_kind, source_id, batch_id, status, total_count, accepted_count,
+            skipped_count, created_by, created_at, updated_at
+        ) VALUES (
+            #{runId}, #{tenantId}, #{sourceKind}, #{sourceId}, #{batchId}, #{status}, #{totalCount}, #{acceptedCount},
+            #{skippedCount}, #{createdBy}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateRun" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord">
+        UPDATE rewrite_trial_run
+        SET tenant_id = #{tenantId},
+            source_kind = #{sourceKind},
+            source_id = #{sourceId},
+            batch_id = #{batchId},
+            status = #{status},
+            total_count = #{totalCount},
+            accepted_count = #{acceptedCount},
+            skipped_count = #{skippedCount},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE run_id = #{runId}
+    </update>
+
+    <select id="selectItemById" resultMap="RewriteTrialItemRecordMap">
+        SELECT <include refid="ItemColumns"/>
+        FROM rewrite_trial_item
+        WHERE trial_item_id = #{trialItemId}
+    </select>
+
+    <select id="selectItemsByRunId" resultMap="RewriteTrialItemRecordMap">
+        SELECT <include refid="ItemColumns"/>
+        FROM rewrite_trial_item
+        WHERE run_id = #{runId}
+        ORDER BY created_at ASC, trial_item_id ASC
+    </select>
+
+    <select id="selectItemsByTenantId" resultMap="RewriteTrialItemRecordMap">
+        SELECT i.*
+        FROM rewrite_trial_item i
+        INNER JOIN rewrite_trial_run r ON r.run_id = i.run_id
+        WHERE r.tenant_id = #{tenantId}
+        ORDER BY i.created_at DESC
+    </select>
+
+    <insert id="insertItem" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialItemRecord">
+        INSERT INTO rewrite_trial_item (
+            trial_item_id, run_id, batch_item_id, parse_task_id, parse_history_id, history_id,
+            sql_fingerprint, datasource_code, source_sql_text, source_problems_json, task_id,
+            recommendation_id, rewrite_record_id, trial_status, failure_reason, candidate_sql,
+            validation_status, issue_rule_links_json, created_at, updated_at
+        ) VALUES (
+            #{trialItemId}, #{runId}, #{batchItemId}, #{parseTaskId}, #{parseHistoryId}, #{historyId},
+            #{sqlFingerprint}, #{datasourceCode}, #{sourceSqlText}, #{sourceProblemsJson}, #{taskId},
+            #{recommendationId}, #{rewriteRecordId}, #{trialStatus}, #{failureReason}, #{candidateSql},
+            #{validationStatus}, #{issueRuleLinksJson}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateItem" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialItemRecord">
+        UPDATE rewrite_trial_item
+        SET run_id = #{runId},
+            batch_item_id = #{batchItemId},
+            parse_task_id = #{parseTaskId},
+            parse_history_id = #{parseHistoryId},
+            history_id = #{historyId},
+            sql_fingerprint = #{sqlFingerprint},
+            datasource_code = #{datasourceCode},
+            source_sql_text = #{sourceSqlText},
+            source_problems_json = #{sourceProblemsJson},
+            task_id = #{taskId},
+            recommendation_id = #{recommendationId},
+            rewrite_record_id = #{rewriteRecordId},
+            trial_status = #{trialStatus},
+            failure_reason = #{failureReason},
+            candidate_sql = #{candidateSql},
+            validation_status = #{validationStatus},
+            issue_rule_links_json = #{issueRuleLinksJson},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt}
+        WHERE trial_item_id = #{trialItemId}
+    </update>
+</mapper>

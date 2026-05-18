@@ -33,6 +33,10 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS rewrite_validation_run");
         assertContains(schema, "auto_apply_paused TINYINT(1) NOT NULL DEFAULT 0");
         assertContains(schema, "original_result_digest_json JSON DEFAULT NULL");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS rewrite_trial_run");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS rewrite_trial_item");
+        assertContains(schema, "source_problems_json JSON DEFAULT NULL");
+        assertContains(schema, "issue_rule_links_json JSON DEFAULT NULL");
     }
 
     @Test
@@ -55,9 +59,19 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(reviewPublishMigration, "ADD COLUMN publish_status VARCHAR(32) NOT NULL DEFAULT 'UNPUBLISHED'");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL");
+        String trialMigration = readRepositoryFile(
+            "sql/migrations/V20260518_001__rewrite_trial_issue_driven_persistence.sql"
+        );
+        assertContains(trialMigration, "CREATE TABLE IF NOT EXISTS rewrite_trial_run");
+        assertContains(trialMigration, "CREATE TABLE IF NOT EXISTS rewrite_trial_item");
+        assertContains(trialMigration, "ADD COLUMN source_problems_json JSON DEFAULT NULL");
         assertFalse(
             reviewPublishMigration.toUpperCase().contains("FOREIGN KEY"),
             "review/publish migration 不得新增物理外键约束"
+        );
+        assertFalse(
+            trialMigration.toUpperCase().contains("FOREIGN KEY"),
+            "rewrite trial migration 不得新增物理外键约束"
         );
     }
 
@@ -66,6 +80,7 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         String candidateMapper = readMapper("mapper/AccelerationCandidateMapper.xml");
         String rewriteMapper = readMapper("mapper/SqlRewriteRecordMapper.xml");
         String validationMapper = readMapper("mapper/RewriteValidationRunMapper.xml");
+        String trialMapper = readMapper("mapper/RewriteTrialMapper.xml");
 
         assertContains(candidateMapper, "FROM acceleration_candidate");
         assertContains(candidateMapper, "source_evidence_json");
@@ -82,9 +97,14 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(validationMapper, "FROM rewrite_validation_run");
         assertContains(validationMapper, "auto_apply_paused");
         assertContains(validationMapper, "ORDER BY started_at DESC");
+        assertContains(trialMapper, "FROM rewrite_trial_run");
+        assertContains(trialMapper, "FROM rewrite_trial_item");
+        assertContains(trialMapper, "source_problems_json");
+        assertContains(trialMapper, "issue_rule_links_json");
         assertFalse(candidateMapper.contains("${"), "candidate mapper 必须使用绑定参数");
         assertFalse(rewriteMapper.contains("${"), "rewrite mapper 必须使用绑定参数");
         assertFalse(validationMapper.contains("${"), "validation mapper 必须使用绑定参数");
+        assertFalse(trialMapper.contains("${"), "rewrite trial mapper 必须使用绑定参数");
     }
 
     private static String readMapper(String resourcePath) throws IOException {

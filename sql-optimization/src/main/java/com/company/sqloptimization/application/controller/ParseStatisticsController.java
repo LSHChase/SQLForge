@@ -5,7 +5,10 @@ import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrix
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseSqlIssueStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialOverviewVO;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialSourceIssueStatisticVO;
 import com.company.sqloptimization.application.service.ParseStatisticsApplicationService;
+import com.company.sqloptimization.application.service.RewriteTrialApplicationService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,9 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ParseStatisticsController {
 
     private final ParseStatisticsApplicationService parseStatisticsApplicationService;
+    private final RewriteTrialApplicationService rewriteTrialApplicationService;
 
-    public ParseStatisticsController(ParseStatisticsApplicationService parseStatisticsApplicationService) {
+    public ParseStatisticsController(ParseStatisticsApplicationService parseStatisticsApplicationService,
+                                     RewriteTrialApplicationService rewriteTrialApplicationService) {
         this.parseStatisticsApplicationService = parseStatisticsApplicationService;
+        this.rewriteTrialApplicationService = rewriteTrialApplicationService;
     }
 
     @GetMapping("/overview")
@@ -49,5 +55,15 @@ public class ParseStatisticsController {
     @GetMapping("/important-urgent")
     public List<ParseSqlIssueStatisticVO> importantUrgent() {
         return parseStatisticsApplicationService.importantUrgentList();
+    }
+
+    @GetMapping("/rewrite-trials/overview")
+    public RewriteTrialOverviewVO rewriteTrialOverview() {
+        return rewriteTrialApplicationService.overview();
+    }
+
+    @GetMapping("/rewrite-trials/by-source-issue")
+    public List<RewriteTrialSourceIssueStatisticVO> rewriteTrialsBySourceIssue() {
+        return rewriteTrialApplicationService.bySourceIssue();
     }
 }

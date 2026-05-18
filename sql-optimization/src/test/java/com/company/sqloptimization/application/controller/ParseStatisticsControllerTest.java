@@ -11,6 +11,7 @@ import com.company.sqloptimization.application.controller.vo.ParsePriorityMatrix
 import com.company.sqloptimization.application.controller.vo.ParseReportStatisticVO;
 import com.company.sqloptimization.application.controller.vo.ParseStatisticsOverviewVO;
 import com.company.sqloptimization.application.service.ParseStatisticsApplicationService;
+import com.company.sqloptimization.application.service.RewriteTrialApplicationService;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class ParseStatisticsControllerTest {
 
     @MockBean
     private ParseStatisticsApplicationService parseStatisticsApplicationService;
+
+    @MockBean
+    private RewriteTrialApplicationService rewriteTrialApplicationService;
 
     @Test
     void shouldExposeParseStatisticsOverviewEndpoint() throws Exception {

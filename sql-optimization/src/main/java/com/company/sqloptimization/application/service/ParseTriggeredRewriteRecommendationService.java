@@ -161,6 +161,8 @@ public class ParseTriggeredRewriteRecommendationService {
             ? candidateSql.trim()
             : task.getSqlText();
         SqlOptimizationPipelineService.RecommendationRuleOutputModel ruleModel = buildRuleModel(task);
+        List<Map<String, Object>> sourceProblems = buildSourceProblems(task, targetIssueScenes);
+        List<Map<String, Object>> issueRuleLinks = buildIssueRuleLinks(targetIssueScenes, appliedRules);
         Instant now = Instant.now();
         AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
             .recommendationId(recommendationId)
@@ -188,6 +190,8 @@ public class ParseTriggeredRewriteRecommendationService {
             .sourceKind(resolveGovernanceSourceKind(context))
             .sourceId(firstText(context.getSourceId(), context.getHistoryId(), context.getParseTaskId(), context.getBatchId()))
             .evidenceLevel(EvidenceLevel.STATIC_PARSE)
+            .sourceProblems(sourceProblems)
+            .issueRuleLinks(issueRuleLinks)
             .ruleChain(ruleModel.getRuleChain())
             .unappliedRules(ruleModel.getUnappliedRules())
             .preconditions(ruleModel.getPreconditions())
@@ -212,6 +216,62 @@ public class ParseTriggeredRewriteRecommendationService {
             context.getHistoryId(),
             targetIssueScenes
         );
+    }
+
+    private List<Map<String, Object>> buildSourceProblems(OptimizationTask task, List<String> targetIssueScenes) {
+        List<Map<String, Object>> problems = new ArrayList<Map<String, Object>>();
+        OptimizationTaskSourceContext context = task.getSourceContext();
+        for (String scene : targetIssueScenes) {
+            java.util.LinkedHashMap<String, Object> problem = new java.util.LinkedHashMap<String, Object>();
+            problem.put("problemType", "ISSUE_SCENE");
+            problem.put("issueScene", scene);
+            problem.put("issueCode", scene);
+            problem.put("severity", "SELECT_STAR".equals(scene) ? "MEDIUM" : "HIGH");
+            problem.put("priorityLevel", "P2");
+            problem.put("summary", "解析问题触发改写试算：" + scene);
+            java.util.LinkedHashMap<String, Object> evidenceRef = new java.util.LinkedHashMap<String, Object>();
+            evidenceRef.put("parseTaskId", context.getParseTaskId());
+            evidenceRef.put("parseHistoryId", context.getHistoryId());
+            evidenceRef.put("batchId", context.getBatchId());
+            problem.put("evidenceRef", evidenceRef);
+            problems.add(problem);
+        }
+        return problems;
+    }
+
+    private List<Map<String, Object>> buildIssueRuleLinks(List<String> targetIssueScenes, List<String> appliedRules) {
+        List<Map<String, Object>> links = new ArrayList<Map<String, Object>>();
+        for (String scene : targetIssueScenes) {
+            java.util.LinkedHashMap<String, Object> link = new java.util.LinkedHashMap<String, Object>();
+            link.put("sourceIssueScene", scene);
+            if ("SELECT_STAR".equals(scene)) {
+                link.put("ruleCode", "SELECT_STAR_EXPANSION");
+                link.put("ruleLevel", "L1");
+                link.put("ruleAction", "UNAPPLIED");
+                link.put("trialConclusion", "REQUIRES_METADATA");
+                link.put("riskReason", "缺少列元数据，不自动展开星号投影");
+            } else if ("OR_PREDICATE_INDEX_RISK".equals(scene)) {
+                link.put("ruleCode", "OR_TO_UNION_ALL");
+                link.put("ruleLevel", "L1");
+                link.put("ruleAction", "UNAPPLIED");
+                link.put("trialConclusion", "REQUIRES_SEMANTIC_PROOF");
+                link.put("riskReason", "OR 改写需要互斥或去重证明");
+            } else if ("NESTED_SUBQUERY_RISK".equals(scene)) {
+                link.put("ruleCode", "SUBQUERY_TO_JOIN_OR_CTE");
+                link.put("ruleLevel", "L1");
+                link.put("ruleAction", "UNAPPLIED");
+                link.put("trialConclusion", "REQUIRES_SEMANTIC_PROOF");
+                link.put("riskReason", "子查询改写需要唯一性和 NULL 语义证明");
+            } else {
+                link.put("ruleCode", "LEADING_LIKE_REVIEW");
+                link.put("ruleLevel", "L1");
+                link.put("ruleAction", appliedRules.isEmpty() ? "SKIPPED" : "UNAPPLIED");
+                link.put("trialConclusion", "NO_SAFE_REWRITE");
+                link.put("riskReason", "该问题默认进入人工评审，不伪造候选 SQL");
+            }
+            links.add(link);
+        }
+        return links;
     }
 
     private SqlOptimizationPipelineService.RecommendationRuleOutputModel buildRuleModel(OptimizationTask task) {

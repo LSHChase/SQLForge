@@ -121,6 +121,8 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
         record.setValidationStatus(recommendation.getValidationStatus().name());
         record.setAutoApplyAllowed(Boolean.valueOf(recommendation.isAutoApplyAllowed()));
         record.setManualReviewRequired(Boolean.valueOf(recommendation.isManualReviewRequired()));
+        record.setSourceProblemsJson(writeList(recommendation.getSourceProblems()));
+        record.setIssueRuleLinksJson(writeList(recommendation.getIssueRuleLinks()));
         record.setCreatedBy(recommendation.getCreatedBy());
         record.setCreatedAt(toLocalDateTime(recommendation.getCreatedAt()));
         record.setUpdatedAt(toLocalDateTime(recommendation.getUpdatedAt()));
@@ -171,6 +173,8 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
                 : RewriteValidationStatus.valueOf(record.getValidationStatus()))
             .autoApplyAllowed(record.getAutoApplyAllowed())
             .manualReviewRequired(record.getManualReviewRequired())
+            .sourceProblems(readList(record.getSourceProblemsJson()))
+            .issueRuleLinks(readList(record.getIssueRuleLinksJson()))
             .createdBy(record.getCreatedBy())
             .createdAt(toInstant(record.getCreatedAt()))
             .updatedAt(toInstant(record.getUpdatedAt()))

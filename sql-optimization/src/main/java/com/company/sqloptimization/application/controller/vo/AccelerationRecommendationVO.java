@@ -46,6 +46,8 @@ public class AccelerationRecommendationVO {
     private String validationStatus;
     private Boolean autoApplyAllowed;
     private Boolean manualReviewRequired;
+    private List<Map<String, Object>> sourceProblems;
+    private List<Map<String, Object>> issueRuleLinks;
     private String createdBy;
     private Instant createdAt;
     private Instant updatedAt;
@@ -130,6 +132,10 @@ public class AccelerationRecommendationVO {
     public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
     public Boolean getManualReviewRequired() { return manualReviewRequired; }
     public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
+    public List<Map<String, Object>> getSourceProblems() { return sourceProblems; }
+    public void setSourceProblems(List<Map<String, Object>> sourceProblems) { this.sourceProblems = sourceProblems; }
+    public List<Map<String, Object>> getIssueRuleLinks() { return issueRuleLinks; }
+    public void setIssueRuleLinks(List<Map<String, Object>> issueRuleLinks) { this.issueRuleLinks = issueRuleLinks; }
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }

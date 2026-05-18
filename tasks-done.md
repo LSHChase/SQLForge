@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-TRIALS-20260518: 解析问题驱动的 SQL 改写试算
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-TRIALS-20260518 implement issue-driven rewrite trials`
+- Priority: 1
+- Depends on: N/A
+- Scope: Implement issue-driven SQL rewrite trial orchestration across sql-optimization APIs using sourceProblems and issueRuleLinks, preserving trial/recommendation/rewrite-record boundaries and adding tests for single and batch trial status semantics.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-TRIALS-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现解析问题驱动的改写试算编排、API、批量入口、统计入口、推荐/改写记录 trace 透传、持久化表与迁移，并补充服务/控制器/Schema 测试。
+  - Validation evidence: mvn -B -pl sql-optimization test；python3 scripts/foreman.py validate USER-CN-REWRITE-TRIALS-20260518；python3 scripts/task_audit.py --check --phase pre-closeout；git diff --check
+  - Residual risk: 前端界面接入仍需后续任务承接；本次后端接口与统计 VO 已就绪。
+  - Next step: 前端按 rewrite-trials API 接入单条解析页、批量解析中心和解析统计试算 tab。
+
 ### USER-CN-REWRITE-VALIDATION-PAGE-20260517: SQL 改写验证真实可用页面
 
 - Status: done

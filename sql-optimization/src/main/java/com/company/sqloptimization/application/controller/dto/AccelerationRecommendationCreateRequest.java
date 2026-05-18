@@ -61,6 +61,8 @@ public class AccelerationRecommendationCreateRequest {
     private RewriteValidationStatus validationStatus;
     private Boolean autoApplyAllowed;
     private Boolean manualReviewRequired;
+    private List<Map<String, Object>> sourceProblems;
+    private List<Map<String, Object>> issueRuleLinks;
 
     public String getTenantId() { return tenantId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
@@ -140,4 +142,8 @@ public class AccelerationRecommendationCreateRequest {
     public void setAutoApplyAllowed(Boolean autoApplyAllowed) { this.autoApplyAllowed = autoApplyAllowed; }
     public Boolean getManualReviewRequired() { return manualReviewRequired; }
     public void setManualReviewRequired(Boolean manualReviewRequired) { this.manualReviewRequired = manualReviewRequired; }
+    public List<Map<String, Object>> getSourceProblems() { return sourceProblems; }
+    public void setSourceProblems(List<Map<String, Object>> sourceProblems) { this.sourceProblems = sourceProblems; }
+    public List<Map<String, Object>> getIssueRuleLinks() { return issueRuleLinks; }
+    public void setIssueRuleLinks(List<Map<String, Object>> issueRuleLinks) { this.issueRuleLinks = issueRuleLinks; }
 }

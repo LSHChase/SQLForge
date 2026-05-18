@@ -99,6 +99,8 @@ public class AccelerationRecommendationApplicationService {
             .validationStatus(request.getValidationStatus())
             .autoApplyAllowed(Boolean.valueOf(Boolean.TRUE.equals(request.getAutoApplyAllowed())))
             .manualReviewRequired(request.getManualReviewRequired())
+            .sourceProblems(request.getSourceProblems())
+            .issueRuleLinks(request.getIssueRuleLinks())
             .createdBy(RequestContext.getUserId())
             .createdAt(now)
             .updatedAt(now)
@@ -283,6 +285,8 @@ public class AccelerationRecommendationApplicationService {
         vo.setValidationStatus(recommendation.getValidationStatus().name());
         vo.setAutoApplyAllowed(Boolean.valueOf(recommendation.isAutoApplyAllowed()));
         vo.setManualReviewRequired(Boolean.valueOf(recommendation.isManualReviewRequired()));
+        vo.setSourceProblems(recommendation.getSourceProblems());
+        vo.setIssueRuleLinks(recommendation.getIssueRuleLinks());
         vo.setCreatedBy(recommendation.getCreatedBy());
         vo.setCreatedAt(recommendation.getCreatedAt());
         vo.setUpdatedAt(recommendation.getUpdatedAt());
