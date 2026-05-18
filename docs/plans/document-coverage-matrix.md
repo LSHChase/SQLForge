@@ -34,6 +34,7 @@
 | `docs/deployments/offline-setup.md` | Authority | 离线部署 | Consumed | 部署文档统一基线 |
 | `docs/deployments/huawei-cloud-setup.md` | Authority | 华为云私有云部署 | Consumed | 生产部署与 `KAFKA` 模式切换 |
 | `docs/deployments/hetu-test-environment-deployment-runbook.md` | Authority | 真实 Hetu / MRS 测试环境的最小部署、配置、启动、smoke 执行与证据留档手册 | Consumed | 外部测试环境 owner 部署 `governance` / `query-execution`、执行 `run-hetu-env-smoke.sh` 并保留 `JDBC` / `REST` / `CLIENT` 证据的权威落点 |
+| `docs/deployments/benchmark-production-evidence-runbook.md` | Authority | 真实生产规模压测证据目录格式、校验入口和 `verificationBundle` 生成边界 | Consumed | 外部环境 owner 收集 10000 并发、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单证据后，执行 `scripts/verify-benchmark-production-evidence.py` 并保留结果 |
 | `docs/deployments/test-environment-smoke-baseline.md` | Authority | 外部测试环境部署后 minimal smoke 入口、覆盖范围与证据边界 | Consumed | `F-TASK-033` 的环境无关 smoke 入口、外部 CI/CD 调用方式与 repo-closed 边界权威落点 |
 | `docs/deployments/acceleration-rewrite-governance-smoke-runbook.md` | Authority | 加速与改写治理工作台 repo-closed smoke、生产改写闭环 browser smoke、契约检查与 environment-backed 边界 runbook | Consumed | `HARN-142` 的 `npm run smoke:acceleration-governance`、工作台 browser smoke、`PRW-012` 生产改写闭环 browser smoke、推荐/历史/告警契约检查与 `HARN-016` / `INBOX-002` 外部证据边界权威落点 |
 | `docs/deployments/observability-baseline.md` | Authority | 当前 logs/metrics/alerts 运维落地清单 | Consumed | `F-TASK-007` 的可观测基线、实现映射与缺口权威落点 |

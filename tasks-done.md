@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518: 补齐生产规模证据目录导入校验入口
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518 add production evidence verifier CLI`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-VERIFIER-20260518
+- Scope: 新增可执行的外部生产规模证据目录校验入口和 runbook，要求从真实外部 artifacts 读取 10000 并发、30PB 数据布局、24 小时负载回放、P95/P99、扫描字节、CPU、队列等待与成本账单证据，生成可提交到 scaleTarget.evidenceManifest 的 verificationBundle/manifest JSON；缺失或不达标必须失败，不生成 VERIFIED，不在仓库内伪造生产 artifacts。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增外部生产规模证据目录校验 CLI 与 runbook，读取 concurrency/data-layout/workload-replay/metrics/cost-bill artifacts，达标时生成可提交到 scaleTarget.evidenceManifest 的 VERIFIED verificationBundle，缺失或不达标时输出 UNVERIFIED 并失败。
+  - Validation evidence: python3 scripts/verify-benchmark-production-evidence.py --self-test；临时 evidence 目录 CLI 输出校验；node scripts/check-developer-copy-language.mjs --changed；node scripts/lint-repository-knowledge.js；git diff --check；python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 仍未提供真实外部生产或准生产 artifacts；本任务只交付证据目录校验入口和 manifest 生成边界，不能替代 10000 并发、30PB、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单的真实证明。
+  - Next step: 外部环境 owner 按 runbook 生成 evidence directory，运行校验脚本并归档 verification-result.json，再把通过的 scaleTargetEvidenceManifest 提交到 benchmark 任务。
+
 ### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-VERIFIER-20260518: 接入生产规模证据 bundle 校验器
 
 - Status: done
