@@ -386,6 +386,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         runRequest.setComparisonStatus(ComparisonStatus.EQUIVALENT);
         runRequest.setDifferenceType(DifferenceType.NONE);
         runRequest.setAutoApplyPaused(Boolean.FALSE);
+        runRequest.setExecutionEvidence(positiveRuntimeExecutionEvidence());
         service.createValidationRun(created.getRewriteRecordId(), runRequest);
 
         RewritePublishEligibilityVO eligibility = service.getPublishEligibility(created.getRewriteRecordId());
@@ -639,8 +640,18 @@ class AccelerationRewriteContractApplicationServiceTest {
         runRequest.setComparisonStatus(ComparisonStatus.EQUIVALENT);
         runRequest.setDifferenceType(DifferenceType.NONE);
         runRequest.setAutoApplyPaused(Boolean.FALSE);
+        runRequest.setExecutionEvidence(positiveRuntimeExecutionEvidence());
         service.createValidationRun(created.getRewriteRecordId(), runRequest);
         return service.getRewriteRecord(created.getRewriteRecordId());
+    }
+
+    private Map<String, Object> positiveRuntimeExecutionEvidence() {
+        Map<String, Object> runtimeDelta = new LinkedHashMap<String, Object>();
+        runtimeDelta.put("benefitStatus", "POSITIVE");
+        runtimeDelta.put("elapsedImprovementPercent", Double.valueOf(20D));
+        Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("runtimeDelta", runtimeDelta);
+        return evidence;
     }
 
     private SqlRewriteRecordPublishActionRequest publishActionRequest(String reason) {

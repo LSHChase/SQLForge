@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-REWRITE-RUNTIME-BENEFIT-GATE-20260518: 改写发布增加运行时收益门禁
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-RUNTIME-BENEFIT-GATE-20260518 require positive runtime benefit for publish`
+- Priority: 1
+- Depends on: N/A
+- Scope: 在只读 result digest 校验链路中汇总 original/recommended executionEvidence 的 elapsedMs、scannedRows 为 runtimeDelta，输出 benefitStatus；发布运行时改写前要求最近一次等价校验的 runtimeDelta.benefitStatus=POSITIVE，避免仅结果等价但无收益或收益回退的改写进入默认运行时。仅使用现有 validation run executionEvidence JSON，不新增 schema，不执行额外 SQL。
+- Validation:
+  - `mvn -pl sql-optimization,query-execution,sqlforge-shared -am -Dtest=ResultDigestComparisonEngineTest,RewritePublishEligibilityPolicyTest,AccelerationRewriteContractApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test`
+  - `mvn -pl sql-optimization,query-execution,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false`
+  - `node scripts/lint-repository-knowledge.js`
+  - `git diff --check`
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-RUNTIME-BENEFIT-GATE-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: added runtimeDelta derivation from readonly digest executionEvidence elapsedMs/scannedRows with POSITIVE/NEUTRAL/REGRESSED/UNKNOWN benefitStatus.
+  - 2026-05-18: tightened rewrite publish eligibility to reject missing or non-positive latest validation benefit evidence, preserving existing equivalent-result and approval gates.
+- Context closeout:
+  - Completed scope: 在只读 result digest 比较中基于 existing executionEvidence elapsedMs/scannedRows 生成 runtimeDelta 和 benefitStatus；改写发布资格要求最近一次等价 validation run 的 runtimeDelta.benefitStatus=POSITIVE，缺失、NEUTRAL、REGRESSED 或 UNKNOWN 均阻止默认运行时发布；仅复用 validation run executionEvidence JSON，不新增 schema，不执行额外 SQL。
+  - Validation evidence: mvn -pl sql-optimization,query-execution,sqlforge-shared -am -Dtest=ResultDigestComparisonEngineTest,RewritePublishEligibilityPolicyTest,AccelerationRewriteContractApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test passed with 33 tests; mvn -pl sql-optimization,query-execution,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false passed with 252 tests; node scripts/lint-repository-knowledge.js passed; git diff --check passed; python3 scripts/foreman.py validate USER-CN-REWRITE-RUNTIME-BENEFIT-GATE-20260518 passed; python3 scripts/task_audit.py --check --phase pre-closeout passed.
+  - Residual risk: 本任务收紧运行时发布门禁并计算收益状态，但收益证据仍来自当前只读 digest executionEvidence；尚未完成真实生产长周期 P95/P99、并发压测、30PB 数据布局、冷/热缓存分层或成本账单级验证。
+  - Next step: 继续补齐真实负载回放与 benchmark/reporting，把 runtimeDelta 扩展为多窗口 P95/P99、扫描字节、CPU/队列等待和成本账单证据。
+
 ### USER-CN-REWRITE-EXPLAIN-EVIDENCE-20260518: 串联 EXPLAIN 证据到改写试算推荐
 
 - Status: done

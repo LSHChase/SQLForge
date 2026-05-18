@@ -32,6 +32,20 @@ class ResultDigestComparisonEngineTest {
     }
 
     @Test
+    void shouldExposeRuntimeDeltaBenefitStatusFromExecutionEvidence() {
+        ResultDigestComparisonResult result = engine.compare(
+            response("schema-a", Long.valueOf(2L), "key-a", "order-a", "checksum-a", row("id", "1"), 100L, 1000L),
+            response("schema-a", Long.valueOf(2L), "key-a", "order-a", "checksum-a", row("id", "1"), 60L, 500L),
+            Collections.<String, Object>emptyMap()
+        );
+
+        Map<String, Object> runtimeDelta = nestedMap(result.getExecutionEvidence(), "runtimeDelta");
+        assertEquals("POSITIVE", runtimeDelta.get("benefitStatus"));
+        assertEquals(Double.valueOf(40D), runtimeDelta.get("elapsedImprovementPercent"));
+        assertEquals(Double.valueOf(50D), runtimeDelta.get("scannedRowsImprovementPercent"));
+    }
+
+    @Test
     void shouldDetectSchemaDiffBeforeRowDiff() {
         ResultDigestComparisonResult result = engine.compare(
             response("schema-a", Long.valueOf(2L), "key-a", "order-a", "checksum-a", row("id", "1")),
@@ -115,6 +129,35 @@ class ResultDigestComparisonEngineTest {
         response.setLimitedSample(Collections.singletonList(sampleRow));
         response.setExecutionEvidence(Collections.<String, Object>singletonMap("readonlyDigestOnly", Boolean.TRUE));
         return response;
+    }
+
+    private QueryExecutionResultDigestResponse response(String schemaDigest,
+                                                        Long rowCount,
+                                                        String keySetDigest,
+                                                        String orderDigest,
+                                                        String checksumDigest,
+                                                        Map<String, Object> sampleRow,
+                                                        long elapsedMs,
+                                                        long scannedRows) {
+        QueryExecutionResultDigestResponse response = response(
+            schemaDigest,
+            rowCount,
+            keySetDigest,
+            orderDigest,
+            checksumDigest,
+            sampleRow
+        );
+        Map<String, Object> executionEvidence = new LinkedHashMap<String, Object>();
+        executionEvidence.put("readonlyDigestOnly", Boolean.TRUE);
+        executionEvidence.put("elapsedMs", Long.valueOf(elapsedMs));
+        executionEvidence.put("scannedRows", Long.valueOf(scannedRows));
+        response.setExecutionEvidence(executionEvidence);
+        return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> nestedMap(Map<String, Object> value, String key) {
+        return (Map<String, Object>) value.get(key);
     }
 
     private Map<String, Object> digest(String schemaDigest,

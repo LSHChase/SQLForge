@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class RewritePublishEligibilityPolicy {
 
@@ -25,6 +26,7 @@ public class RewritePublishEligibilityPolicy {
 
         requireReviewApproved(record, reasons);
         requireEquivalentValidation(record, latestValidationRun, reasons);
+        requirePositiveRuntimeBenefit(latestValidationRun, reasons);
         requirePublishEvidence(record, reasons);
         requireAutoApplyAllowed(record, reasons);
         requireNoOpenAlertOrPause(record, latestValidationRun, reasons);
@@ -88,6 +90,33 @@ public class RewritePublishEligibilityPolicy {
                 latestValidationRun.getValidationRunId()
             ));
         }
+    }
+
+    private void requirePositiveRuntimeBenefit(RewriteValidationRun latestValidationRun,
+                                               List<RewritePublishEligibilityReason> reasons) {
+        if (latestValidationRun == null) {
+            return;
+        }
+        Map<String, Object> runtimeDelta = asMap(latestValidationRun.getExecutionEvidence().get("runtimeDelta"));
+        if (runtimeDelta == null || runtimeDelta.isEmpty()) {
+            reasons.add(reason(
+                "RUNTIME_BENEFIT_EVIDENCE_MISSING",
+                "最近一次等价校验必须包含运行时收益证据。",
+                "validationRuns.executionEvidence.runtimeDelta",
+                latestValidationRun.getValidationRunId()
+            ));
+            return;
+        }
+        Object benefitStatus = runtimeDelta.get("benefitStatus");
+        if ("POSITIVE".equals(String.valueOf(benefitStatus))) {
+            return;
+        }
+        reasons.add(reason(
+            "RUNTIME_BENEFIT_NOT_POSITIVE",
+            "最近一次等价校验的运行时收益必须为 POSITIVE。",
+            "validationRuns.executionEvidence.runtimeDelta.benefitStatus",
+            latestValidationRun.getValidationRunId()
+        ));
     }
 
     private void requirePublishEvidence(SqlRewriteRecord record,
@@ -261,5 +290,13 @@ public class RewritePublishEligibilityPolicy {
 
     private String name(Enum<?> value) {
         return value == null ? null : value.name();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        if (!(value instanceof Map)) {
+            return null;
+        }
+        return (Map<String, Object>) value;
     }
 }

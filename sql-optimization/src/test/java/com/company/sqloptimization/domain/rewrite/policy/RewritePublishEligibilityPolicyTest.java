@@ -17,6 +17,8 @@ import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class RewritePublishEligibilityPolicyTest {
@@ -107,6 +109,24 @@ class RewritePublishEligibilityPolicyTest {
         assertTrue(hasReason(eligibility, "PUBLISH_STATUS_NOT_READY"));
     }
 
+    @Test
+    void shouldRejectMissingOrRegressedRuntimeBenefitEvidence() {
+        SqlRewriteRecord record = eligibleRecordBuilder()
+            .build();
+        RewriteValidationRun missingBenefitRun = equivalentRunWithoutBenefit("validation-missing", "rewrite-001");
+        RewriteValidationRun regressedRun = equivalentRun("validation-regressed", "rewrite-001", false, "REGRESSED");
+
+        RewritePublishEligibility missingEligibility =
+            policy.evaluate(record, Collections.singletonList(missingBenefitRun));
+        RewritePublishEligibility regressedEligibility =
+            policy.evaluate(record, Collections.singletonList(regressedRun));
+
+        assertFalse(missingEligibility.isEligible());
+        assertTrue(hasReason(missingEligibility, "RUNTIME_BENEFIT_EVIDENCE_MISSING"));
+        assertFalse(regressedEligibility.isEligible());
+        assertTrue(hasReason(regressedEligibility, "RUNTIME_BENEFIT_NOT_POSITIVE"));
+    }
+
     private SqlRewriteRecord.Builder eligibleRecordBuilder() {
         return SqlRewriteRecord.builder()
             .rewriteRecordId("rewrite-001")
@@ -134,6 +154,13 @@ class RewritePublishEligibilityPolicyTest {
     private RewriteValidationRun equivalentRun(String validationRunId,
                                                String rewriteRecordId,
                                                boolean autoApplyPaused) {
+        return equivalentRun(validationRunId, rewriteRecordId, autoApplyPaused, "POSITIVE");
+    }
+
+    private RewriteValidationRun equivalentRun(String validationRunId,
+                                               String rewriteRecordId,
+                                               boolean autoApplyPaused,
+                                               String benefitStatus) {
         return RewriteValidationRun.builder()
             .validationRunId(validationRunId)
             .tenantId("tenant-a")
@@ -143,7 +170,31 @@ class RewritePublishEligibilityPolicyTest {
             .autoApplyPaused(autoApplyPaused)
             .startedAt(Instant.parse("2026-05-11T00:00:00Z"))
             .finishedAt(Instant.parse("2026-05-11T00:00:01Z"))
+            .executionEvidence(runtimeEvidence(benefitStatus))
             .build();
+    }
+
+    private RewriteValidationRun equivalentRunWithoutBenefit(String validationRunId,
+                                                             String rewriteRecordId) {
+        return RewriteValidationRun.builder()
+            .validationRunId(validationRunId)
+            .tenantId("tenant-a")
+            .rewriteRecordId(rewriteRecordId)
+            .status(ValidationRunStatus.SUCCEEDED)
+            .comparisonStatus(ComparisonStatus.EQUIVALENT)
+            .autoApplyPaused(false)
+            .startedAt(Instant.parse("2026-05-11T00:00:00Z"))
+            .finishedAt(Instant.parse("2026-05-11T00:00:01Z"))
+            .build();
+    }
+
+    private Map<String, Object> runtimeEvidence(String benefitStatus) {
+        Map<String, Object> runtimeDelta = new LinkedHashMap<String, Object>();
+        runtimeDelta.put("benefitStatus", benefitStatus);
+        runtimeDelta.put("elapsedImprovementPercent", Double.valueOf(25D));
+        Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("runtimeDelta", runtimeDelta);
+        return evidence;
     }
 
     private boolean hasReason(RewritePublishEligibility eligibility, String code) {

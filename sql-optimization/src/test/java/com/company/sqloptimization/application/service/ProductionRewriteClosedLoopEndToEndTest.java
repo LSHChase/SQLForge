@@ -89,10 +89,10 @@ class ProductionRewriteClosedLoopEndToEndTest {
             new QueryExecutionRuntimeRewriteBindingService(runtimeRepository);
         RuntimeBindingClientBridge runtimeClient = new RuntimeBindingClientBridge(runtimeBindingService);
         SequencedResultDigestClient digestClient = new SequencedResultDigestClient(
-            digest("schema-v1", Long.valueOf(1L), "checksum-equivalent", row("id", "1")),
-            digest("schema-v1", Long.valueOf(1L), "checksum-equivalent", row("id", "1")),
-            digest("schema-v1", Long.valueOf(1L), "checksum-original", row("id", "1")),
-            digest("schema-v1", Long.valueOf(1L), "checksum-recommended", row("id", "2"))
+            digest("schema-v1", Long.valueOf(1L), "checksum-equivalent", row("id", "1"), 100L, 1000L),
+            digest("schema-v1", Long.valueOf(1L), "checksum-equivalent", row("id", "1"), 60L, 500L),
+            digest("schema-v1", Long.valueOf(1L), "checksum-original", row("id", "1"), 100L, 1000L),
+            digest("schema-v1", Long.valueOf(1L), "checksum-recommended", row("id", "2"), 60L, 500L)
         );
         SqlRewriteRecordApplicationService rewriteRecordService =
             new SqlRewriteRecordApplicationService(
@@ -283,7 +283,9 @@ class ProductionRewriteClosedLoopEndToEndTest {
     private QueryExecutionResultDigestResponse digest(String schemaDigest,
                                                       Long rowCount,
                                                       String checksumDigest,
-                                                      Map<String, Object> sampleRow) {
+                                                      Map<String, Object> sampleRow,
+                                                      long elapsedMs,
+                                                      long scannedRows) {
         QueryExecutionResultDigestResponse response = new QueryExecutionResultDigestResponse();
         Map<String, Object> resultDigest = new LinkedHashMap<String, Object>();
         resultDigest.put("schemaDigest", schemaDigest);
@@ -294,8 +296,16 @@ class ProductionRewriteClosedLoopEndToEndTest {
         response.setTargetEngine("HETU");
         response.setResultDigest(resultDigest);
         response.setLimitedSample(Collections.singletonList(sampleRow));
-        response.setExecutionEvidence(Collections.<String, Object>singletonMap("readonlyDigestOnly", Boolean.TRUE));
+        response.setExecutionEvidence(executionEvidence(elapsedMs, scannedRows));
         return response;
+    }
+
+    private Map<String, Object> executionEvidence(long elapsedMs, long scannedRows) {
+        Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("readonlyDigestOnly", Boolean.TRUE);
+        evidence.put("elapsedMs", Long.valueOf(elapsedMs));
+        evidence.put("scannedRows", Long.valueOf(scannedRows));
+        return evidence;
     }
 
     private Map<String, Object> row(String key, String value) {
