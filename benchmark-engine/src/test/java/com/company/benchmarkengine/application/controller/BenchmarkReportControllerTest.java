@@ -54,6 +54,8 @@ public class BenchmarkReportControllerTest {
                 .value("prod-run-20260518/concurrency.log"))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.dailyQueryVolumeProofRef")
                 .value("prod-run-20260518/daily-query-volume.json"))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.environmentId")
+                .value("prod-bi-cn-01"))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.evidenceFileDigests['metrics.csv'].sizeBytes")
                 .value(128))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.verificationBundle.observedConcurrency")
@@ -133,7 +135,13 @@ public class BenchmarkReportControllerTest {
                     + "\"scanCpuQueueMetricProofRef\":\"prod-run-20260518/scan-cpu-queue.csv\","
                     + "\"costBillProofRef\":\"prod-run-20260518/cost-bill.csv\","
                     + "\"externalVerificationStatus\":\"UNVERIFIED\","
+                    + "\"environmentId\":\"prod-bi-cn-01\","
+                    + "\"environmentType\":\"PRODUCTION\","
+                    + "\"evidenceOwner\":\"bi-platform-owner\","
+                    + "\"artifactArchiveRef\":\"s3://audit-prod/sqlforge/prod-run-20260518/\","
+                    + "\"verifierOperator\":\"benchmark-sre\","
                     + "\"evidenceFileDigests\":{"
+                    + "\"provenance.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
                     + "\"concurrency.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
                     + "\"daily-query-volume.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
                     + "\"data-layout.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"

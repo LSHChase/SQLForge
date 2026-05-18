@@ -468,6 +468,11 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             item.get("scanCpuQueueMetricProofRef") == null ? null : String.valueOf(item.get("scanCpuQueueMetricProofRef")),
             item.get("costBillProofRef") == null ? null : String.valueOf(item.get("costBillProofRef")),
             item.get("externalVerificationStatus") == null ? null : String.valueOf(item.get("externalVerificationStatus")),
+            item.get("environmentId") == null ? null : String.valueOf(item.get("environmentId")),
+            item.get("environmentType") == null ? null : String.valueOf(item.get("environmentType")),
+            item.get("evidenceOwner") == null ? null : String.valueOf(item.get("evidenceOwner")),
+            item.get("artifactArchiveRef") == null ? null : String.valueOf(item.get("artifactArchiveRef")),
+            item.get("verifierOperator") == null ? null : String.valueOf(item.get("verifierOperator")),
             readScaleEvidenceFileDigests(readObjectMap(item.get("evidenceFileDigests"))),
             readScaleEvidenceBundle(readObjectMap(item.get("verificationBundle")))
         );

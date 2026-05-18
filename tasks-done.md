@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-EVIDENCE-PROVENANCE-AUDIT-20260518: 校验生产证据来源元数据
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-EVIDENCE-PROVENANCE-AUDIT-20260518 require evidence provenance`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-READINESS-RAW-DIGEST-AUDIT-20260518
+- Scope: 强化生产规模证据 verifier、readiness audit 与 scaleTargetEvidenceManifest 持久化链路，要求外部 evidence directory 提供 provenance.json，并把 environmentId/environmentType/evidenceOwner/artifactArchiveRef/verifierOperator 纳入 manifest、摘要和 scaleReadiness 判定；缺少来源元数据时不得通过 30PB/千万级日查询完成度审计。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-PROVENANCE-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: verifier/readiness audit 已将 `provenance.json` 纳入必需证据文件，并把来源元数据持久化到 benchmark `scaleTargetEvidenceManifest`、报告摘要和 scaleReadiness 判定。
+- Context closeout:
+  - Completed scope: 生产规模证据 verifier/readiness audit 现在要求 provenance.json，并把 environmentId/environmentType/evidenceOwner/artifactArchiveRef/verifierOperator 复算、比对、持久化到 scaleTargetEvidenceManifest；benchmark scaleReadiness、报告摘要、接口文档、runbook、INBOX 与 blocked handoff 已同步来源元数据要求。
+  - Validation evidence: python3 scripts/verify-benchmark-production-evidence.py --self-test; python3 scripts/audit-rewrite-production-readiness.py --self-test; mvn -pl benchmark-engine,sqlforge-shared -am -Dtest=BenchmarkScaleEvidenceManifestTest,BenchmarkTaskModelApplicationServiceTest,BenchmarkRecommendationComparisonApplicationServiceTest,BenchmarkReportControllerTest,MybatisBenchmarkTaskRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/audit-rewrite-production-readiness.py (expected BLOCKED without external evidence); git diff --check; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-PROVENANCE-AUDIT-20260518; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked；本任务只强化来源元数据与归档校验，不创造生产证据。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts；外部 owner 必须同时提交 provenance.json、原始 evidence directory、verification-result.json，以及含来源元数据和摘要的 scaleTargetEvidenceManifest。
+
 ### USER-CN-REWRITE-READINESS-RAW-DIGEST-AUDIT-20260518: 复算外部证据文件摘要
 
 - Status: done

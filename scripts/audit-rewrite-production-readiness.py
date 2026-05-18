@@ -22,6 +22,7 @@ MIN_PRODUCTION_DAILY_QUERY_VOLUME = 10000000
 MIN_PRODUCTION_DATASET_SIZE_BYTES = 30000000000000000
 MIN_REPLAY_HOURS = Decimal("24")
 REQUIRED_EVIDENCE_FILES = (
+    "provenance.json",
     "concurrency.json",
     "daily-query-volume.json",
     "data-layout.json",
@@ -29,6 +30,14 @@ REQUIRED_EVIDENCE_FILES = (
     "metrics.csv",
     "cost-bill.json",
 )
+REQUIRED_PROVENANCE_FIELDS = (
+    "environmentId",
+    "environmentType",
+    "evidenceOwner",
+    "artifactArchiveRef",
+    "verifierOperator",
+)
+ALLOWED_ENVIRONMENT_TYPES = ("PRODUCTION", "PRE_PRODUCTION")
 
 
 def read_text(root: Path, relative_path: str) -> str:
@@ -269,6 +278,39 @@ def require_raw_evidence_file_digests(payload: dict[str, Any],
             missing.append("externalEvidenceDirectory." + file_name + ".sizeBytesMismatch")
 
 
+def require_raw_provenance_matches_manifest(manifest: dict[str, Any],
+                                            evidence_dir: Path | None,
+                                            missing: list[str]) -> None:
+    if evidence_dir is None or not evidence_dir.is_dir():
+        return
+    provenance_path = evidence_dir / "provenance.json"
+    if not provenance_path.is_file():
+        return
+    try:
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        missing.append("externalEvidenceDirectory.provenance.json:invalidJson:" + str(exc))
+        return
+    if not isinstance(provenance, dict):
+        missing.append("externalEvidenceDirectory.provenance.json:notObject")
+        return
+    for field_name in REQUIRED_PROVENANCE_FIELDS:
+        raw_value = str(provenance.get(field_name) or "").strip()
+        manifest_value = str(manifest.get(field_name) or "").strip()
+        if field_name == "environmentType":
+            raw_value = raw_value.upper()
+            manifest_value = manifest_value.upper()
+        if not raw_value:
+            missing.append("externalEvidenceDirectory.provenance.json." + field_name)
+            continue
+        if manifest_value != raw_value:
+            missing.append(
+                "externalEvidenceDirectory.provenance.json."
+                + field_name
+                + "!=scaleTargetEvidenceManifest"
+            )
+
+
 def collect_raw_evidence_file_digests(evidence_dir: Path) -> dict[str, dict[str, Any]]:
     digests: dict[str, dict[str, Any]] = {}
     for file_name in REQUIRED_EVIDENCE_FILES:
@@ -331,8 +373,20 @@ def check_external_verification_result(verification_result: Path | None,
     for proof_ref in required_manifest_refs:
         if not manifest.get(proof_ref):
             missing.append(proof_ref)
+    for provenance_field in REQUIRED_PROVENANCE_FIELDS:
+        if not manifest.get(provenance_field):
+            missing.append("scaleTargetEvidenceManifest." + provenance_field)
+    environment_type = str(manifest.get("environmentType") or "").strip().upper()
+    if environment_type and environment_type not in ALLOWED_ENVIRONMENT_TYPES:
+        missing.append(
+            "scaleTargetEvidenceManifest.environmentType:allowed="
+            + "|".join(ALLOWED_ENVIRONMENT_TYPES)
+            + ",actual="
+            + environment_type
+        )
     require_evidence_file_digests(manifest, missing, "scaleTargetEvidenceManifest.")
     require_matching_evidence_file_digests(payload, manifest, missing)
+    require_raw_provenance_matches_manifest(manifest, evidence_dir, missing)
     bundle = manifest.get("verificationBundle")
     if not isinstance(bundle, dict):
         missing.append("verificationBundle")
@@ -421,6 +475,13 @@ def write_payload(payload: dict[str, Any], output: Path | None) -> None:
 
 def write_self_test_evidence_dir(evidence_dir: Path) -> None:
     evidence_dir.mkdir(parents=True, exist_ok=True)
+    (evidence_dir / "provenance.json").write_text(
+        '{"environmentId":"prod-bi-cn-01","environmentType":"PRODUCTION",'
+        '"evidenceOwner":"bi-platform-owner",'
+        '"artifactArchiveRef":"s3://audit-prod/sqlforge/prod-run-20260518/",'
+        '"verifierOperator":"benchmark-sre"}',
+        encoding="utf-8",
+    )
     (evidence_dir / "concurrency.json").write_text(
         '{"observedConcurrency":10000,"proofRef":"concurrency.log"}',
         encoding="utf-8",
@@ -468,6 +529,11 @@ def successful_verification_payload(evidence_file_digests: dict[str, dict[str, A
             "scanCpuQueueMetricProofRef": "metrics.csv",
             "costBillProofRef": "cost-bill.csv",
             "externalVerificationStatus": "VERIFIED",
+            "environmentId": "prod-bi-cn-01",
+            "environmentType": "PRODUCTION",
+            "evidenceOwner": "bi-platform-owner",
+            "artifactArchiveRef": "s3://audit-prod/sqlforge/prod-run-20260518/",
+            "verifierOperator": "benchmark-sre",
             "verificationBundle": {
                 "observedConcurrency": MIN_PRODUCTION_CONCURRENCY,
                 "observedDailyQueryVolume": MIN_PRODUCTION_DAILY_QUERY_VOLUME,
@@ -515,6 +581,18 @@ def run_self_test() -> int:
         failed_ref_path.write_text(json.dumps(failed_ref_payload), encoding="utf-8")
         failed_ref = audit(REPO_ROOT, failed_ref_path, evidence_dir)
         assert failed_ref["overallStatus"] == "BLOCKED", failed_ref
+        failed_provenance_payload = successful_verification_payload(evidence_file_digests)
+        failed_provenance_payload["scaleTargetEvidenceManifest"].pop("artifactArchiveRef")
+        failed_provenance_path = Path(temp) / "verification-result-missing-provenance.json"
+        failed_provenance_path.write_text(json.dumps(failed_provenance_payload), encoding="utf-8")
+        failed_provenance = audit(REPO_ROOT, failed_provenance_path, evidence_dir)
+        assert failed_provenance["overallStatus"] == "BLOCKED", failed_provenance
+        failed_raw_provenance_payload = successful_verification_payload(evidence_file_digests)
+        failed_raw_provenance_payload["scaleTargetEvidenceManifest"]["artifactArchiveRef"] = "s3://other/archive/"
+        failed_raw_provenance_path = Path(temp) / "verification-result-raw-provenance-mismatch.json"
+        failed_raw_provenance_path.write_text(json.dumps(failed_raw_provenance_payload), encoding="utf-8")
+        failed_raw_provenance = audit(REPO_ROOT, failed_raw_provenance_path, evidence_dir)
+        assert failed_raw_provenance["overallStatus"] == "BLOCKED", failed_raw_provenance
         failed_digest_payload = successful_verification_payload(evidence_file_digests)
         failed_digest_payload["evidenceFileDigests"].pop("metrics.csv")
         failed_digest_path = Path(temp) / "verification-result-missing-digest.json"

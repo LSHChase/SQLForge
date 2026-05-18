@@ -111,6 +111,8 @@ class BenchmarkTaskModelApplicationServiceTest {
             statusResponse.getScaleTarget().getEvidenceManifest().getConcurrencyProofRef());
         assertEquals("prod-run-20260518/daily-query-volume.json",
             statusResponse.getScaleTarget().getEvidenceManifest().getDailyQueryVolumeProofRef());
+        assertEquals("prod-bi-cn-01",
+            statusResponse.getScaleTarget().getEvidenceManifest().getEnvironmentId());
         assertEquals(Long.valueOf(128L),
             statusResponse.getScaleTarget().getEvidenceManifest().getEvidenceFileDigests().get("metrics.csv").getSizeBytes());
         assertNotNull(statusResponse.getScaleTarget().getEvidenceManifest().getVerificationBundle());
@@ -187,7 +189,8 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertTrue(pdfArtifact.getContent().contains("productionEvidence=source=PROD_REPLAY"));
         assertTrue(pdfArtifact.getContent().contains("dailyQueryVolumeRef=prod-run-20260518/daily-query-volume.json"));
         assertTrue(pdfArtifact.getContent().contains("verificationBundleSatisfied=true"));
-        assertTrue(pdfArtifact.getContent().contains("evidenceFileDigestCount=6"));
+        assertTrue(pdfArtifact.getContent().contains("evidenceFileDigestCount=7"));
+        assertTrue(pdfArtifact.getContent().contains("provenance=environmentId=prod-bi-cn-01"));
         assertTrue(htmlArtifact.getContent().contains("规模就绪"));
         assertTrue(htmlArtifact.getContent().contains("prod-run-20260518/cost-bill.csv"));
         assertTrue(rawDataArtifact.getContent().contains("\"scaleReadiness\""));
@@ -389,6 +392,11 @@ class BenchmarkTaskModelApplicationServiceTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setEnvironmentId("prod-bi-cn-01");
+        manifest.setEnvironmentType("PRODUCTION");
+        manifest.setEvidenceOwner("bi-platform-owner");
+        manifest.setArtifactArchiveRef("s3://audit-prod/sqlforge/prod-run-20260518/");
+        manifest.setVerifierOperator("benchmark-sre");
         manifest.setEvidenceFileDigests(productionDigests());
         manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
@@ -397,6 +405,7 @@ class BenchmarkTaskModelApplicationServiceTest {
     private Map<String, BenchmarkScaleEvidenceFileDigestDTO> productionDigests() {
         Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests =
             new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigestDTO>();
+        addDigest(digests, "provenance.json");
         addDigest(digests, "concurrency.json");
         addDigest(digests, "daily-query-volume.json");
         addDigest(digests, "data-layout.json");

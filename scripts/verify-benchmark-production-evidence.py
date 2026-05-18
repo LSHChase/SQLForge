@@ -19,6 +19,7 @@ MIN_PRODUCTION_DAILY_QUERY_VOLUME = 10000000
 MIN_PRODUCTION_DATASET_SIZE_BYTES = 30000000000000000
 MIN_LONG_REPLAY_HOURS = Decimal("24")
 REQUIRED_EVIDENCE_FILES = (
+    "provenance.json",
     "concurrency.json",
     "daily-query-volume.json",
     "data-layout.json",
@@ -26,6 +27,14 @@ REQUIRED_EVIDENCE_FILES = (
     "metrics.csv",
     "cost-bill.json",
 )
+REQUIRED_PROVENANCE_FIELDS = (
+    "environmentId",
+    "environmentType",
+    "evidenceOwner",
+    "artifactArchiveRef",
+    "verifierOperator",
+)
+ALLOWED_ENVIRONMENT_TYPES = ("PRODUCTION", "PRE_PRODUCTION")
 
 
 class EvidenceError(ValueError):
@@ -114,6 +123,14 @@ def require_positive_decimal(value: Decimal, evidence_name: str, missing: list[s
         missing.append(f"{evidence_name}:required>0,actual={value}")
 
 
+def required_text(data: dict[str, Any], field_name: str, evidence_name: str, missing: list[str]) -> str | None:
+    value = str(data.get(field_name) or "").strip()
+    if not value:
+        missing.append(f"{evidence_name}.{field_name}")
+        return None
+    return value
+
+
 def evaluate_evidence_dir(evidence_dir: Path,
                           target_concurrency: int,
                           min_daily_query_volume: int,
@@ -132,7 +149,29 @@ def evaluate_evidence_dir(evidence_dir: Path,
         "costBillProofRef": None,
     }
     bundle: dict[str, Any] = {}
+    provenance: dict[str, Any] = {}
     workload_window = None
+
+    try:
+        provenance_file = read_json(evidence_dir / "provenance.json")
+        for field_name in REQUIRED_PROVENANCE_FIELDS:
+            value = required_text(provenance_file, field_name, "productionEvidenceProvenance", missing)
+            if value is not None:
+                provenance[field_name] = value
+        environment_type = provenance.get("environmentType")
+        if environment_type is not None:
+            normalized_environment_type = str(environment_type).strip().upper()
+            provenance["environmentType"] = normalized_environment_type
+            if normalized_environment_type not in ALLOWED_ENVIRONMENT_TYPES:
+                missing.append(
+                    "productionEvidenceProvenance.environmentType:allowed="
+                    + "|".join(ALLOWED_ENVIRONMENT_TYPES)
+                    + ",actual="
+                    + normalized_environment_type
+                )
+    except EvidenceError as exc:
+        parse_errors.append(str(exc))
+        missing.append("productionEvidenceProvenance")
 
     try:
         concurrency = read_json(evidence_dir / "concurrency.json")
@@ -242,6 +281,11 @@ def evaluate_evidence_dir(evidence_dir: Path,
         "scanCpuQueueMetricProofRef": manifest_refs["scanCpuQueueMetricProofRef"],
         "costBillProofRef": manifest_refs["costBillProofRef"],
         "externalVerificationStatus": external_status,
+        "environmentId": provenance.get("environmentId"),
+        "environmentType": provenance.get("environmentType"),
+        "evidenceOwner": provenance.get("evidenceOwner"),
+        "artifactArchiveRef": provenance.get("artifactArchiveRef"),
+        "verifierOperator": provenance.get("verifierOperator"),
         "evidenceFileDigests": evidence_file_digests,
         "verificationBundle": bundle,
     }
@@ -254,6 +298,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
             "minDatasetSizeBytes": min_dataset_size_bytes,
             "minReplayHours": min_replay_hours,
         },
+        "sourceProvenance": provenance,
         "evidenceFileDigests": evidence_file_digests,
         "missingEvidence": sorted(set(missing)),
         "parseErrors": parse_errors,
@@ -290,6 +335,14 @@ def write_fixture(path: Path, name: str, payload: str) -> None:
 def run_self_test() -> int:
     with tempfile.TemporaryDirectory(prefix="benchmark-evidence-") as temp:
         evidence_dir = Path(temp)
+        write_fixture(
+            evidence_dir,
+            "provenance.json",
+            '{"environmentId": "prod-bi-cn-01", "environmentType": "PRODUCTION", '
+            '"evidenceOwner": "bi-platform-owner", '
+            '"artifactArchiveRef": "s3://audit-prod/sqlforge/prod-run-20260518/", '
+            '"verifierOperator": "benchmark-sre"}',
+        )
         write_fixture(evidence_dir, "concurrency.json", '{"observedConcurrency": 10000, "proofRef": "concurrency.log"}')
         write_fixture(
             evidence_dir,
@@ -329,8 +382,27 @@ def run_self_test() -> int:
         assert passed["status"] == "PASSED", passed
         assert passed["externalVerificationStatus"] == "VERIFIED", passed
         assert set(passed["evidenceFileDigests"].keys()) == set(REQUIRED_EVIDENCE_FILES), passed
+        assert passed["scaleTargetEvidenceManifest"]["environmentType"] == "PRODUCTION", passed
         assert len(passed["evidenceFileDigests"]["metrics.csv"]["sha256"]) == 64, passed
 
+        write_fixture(evidence_dir, "provenance.json", '{"environmentType": "LOCAL_FIXTURE"}')
+        failed_provenance = evaluate_evidence_dir(
+            evidence_dir,
+            MIN_PRODUCTION_CONCURRENCY,
+            MIN_PRODUCTION_DAILY_QUERY_VOLUME,
+            MIN_PRODUCTION_DATASET_SIZE_BYTES,
+            MIN_LONG_REPLAY_HOURS,
+        )
+        assert failed_provenance["status"] == "FAILED", failed_provenance
+        assert any("productionEvidenceProvenance" in item for item in failed_provenance["missingEvidence"]), failed_provenance
+        write_fixture(
+            evidence_dir,
+            "provenance.json",
+            '{"environmentId": "prod-bi-cn-01", "environmentType": "PRODUCTION", '
+            '"evidenceOwner": "bi-platform-owner", '
+            '"artifactArchiveRef": "s3://audit-prod/sqlforge/prod-run-20260518/", '
+            '"verifierOperator": "benchmark-sre"}',
+        )
         write_fixture(evidence_dir, "concurrency.json", '{"observedConcurrency": 9999}')
         failed = evaluate_evidence_dir(
             evidence_dir,

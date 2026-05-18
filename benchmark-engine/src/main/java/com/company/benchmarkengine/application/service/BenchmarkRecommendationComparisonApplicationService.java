@@ -383,6 +383,11 @@ public class BenchmarkRecommendationComparisonApplicationService {
             evidenceManifestDto.getScanCpuQueueMetricProofRef(),
             evidenceManifestDto.getCostBillProofRef(),
             evidenceManifestDto.getExternalVerificationStatus(),
+            evidenceManifestDto.getEnvironmentId(),
+            evidenceManifestDto.getEnvironmentType(),
+            evidenceManifestDto.getEvidenceOwner(),
+            evidenceManifestDto.getArtifactArchiveRef(),
+            evidenceManifestDto.getVerifierOperator(),
             toScaleEvidenceFileDigests(evidenceManifestDto.getEvidenceFileDigests()),
             toScaleEvidenceBundle(evidenceManifestDto.getVerificationBundle())
         );
@@ -592,6 +597,11 @@ public class BenchmarkRecommendationComparisonApplicationService {
             || hasText(evidenceManifest.getScanCpuQueueMetricProofRef())
             || hasText(evidenceManifest.getCostBillProofRef())
             || hasText(evidenceManifest.getExternalVerificationStatus())
+            || hasText(evidenceManifest.getEnvironmentId())
+            || hasText(evidenceManifest.getEnvironmentType())
+            || hasText(evidenceManifest.getEvidenceOwner())
+            || hasText(evidenceManifest.getArtifactArchiveRef())
+            || hasText(evidenceManifest.getVerifierOperator())
             || (evidenceManifest.getEvidenceFileDigests() != null
             && !evidenceManifest.getEvidenceFileDigests().isEmpty())
             || hasAnyEvidenceBundle(evidenceManifest.getVerificationBundle()));

@@ -313,6 +313,11 @@ public class BenchmarkIsolatedExecutionService {
         notes.add("productionP95P99MetricProofRef=" + evidenceManifest.getP95P99MetricProofRef());
         notes.add("productionScanCpuQueueMetricProofRef=" + evidenceManifest.getScanCpuQueueMetricProofRef());
         notes.add("productionCostBillProofRef=" + evidenceManifest.getCostBillProofRef());
+        notes.add("productionEvidenceEnvironmentId=" + evidenceManifest.getEnvironmentId());
+        notes.add("productionEvidenceEnvironmentType=" + evidenceManifest.getEnvironmentType());
+        notes.add("productionEvidenceOwner=" + evidenceManifest.getEvidenceOwner());
+        notes.add("productionEvidenceArchiveRef=" + evidenceManifest.getArtifactArchiveRef());
+        notes.add("productionEvidenceVerifierOperator=" + evidenceManifest.getVerifierOperator());
         notes.add("productionEvidenceBundleSatisfied="
             + evidenceManifest.hasVerifiedProductionEvidence(scaleTarget.getTargetConcurrency()));
         notes.add("productionEvidenceBundleMissing="
@@ -422,6 +427,7 @@ public class BenchmarkIsolatedExecutionService {
             missing.add("productionScanCpuQueueMetricProof");
             missing.add("productionCostBillProof");
             missing.add("productionEvidenceBundle");
+            missing.add("productionEvidenceManifest.provenance");
             missing.add("productionExternalVerification");
             return;
         }

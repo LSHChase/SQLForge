@@ -13,12 +13,17 @@ public class BenchmarkScaleEvidenceManifest {
     public static final String STATUS_VERIFIED = "VERIFIED";
     public static final String STATUS_UNVERIFIED = "UNVERIFIED";
     public static final List<String> REQUIRED_EVIDENCE_FILES = Collections.unmodifiableList(Arrays.asList(
+        "provenance.json",
         "concurrency.json",
         "daily-query-volume.json",
         "data-layout.json",
         "workload-replay.json",
         "metrics.csv",
         "cost-bill.json"
+    ));
+    public static final List<String> ALLOWED_ENVIRONMENT_TYPES = Collections.unmodifiableList(Arrays.asList(
+        "PRODUCTION",
+        "PRE_PRODUCTION"
     ));
 
     private final String evidenceSource;
@@ -31,6 +36,11 @@ public class BenchmarkScaleEvidenceManifest {
     private final String scanCpuQueueMetricProofRef;
     private final String costBillProofRef;
     private final String externalVerificationStatus;
+    private final String environmentId;
+    private final String environmentType;
+    private final String evidenceOwner;
+    private final String artifactArchiveRef;
+    private final String verifierOperator;
     private final Map<String, BenchmarkScaleEvidenceFileDigest> evidenceFileDigests;
     private final BenchmarkScaleEvidenceBundle verificationBundle;
 
@@ -124,6 +134,44 @@ public class BenchmarkScaleEvidenceManifest {
                                           String externalVerificationStatus,
                                           Map<String, BenchmarkScaleEvidenceFileDigest> evidenceFileDigests,
                                           BenchmarkScaleEvidenceBundle verificationBundle) {
+        this(
+            evidenceSource,
+            concurrencyProofRef,
+            dailyQueryVolumeProofRef,
+            dataLayoutProofRef,
+            workloadReplayProofRef,
+            workloadReplayWindow,
+            p95P99MetricProofRef,
+            scanCpuQueueMetricProofRef,
+            costBillProofRef,
+            externalVerificationStatus,
+            null,
+            null,
+            null,
+            null,
+            null,
+            evidenceFileDigests,
+            verificationBundle
+        );
+    }
+
+    public BenchmarkScaleEvidenceManifest(String evidenceSource,
+                                          String concurrencyProofRef,
+                                          String dailyQueryVolumeProofRef,
+                                          String dataLayoutProofRef,
+                                          String workloadReplayProofRef,
+                                          String workloadReplayWindow,
+                                          String p95P99MetricProofRef,
+                                          String scanCpuQueueMetricProofRef,
+                                          String costBillProofRef,
+                                          String externalVerificationStatus,
+                                          String environmentId,
+                                          String environmentType,
+                                          String evidenceOwner,
+                                          String artifactArchiveRef,
+                                          String verifierOperator,
+                                          Map<String, BenchmarkScaleEvidenceFileDigest> evidenceFileDigests,
+                                          BenchmarkScaleEvidenceBundle verificationBundle) {
         this.evidenceSource = normalizeText(evidenceSource);
         this.concurrencyProofRef = normalizeText(concurrencyProofRef);
         this.dailyQueryVolumeProofRef = normalizeText(dailyQueryVolumeProofRef);
@@ -134,6 +182,11 @@ public class BenchmarkScaleEvidenceManifest {
         this.scanCpuQueueMetricProofRef = normalizeText(scanCpuQueueMetricProofRef);
         this.costBillProofRef = normalizeText(costBillProofRef);
         this.externalVerificationStatus = normalizeVerificationStatus(externalVerificationStatus);
+        this.environmentId = normalizeText(environmentId);
+        this.environmentType = normalizeEnvironmentType(environmentType);
+        this.evidenceOwner = normalizeText(evidenceOwner);
+        this.artifactArchiveRef = normalizeText(artifactArchiveRef);
+        this.verifierOperator = normalizeText(verifierOperator);
         this.evidenceFileDigests = normalizeEvidenceFileDigests(evidenceFileDigests);
         this.verificationBundle = verificationBundle == null || !verificationBundle.hasAnyEvidence()
             ? null
@@ -151,6 +204,11 @@ public class BenchmarkScaleEvidenceManifest {
             || hasText(scanCpuQueueMetricProofRef)
             || hasText(costBillProofRef)
             || STATUS_VERIFIED.equals(externalVerificationStatus)
+            || hasText(environmentId)
+            || hasText(environmentType)
+            || hasText(evidenceOwner)
+            || hasText(artifactArchiveRef)
+            || hasText(verifierOperator)
             || !evidenceFileDigests.isEmpty()
             || verificationBundle != null;
     }
@@ -170,6 +228,7 @@ public class BenchmarkScaleEvidenceManifest {
     public boolean hasVerifiedProductionEvidence(Integer targetConcurrency) {
         return verificationBundle != null
             && verificationBundle.satisfiesProductionEvidence(targetConcurrency)
+            && hasCompleteProvenance()
             && hasCompleteEvidenceFileDigests();
     }
 
@@ -182,6 +241,9 @@ public class BenchmarkScaleEvidenceManifest {
             return Collections.unmodifiableList(satisfied);
         }
         satisfied.addAll(verificationBundle.satisfiedProductionEvidence(targetConcurrency));
+        if (hasCompleteProvenance()) {
+            satisfied.add("productionEvidenceManifest.provenance");
+        }
         if (hasCompleteEvidenceFileDigests()) {
             satisfied.add("productionEvidenceManifest.evidenceFileDigests");
         }
@@ -195,7 +257,37 @@ public class BenchmarkScaleEvidenceManifest {
         } else {
             missing.addAll(verificationBundle.missingProductionEvidence(targetConcurrency));
         }
+        missing.addAll(missingProvenanceEvidence());
         missing.addAll(missingEvidenceFileDigests());
+        return Collections.unmodifiableList(missing);
+    }
+
+    public boolean hasCompleteProvenance() {
+        return missingProvenanceEvidence().isEmpty();
+    }
+
+    public List<String> missingProvenanceEvidence() {
+        List<String> missing = new ArrayList<String>();
+        if (!hasText(environmentId)) {
+            missing.add("productionEvidenceManifest.environmentId");
+        }
+        if (!hasText(environmentType)) {
+            missing.add("productionEvidenceManifest.environmentType");
+        } else if (!ALLOWED_ENVIRONMENT_TYPES.contains(environmentType)) {
+            missing.add("productionEvidenceManifest.environmentType:allowed="
+                + ALLOWED_ENVIRONMENT_TYPES
+                + ",actual="
+                + environmentType);
+        }
+        if (!hasText(evidenceOwner)) {
+            missing.add("productionEvidenceManifest.evidenceOwner");
+        }
+        if (!hasText(artifactArchiveRef)) {
+            missing.add("productionEvidenceManifest.artifactArchiveRef");
+        }
+        if (!hasText(verifierOperator)) {
+            missing.add("productionEvidenceManifest.verifierOperator");
+        }
         return Collections.unmodifiableList(missing);
     }
 
@@ -254,6 +346,26 @@ public class BenchmarkScaleEvidenceManifest {
         return externalVerificationStatus;
     }
 
+    public String getEnvironmentId() {
+        return environmentId;
+    }
+
+    public String getEnvironmentType() {
+        return environmentType;
+    }
+
+    public String getEvidenceOwner() {
+        return evidenceOwner;
+    }
+
+    public String getArtifactArchiveRef() {
+        return artifactArchiveRef;
+    }
+
+    public String getVerifierOperator() {
+        return verifierOperator;
+    }
+
     public Map<String, BenchmarkScaleEvidenceFileDigest> getEvidenceFileDigests() {
         return evidenceFileDigests;
     }
@@ -284,6 +396,10 @@ public class BenchmarkScaleEvidenceManifest {
             return STATUS_UNVERIFIED;
         }
         return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeEnvironmentType(String value) {
+        return hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : null;
     }
 
     private String normalizeText(String value) {

@@ -8,6 +8,7 @@
 
 | File | Required fields | Purpose |
 |:---|:---|:---|
+| `provenance.json` | `environmentId`, `environmentType`, `evidenceOwner`, `artifactArchiveRef`, `verifierOperator` | 证明证据来自已确认的生产或准生产环境、归档位置和执行人；`environmentType` 只接受 `PRODUCTION` 或 `PRE_PRODUCTION`。 |
 | `concurrency.json` | `observedConcurrency`, optional `proofRef` | 证明真实并发数达到目标，默认目标为 `10000`。 |
 | `daily-query-volume.json` | `observedDailyQueryVolume`, optional `proofRef` | 证明真实日查询量达到千万级，默认目标为 `10000000`。 |
 | `data-layout.json` | `observedDatasetSizeBytes`, optional `proofRef` | 证明数据布局达到 30PB 字节级规模，默认阈值为 `30000000000000000`。 |
@@ -39,7 +40,7 @@ python3 scripts/verify-benchmark-production-evidence.py \
 python3 scripts/verify-benchmark-production-evidence.py --self-test
 ```
 
-通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段，并在顶层和 manifest 内的 `evidenceFileDigests` 记录每个必需证据文件的 `sha256` 与 `sizeBytes`。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
+通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段，并在顶层和 manifest 内的 `evidenceFileDigests` 记录每个必需证据文件的 `sha256` 与 `sizeBytes`。manifest 还必须携带 `environmentId`、`environmentType`、`evidenceOwner`、`artifactArchiveRef` 和 `verifierOperator`，用于说明外部证据来源与归档责任。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
 
 验证 SQL 推荐改写目标的完整完成度时，再执行：
 
@@ -50,7 +51,7 @@ python3 scripts/audit-rewrite-production-readiness.py \
   --output /path/to/production-evidence/rewrite-readiness-audit.json
 ```
 
-该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json`、没有原始 `--evidence-dir`、缺少千万级日查询等任一外部证据、顶层与 manifest 内的 `evidenceFileDigests` 不一致，或复算原始文件 SHA-256/sizeBytes 不匹配时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
+该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json`、没有原始 `--evidence-dir`、缺少 `provenance.json` 或千万级日查询等任一外部证据、缺少来源元数据、manifest 来源元数据与原始 `provenance.json` 不一致、顶层与 manifest 内的 `evidenceFileDigests` 不一致，或复算原始文件 SHA-256/sizeBytes 不匹配时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
 
 归档 `verification-result.json` 时必须同时保存原始 evidence directory。评审者可用 `evidenceFileDigests` 对照原始文件重新计算 SHA-256；若缺少任一必需文件摘要，完成度审计必须保持 `BLOCKED`。
 
@@ -61,6 +62,7 @@ python3 scripts/audit-rewrite-production-readiness.py \
 - `status` 为 `PASSED`。
 - `externalVerificationStatus` 为 `VERIFIED`。
 - `missingEvidence` 和 `parseErrors` 均为空。
+- `provenance.json` 已归档，且 manifest 保留 `environmentId`、`environmentType`、`evidenceOwner`、`artifactArchiveRef`、`verifierOperator`。
 - 证据目录由外部生产或准生产环境产生，并已按环境留存策略归档。
 
 即使脚本通过，仓库内测试、manifest 或 verifier 也只是验证边界；没有外部 artifacts 时，不得把 10000 并发、千万级日查询、30PB、长 replay、P95/P99、扫描/CPU/队列等待或成本账单写成已达成事实。

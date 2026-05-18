@@ -59,7 +59,31 @@ class BenchmarkScaleEvidenceManifestTest {
         assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(12000)).isEmpty());
         assertTrue(manifest.satisfiedVerificationEvidence(Integer.valueOf(12000)).contains("productionEvidenceBundle.costBill"));
         assertTrue(manifest.satisfiedVerificationEvidence(Integer.valueOf(12000))
+            .contains("productionEvidenceManifest.provenance"));
+        assertTrue(manifest.satisfiedVerificationEvidence(Integer.valueOf(12000))
             .contains("productionEvidenceManifest.evidenceFileDigests"));
+    }
+
+    @Test
+    void shouldRejectVerifiedManifestWithoutProductionProvenance() {
+        BenchmarkScaleEvidenceManifest manifest = new BenchmarkScaleEvidenceManifest(
+            "PROD_REPLAY",
+            "prod-run-20260518/concurrency.log",
+            "prod-run-20260518/daily-query-volume.json",
+            "prod-run-20260518/data-layout-30pb.json",
+            "prod-run-20260518/replay-window.log",
+            "2026-05-17T00:00Z/2026-05-18T00:00Z",
+            "prod-run-20260518/p95-p99.csv",
+            "prod-run-20260518/scan-cpu-queue.csv",
+            "prod-run-20260518/cost-bill.csv",
+            BenchmarkScaleEvidenceManifest.STATUS_VERIFIED,
+            productionDigests(),
+            productionBundle(Integer.valueOf(12000))
+        );
+
+        assertFalse(manifest.isExternallyVerified(Integer.valueOf(12000)));
+        assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(12000)).toString()
+            .contains("productionEvidenceManifest.environmentId"));
     }
 
     @Test
@@ -75,6 +99,11 @@ class BenchmarkScaleEvidenceManifestTest {
             "prod-run-20260518/scan-cpu-queue.csv",
             "prod-run-20260518/cost-bill.csv",
             BenchmarkScaleEvidenceManifest.STATUS_VERIFIED,
+            "prod-bi-cn-01",
+            "PRODUCTION",
+            "bi-platform-owner",
+            "s3://audit-prod/sqlforge/prod-run-20260518/",
+            "benchmark-sre",
             null,
             productionBundle(Integer.valueOf(12000))
         );
@@ -96,6 +125,11 @@ class BenchmarkScaleEvidenceManifestTest {
             "prod-run-20260518/scan-cpu-queue.csv",
             "prod-run-20260518/cost-bill.csv",
             status,
+            "prod-bi-cn-01",
+            "PRODUCTION",
+            "bi-platform-owner",
+            "s3://audit-prod/sqlforge/prod-run-20260518/",
+            "benchmark-sre",
             productionDigests(),
             bundle
         );

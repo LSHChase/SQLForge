@@ -166,6 +166,11 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setEnvironmentId("prod-bi-cn-01");
+        manifest.setEnvironmentType("PRODUCTION");
+        manifest.setEvidenceOwner("bi-platform-owner");
+        manifest.setArtifactArchiveRef("s3://audit-prod/sqlforge/prod-run-20260518/");
+        manifest.setVerifierOperator("benchmark-sre");
         manifest.setEvidenceFileDigests(productionDigests());
         manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
@@ -174,6 +179,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
     private Map<String, BenchmarkScaleEvidenceFileDigestDTO> productionDigests() {
         Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests =
             new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigestDTO>();
+        addDigest(digests, "provenance.json");
         addDigest(digests, "concurrency.json");
         addDigest(digests, "daily-query-volume.json");
         addDigest(digests, "data-layout.json");

@@ -291,6 +291,11 @@ public class BenchmarkTaskModelApplicationService {
             evidenceManifestDto.getScanCpuQueueMetricProofRef(),
             evidenceManifestDto.getCostBillProofRef(),
             evidenceManifestDto.getExternalVerificationStatus(),
+            evidenceManifestDto.getEnvironmentId(),
+            evidenceManifestDto.getEnvironmentType(),
+            evidenceManifestDto.getEvidenceOwner(),
+            evidenceManifestDto.getArtifactArchiveRef(),
+            evidenceManifestDto.getVerifierOperator(),
             toScaleEvidenceFileDigests(evidenceManifestDto.getEvidenceFileDigests()),
             toScaleEvidenceBundle(evidenceManifestDto.getVerificationBundle())
         );

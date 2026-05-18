@@ -114,7 +114,10 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertTrue(record.getScaleTargetJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(record.getScaleTargetJson().contains("\"concurrencyProofRef\":\"prod-run-20260518/concurrency.log\""));
         assertTrue(record.getScaleTargetJson().contains("\"dailyQueryVolumeProofRef\":\"prod-run-20260518/daily-query-volume.json\""));
+        assertTrue(record.getScaleTargetJson().contains("\"environmentId\":\"prod-bi-cn-01\""));
+        assertTrue(record.getScaleTargetJson().contains("\"artifactArchiveRef\":\"s3://audit-prod/sqlforge/prod-run-20260518/\""));
         assertTrue(record.getScaleTargetJson().contains("\"evidenceFileDigests\""));
+        assertTrue(record.getScaleTargetJson().contains("\"provenance.json\""));
         assertTrue(record.getScaleTargetJson().contains("\"metrics.csv\""));
         assertTrue(record.getScaleTargetJson().contains("\"verificationBundle\""));
         assertTrue(record.getScaleTargetJson().contains("\"observedConcurrency\":10000"));
@@ -149,6 +152,8 @@ class MybatisBenchmarkTaskRepositoryTest {
             restored.getScaleTarget().getEvidenceManifest().getDataLayoutProofRef());
         assertEquals("prod-run-20260518/daily-query-volume.json",
             restored.getScaleTarget().getEvidenceManifest().getDailyQueryVolumeProofRef());
+        assertEquals("prod-bi-cn-01",
+            restored.getScaleTarget().getEvidenceManifest().getEnvironmentId());
         assertEquals("UNVERIFIED", restored.getScaleTarget().getEvidenceManifest().getExternalVerificationStatus());
         assertNotNull(restored.getScaleTarget().getEvidenceManifest().getVerificationBundle());
         assertEquals(Long.valueOf(10000000L),
@@ -541,6 +546,11 @@ class MybatisBenchmarkTaskRepositoryTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setEnvironmentId("prod-bi-cn-01");
+        manifest.setEnvironmentType("PRODUCTION");
+        manifest.setEvidenceOwner("bi-platform-owner");
+        manifest.setArtifactArchiveRef("s3://audit-prod/sqlforge/prod-run-20260518/");
+        manifest.setVerifierOperator("benchmark-sre");
         manifest.setEvidenceFileDigests(productionDigests());
         manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
@@ -549,6 +559,7 @@ class MybatisBenchmarkTaskRepositoryTest {
     private Map<String, BenchmarkScaleEvidenceFileDigestDTO> productionDigests() {
         Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests =
             new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigestDTO>();
+        addDigest(digests, "provenance.json");
         addDigest(digests, "concurrency.json");
         addDigest(digests, "daily-query-volume.json");
         addDigest(digests, "data-layout.json");

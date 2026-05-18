@@ -36,6 +36,21 @@ public class BenchmarkScaleEvidenceManifestDTO {
     @Size(max = 64, message = "externalVerificationStatus 超过 64 个字符")
     private String externalVerificationStatus;
 
+    @Size(max = 128, message = "environmentId 超过 128 个字符")
+    private String environmentId;
+
+    @Size(max = 64, message = "environmentType 超过 64 个字符")
+    private String environmentType;
+
+    @Size(max = 128, message = "evidenceOwner 超过 128 个字符")
+    private String evidenceOwner;
+
+    @Size(max = 256, message = "artifactArchiveRef 超过 256 个字符")
+    private String artifactArchiveRef;
+
+    @Size(max = 128, message = "verifierOperator 超过 128 个字符")
+    private String verifierOperator;
+
     @Valid
     private Map<String, BenchmarkScaleEvidenceFileDigestDTO> evidenceFileDigests;
 
@@ -120,6 +135,46 @@ public class BenchmarkScaleEvidenceManifestDTO {
 
     public void setExternalVerificationStatus(String externalVerificationStatus) {
         this.externalVerificationStatus = externalVerificationStatus;
+    }
+
+    public String getEnvironmentId() {
+        return environmentId;
+    }
+
+    public void setEnvironmentId(String environmentId) {
+        this.environmentId = environmentId;
+    }
+
+    public String getEnvironmentType() {
+        return environmentType;
+    }
+
+    public void setEnvironmentType(String environmentType) {
+        this.environmentType = environmentType;
+    }
+
+    public String getEvidenceOwner() {
+        return evidenceOwner;
+    }
+
+    public void setEvidenceOwner(String evidenceOwner) {
+        this.evidenceOwner = evidenceOwner;
+    }
+
+    public String getArtifactArchiveRef() {
+        return artifactArchiveRef;
+    }
+
+    public void setArtifactArchiveRef(String artifactArchiveRef) {
+        this.artifactArchiveRef = artifactArchiveRef;
+    }
+
+    public String getVerifierOperator() {
+        return verifierOperator;
+    }
+
+    public void setVerifierOperator(String verifierOperator) {
+        this.verifierOperator = verifierOperator;
     }
 
     public Map<String, BenchmarkScaleEvidenceFileDigestDTO> getEvidenceFileDigests() {

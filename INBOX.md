@@ -29,7 +29,7 @@
 ### INBOX-005: 生产规模压测外部证据 owner 与归档位置待确认
 
 - Status: open
-- Needed decision: 确认可用于真实生产规模留证的生产或准生产环境、执行窗口、10000 并发压测 runner、千万级日查询量证明来源、30PB 数据布局证明来源、24 小时 workload replay 来源、P95/P99/扫描字节/CPU/队列等待指标导出方式、成本账单来源、外部 artifacts 归档位置、谁运行 `scripts/verify-benchmark-production-evidence.py`、谁复核 `evidenceFileDigests` 可按原始 evidence directory 复算 SHA-256，以及谁负责把通过校验且含摘要的 `scaleTargetEvidenceManifest` 提交到 benchmark 任务。
+- Needed decision: 确认可用于真实生产规模留证的生产或准生产环境、执行窗口、10000 并发压测 runner、千万级日查询量证明来源、30PB 数据布局证明来源、24 小时 workload replay 来源、P95/P99/扫描字节/CPU/队列等待指标导出方式、成本账单来源、外部 artifacts 归档位置、谁提供 `provenance.json` 中的 `environmentId/environmentType/evidenceOwner/artifactArchiveRef/verifierOperator`、谁运行 `scripts/verify-benchmark-production-evidence.py`、谁复核 `provenance.json` 和 `evidenceFileDigests` 可按原始 evidence directory 复算 SHA-256，以及谁负责把通过校验且含来源元数据和摘要的 `scaleTargetEvidenceManifest` 提交到 benchmark 任务。
 - Task refs: USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-EXTERNAL-ARTIFACTS-20260518
 - Plan refs: docs/deployments/benchmark-production-evidence-runbook.md
 

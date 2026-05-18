@@ -264,6 +264,11 @@ public class BenchmarkReportExportService {
             + ",metricRef=" + evidenceManifest.getP95P99MetricProofRef()
             + ",scanCpuQueueRef=" + evidenceManifest.getScanCpuQueueMetricProofRef()
             + ",costBillRef=" + evidenceManifest.getCostBillProofRef()
+            + ",provenance=environmentId=" + evidenceManifest.getEnvironmentId()
+            + ";environmentType=" + evidenceManifest.getEnvironmentType()
+            + ";evidenceOwner=" + evidenceManifest.getEvidenceOwner()
+            + ";artifactArchiveRef=" + evidenceManifest.getArtifactArchiveRef()
+            + ";verifierOperator=" + evidenceManifest.getVerifierOperator()
             + ",evidenceFileDigestCount=" + evidenceManifest.getEvidenceFileDigests().size();
     }
 
