@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
@@ -61,6 +62,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertTrue(task.getReadonlyRequired().booleanValue());
         assertEquals(1, task.getTargetEngines().size());
         assertEquals(DataSourceTypeEnum.HETU, task.getTargetEngines().get(0));
+        assertNull(task.getScaleTarget());
         assertNull(task.getTemplateId());
         assertNull(task.getTestSetSource());
     }
@@ -91,6 +93,11 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkTaskType.COMPARISON, statusResponse.getTaskType());
         assertEquals(BenchmarkTaskPriority.NORMAL, statusResponse.getPriority());
         assertEquals(Integer.valueOf(2), Integer.valueOf(statusResponse.getTargetEngines().size()));
+        assertNotNull(statusResponse.getScaleTarget());
+        assertEquals(Integer.valueOf(10000), statusResponse.getScaleTarget().getTargetConcurrency());
+        assertEquals("THIRTY_PB", statusResponse.getScaleTarget().getTargetDatasetSizeLabel());
+        assertEquals(Long.valueOf(10000000L), statusResponse.getScaleTarget().getTargetDailyQueryVolume());
+        assertEquals("TARGET_DECLARED_UNVERIFIED", statusResponse.getScaleTarget().getEvidenceStatus());
         assertEquals("comparison-dual-engine", statusResponse.getTemplateId());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, statusResponse.getTemplateType());
         assertEquals("set-route-comparison", statusResponse.getTestSetId());
@@ -134,6 +141,8 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals("EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE", response.getImplementationStage());
         assertEquals("tenant-a", report.getTenantId());
         assertNotNull(report.getExecutionSummary());
+        assertTrue(report.getExecutionSummary().getPhaseNotes().contains("scaleTargetStatus=TARGET_DECLARED_UNVERIFIED"));
+        assertTrue(report.getExecutionSummary().getPhaseNotes().contains("scaleTargetDailyQueryVolume=10000000"));
         assertEquals(Integer.valueOf(4), Integer.valueOf(report.getExportArtifacts().size()));
     }
 
@@ -235,6 +244,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         request.getTaskContext().setDurationSeconds(Integer.valueOf(300));
         request.getTaskContext().setRampUpSeconds(Integer.valueOf(30));
         request.getTaskContext().setDatasetSizeLabel("TEN_GB");
+        request.getTaskContext().setScaleTarget(productionScaleTarget());
         request.getTaskContext().setTemplateId(templateId(taskType));
         request.getTaskContext().setTemplateType(templateType(taskType));
         request.getTaskContext().setTemplateVersion("v2026.04");
@@ -276,6 +286,16 @@ class BenchmarkTaskModelApplicationServiceTest {
             )
         );
         return request;
+    }
+
+    private BenchmarkScaleTargetDTO productionScaleTarget() {
+        BenchmarkScaleTargetDTO target = new BenchmarkScaleTargetDTO();
+        target.setTargetConcurrency(Integer.valueOf(10000));
+        target.setTargetDatasetSizeLabel("THIRTY_PB");
+        target.setTargetDailyQueryVolume(Long.valueOf(10000000L));
+        target.setTargetComplexityProfile("HIGH_COMPLEXITY_SELECT");
+        target.setTargetCostEfficiency("minimize-scan-cpu-and-cost-per-query");
+        return target;
     }
 
     private BenchmarkTestSetLabelDTO label(BenchmarkTestSetLabelType type, String value) {

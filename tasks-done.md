@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-SCALE-READINESS-20260518: 补齐推荐对比压测生产规模目标证据
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-SCALE-READINESS-20260518 add benchmark scale target evidence boundary`
+- Priority: 1
+- Depends on: N/A
+- Scope: 为 benchmark-engine 推荐对比压测请求、任务上下文、持久化载体和状态响应增加生产规模目标与证据边界，覆盖 10000 并发、30PB 数据量、千万日查询、高复杂度和成本目标，不把目标误报为实测证明。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-SCALE-READINESS-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 为 benchmark-engine 推荐对比压测和通用任务上下文新增 scaleTarget，覆盖目标并发、数据集、日查询量、复杂度和成本目标；贯通 DTO、领域对象、状态响应、MyBatis 持久化、迁移、case evidence、audit summary、execution summary notes 与架构文档，并固定 TARGET_DECLARED_UNVERIFIED 证据边界，避免把 10000 并发、30PB、千万日查询目标误报为实测能力。
+  - Validation evidence: preflight passed; mvn -pl benchmark-engine,sqlforge-shared -am -DskipTests compile passed; focused tests BenchmarkRecommendationComparisonApplicationServiceTest,BenchmarkTaskModelApplicationServiceTest,BenchmarkTaskControllerTest,BenchmarkTaskStateFlowTest passed 19 tests; cross-module mvn -pl benchmark-engine,query-execution,sql-optimization,sqlforge-shared -am test passed; final benchmark-engine full test passed 77 benchmark tests plus 22 shared tests; repository knowledge lint passed; git diff --check passed; foreman validate passed; pre-closeout audit passed.
+  - Residual risk: 本任务只把生产规模目标与未验证证据边界结构化接入 benchmark 链路，不构成真实 10000 并发、30PB 数据集、千万日查询或成本最优证明；仍需外部生产级压测环境、长窗口 workload、P95/P99、扫描量、CPU/内存和成本账单证据。
+  - Next step: 继续接入真实规模压测执行/报告聚合与成本证据归档，把 scaleTarget 从声明目标推进为可验证 benchmark/report evidence。
+
 ### USER-CN-REWRITE-RUNTIME-BENEFIT-GATE-20260518: 改写发布增加运行时收益门禁
 
 - Status: done

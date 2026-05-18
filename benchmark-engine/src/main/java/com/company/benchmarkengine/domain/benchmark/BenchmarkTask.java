@@ -19,6 +19,7 @@ public class BenchmarkTask {
     private final Integer durationSeconds;
     private final Integer rampUpSeconds;
     private final String datasetSizeLabel;
+    private final BenchmarkScaleTarget scaleTarget;
     private final String templateId;
     private final BenchmarkTemplateType templateType;
     private final String templateVersion;
@@ -56,6 +57,7 @@ public class BenchmarkTask {
         this.durationSeconds = submission.getDurationSeconds();
         this.rampUpSeconds = submission.getRampUpSeconds();
         this.datasetSizeLabel = submission.getDatasetSizeLabel();
+        this.scaleTarget = submission.getScaleTarget();
         this.templateId = submission.getTemplateId();
         this.templateType = submission.getTemplateType();
         this.templateVersion = submission.getTemplateVersion();
@@ -96,6 +98,7 @@ public class BenchmarkTask {
         this.durationSeconds = submission.getDurationSeconds();
         this.rampUpSeconds = submission.getRampUpSeconds();
         this.datasetSizeLabel = submission.getDatasetSizeLabel();
+        this.scaleTarget = submission.getScaleTarget();
         this.templateId = submission.getTemplateId();
         this.templateType = submission.getTemplateType();
         this.templateVersion = submission.getTemplateVersion();
@@ -290,6 +293,10 @@ public class BenchmarkTask {
 
     public String getDatasetSizeLabel() {
         return datasetSizeLabel;
+    }
+
+    public BenchmarkScaleTarget getScaleTarget() {
+        return scaleTarget;
     }
 
     public String getTemplateId() {

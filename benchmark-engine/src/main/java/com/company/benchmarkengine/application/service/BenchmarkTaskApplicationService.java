@@ -323,6 +323,7 @@ public class BenchmarkTaskApplicationService {
         payload.put("templateType", task.getTemplateType() == null ? null : task.getTemplateType().name());
         payload.put("testSetId", task.getTestSetId());
         payload.put("testSetSource", task.getTestSetSource() == null ? null : task.getTestSetSource().name());
+        payload.put("scaleTarget", task.getScaleTarget());
         return JsonUtils.toJson(payload);
     }
 
@@ -355,6 +356,7 @@ public class BenchmarkTaskApplicationService {
         payload.put("queueEvidence", response == null ? null : response.getQueueEvidence());
         payload.put("templateId", response == null ? null : response.getTemplateId());
         payload.put("testSetId", response == null ? null : response.getTestSetId());
+        payload.put("scaleTarget", response == null ? null : response.getScaleTarget());
         payload.put("errorCode", response == null || response.getError() == null ? null : response.getError().getCode());
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);

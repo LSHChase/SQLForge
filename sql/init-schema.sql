@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS benchmark_task (
   duration_seconds INT DEFAULT NULL COMMENT '请求的压测持续秒数',
   ramp_up_seconds INT DEFAULT NULL COMMENT '请求的预热爬坡秒数',
   dataset_size_label VARCHAR(64) DEFAULT NULL COMMENT '数据集规模标签',
+  scale_target_json JSON DEFAULT NULL COMMENT '生产规模目标与未验证证据边界 JSON',
   readonly_required TINYINT(1) NOT NULL DEFAULT 1 COMMENT '只读护栏标志',
   shadow_environment_mode VARCHAR(32) NOT NULL COMMENT '影子环境要求模式',
   desensitization_requirement VARCHAR(32) NOT NULL COMMENT '脱敏要求模式',

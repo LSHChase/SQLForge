@@ -12,6 +12,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -187,6 +188,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
         record.setDurationSeconds(task.getDurationSeconds());
         record.setRampUpSeconds(task.getRampUpSeconds());
         record.setDatasetSizeLabel(task.getDatasetSizeLabel());
+        record.setScaleTargetJson(writeJson(task.getScaleTarget()));
         record.setTemplateId(task.getTemplateId());
         record.setTemplateType(task.getTemplateType() == null ? null : task.getTemplateType().name());
         record.setTemplateVersion(task.getTemplateVersion());
@@ -290,6 +292,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             record.getDurationSeconds(),
             record.getRampUpSeconds(),
             record.getDatasetSizeLabel(),
+            readScaleTarget(record.getScaleTargetJson()),
             record.getTemplateId(),
             record.getTemplateType() == null ? null : BenchmarkTemplateType.valueOf(record.getTemplateType()),
             record.getTemplateVersion(),
@@ -412,6 +415,30 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             return thresholds;
         } catch (Exception ex) {
             throw new IllegalArgumentException("压测阈值反序列化失败", ex);
+        }
+    }
+
+    private BenchmarkScaleTarget readScaleTarget(String json) {
+        if (json == null || json.trim().isEmpty() || "null".equals(json.trim())) {
+            return null;
+        }
+        try {
+            Map<String, Object> item = objectMapper.readValue(json, MAP_OF_OBJECTS);
+            if (item == null || item.isEmpty()) {
+                return null;
+            }
+            return new BenchmarkScaleTarget(
+                readInteger(item.get("targetConcurrency")),
+                item.get("targetDatasetSizeLabel") == null ? null : String.valueOf(item.get("targetDatasetSizeLabel")),
+                readLong(item.get("targetDailyQueryVolume")),
+                item.get("targetComplexityProfile") == null ? null : String.valueOf(item.get("targetComplexityProfile")),
+                item.get("targetCostEfficiency") == null ? null : String.valueOf(item.get("targetCostEfficiency")),
+                item.get("evidenceStatus") == null ? null : String.valueOf(item.get("evidenceStatus")),
+                item.get("evidenceBoundary") == null ? null : String.valueOf(item.get("evidenceBoundary")),
+                readStringList(item.get("requiredEvidence"))
+            );
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("压测规模目标反序列化失败", ex);
         }
     }
 
@@ -759,6 +786,20 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             return null;
         }
         return new BigDecimal(String.valueOf(value));
+    }
+
+    private Integer readInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return Integer.valueOf(String.valueOf(value));
+    }
+
+    private Long readLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return Long.valueOf(String.valueOf(value));
     }
 
     private LocalDateTime toLocalDateTime(Instant value) {

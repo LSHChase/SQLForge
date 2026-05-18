@@ -16,6 +16,7 @@
         <result property="durationSeconds" column="duration_seconds"/>
         <result property="rampUpSeconds" column="ramp_up_seconds"/>
         <result property="datasetSizeLabel" column="dataset_size_label"/>
+        <result property="scaleTargetJson" column="scale_target_json"/>
         <result property="templateId" column="template_id"/>
         <result property="templateType" column="template_type"/>
         <result property="templateVersion" column="template_version"/>
@@ -55,6 +56,7 @@
         duration_seconds,
         ramp_up_seconds,
         dataset_size_label,
+        scale_target_json,
         template_id,
         template_type,
         template_version,
@@ -111,6 +113,7 @@
             duration_seconds,
             ramp_up_seconds,
             dataset_size_label,
+            scale_target_json,
             template_id,
             template_type,
             template_version,
@@ -146,6 +149,7 @@
             #{durationSeconds},
             #{rampUpSeconds},
             #{datasetSizeLabel},
+            #{scaleTargetJson},
             #{templateId},
             #{templateType},
             #{templateVersion},
@@ -184,6 +188,7 @@
             duration_seconds = #{durationSeconds},
             ramp_up_seconds = #{rampUpSeconds},
             dataset_size_label = #{datasetSizeLabel},
+            scale_target_json = #{scaleTargetJson},
             template_id = #{templateId},
             template_type = #{templateType},
             template_version = #{templateVersion},

@@ -3,6 +3,7 @@ package com.company.benchmarkengine.application.service;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkExecutionSummary;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdAssessment;
@@ -269,12 +270,26 @@ public class BenchmarkIsolatedExecutionService {
         notes.add("sqlComplexity=" + complexity);
         notes.add("datasetWeight=" + datasetWeight);
         notes.add("concurrencyWeight=" + concurrencyWeight);
+        appendScaleTargetNotes(notes, task.getScaleTarget());
         notes.add("workloadDigest=" + workloadDigest);
         notes.add("executionDurationMs=" + totalDurationMs);
         notes.add("workloadSource=" + workloadOrchestration.getWorkloadSource());
         notes.add("backfillApplied=" + workloadOrchestration.isBackfillApplied());
         notes.addAll(workloadOrchestration.getEvidenceNotes());
         return Collections.unmodifiableList(notes);
+    }
+
+    private void appendScaleTargetNotes(List<String> notes, BenchmarkScaleTarget scaleTarget) {
+        if (scaleTarget == null) {
+            return;
+        }
+        notes.add("scaleTargetStatus=" + scaleTarget.getEvidenceStatus());
+        notes.add("scaleTargetConcurrency=" + scaleTarget.getTargetConcurrency());
+        notes.add("scaleTargetDatasetSizeLabel=" + scaleTarget.getTargetDatasetSizeLabel());
+        notes.add("scaleTargetDailyQueryVolume=" + scaleTarget.getTargetDailyQueryVolume());
+        notes.add("scaleTargetComplexityProfile=" + scaleTarget.getTargetComplexityProfile());
+        notes.add("scaleTargetCostEfficiency=" + scaleTarget.getTargetCostEfficiency());
+        notes.add("scaleTargetBoundary=" + scaleTarget.getEvidenceBoundary());
     }
 
     private String buildEngineNote(BenchmarkTask task,

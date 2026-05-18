@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
@@ -9,6 +10,7 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommenda
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTestSetResponse;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationSqlRole;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
@@ -77,6 +79,8 @@ public class BenchmarkRecommendationComparisonApplicationService {
                                                                               BenchmarkRecommendationComparisonCreateRequest request) {
         long start = System.currentTimeMillis();
         request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
+        BenchmarkScaleTargetDTO scaleTargetDto = resolveScaleTargetDto(request);
+        BenchmarkScaleTarget scaleTarget = toScaleTarget(scaleTargetDto);
         try {
             SqlOptimizationAccelerationRecommendation recommendation =
                 requireRecommendation(recommendationId, request.getTenantId());
@@ -97,14 +101,14 @@ public class BenchmarkRecommendationComparisonApplicationService {
                 BenchmarkTestSetSource.RECOMMENDATION_GENERATION,
                 labels,
                 refs,
-                buildCases(testSetId, recommendationId, recommendation),
+                buildCases(testSetId, recommendationId, recommendation, scaleTarget),
                 now,
                 RequestContext.getUserId()
             );
             benchmarkTestSetRepository.saveTestSet(testSet);
 
             BenchmarkTaskSubmitResponse taskResponse = benchmarkTaskApplicationService.submitTask(
-                buildTaskSubmitRequest(request, recommendationId, recommendation, testSet)
+                buildTaskSubmitRequest(request, recommendationId, recommendation, testSet, scaleTargetDto)
             );
             BenchmarkRecommendationComparisonResponse response = new BenchmarkRecommendationComparisonResponse();
             response.setRecommendationId(recommendationId);
@@ -117,8 +121,8 @@ public class BenchmarkRecommendationComparisonApplicationService {
                 recommendationId,
                 response.getBenchmarkTask().getTaskId(),
                 System.currentTimeMillis() - start,
-                buildRequestSummary(recommendationId, request),
-                buildResponseSummary(response, null)
+                buildRequestSummary(recommendationId, request, scaleTarget),
+                buildResponseSummary(response, scaleTarget, null)
             );
             return response;
         } catch (RuntimeException ex) {
@@ -126,8 +130,8 @@ public class BenchmarkRecommendationComparisonApplicationService {
                 recommendationId,
                 recommendationId,
                 System.currentTimeMillis() - start,
-                buildRequestSummary(recommendationId, request),
-                buildResponseSummary(null, ex.getMessage())
+                buildRequestSummary(recommendationId, request, scaleTarget),
+                buildResponseSummary(null, scaleTarget, ex.getMessage())
             );
             throw ex;
         }
@@ -199,10 +203,11 @@ public class BenchmarkRecommendationComparisonApplicationService {
 
     private List<BenchmarkTestSetCase> buildCases(String testSetId,
                                                   String recommendationId,
-                                                  SqlOptimizationAccelerationRecommendation recommendation) {
+                                                  SqlOptimizationAccelerationRecommendation recommendation,
+                                                  BenchmarkScaleTarget scaleTarget) {
         List<BenchmarkTestSetCase> cases = new ArrayList<BenchmarkTestSetCase>(2);
-        cases.add(buildCase(testSetId, 1, "SOURCE_SQL", recommendationId, recommendation, recommendation.getSourceSqlText()));
-        cases.add(buildCase(testSetId, 2, "RECOMMENDED_SQL", recommendationId, recommendation, recommendation.getRecommendedSqlText()));
+        cases.add(buildCase(testSetId, 1, "SOURCE_SQL", recommendationId, recommendation, recommendation.getSourceSqlText(), scaleTarget));
+        cases.add(buildCase(testSetId, 2, "RECOMMENDED_SQL", recommendationId, recommendation, recommendation.getRecommendedSqlText(), scaleTarget));
         return cases;
     }
 
@@ -211,7 +216,8 @@ public class BenchmarkRecommendationComparisonApplicationService {
                                            String role,
                                            String recommendationId,
                                            SqlOptimizationAccelerationRecommendation recommendation,
-                                           String sqlText) {
+                                           String sqlText,
+                                           BenchmarkScaleTarget scaleTarget) {
         Map<String, Object> evidence = new LinkedHashMap<String, Object>();
         evidence.put("recommendationId", recommendationId);
         evidence.put("role", role);
@@ -224,6 +230,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
         evidence.put("targetEngine", recommendation.getTargetEngine());
         evidence.put("targetDatasource", recommendation.getTargetDatasource());
         evidence.put("requiresDispatch", recommendation.getRequiresDispatch());
+        evidence.put("scaleTarget", scaleTarget);
         return new BenchmarkTestSetCase(
             UUID.randomUUID().toString(),
             testSetId,
@@ -254,7 +261,8 @@ public class BenchmarkRecommendationComparisonApplicationService {
     private BenchmarkTaskSubmitRequest buildTaskSubmitRequest(BenchmarkRecommendationComparisonCreateRequest request,
                                                               String recommendationId,
                                                               SqlOptimizationAccelerationRecommendation recommendation,
-                                                              BenchmarkTestSet testSet) {
+                                                              BenchmarkTestSet testSet,
+                                                              BenchmarkScaleTargetDTO scaleTarget) {
         BenchmarkTaskSubmitRequest taskRequest = new BenchmarkTaskSubmitRequest();
         taskRequest.setTenantId(request.getTenantId());
         taskRequest.setTaskType(BenchmarkTaskType.COMPARISON);
@@ -262,10 +270,11 @@ public class BenchmarkRecommendationComparisonApplicationService {
 
         BenchmarkTaskContextDTO context = new BenchmarkTaskContextDTO();
         context.setTargetEngines(request.getTargetEngines());
-        context.setConcurrency(request.getConcurrency());
+        context.setConcurrency(resolveBenchmarkConcurrency(request, scaleTarget));
         context.setDurationSeconds(request.getDurationSeconds());
         context.setRampUpSeconds(request.getRampUpSeconds());
-        context.setDatasetSizeLabel(trimToNull(request.getDatasetSizeLabel()));
+        context.setDatasetSizeLabel(resolveBenchmarkDatasetSizeLabel(request, scaleTarget));
+        context.setScaleTarget(scaleTarget);
         context.setTemplateId(testSet.getTemplateId());
         context.setTemplateType(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON);
         context.setTemplateVersion(testSet.getTemplateVersion());
@@ -316,6 +325,57 @@ public class BenchmarkRecommendationComparisonApplicationService {
             return recommendation.getSourceSqlText();
         }
         return recommendation.getRecommendedSqlText();
+    }
+
+    private BenchmarkScaleTargetDTO resolveScaleTargetDto(BenchmarkRecommendationComparisonCreateRequest request) {
+        BenchmarkScaleTargetDTO requested = request.getScaleTarget();
+        if (requested == null && request.getConcurrency() == null && !hasText(request.getDatasetSizeLabel())) {
+            return null;
+        }
+        BenchmarkScaleTargetDTO resolved = new BenchmarkScaleTargetDTO();
+        resolved.setTargetConcurrency(requested == null || requested.getTargetConcurrency() == null
+            ? request.getConcurrency()
+            : requested.getTargetConcurrency());
+        resolved.setTargetDatasetSizeLabel(requested == null
+            ? trimToNull(request.getDatasetSizeLabel())
+            : firstNonBlank(requested.getTargetDatasetSizeLabel(), trimToNull(request.getDatasetSizeLabel())));
+        resolved.setTargetDailyQueryVolume(requested == null ? null : requested.getTargetDailyQueryVolume());
+        resolved.setTargetComplexityProfile(requested == null ? null : trimToNull(requested.getTargetComplexityProfile()));
+        resolved.setTargetCostEfficiency(requested == null ? null : trimToNull(requested.getTargetCostEfficiency()));
+        return hasAnyScaleTarget(resolved) ? resolved : null;
+    }
+
+    private BenchmarkScaleTarget toScaleTarget(BenchmarkScaleTargetDTO scaleTarget) {
+        if (scaleTarget == null) {
+            return null;
+        }
+        return new BenchmarkScaleTarget(
+            scaleTarget.getTargetConcurrency(),
+            scaleTarget.getTargetDatasetSizeLabel(),
+            scaleTarget.getTargetDailyQueryVolume(),
+            scaleTarget.getTargetComplexityProfile(),
+            scaleTarget.getTargetCostEfficiency(),
+            BenchmarkScaleTarget.STATUS_TARGET_DECLARED_UNVERIFIED,
+            BenchmarkScaleTarget.DEFAULT_EVIDENCE_BOUNDARY,
+            null
+        );
+    }
+
+    private Integer resolveBenchmarkConcurrency(BenchmarkRecommendationComparisonCreateRequest request,
+                                                BenchmarkScaleTargetDTO scaleTarget) {
+        if (request.getConcurrency() != null) {
+            return request.getConcurrency();
+        }
+        return scaleTarget == null ? null : scaleTarget.getTargetConcurrency();
+    }
+
+    private String resolveBenchmarkDatasetSizeLabel(BenchmarkRecommendationComparisonCreateRequest request,
+                                                    BenchmarkScaleTargetDTO scaleTarget) {
+        String requestedLabel = trimToNull(request.getDatasetSizeLabel());
+        if (requestedLabel != null) {
+            return requestedLabel;
+        }
+        return scaleTarget == null ? null : trimToNull(scaleTarget.getTargetDatasetSizeLabel());
     }
 
     private String resolveTestSetName(BenchmarkRecommendationComparisonCreateRequest request, String recommendationId) {
@@ -381,23 +441,33 @@ public class BenchmarkRecommendationComparisonApplicationService {
         );
     }
 
-    private String buildRequestSummary(String recommendationId, BenchmarkRecommendationComparisonCreateRequest request) {
+    private String buildRequestSummary(String recommendationId,
+                                       BenchmarkRecommendationComparisonCreateRequest request,
+                                       BenchmarkScaleTarget scaleTarget) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("serviceCode", ServiceCodeConstants.BENCHMARK_ENGINE);
         payload.put("recommendationId", recommendationId);
         payload.put("tenantId", request.getTenantId());
         payload.put("benchmarkSqlRole", request.getBenchmarkSqlRole() == null ? null : request.getBenchmarkSqlRole().name());
         payload.put("targetEngines", request.getTargetEngines());
+        payload.put("concurrency", request.getConcurrency());
+        payload.put("durationSeconds", request.getDurationSeconds());
+        payload.put("rampUpSeconds", request.getRampUpSeconds());
+        payload.put("datasetSizeLabel", trimToNull(request.getDatasetSizeLabel()));
+        payload.put("scaleTarget", scaleTarget);
         payload.put("templateId", trimToNull(request.getTemplateId()));
         payload.put("templateVersion", trimToNull(request.getTemplateVersion()));
         return JsonUtils.toJson(payload);
     }
 
-    private String buildResponseSummary(BenchmarkRecommendationComparisonResponse response, String failureReason) {
+    private String buildResponseSummary(BenchmarkRecommendationComparisonResponse response,
+                                        BenchmarkScaleTarget scaleTarget,
+                                        String failureReason) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("resultStatus", response == null ? "FAILED" : response.getBenchmarkTask().getStatus().name());
         payload.put("testSetId", response == null || response.getTestSet() == null ? null : response.getTestSet().getTestSetId());
         payload.put("taskId", response == null || response.getBenchmarkTask() == null ? null : response.getBenchmarkTask().getTaskId());
+        payload.put("scaleTarget", scaleTarget);
         payload.put("failureReason", failureReason);
         return JsonUtils.toJson(payload);
     }
@@ -427,6 +497,15 @@ public class BenchmarkRecommendationComparisonApplicationService {
 
     private String firstNonBlank(String primary, String fallback) {
         return hasText(primary) ? primary.trim() : fallback;
+    }
+
+    private boolean hasAnyScaleTarget(BenchmarkScaleTargetDTO scaleTarget) {
+        return scaleTarget != null
+            && (scaleTarget.getTargetConcurrency() != null
+            || hasText(scaleTarget.getTargetDatasetSizeLabel())
+            || scaleTarget.getTargetDailyQueryVolume() != null
+            || hasText(scaleTarget.getTargetComplexityProfile())
+            || hasText(scaleTarget.getTargetCostEfficiency()));
     }
 
     private String trimToNull(String value) {

@@ -43,6 +43,9 @@ public class BenchmarkRecommendationComparisonCreateRequest {
     private String datasetSizeLabel;
 
     @Valid
+    private BenchmarkScaleTargetDTO scaleTarget;
+
+    @Valid
     private List<BenchmarkThresholdDTO> thresholds;
 
     @Valid
@@ -128,6 +131,14 @@ public class BenchmarkRecommendationComparisonCreateRequest {
 
     public void setDatasetSizeLabel(String datasetSizeLabel) {
         this.datasetSizeLabel = datasetSizeLabel;
+    }
+
+    public BenchmarkScaleTargetDTO getScaleTarget() {
+        return scaleTarget;
+    }
+
+    public void setScaleTarget(BenchmarkScaleTargetDTO scaleTarget) {
+        this.scaleTarget = scaleTarget;
     }
 
     public List<BenchmarkThresholdDTO> getThresholds() {

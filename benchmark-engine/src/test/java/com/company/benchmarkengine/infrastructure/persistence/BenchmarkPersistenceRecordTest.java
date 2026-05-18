@@ -26,6 +26,7 @@ class BenchmarkPersistenceRecordTest {
         record.setDurationSeconds(Integer.valueOf(300));
         record.setRampUpSeconds(Integer.valueOf(30));
         record.setDatasetSizeLabel("TEN_GB");
+        record.setScaleTargetJson("{\"targetConcurrency\":10000}");
         record.setTemplateId("comparison-dual-engine");
         record.setTemplateType("CROSS_ENGINE_COMPARISON");
         record.setTemplateVersion("v2026.04");
@@ -63,6 +64,7 @@ class BenchmarkPersistenceRecordTest {
         assertEquals(Integer.valueOf(300), record.getDurationSeconds());
         assertEquals(Integer.valueOf(30), record.getRampUpSeconds());
         assertEquals("TEN_GB", record.getDatasetSizeLabel());
+        assertEquals("{\"targetConcurrency\":10000}", record.getScaleTargetJson());
         assertEquals("comparison-dual-engine", record.getTemplateId());
         assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
         assertEquals("v2026.04", record.getTemplateVersion());

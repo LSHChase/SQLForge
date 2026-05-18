@@ -17,6 +17,7 @@ public class BenchmarkTaskSubmission {
     private final Integer durationSeconds;
     private final Integer rampUpSeconds;
     private final String datasetSizeLabel;
+    private final BenchmarkScaleTarget scaleTarget;
     private final String templateId;
     private final BenchmarkTemplateType templateType;
     private final String templateVersion;
@@ -39,6 +40,7 @@ public class BenchmarkTaskSubmission {
                                    Integer durationSeconds,
                                    Integer rampUpSeconds,
                                    String datasetSizeLabel,
+                                   BenchmarkScaleTarget scaleTarget,
                                    String templateId,
                                    BenchmarkTemplateType templateType,
                                    String templateVersion,
@@ -60,6 +62,7 @@ public class BenchmarkTaskSubmission {
         this.durationSeconds = durationSeconds == null ? Integer.valueOf(300) : durationSeconds;
         this.rampUpSeconds = rampUpSeconds == null ? Integer.valueOf(30) : rampUpSeconds;
         this.datasetSizeLabel = datasetSizeLabel == null ? "UNSPECIFIED" : datasetSizeLabel;
+        this.scaleTarget = normalizeScaleTarget(scaleTarget);
         this.templateId = normalizeText(templateId);
         this.templateType = templateType;
         this.templateVersion = templateType == null
@@ -105,6 +108,13 @@ public class BenchmarkTaskSubmission {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<BenchmarkSourceReference>(requestedRefs));
+    }
+
+    private BenchmarkScaleTarget normalizeScaleTarget(BenchmarkScaleTarget requestedTarget) {
+        if (requestedTarget == null || !requestedTarget.hasAnyTarget()) {
+            return null;
+        }
+        return requestedTarget;
     }
 
     private String normalizeText(String value) {
@@ -153,6 +163,10 @@ public class BenchmarkTaskSubmission {
 
     public String getDatasetSizeLabel() {
         return datasetSizeLabel;
+    }
+
+    public BenchmarkScaleTarget getScaleTarget() {
+        return scaleTarget;
     }
 
     public String getTemplateId() {

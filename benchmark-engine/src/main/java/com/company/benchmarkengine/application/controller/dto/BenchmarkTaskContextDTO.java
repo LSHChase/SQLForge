@@ -29,6 +29,8 @@ public class BenchmarkTaskContextDTO {
 
     @Size(max = 64, message = "datasetSizeLabel 超过 64 个字符")
     private String datasetSizeLabel;
+    @Valid
+    private BenchmarkScaleTargetDTO scaleTarget;
     @Size(max = 64, message = "templateId 超过 64 个字符")
     private String templateId;
     private BenchmarkTemplateType templateType;
@@ -94,6 +96,14 @@ public class BenchmarkTaskContextDTO {
 
     public void setDatasetSizeLabel(String datasetSizeLabel) {
         this.datasetSizeLabel = datasetSizeLabel;
+    }
+
+    public BenchmarkScaleTargetDTO getScaleTarget() {
+        return scaleTarget;
+    }
+
+    public void setScaleTarget(BenchmarkScaleTargetDTO scaleTarget) {
+        this.scaleTarget = scaleTarget;
     }
 
     public String getTemplateId() {

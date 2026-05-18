@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationComparisonResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
@@ -65,11 +66,18 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         assertEquals(BenchmarkRecommendationSqlRole.RECOMMENDED_SQL, response.getBenchmarkSqlRole());
         assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, response.getTestSet().getTestSetSource());
         assertEquals(Integer.valueOf(2), response.getTestSet().getTotalCases());
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"scaleTarget\""));
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertEquals("QUEUED", response.getBenchmarkTask().getStatus().name());
         assertNotNull(repository.findTestSetByTestSetId(response.getTestSet().getTestSetId()));
 
         BenchmarkTaskStatusResponse status = benchmarkTaskApplicationService.getTaskStatus(response.getBenchmarkTask().getTaskId());
         assertEquals(BenchmarkTaskType.COMPARISON, status.getTaskType());
+        assertNotNull(status.getScaleTarget());
+        assertEquals(Integer.valueOf(10000), status.getScaleTarget().getTargetConcurrency());
+        assertEquals("THIRTY_PB", status.getScaleTarget().getTargetDatasetSizeLabel());
+        assertEquals(Long.valueOf(10000000L), status.getScaleTarget().getTargetDailyQueryVolume());
+        assertEquals("TARGET_DECLARED_UNVERIFIED", status.getScaleTarget().getEvidenceStatus());
         assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, status.getTestSetSource());
         assertTrue(status.getTestSetSourceRefs().stream().anyMatch(ref -> ref.getType() == BenchmarkSourceReferenceType.RECOMMENDATION));
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
@@ -115,7 +123,18 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         request.setDurationSeconds(Integer.valueOf(180));
         request.setRampUpSeconds(Integer.valueOf(20));
         request.setDatasetSizeLabel("TEN_GB");
+        request.setScaleTarget(productionScaleTarget());
         return request;
+    }
+
+    private BenchmarkScaleTargetDTO productionScaleTarget() {
+        BenchmarkScaleTargetDTO scaleTarget = new BenchmarkScaleTargetDTO();
+        scaleTarget.setTargetConcurrency(Integer.valueOf(10000));
+        scaleTarget.setTargetDatasetSizeLabel("THIRTY_PB");
+        scaleTarget.setTargetDailyQueryVolume(Long.valueOf(10000000L));
+        scaleTarget.setTargetComplexityProfile("HIGH_COMPLEXITY_SELECT");
+        scaleTarget.setTargetCostEfficiency("minimize-scan-cpu-and-cost-per-query");
+        return scaleTarget;
     }
 
     private SqlOptimizationAccelerationRecommendation safeRecommendation() {

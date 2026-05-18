@@ -1,5 +1,6 @@
 package com.company.benchmarkengine.application.service;
 
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
@@ -26,6 +27,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkRegressionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskSubmission;
@@ -69,6 +71,7 @@ public class BenchmarkTaskModelApplicationService {
             taskContext.getDurationSeconds(),
             taskContext.getRampUpSeconds(),
             taskContext.getDatasetSizeLabel(),
+            toScaleTarget(taskContext.getScaleTarget(), taskContext.getConcurrency(), taskContext.getDatasetSizeLabel()),
             taskContext.getTemplateId(),
             taskContext.getTemplateType(),
             taskContext.getTemplateVersion(),
@@ -109,6 +112,7 @@ public class BenchmarkTaskModelApplicationService {
             task.getPriority(),
             task.getProgressPercent(),
             task.getTargetEngines(),
+            task.getScaleTarget(),
             task.getTemplateId(),
             task.getTemplateType(),
             task.getTemplateVersion(),
@@ -241,6 +245,26 @@ public class BenchmarkTaskModelApplicationService {
         return Collections.unmodifiableList(thresholds);
     }
 
+    private BenchmarkScaleTarget toScaleTarget(BenchmarkScaleTargetDTO scaleTargetDto,
+                                               Integer requestedConcurrency,
+                                               String requestedDatasetSizeLabel) {
+        if (scaleTargetDto == null) {
+            return null;
+        }
+        return new BenchmarkScaleTarget(
+            scaleTargetDto.getTargetConcurrency() == null
+                ? requestedConcurrency
+                : scaleTargetDto.getTargetConcurrency(),
+            firstNonBlank(scaleTargetDto.getTargetDatasetSizeLabel(), requestedDatasetSizeLabel),
+            scaleTargetDto.getTargetDailyQueryVolume(),
+            scaleTargetDto.getTargetComplexityProfile(),
+            scaleTargetDto.getTargetCostEfficiency(),
+            BenchmarkScaleTarget.STATUS_TARGET_DECLARED_UNVERIFIED,
+            BenchmarkScaleTarget.DEFAULT_EVIDENCE_BOUNDARY,
+            null
+        );
+    }
+
     private List<BenchmarkTestSetLabel> toTestSetLabels(List<BenchmarkTestSetLabelDTO> labelDtos) {
         if (labelDtos == null || labelDtos.isEmpty()) {
             return Collections.emptyList();
@@ -261,6 +285,13 @@ public class BenchmarkTaskModelApplicationService {
             refs.add(new BenchmarkSourceReference(item.getType(), item.getReferenceId()));
         }
         return Collections.unmodifiableList(refs);
+    }
+
+    private String firstNonBlank(String primary, String fallback) {
+        if (primary != null && primary.trim().length() > 0) {
+            return primary.trim();
+        }
+        return fallback == null || fallback.trim().length() == 0 ? null : fallback.trim();
     }
 
     public List<BenchmarkEngineProfile> buildEngineProfiles(BenchmarkTask task) {

@@ -46,6 +46,10 @@ public class BenchmarkTaskControllerTest {
                 .content("{\"tenantId\":\"tenant-a\",\"taskType\":\"COMPARISON\",\"sqlText\":\"SELECT * FROM orders\","
                     + "\"taskContext\":{\"priority\":\"HIGH\",\"targetEngines\":[\"HETU\",\"HIVE\"],"
                     + "\"concurrency\":16,\"durationSeconds\":300,\"rampUpSeconds\":30,"
+                    + "\"datasetSizeLabel\":\"TEN_GB\","
+                    + "\"scaleTarget\":{\"targetConcurrency\":10000,\"targetDatasetSizeLabel\":\"THIRTY_PB\","
+                    + "\"targetDailyQueryVolume\":10000000,\"targetComplexityProfile\":\"HIGH_COMPLEXITY_SELECT\","
+                    + "\"targetCostEfficiency\":\"minimize-scan-cpu-and-cost-per-query\"},"
                     + "\"templateId\":\"comparison-dual-engine\",\"templateType\":\"CROSS_ENGINE_COMPARISON\","
                     + "\"templateVersion\":\"v2026.04\",\"testSetId\":\"set-route-comparison\","
                     + "\"testSetSource\":\"RECOMMENDATION_GENERATION\","
@@ -182,6 +186,10 @@ public class BenchmarkTaskControllerTest {
                         .andExpect(jsonPath("$.currentPhase").value("FINISHED"))
                         .andExpect(jsonPath("$.reportId", startsWith("report-")))
                         .andExpect(jsonPath("$.targetEngines[0]").value("HETU"))
+                        .andExpect(jsonPath("$.scaleTarget.targetConcurrency").value(10000))
+                        .andExpect(jsonPath("$.scaleTarget.targetDatasetSizeLabel").value("THIRTY_PB"))
+                        .andExpect(jsonPath("$.scaleTarget.targetDailyQueryVolume").value(10000000))
+                        .andExpect(jsonPath("$.scaleTarget.evidenceStatus").value("TARGET_DECLARED_UNVERIFIED"))
                         .andExpect(jsonPath("$.templateId").value("comparison-dual-engine"))
                         .andExpect(jsonPath("$.templateType").value("CROSS_ENGINE_COMPARISON"))
                         .andExpect(jsonPath("$.testSetId").value("set-route-comparison"))

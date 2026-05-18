@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmitRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkThresholdDTO;
@@ -103,6 +104,8 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(LocalDateTime.of(2026, 4, 22, 5, 0, 5), record.getStartedAt());
         assertEquals(LocalDateTime.of(2026, 4, 22, 5, 1, 0), record.getFinishedAt());
         assertTrue(record.getTargetEnginesJson().contains("HETU"));
+        assertTrue(record.getScaleTargetJson().contains("\"targetConcurrency\":10000"));
+        assertTrue(record.getScaleTargetJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(record.getThresholdsJson().contains("P99_LATENCY_MS"));
         assertEquals("comparison-dual-engine", record.getTemplateId());
         assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
@@ -123,6 +126,11 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(BenchmarkTaskStatus.FAILED, restored.getStatus());
         assertEquals(BenchmarkTaskPhase.FINISHED, restored.getCurrentPhase());
         assertEquals(2, restored.getTargetEngines().size());
+        assertNotNull(restored.getScaleTarget());
+        assertEquals(Integer.valueOf(10000), restored.getScaleTarget().getTargetConcurrency());
+        assertEquals("THIRTY_PB", restored.getScaleTarget().getTargetDatasetSizeLabel());
+        assertEquals(Long.valueOf(10000000L), restored.getScaleTarget().getTargetDailyQueryVolume());
+        assertEquals("TARGET_DECLARED_UNVERIFIED", restored.getScaleTarget().getEvidenceStatus());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, restored.getTemplateType());
         assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, restored.getTestSetSource());
         assertEquals(2, restored.getTestSetLabels().size());
@@ -413,6 +421,7 @@ class MybatisBenchmarkTaskRepositoryTest {
         request.getTaskContext().setDurationSeconds(Integer.valueOf(300));
         request.getTaskContext().setRampUpSeconds(Integer.valueOf(30));
         request.getTaskContext().setDatasetSizeLabel("TEN_GB");
+        request.getTaskContext().setScaleTarget(productionScaleTarget());
         request.getTaskContext().setTemplateId(templateId(taskType));
         request.getTaskContext().setTemplateType(templateType(taskType));
         request.getTaskContext().setTemplateVersion("v2026.04");
@@ -468,6 +477,16 @@ class MybatisBenchmarkTaskRepositoryTest {
             );
         }
         return request;
+    }
+
+    private BenchmarkScaleTargetDTO productionScaleTarget() {
+        BenchmarkScaleTargetDTO target = new BenchmarkScaleTargetDTO();
+        target.setTargetConcurrency(Integer.valueOf(10000));
+        target.setTargetDatasetSizeLabel("THIRTY_PB");
+        target.setTargetDailyQueryVolume(Long.valueOf(10000000L));
+        target.setTargetComplexityProfile("HIGH_COMPLEXITY_SELECT");
+        target.setTargetCostEfficiency("minimize-scan-cpu-and-cost-per-query");
+        return target;
     }
 
     private BenchmarkTestSetLabelDTO label(BenchmarkTestSetLabelType type, String value) {

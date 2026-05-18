@@ -15,6 +15,7 @@ public class BenchmarkTaskRecord {
     private Integer durationSeconds;
     private Integer rampUpSeconds;
     private String datasetSizeLabel;
+    private String scaleTargetJson;
     private String templateId;
     private String templateType;
     private String templateVersion;
@@ -127,6 +128,14 @@ public class BenchmarkTaskRecord {
 
     public void setDatasetSizeLabel(String datasetSizeLabel) {
         this.datasetSizeLabel = datasetSizeLabel;
+    }
+
+    public String getScaleTargetJson() {
+        return scaleTargetJson;
+    }
+
+    public void setScaleTargetJson(String scaleTargetJson) {
+        this.scaleTargetJson = scaleTargetJson;
     }
 
     public String getTemplateId() {

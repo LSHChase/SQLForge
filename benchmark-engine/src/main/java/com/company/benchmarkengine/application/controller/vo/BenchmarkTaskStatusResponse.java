@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.controller.vo;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPriority;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskStatus;
@@ -23,6 +24,7 @@ public class BenchmarkTaskStatusResponse {
     private final BenchmarkTaskPriority priority;
     private final Integer progressPercent;
     private final List<DataSourceTypeEnum> targetEngines;
+    private final BenchmarkScaleTarget scaleTarget;
     private final String templateId;
     private final BenchmarkTemplateType templateType;
     private final String templateVersion;
@@ -51,6 +53,7 @@ public class BenchmarkTaskStatusResponse {
                                        BenchmarkTaskPriority priority,
                                        Integer progressPercent,
                                        List<DataSourceTypeEnum> targetEngines,
+                                       BenchmarkScaleTarget scaleTarget,
                                        String templateId,
                                        BenchmarkTemplateType templateType,
                                        String templateVersion,
@@ -78,6 +81,7 @@ public class BenchmarkTaskStatusResponse {
         this.priority = priority;
         this.progressPercent = progressPercent;
         this.targetEngines = targetEngines;
+        this.scaleTarget = scaleTarget;
         this.templateId = templateId;
         this.templateType = templateType;
         this.templateVersion = templateVersion;
@@ -126,6 +130,10 @@ public class BenchmarkTaskStatusResponse {
 
     public List<DataSourceTypeEnum> getTargetEngines() {
         return targetEngines;
+    }
+
+    public BenchmarkScaleTarget getScaleTarget() {
+        return scaleTarget;
     }
 
     public String getTemplateId() {
