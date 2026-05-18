@@ -39,7 +39,7 @@ python3 scripts/verify-benchmark-production-evidence.py \
 python3 scripts/verify-benchmark-production-evidence.py --self-test
 ```
 
-通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，并在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
+通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段，并在 `evidenceFileDigests` 下记录每个必需证据文件的 `sha256` 与 `sizeBytes`。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
 
 验证 SQL 推荐改写目标的完整完成度时，再执行：
 
@@ -50,6 +50,8 @@ python3 scripts/audit-rewrite-production-readiness.py \
 ```
 
 该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json` 或缺少千万级日查询等任一外部证据时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
+
+归档 `verification-result.json` 时必须同时保存原始 evidence directory。评审者可用 `evidenceFileDigests` 对照原始文件重新计算 SHA-256；若缺少任一必需文件摘要，完成度审计必须保持 `BLOCKED`。
 
 ## Submission Boundary
 

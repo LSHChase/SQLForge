@@ -20,6 +20,14 @@ MIN_PRODUCTION_CONCURRENCY = 10000
 MIN_PRODUCTION_DAILY_QUERY_VOLUME = 10000000
 MIN_PRODUCTION_DATASET_SIZE_BYTES = 30000000000000000
 MIN_REPLAY_HOURS = Decimal("24")
+REQUIRED_EVIDENCE_FILES = (
+    "concurrency.json",
+    "daily-query-volume.json",
+    "data-layout.json",
+    "workload-replay.json",
+    "metrics.csv",
+    "cost-bill.json",
+)
 
 
 def read_text(root: Path, relative_path: str) -> str:
@@ -182,6 +190,24 @@ def require_positive(bundle: dict[str, Any], field: str, missing: list[str]) -> 
         missing.append(field + ":required>0,actual=" + str(actual))
 
 
+def require_evidence_file_digests(payload: dict[str, Any], missing: list[str]) -> None:
+    digests = payload.get("evidenceFileDigests")
+    if not isinstance(digests, dict):
+        missing.append("evidenceFileDigests")
+        return
+    for file_name in REQUIRED_EVIDENCE_FILES:
+        digest_entry = digests.get(file_name)
+        if not isinstance(digest_entry, dict):
+            missing.append("evidenceFileDigests." + file_name)
+            continue
+        sha256 = str(digest_entry.get("sha256") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", sha256):
+            missing.append("evidenceFileDigests." + file_name + ".sha256")
+        size_bytes = decimal_value(digest_entry.get("sizeBytes"), "evidenceFileDigests." + file_name + ".sizeBytes", missing)
+        if size_bytes is not None and size_bytes <= Decimal("0"):
+            missing.append("evidenceFileDigests." + file_name + ".sizeBytes:required>0,actual=" + str(size_bytes))
+
+
 def check_external_verification_result(verification_result: Path | None) -> dict[str, Any]:
     requirement = "external_production_scale_evidence_verified"
     if verification_result is None:
@@ -207,6 +233,7 @@ def check_external_verification_result(verification_result: Path | None) -> dict
         missing.append("missingEvidence empty")
     if payload.get("parseErrors"):
         missing.append("parseErrors empty")
+    require_evidence_file_digests(payload, missing)
 
     manifest = payload.get("scaleTargetEvidenceManifest")
     if not isinstance(manifest, dict):
@@ -319,6 +346,32 @@ def successful_verification_payload() -> dict[str, Any]:
     return {
         "status": "PASSED",
         "externalVerificationStatus": "VERIFIED",
+        "evidenceFileDigests": {
+            "concurrency.json": {
+                "sha256": "0" * 64,
+                "sizeBytes": 71,
+            },
+            "daily-query-volume.json": {
+                "sha256": "1" * 64,
+                "sizeBytes": 84,
+            },
+            "data-layout.json": {
+                "sha256": "2" * 64,
+                "sizeBytes": 83,
+            },
+            "workload-replay.json": {
+                "sha256": "3" * 64,
+                "sizeBytes": 120,
+            },
+            "metrics.csv": {
+                "sha256": "4" * 64,
+                "sizeBytes": 89,
+            },
+            "cost-bill.json": {
+                "sha256": "5" * 64,
+                "sizeBytes": 86,
+            },
+        },
         "missingEvidence": [],
         "parseErrors": [],
         "scaleTargetEvidenceManifest": {
@@ -370,6 +423,12 @@ def run_self_test() -> int:
         failed_ref_path.write_text(json.dumps(failed_ref_payload), encoding="utf-8")
         failed_ref = audit(REPO_ROOT, failed_ref_path)
         assert failed_ref["overallStatus"] == "BLOCKED", failed_ref
+        failed_digest_payload = successful_verification_payload()
+        failed_digest_payload["evidenceFileDigests"].pop("metrics.csv")
+        failed_digest_path = Path(temp) / "verification-result-missing-digest.json"
+        failed_digest_path.write_text(json.dumps(failed_digest_payload), encoding="utf-8")
+        failed_digest = audit(REPO_ROOT, failed_digest_path)
+        assert failed_digest["overallStatus"] == "BLOCKED", failed_digest
     print("改写生产就绪审计自检通过")
     return 0
 

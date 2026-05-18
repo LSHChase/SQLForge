@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-EVIDENCE-FILE-DIGEST-AUDIT-20260518: 增加生产证据文件摘要审计
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-EVIDENCE-FILE-DIGEST-AUDIT-20260518 add evidence file digests`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-READINESS-MANIFEST-PROOF-AUDIT-20260518
+- Scope: 让 verify-benchmark-production-evidence.py 输出必需证据文件的 SHA-256 和 sizeBytes，并让 audit-rewrite-production-readiness.py 要求 verification-result.json 包含这些文件摘要，便于把最终 READY 判断追溯到外部原始 artifacts。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-FILE-DIGEST-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 生产证据 verifier 现在输出必需 evidence 文件的 SHA-256 和 sizeBytes；生产就绪 audit 要求 verification-result.json 包含完整 evidenceFileDigests；runbook 说明归档 verification-result.json 时必须保存原始 evidence directory 并可复算摘要。
+  - Validation evidence: python3 scripts/verify-benchmark-production-evidence.py --self-test；python3 scripts/audit-rewrite-production-readiness.py --self-test；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；git diff --check；node scripts/check-developer-copy-language.mjs --changed；node scripts/lint-repository-knowledge.js；python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-FILE-DIGEST-AUDIT-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，并归档原始 evidence directory 与含 evidenceFileDigests 的 verification-result.json。
+
 ### USER-CN-REWRITE-READINESS-MANIFEST-PROOF-AUDIT-20260518: 强化生产就绪 manifest 证据审计
 
 - Status: done

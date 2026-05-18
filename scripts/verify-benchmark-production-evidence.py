@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import sys
 import tempfile
@@ -17,6 +18,14 @@ MIN_PRODUCTION_CONCURRENCY = 10000
 MIN_PRODUCTION_DAILY_QUERY_VOLUME = 10000000
 MIN_PRODUCTION_DATASET_SIZE_BYTES = 30000000000000000
 MIN_LONG_REPLAY_HOURS = Decimal("24")
+REQUIRED_EVIDENCE_FILES = (
+    "concurrency.json",
+    "daily-query-volume.json",
+    "data-layout.json",
+    "workload-replay.json",
+    "metrics.csv",
+    "cost-bill.json",
+)
 
 
 class EvidenceError(ValueError):
@@ -80,6 +89,26 @@ def read_metrics_csv(path: Path) -> dict[str, Decimal | int]:
     }
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def collect_evidence_file_digests(evidence_dir: Path) -> dict[str, dict[str, Any]]:
+    digests: dict[str, dict[str, Any]] = {}
+    for file_name in REQUIRED_EVIDENCE_FILES:
+        path = evidence_dir / file_name
+        if path.is_file():
+            digests[file_name] = {
+                "sha256": sha256_file(path),
+                "sizeBytes": path.stat().st_size,
+            }
+    return digests
+
+
 def require_positive_decimal(value: Decimal, evidence_name: str, missing: list[str]) -> None:
     if value <= Decimal("0"):
         missing.append(f"{evidence_name}:required>0,actual={value}")
@@ -92,6 +121,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
                           min_replay_hours: Decimal) -> dict[str, Any]:
     missing: list[str] = []
     parse_errors: list[str] = []
+    evidence_file_digests = collect_evidence_file_digests(evidence_dir)
     manifest_refs: dict[str, str | None] = {
         "concurrencyProofRef": None,
         "dailyQueryVolumeProofRef": None,
@@ -223,6 +253,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
             "minDatasetSizeBytes": min_dataset_size_bytes,
             "minReplayHours": min_replay_hours,
         },
+        "evidenceFileDigests": evidence_file_digests,
         "missingEvidence": sorted(set(missing)),
         "parseErrors": parse_errors,
         "scaleTargetEvidenceManifest": manifest,
@@ -296,6 +327,8 @@ def run_self_test() -> int:
         )
         assert passed["status"] == "PASSED", passed
         assert passed["externalVerificationStatus"] == "VERIFIED", passed
+        assert set(passed["evidenceFileDigests"].keys()) == set(REQUIRED_EVIDENCE_FILES), passed
+        assert len(passed["evidenceFileDigests"]["metrics.csv"]["sha256"]) == 64, passed
 
         write_fixture(evidence_dir, "concurrency.json", '{"observedConcurrency": 9999}')
         failed = evaluate_evidence_dir(
