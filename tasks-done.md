@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-SELECT-REWRITE-36-20260518: 扩展 SELECT 推荐改写核心到 36 类
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-SELECT-REWRITE-36-20260518 expand select rewrite recommendations`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-TRIALS-20260518
+- Scope: 基于最新 SQL rewrite / optimizer / materialized view / big data engine 方案研究，补强 sql-optimization 推荐改写核心规则目录与试算链路，使 SELECT 推荐改写覆盖不少于 36 类常见复杂场景；保留不执行任意 SQL、不自动应用高风险改写、审批和结果比对边界。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SELECT-REWRITE-36-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: researched and archived current SQL rewrite, optimizer, materialized view, dynamic filtering, LLM rewrite verification, and patent references in `docs/references/sql-rewrite-recommendation-research-2026-05-18.md`.
+  - 2026-05-18: expanded `SqlOptimizationPipelineService` recommendation output to cover 36+ SELECT structural and physical rewrite scenarios while keeping high-risk rewrites manual-review or pull-only.
+  - 2026-05-18: added regression coverage in `SqlOptimizationPipelineServiceTest.shouldExposeAtLeastThirtySixSelectRewriteRecommendationScenarios`.
+  - 2026-05-18: passed `mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false`.
+  - 2026-05-18: passed `python3 scripts/foreman.py validate USER-CN-SELECT-REWRITE-36-20260518` after fixing document coverage and developer-copy language lint.
+  - 2026-05-18: passed `python3 scripts/task_audit.py --check --phase pre-closeout`.
+- Context closeout:
+  - Completed scope: 完成 2026-05-18 SQL 推荐改写调研归档；扩展 sql-optimization SELECT 推荐输出到 36 类以上结构与物理改写场景；保持高风险改写人工复核或 pull-only 边界；补齐回归测试和文档索引。
+  - Validation evidence: mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false；python3 scripts/foreman.py validate USER-CN-SELECT-REWRITE-36-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 静态推荐不替代真实引擎成本模型、结果 diff 或生产审批；物化视图、动态过滤、数据布局与索引类建议仍按 PULL_ONLY_CANDIDATE 输出。
+  - Next step: 后续若接入真实 Hetu/MRS 或湖仓运行统计，可把当前规则信号与 cost/explain/result-diff 证据做排序和自动化灰度绑定。
+
 ### USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518: 改写系列页面布局规范加固
 
 - Status: done

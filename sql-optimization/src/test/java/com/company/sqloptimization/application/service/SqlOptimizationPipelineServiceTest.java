@@ -10,8 +10,10 @@ import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class SqlOptimizationPipelineServiceTest {
@@ -333,6 +335,106 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(profile.getWarnings().contains("COMPLEX_QUERY_GRAPH_RISK"));
     }
 
+    @Test
+    void shouldExposeAtLeastThirtySixSelectRewriteRecommendationScenarios() {
+        List<Sample> samples = Arrays.asList(
+            sample("count-literal", "SELECT COUNT(1) FROM orders WHERE dt = DATE '2026-05-01'", "COUNT_ONE_TO_COUNT_STAR"),
+            sample("duplicate-where", "SELECT order_id FROM orders WHERE dt = DATE '2026-05-01' AND dt = DATE '2026-05-01'",
+                "DEDUPLICATE_WHERE_PREDICATES"),
+            sample("duplicate-having", "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id "
+                + "HAVING COUNT(*) > 1 AND COUNT(*) > 1", "DEDUPLICATE_HAVING_PREDICATES"),
+            sample("duplicate-group-order", "SELECT status FROM orders GROUP BY status, status ORDER BY status, status",
+                "DUPLICATE_GROUP_ORDER_KEY"),
+            sample("select-star", "SELECT * FROM orders WHERE dt = DATE '2026-05-01'", "SELECT_STAR_EXPANSION"),
+            sample("or-predicate", "SELECT order_id FROM orders WHERE status = 'PAID' OR channel = 'APP'", "OR_TO_UNION_ALL"),
+            sample("function-predicate", "SELECT order_id FROM orders WHERE YEAR(order_date) = 2026",
+                "FUNCTION_PREDICATE_TO_RANGE"),
+            sample("scalar-subquery", "SELECT c.customer_id, "
+                + "(SELECT MAX(o.amount) FROM orders o WHERE o.customer_id = c.customer_id) AS max_amount FROM customers c",
+                "SCALAR_SUBQUERY_TO_JOIN"),
+            sample("repeated-subquery", "SELECT c.customer_id, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS a, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS b FROM customers c",
+                "REPEATED_SUBQUERY_TO_CTE"),
+            sample("not-exists", "SELECT c.customer_id FROM customers c WHERE NOT EXISTS "
+                + "(SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)", "NOT_EXISTS_TO_ANTI_JOIN"),
+            sample("leading-like", "SELECT customer_id FROM customers WHERE customer_name LIKE '%vip%'",
+                "LEADING_LIKE_REVIEW"),
+            sample("order-random", "SELECT order_id FROM orders ORDER BY RAND() LIMIT 10", "ORDER_RANDOM_REVIEW"),
+            sample("distinct", "SELECT DISTINCT customer_id FROM orders WHERE dt = DATE '2026-05-01'",
+                "DISTINCT_DEDUP_REVIEW"),
+            sample("group-to-distinct", "SELECT status FROM orders GROUP BY status", "GROUP_BY_TO_DISTINCT"),
+            sample("having-pushdown", "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING customer_id > 10",
+                "HAVING_TO_WHERE_PUSHDOWN"),
+            sample("in-subquery", "SELECT order_id FROM orders WHERE customer_id IN "
+                + "(SELECT customer_id FROM customers WHERE state = 'CA')", "IN_SUBQUERY_TO_SEMI_JOIN"),
+            sample("exists", "SELECT c.customer_id FROM customers c WHERE EXISTS "
+                + "(SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)", "EXISTS_TO_SEMI_JOIN"),
+            sample("not-in", "SELECT customer_id FROM customers WHERE customer_id NOT IN "
+                + "(SELECT customer_id FROM blocked_customers)", "NOT_IN_TO_ANTI_JOIN"),
+            sample("left-null", "SELECT c.customer_id FROM customers c LEFT JOIN orders o "
+                + "ON c.customer_id = o.customer_id WHERE o.order_id IS NULL", "LEFT_JOIN_NULL_TO_ANTI_JOIN"),
+            sample("cross-join", "SELECT c.customer_id, r.region_id FROM customers c CROSS JOIN regions r",
+                "CROSS_JOIN_GUARD"),
+            sample("cast-key", "SELECT o.order_id FROM orders o JOIN customers c "
+                + "ON CAST(o.customer_id AS VARCHAR) = c.customer_id", "CAST_JOIN_KEY_NORMALIZE"),
+            sample("implicit-cast", "SELECT order_id FROM orders WHERE order_id = '123'", "IMPLICIT_TYPE_CAST_REVIEW"),
+            sample("prefix-like", "SELECT customer_id FROM customers WHERE customer_name LIKE 'vip%'",
+                "LIKE_PREFIX_RANGE_REVIEW"),
+            sample("regexp", "SELECT customer_id FROM customers WHERE REGEXP_LIKE(customer_name, '^vip')",
+                "REGEXP_FILTER_TO_SEARCH_INDEX"),
+            sample("long-in-list", "SELECT order_id FROM orders WHERE status IN "
+                + "('S1','S2','S3','S4','S5','S6','S7','S8','S9','S10')", "LONG_IN_LIST_TO_TEMP_TABLE"),
+            sample("window-topn", "SELECT customer_id, order_id, ROW_NUMBER() OVER "
+                + "(PARTITION BY customer_id ORDER BY order_date DESC) AS rn FROM orders", "WINDOW_TOPN_REWRITE"),
+            sample("union", "SELECT customer_id FROM orders_2025 UNION SELECT customer_id FROM orders_2026",
+                "UNION_DEDUP_REVIEW"),
+            sample("intersect", "SELECT customer_id FROM orders INTERSECT SELECT customer_id FROM customers",
+                "INTERSECT_TO_SEMI_JOIN"),
+            sample("except", "SELECT customer_id FROM customers EXCEPT SELECT customer_id FROM blocked_customers",
+                "EXCEPT_TO_ANTI_JOIN"),
+            sample("json", "SELECT JSON_EXTRACT(payload, '$.campaign') FROM events WHERE dt = DATE '2026-05-01'",
+                "JSON_EXTRACT_MATERIALIZATION"),
+            sample("unnest", "SELECT UNNEST(items) FROM orders WHERE dt = DATE '2026-05-01'", "UNNEST_LATERAL_REVIEW"),
+            sample("null-safe", "SELECT order_id FROM orders WHERE COALESCE(status, 'UNKNOWN') = 'PAID'",
+                "NULL_SAFE_EQUALITY_REVIEW"),
+            sample("offset", "SELECT order_id FROM orders ORDER BY order_id LIMIT 10 OFFSET 100",
+                "OFFSET_TO_KEYSET_PAGINATION"),
+            sample("join-reorder", "SELECT o.order_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
+                + "JOIN regions r ON c.region_id = r.region_id", "JOIN_REORDER_BY_STATS"),
+            sample("dynamic-filter", "SELECT o.order_id FROM orders o JOIN customers c "
+                + "ON o.customer_id = c.customer_id WHERE c.state = 'CA'", "DYNAMIC_FILTERING_JOIN"),
+            sample("star-schema-mv", "SELECT r.region_name, SUM(o.amount) FROM orders o "
+                + "JOIN customers c ON o.customer_id = c.customer_id JOIN regions r ON c.region_id = r.region_id "
+                + "GROUP BY r.region_name", "STAR_SCHEMA_MV"),
+            sample("split-sql", complexAntiPatternSql(), "SPLIT_SQL"),
+            sample("result-cache", "SELECT customer_id, SUM(amount) FROM orders "
+                + "WHERE dt = DATE '2026-05-01' GROUP BY customer_id LIMIT 100", "RESULT_CACHE"),
+            sample("projection-pruning", "SELECT order_id, customer_id, status, channel, amount, dt, province "
+                + "FROM orders WHERE dt = DATE '2026-05-01'", "PROJECTION_PRUNING"),
+            sample("topn", "SELECT order_id FROM orders WHERE dt = DATE '2026-05-01' ORDER BY amount DESC LIMIT 20",
+                "TOPN_PUSHDOWN"),
+            sample("case-aggregate", "SELECT customer_id, SUM(CASE WHEN status = 'PAID' THEN amount ELSE 0 END) "
+                + "FROM orders GROUP BY customer_id", "PIVOT_AGGREGATE_PRECOMPUTE"),
+            sample("date-grain", "SELECT DATE_TRUNC('day', order_date), SUM(amount) FROM orders "
+                + "GROUP BY DATE_TRUNC('day', order_date)", "DATE_GRANULARITY_MV"),
+            sample("partition-compensation", "SELECT dt, SUM(amount) FROM orders "
+                + "WHERE dt >= DATE '2026-05-01' AND status = 'PAID' GROUP BY dt", "PARTITION_COMPENSATION_UNION")
+        );
+
+        Set<String> coveredRules = new LinkedHashSet<String>();
+        for (Sample sample : samples) {
+            SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sample.sql, DataSourceTypeEnum.HETU);
+            SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+                service.buildRecommendationRuleOutputModel(profile);
+            Set<String> modelRules = allRuleNames(model);
+            assertTrue(modelRules.contains(sample.expectedRule), sample.name + " missing " + sample.expectedRule);
+            assertFalse(model.isAutoApplyAllowed(), sample.name + " 不允许基于静态分析自动应用");
+            coveredRules.add(sample.expectedRule);
+        }
+        assertTrue(coveredRules.size() >= 36, "coveredRules=" + coveredRules);
+    }
+
     private String complexAntiPatternSql() {
         return "-- complex anti-pattern query\n"
             + "SELECT c.customer_id, c.customer_name, c.state,\n"
@@ -361,6 +463,26 @@ class SqlOptimizationPipelineServiceTest {
         return false;
     }
 
+    private Set<String> allRuleNames(SqlOptimizationPipelineService.RecommendationRuleOutputModel model) {
+        Set<String> names = new LinkedHashSet<String>();
+        addRuleNames(names, model.getRuleChain());
+        addRuleNames(names, model.getUnappliedRules());
+        return names;
+    }
+
+    private void addRuleNames(Set<String> names, List<Map<String, Object>> entries) {
+        for (Map<String, Object> entry : entries) {
+            Object rule = entry.get("rule");
+            if (rule != null) {
+                names.add(String.valueOf(rule));
+            }
+        }
+    }
+
+    private Sample sample(String name, String sql, String expectedRule) {
+        return new Sample(name, sql, expectedRule);
+    }
+
     private Map<String, Object> findRule(List<Map<String, Object>> entries, String rule) {
         for (Map<String, Object> entry : entries) {
             if (rule.equals(entry.get("rule"))) {
@@ -378,5 +500,17 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private static final class Sample {
+        private final String name;
+        private final String sql;
+        private final String expectedRule;
+
+        private Sample(String name, String sql, String expectedRule) {
+            this.name = name;
+            this.sql = sql;
+            this.expectedRule = expectedRule;
+        }
     }
 }

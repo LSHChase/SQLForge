@@ -100,6 +100,7 @@
 | `docs/quality/validation-log.md` | Indexed | 验证行为审计日志 | Referenced | 验证证据追溯与关闭链路 |
 | `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-190` 验证规则与 `R-168` 执行衔接 | Consumed | 任务、阶段、上下文收尾、前端视觉自检与开发者可读文本中文化验证矩阵 |
 | `docs/references/human-constraint-history.md` | Authority | 长期约束历史账本 | Consumed | 规则追加与人类决策追溯 |
+| `docs/references/sql-rewrite-recommendation-research-2026-05-18.md` | Indexed | SQL 推荐改写、物化视图透明改写、动态过滤、LLM 改写验证与相关专利调研归档 | Consumed | 支撑 USER-CN-SELECT-REWRITE-36-20260518 的 36 类以上 SELECT 推荐改写规则来源与边界 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/README.snapshot.md` | Archive | Java 规范原始 README 快照 | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/license.txt` | Archive | 原始资料许可证 | Archived | 归档保留，不作为执行基线 |

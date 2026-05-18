@@ -81,6 +81,66 @@ public class RewriteTrialApplicationService {
             "SELECT_STAR",
             "OR_PREDICATE_INDEX_RISK",
             "NESTED_SUBQUERY_RISK",
+            "LEADING_WILDCARD_LIKE_RISK",
+            "FUNCTION_WRAPPED_PREDICATE",
+            "SCALAR_SUBQUERY_IN_SELECT",
+            "CORRELATED_SUBQUERY_RISK",
+            "NOT_EXISTS_ANTI_JOIN_RISK",
+            "ORDER_BY_RANDOM_RISK",
+            "REPEATED_TABLE_SCAN_RISK",
+            "ORDER_BY_COMPLEXITY_RISK",
+            "JOIN_LATENCY_RISK",
+            "AGGREGATION_COMPLEXITY_RISK",
+            "GROUP_BY_WITHOUT_AGGREGATE_RISK",
+            "DUPLICATE_GROUP_OR_ORDER_KEY_RISK",
+            "REPEATED_SUBQUERY_RISK",
+            "LARGE_STRING_RESULT_RISK",
+            "COMPLEX_QUERY_GRAPH_RISK",
+            "DISTINCT_DEDUP_REVIEW",
+            "GROUP_BY_TO_DISTINCT",
+            "HAVING_TO_WHERE_PUSHDOWN",
+            "IN_SUBQUERY_TO_SEMI_JOIN",
+            "EXISTS_TO_SEMI_JOIN",
+            "NOT_IN_TO_ANTI_JOIN",
+            "LEFT_JOIN_NULL_TO_ANTI_JOIN",
+            "CROSS_JOIN_GUARD",
+            "CAST_JOIN_KEY_NORMALIZE",
+            "IMPLICIT_TYPE_CAST_REVIEW",
+            "LIKE_PREFIX_RANGE_REVIEW",
+            "REGEXP_FILTER_TO_SEARCH_INDEX",
+            "LONG_IN_LIST_TO_TEMP_TABLE",
+            "WINDOW_TOPN_REWRITE",
+            "UNION_DEDUP_REVIEW",
+            "INTERSECT_TO_SEMI_JOIN",
+            "EXCEPT_TO_ANTI_JOIN",
+            "JSON_EXTRACT_MATERIALIZATION",
+            "UNNEST_LATERAL_REVIEW",
+            "NULL_SAFE_EQUALITY_REVIEW",
+            "OFFSET_TO_KEYSET_PAGINATION",
+            "JOIN_REORDER_BY_STATS",
+            "DYNAMIC_FILTERING_JOIN",
+            "STAR_SCHEMA_MV",
+            "SPLIT_SQL",
+            "RESULT_CACHE",
+            "REPORT_SQL_MERGE",
+            "STATISTICS_REFRESH",
+            "FILE_COMPACTION",
+            "PROJECTION_PRUNING",
+            "PREDICATE_PUSHDOWN",
+            "TOPN_PUSHDOWN",
+            "SMALL_TABLE_BROADCAST_JOIN",
+            "SKEW_JOIN_SALTING_REVIEW",
+            "PIVOT_AGGREGATE_PRECOMPUTE",
+            "DATE_GRANULARITY_MV",
+            "PARTITION_COMPENSATION_UNION",
+            "SEMISTRUCTURED_COLUMN_INDEX"
+        ))
+    );
+    private static final Set<String> DERIVED_MANUAL_REVIEW_PROBLEMS = Collections.unmodifiableSet(
+        new LinkedHashSet<String>(Arrays.asList(
+            "SELECT_STAR",
+            "OR_PREDICATE_INDEX_RISK",
+            "NESTED_SUBQUERY_RISK",
             "LEADING_WILDCARD_LIKE_RISK"
         ))
     );
@@ -427,7 +487,7 @@ public class RewriteTrialApplicationService {
             }
         }
         for (String warning : profile.getWarnings()) {
-            if (MANUAL_REVIEW_PROBLEMS.contains(warning)) {
+            if (DERIVED_MANUAL_REVIEW_PROBLEMS.contains(warning)) {
                 problems.put(warning, sourceProblem("ISSUE_SCENE", warning, warning, severityFor(warning), priorityFor(warning),
                     manualProblemSummary(warning), parseTaskId, parseHistoryId, historyId, batchItemId));
             }

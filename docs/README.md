@@ -120,6 +120,7 @@
   架构决策记录与模板。
 - `references/`
   原始需求、历史约束与长期输入归档。
+  - `sql-rewrite-recommendation-research-2026-05-18.md`：SQL 推荐改写、物化视图透明改写、动态过滤、LLM 改写验证与相关专利的本轮调研归档。
 - `security/`
   合规、安全与等保规则说明。
   - `connectors.md`：Connector 与 MCP 的允许范围、安全边界、禁用能力和验证清单。

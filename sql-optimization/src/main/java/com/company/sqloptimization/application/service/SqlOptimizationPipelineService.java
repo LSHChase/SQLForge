@@ -118,6 +118,39 @@ public class SqlOptimizationPipelineService {
         Pattern.compile("(?i)(^|[._])(?:name|title|desc|description|comment|remark|note|text|content|address|email|phone|status|type|code|label)$");
     private static final Pattern STRING_AGGREGATE_PATTERN =
         Pattern.compile("(?i)\\b(GROUP_CONCAT|STRING_AGG|LISTAGG)\\s*\\(");
+    private static final Pattern HAVING_PATTERN = Pattern.compile("(?is)\\bHAVING\\b");
+    private static final Pattern IN_SUBQUERY_PATTERN = Pattern.compile("(?is)\\bIN\\s*\\(\\s*SELECT\\b");
+    private static final Pattern EXISTS_SUBQUERY_PATTERN = Pattern.compile("(?is)\\bEXISTS\\s*\\(\\s*SELECT\\b");
+    private static final Pattern NOT_IN_SUBQUERY_PATTERN = Pattern.compile("(?is)\\bNOT\\s+IN\\s*\\(\\s*SELECT\\b");
+    private static final Pattern LEFT_JOIN_NULL_PATTERN =
+        Pattern.compile("(?is)\\bLEFT\\s+(?:OUTER\\s+)?JOIN\\b.*\\bIS\\s+NULL\\b");
+    private static final Pattern CROSS_JOIN_PATTERN = Pattern.compile("(?is)\\bCROSS\\s+JOIN\\b");
+    private static final Pattern CAST_COMPARISON_PATTERN =
+        Pattern.compile("(?is)(CAST\\s*\\([^)]*\\)\\s*=|=\\s*CAST\\s*\\()");
+    private static final Pattern STRING_NUMERIC_COMPARISON_PATTERN =
+        Pattern.compile("(?is)\\b[A-Za-z_][A-Za-z0-9_\\.]*\\s*=\\s*'\\d+(?:\\.\\d+)?'");
+    private static final Pattern PREFIX_LIKE_PATTERN = Pattern.compile("(?is)\\bLIKE\\s+'[^%_][^']*%'");
+    private static final Pattern REGEXP_PATTERN =
+        Pattern.compile("(?is)\\b(REGEXP_LIKE|RLIKE|REGEXP)\\b");
+    private static final Pattern LONG_IN_LIST_PATTERN =
+        Pattern.compile("(?is)\\bIN\\s*\\((?:\\s*[^,()]+\\s*,){8,}[^()]*\\)");
+    private static final Pattern ROW_NUMBER_PATTERN =
+        Pattern.compile("(?is)\\bROW_NUMBER\\s*\\(\\s*\\)\\s*OVER\\s*\\(");
+    private static final Pattern UNION_DISTINCT_PATTERN = Pattern.compile("(?is)\\bUNION\\b(?!\\s+ALL\\b)");
+    private static final Pattern INTERSECT_PATTERN = Pattern.compile("(?is)\\bINTERSECT\\b");
+    private static final Pattern EXCEPT_PATTERN = Pattern.compile("(?is)\\b(EXCEPT|MINUS)\\b");
+    private static final Pattern JSON_EXTRACT_PATTERN =
+        Pattern.compile("(?is)\\b(JSON_EXTRACT|JSON_VALUE|GET_JSON_OBJECT|JSON_QUERY)\\s*\\(|->");
+    private static final Pattern UNNEST_LATERAL_PATTERN = Pattern.compile("(?is)\\b(UNNEST|LATERAL)\\b");
+    private static final Pattern NULL_SAFE_PATTERN =
+        Pattern.compile("(?is)\\b(COALESCE|NVL)\\s*\\(|\\bIS\\s+NOT\\s+DISTINCT\\s+FROM\\b");
+    private static final Pattern CASE_AGGREGATION_PATTERN =
+        Pattern.compile("(?is)\\b(SUM|COUNT|MAX|MIN)\\s*\\(\\s*CASE\\s+WHEN\\b");
+    private static final Pattern DATE_TRUNC_PATTERN =
+        Pattern.compile("(?is)\\b(DATE_TRUNC|TRUNC|TO_DATE)\\s*\\(");
+    private static final Pattern OFFSET_PATTERN = Pattern.compile("(?is)\\bOFFSET\\s+\\d+\\b");
+    private static final Pattern SEMI_STRUCTURED_FLATTEN_PATTERN =
+        Pattern.compile("(?is)\\b(FLATTEN|EXPLODE)\\s*\\(");
 
     @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
     private String parserStrategy = "JSQLPARSER";
@@ -607,7 +640,9 @@ public class SqlOptimizationPipelineService {
             );
         }
 
+        addExtendedStructuralRuleCandidates(profile, unappliedRules, preconditions, semanticRisks);
         addL2RuleCandidates(profile, ruleChain, preconditions, semanticRisks);
+        addExtendedPhysicalRuleCandidates(profile, ruleChain, preconditions, semanticRisks);
 
         boolean manualReviewRequired = !unappliedRules.isEmpty() || containsManualReviewRule(ruleChain);
         String validationMethod = manualReviewRequired ? "RESULT_DIFF_THEN_MANUAL_REVIEW" : "RESULT_DIFF_REQUIRED";
@@ -623,6 +658,265 @@ public class SqlOptimizationPipelineService {
             false,
             manualReviewRequired
         );
+    }
+
+    private void addExtendedStructuralRuleCandidates(ParsedSqlProfile profile,
+                                                     List<Map<String, Object>> unappliedRules,
+                                                     List<Map<String, Object>> preconditions,
+                                                     List<Map<String, Object>> semanticRisks) {
+        String sql = profile.getNormalizedSql();
+        if (profile.isDistinctPresent()) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "DISTINCT_DEDUP_REVIEW",
+                "DUPLICATE_INTENT_REQUIRED",
+                "DISTINCT 需要确认是否为业务去重还是掩盖 join 放大。",
+                "去重可能隐藏数据质量问题或改变重复行语义。"
+            );
+        }
+        if (profile.isGroupByWithoutAggregate()) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "GROUP_BY_TO_DISTINCT",
+                "DEDUP_SEMANTICS_REQUIRED",
+                "无聚合 GROUP BY 可试算为 DISTINCT，但需确认排序和重复语义。",
+                "GROUP BY 与 DISTINCT 在部分引擎的执行计划和 NULL 表现需复核。"
+            );
+        }
+        if (matches(HAVING_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "HAVING_TO_WHERE_PUSHDOWN",
+                "AGGREGATE_DEPENDENCY_PROOF_REQUIRED",
+                "HAVING 中不依赖聚合的过滤可下推到 WHERE。",
+                "误下推聚合过滤会改变分组结果。"
+            );
+        }
+        if (matches(IN_SUBQUERY_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "IN_SUBQUERY_TO_SEMI_JOIN",
+                "NULL_AND_DUPLICATE_SEMANTICS_REQUIRED",
+                "IN 子查询可评审为 semi join，以便优化器使用 join 侧过滤。",
+                "子查询 NULL、重复值和关联条件可能改变匹配语义。"
+            );
+        }
+        if (matches(EXISTS_SUBQUERY_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "EXISTS_TO_SEMI_JOIN",
+                "CORRELATION_SCOPE_REQUIRED",
+                "EXISTS 子查询可评审为 semi join 或动态过滤候选。",
+                "关联范围不清会导致行数放大或漏匹配。"
+            );
+        }
+        if (matches(NOT_IN_SUBQUERY_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "NOT_IN_TO_ANTI_JOIN",
+                "NULL_SEMANTICS_PROOF_REQUIRED",
+                "NOT IN 子查询可评审为 null-safe anti join。",
+                "NOT IN 遇到 NULL 时语义敏感，不能自动改写。"
+            );
+        }
+        if (matches(LEFT_JOIN_NULL_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "LEFT_JOIN_NULL_TO_ANTI_JOIN",
+                "JOIN_KEY_NULLABILITY_REQUIRED",
+                "LEFT JOIN ... IS NULL 可评审为 anti join。",
+                "右表重复键或 NULL 过滤位置可能改变反连接结果。"
+            );
+        }
+        if (matches(CROSS_JOIN_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "CROSS_JOIN_GUARD",
+                "CARTESIAN_INTENT_REQUIRED",
+                "CROSS JOIN 需要确认是否为真实笛卡尔意图或遗漏 join 条件。",
+                "误保留笛卡尔积会造成行数爆炸。"
+            );
+        }
+        if (matches(CAST_COMPARISON_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "CAST_JOIN_KEY_NORMALIZE",
+                "COLUMN_TYPE_AND_LOSSLESS_CAST_REQUIRED",
+                "比较或 join key 上的 CAST 可评审为类型归一后的列比较。",
+                "非无损转换或精度差异会改变匹配结果。"
+            );
+        }
+        if (matches(STRING_NUMERIC_COMPARISON_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "IMPLICIT_TYPE_CAST_REVIEW",
+                "COLUMN_TYPE_REQUIRED",
+                "疑似字符串数字比较需要显式化类型或绑定参数类型。",
+                "隐式类型转换在不同引擎之间可能导致结果或性能差异。"
+            );
+        }
+        if (matches(PREFIX_LIKE_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "LIKE_PREFIX_RANGE_REVIEW",
+                "COLLATION_AND_ESCAPE_RULE_REQUIRED",
+                "前缀 LIKE 可评审为范围谓词或前缀索引候选。",
+                "排序规则、转义字符和大小写规则会影响范围边界。"
+            );
+        }
+        if (matches(REGEXP_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "REGEXP_FILTER_TO_SEARCH_INDEX",
+                "TEXT_INDEX_CAPABILITY_REQUIRED",
+                "正则过滤可推荐搜索索引或预计算标签列。",
+                "正则语义和分词规则依赖引擎，不能静态保证等价。"
+            );
+        }
+        if (matches(LONG_IN_LIST_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "LONG_IN_LIST_TO_TEMP_TABLE",
+                "VALUE_SET_CARDINALITY_REQUIRED",
+                "长 IN 列表可试算为临时值表或半连接。",
+                "值集去重、类型绑定和权限边界需要复核。"
+            );
+        }
+        if (matches(ROW_NUMBER_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "WINDOW_TOPN_REWRITE",
+                "PARTITION_ORDER_DETERMINISM_REQUIRED",
+                "ROW_NUMBER Top-N 形态可评审为分组 Top-N 或服务化预计算。",
+                "排序不稳定或并列值处理会改变被保留的行。"
+            );
+        }
+        if (matches(UNION_DISTINCT_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "UNION_DEDUP_REVIEW",
+                "DUPLICATE_POLICY_REQUIRED",
+                "UNION 可评审是否改为 UNION ALL 后单独去重或保留重复。",
+                "重复行策略属于业务语义，不能自动决定。"
+            );
+        }
+        if (matches(INTERSECT_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "INTERSECT_TO_SEMI_JOIN",
+                "SET_SEMANTICS_REQUIRED",
+                "INTERSECT 可评审为 semi join 或存在性过滤。",
+                "集合去重和 NULL 处理必须与原语句一致。"
+            );
+        }
+        if (matches(EXCEPT_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "EXCEPT_TO_ANTI_JOIN",
+                "SET_DIFFERENCE_SEMANTICS_REQUIRED",
+                "EXCEPT/MINUS 可评审为 anti join 或差集预计算。",
+                "集合去重、NULL 和列顺序规则必须校验。"
+            );
+        }
+        if (matches(JSON_EXTRACT_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "JSON_EXTRACT_MATERIALIZATION",
+                "JSON_PATH_AND_TYPE_CONTRACT_REQUIRED",
+                "JSON/VARIANT 提取可推荐物化为治理字段或展开视图。",
+                "路径缺失、数组语义和类型转换可能改变结果。"
+            );
+        }
+        if (matches(UNNEST_LATERAL_PATTERN, sql) || matches(SEMI_STRUCTURED_FLATTEN_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "UNNEST_LATERAL_REVIEW",
+                "ARRAY_CARDINALITY_AND_NULL_POLICY_REQUIRED",
+                "UNNEST/LATERAL/FLATTEN 可评审为预展开或半结构化索引候选。",
+                "数组空值、重复元素和外连接展开语义需要校验。"
+            );
+        }
+        if (matches(NULL_SAFE_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "NULL_SAFE_EQUALITY_REVIEW",
+                "NULL_SENTINEL_AND_TYPE_REQUIRED",
+                "COALESCE/NVL/NULL-safe 比较可评审为等价空值规范化。",
+                "哨兵值与真实数据冲突会改变匹配或过滤结果。"
+            );
+        }
+        if (matches(OFFSET_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "OFFSET_TO_KEYSET_PAGINATION",
+                "STABLE_SORT_KEY_REQUIRED",
+                "OFFSET 分页可评审为 keyset/seek 分页。",
+                "缺少稳定排序键会改变翻页边界或漏/重复记录。"
+            );
+        }
     }
 
     private void addL2RuleCandidates(ParsedSqlProfile profile,
@@ -680,6 +974,265 @@ public class SqlOptimizationPipelineService {
                 "分桶或共置变更属于外部物理协同，不能仅凭静态解析自动应用。"
             ));
         }
+    }
+
+    private void addExtendedPhysicalRuleCandidates(ParsedSqlProfile profile,
+                                                   List<Map<String, Object>> ruleChain,
+                                                   List<Map<String, Object>> preconditions,
+                                                   List<Map<String, Object>> semanticRisks) {
+        String sql = profile.getNormalizedSql();
+        if (profile.getJoinCount() >= 2) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "JOIN_REORDER_BY_STATS",
+                "TABLE_STATISTICS_REQUIRED",
+                "多 join 查询应使用表统计信息评估 join reorder。",
+                "统计信息过期会让成本模型选择次优计划。"
+            );
+        }
+        if (profile.getJoinCount() > 0 && profile.getPredicateCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "DYNAMIC_FILTERING_JOIN",
+                "CONNECTOR_DYNAMIC_FILTER_SUPPORT_REQUIRED",
+                "选择性维表过滤可推荐动态过滤或动态分区裁剪。",
+                "connector 不支持时该建议不能被写成确定收益。"
+            );
+        }
+        if (profile.getJoinCount() >= 2 && profile.getAggregateFunctionCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "STAR_SCHEMA_MV",
+                "FACT_DIMENSION_GRAIN_REQUIRED",
+                "宽表 join 加聚合可推荐星型模型物化视图或指标层。",
+                "粒度、刷新和维表缓慢变化处理必须由治理流程确认。"
+            );
+        }
+        if (profile.getComplexGraphScore() >= 5 || profile.isSetOperation()) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "SPLIT_SQL",
+                "STAGE_BOUNDARY_AND_IDEMPOTENCY_REQUIRED",
+                "复杂查询图可拆为 CTE、临时服务对象或多阶段执行。",
+                "阶段边界不当会增加中间数据量或破坏一致性。"
+            );
+        }
+        if (profile.isLimitPresent()
+            || profile.getAggregateFunctionCount() > 0
+            || profile.getDatePredicateColumns().size() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "RESULT_CACHE",
+                "SCHEMA_VERSION_AND_FRESHNESS_POLICY_REQUIRED",
+                "稳定筛选、聚合或分页查询可推荐受治理结果缓存。",
+                "缓存命中必须受 schemaVersion、新鲜度和租户边界约束。"
+            );
+        }
+        if (profile.getRepeatedTableScanCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "REPORT_SQL_MERGE",
+                "SOURCE_REPORT_AND_OVERLAP_EVIDENCE_REQUIRED",
+                "同源报表或同 SQL 多次扫描可推荐合并查询或共享中间结果。",
+                "合并多条 SQL 可能改变审计粒度和失败隔离边界。"
+            );
+        }
+        if (profile.getJoinCount() >= 2
+            || profile.getPredicateCount() >= 4
+            || profile.getAggregateFunctionCount() >= 2) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "STATISTICS_REFRESH",
+                "EXPLAIN_OR_RUNTIME_PLAN_EVIDENCE_REQUIRED",
+                "复杂 join、谓词或聚合查询应检查统计信息刷新。",
+                "没有真实计划证据时只能作为外部执行建议。"
+            );
+        }
+        if (profile.getDatePredicateColumns().size() > 0 && profile.getPredicateCount() >= 2) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "FILE_COMPACTION",
+                "FILE_LAYOUT_AND_SMALL_FILE_EVIDENCE_REQUIRED",
+                "分区过滤查询可联动检查小文件合并和布局整理。",
+                "文件整理属于外部存储操作，不能由 SQL 推荐自动执行。"
+            );
+        }
+        if (profile.getProjectionCount() >= 6 || profile.getStringProjectionCount() >= 3) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "PROJECTION_PRUNING",
+                "DOWNSTREAM_COLUMN_USAGE_REQUIRED",
+                "宽投影可推荐列裁剪或服务层字段白名单。",
+                "裁剪列需要证明下游消费者不依赖被移除字段。"
+            );
+        }
+        if (profile.getPredicateCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "PREDICATE_PUSHDOWN",
+                "CONNECTOR_PUSHDOWN_CAPABILITY_REQUIRED",
+                "可下推过滤应被保留在扫描侧或外部数据源侧。",
+                "connector 能力不同，静态解析不能宣称真实下推成功。"
+            );
+        }
+        if (profile.isLimitPresent() && profile.getOrderByCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "TOPN_PUSHDOWN",
+                "ORDER_KEY_AND_CONNECTOR_SUPPORT_REQUIRED",
+                "ORDER BY + LIMIT 可推荐 Top-N 下推或服务层有序输出。",
+                "排序稳定性和 connector 支持必须通过计划证据确认。"
+            );
+        }
+        if (profile.getJoinCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "SMALL_TABLE_BROADCAST_JOIN",
+                "BUILD_SIDE_SIZE_STATS_REQUIRED",
+                "维表较小时可推荐广播 join 或 replicated layout。",
+                "构建侧过大时广播会增加内存压力。"
+            );
+        }
+        if (profile.getJoinCount() >= 2 || profile.getOrPredicateCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "SKEW_JOIN_SALTING_REVIEW",
+                "KEY_DISTRIBUTION_EVIDENCE_REQUIRED",
+                "热点键或多 join 查询可评审倾斜处理、salt 或 AQE 策略。",
+                "盲目 salt 会改变 join 代价并增加数据膨胀。"
+            );
+        }
+        if (matches(CASE_AGGREGATION_PATTERN, sql)) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "PIVOT_AGGREGATE_PRECOMPUTE",
+                "METRIC_DEFINITION_AND_CARDINALITY_REQUIRED",
+                "CASE WHEN 聚合可推荐指标层预计算或宽表透视。",
+                "指标口径和稀疏维度扩展需要治理确认。"
+            );
+        }
+        if (matches(DATE_TRUNC_PATTERN, sql) && profile.getGroupByCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "DATE_GRANULARITY_MV",
+                "TIMEZONE_AND_GRAIN_POLICY_REQUIRED",
+                "日期粒度聚合可推荐日/周/月指标物化视图。",
+                "时区、财务日历和粒度 rollup 会影响结果。"
+            );
+        }
+        if (profile.getDatePredicateColumns().size() > 0 && profile.getAggregateFunctionCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "PARTITION_COMPENSATION_UNION",
+                "PARTITION_FRESHNESS_EVIDENCE_REQUIRED",
+                "分区聚合可推荐新鲜分区走基表、历史分区走物化结果的补偿 UNION。",
+                "分区新鲜度和变更追踪不完整时会产生陈旧结果。"
+            );
+        }
+        if (matches(JSON_EXTRACT_PATTERN, sql) || matches(SEMI_STRUCTURED_FLATTEN_PATTERN, sql)) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "SEMISTRUCTURED_COLUMN_INDEX",
+                "PATH_FREQUENCY_AND_INDEX_SUPPORT_REQUIRED",
+                "半结构化字段热点路径可推荐展开列、搜索优化或索引化。",
+                "路径类型漂移和数组展开会影响结果与成本。"
+            );
+        }
+    }
+
+    private void addUnappliedRuleIfAbsent(List<Map<String, Object>> unappliedRules,
+                                          List<Map<String, Object>> preconditions,
+                                          List<Map<String, Object>> semanticRisks,
+                                          String level,
+                                          String rule,
+                                          String missingEvidence,
+                                          String preconditionDescription,
+                                          String riskDescription) {
+        if (containsRule(unappliedRules, rule)) {
+            return;
+        }
+        addUnappliedRule(
+            unappliedRules,
+            preconditions,
+            semanticRisks,
+            level,
+            rule,
+            missingEvidence,
+            preconditionDescription,
+            riskDescription
+        );
+    }
+
+    private void addPullOnlyRuleIfAbsent(List<Map<String, Object>> ruleChain,
+                                         List<Map<String, Object>> preconditions,
+                                         List<Map<String, Object>> semanticRisks,
+                                         String rule,
+                                         String missingEvidence,
+                                         String description,
+                                         String riskDescription) {
+        if (containsRule(ruleChain, rule)) {
+            return;
+        }
+        ruleChain.add(ruleEntry(
+            "L2",
+            rule,
+            "PULL_ONLY_CANDIDATE",
+            "STATIC_PARSE",
+            Boolean.FALSE,
+            description
+        ));
+        preconditions.add(preconditionEntry(rule, missingEvidence, description));
+        semanticRisks.add(semanticRiskEntry(rule, "PHYSICAL_OR_RUNTIME_BOUNDARY_RISK", "MEDIUM", riskDescription));
+    }
+
+    private boolean containsRule(List<Map<String, Object>> entries, String rule) {
+        if (entries == null || !StringUtils.hasText(rule)) {
+            return false;
+        }
+        for (Map<String, Object> entry : entries) {
+            if (entry != null && rule.equals(entry.get("rule"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matches(Pattern pattern, String sql) {
+        return pattern != null && StringUtils.hasText(sql) && pattern.matcher(sql).find();
     }
 
     private void addUnappliedRule(List<Map<String, Object>> unappliedRules,
@@ -929,11 +1482,16 @@ public class SqlOptimizationPipelineService {
                     profile.joinTypes.add(join.isInner() ? "INNER" : join.toString().split("\\s+")[0].toUpperCase(Locale.ROOT));
                     recordFromItemScan(join.getRightItem(), profile);
                     analyzeFromItem(join.getRightItem(), profile);
-                    if (join.getOnExpression() != null) {
-                        profile.predicateCount += countPredicates(join.getOnExpression());
-                        profile.joinCriteriaCount += countPredicates(join.getOnExpression());
-                        profile.recordExpression(join.getOnExpression());
-                        collectExpressionSignals(join.getOnExpression(), null, null, profile);
+                    if (join.getOnExpressions() != null) {
+                        for (Expression onExpression : join.getOnExpressions()) {
+                            if (onExpression == null) {
+                                continue;
+                            }
+                            profile.predicateCount += countPredicates(onExpression);
+                            profile.joinCriteriaCount += countPredicates(onExpression);
+                            profile.recordExpression(onExpression);
+                            collectExpressionSignals(onExpression, null, null, profile);
+                        }
                     }
                 }
             }

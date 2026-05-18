@@ -4497,3 +4497,15 @@
 2026-05-18T07:14:28-05:00 | USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-18T07:14:28-05:00 | USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518 closeout commit | `R-168` | projected | `git commit -m 'USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518 harden rewrite page layouts' (projected-precommit)`
 2026-05-18T07:14:28-05:00 | USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-18T08:25:49-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-18T08:25:49-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-18T08:25:49-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-18T08:26:28-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-18T08:26:28-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-18T08:26:28-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-18T08:27:01-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-18T08:27:01-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-18T08:27:01-05:00 | USER-CN-SELECT-REWRITE-36-20260518 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-18T08:28:08-05:00 | USER-CN-SELECT-REWRITE-36-20260518 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-18T08:28:08-05:00 | USER-CN-SELECT-REWRITE-36-20260518 closeout commit | `R-168` | projected | `git commit -m 'USER-CN-SELECT-REWRITE-36-20260518 expand select rewrite recommendations' (projected-precommit)`
+2026-05-18T08:28:08-05:00 | USER-CN-SELECT-REWRITE-36-20260518 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
