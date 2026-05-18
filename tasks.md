@@ -29,13 +29,15 @@ _No tasks._
 - Scope: 等待外部生产或准生产环境 owner 提供真实压测 evidence directory 与通过校验后的 `verification-result.json`，覆盖 10000 并发、千万级日查询、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待、成本账单和 `evidenceFileDigests`；在 artifacts 到位前不得把 repo-side verifier、runbook 或测试 fixtures 视为生产规模目标完成。
 - Validation:
   - `python3 scripts/verify-benchmark-production-evidence.py --evidence-dir <external-evidence-dir> --output <external-evidence-dir>/verification-result.json`
+  - `python3 scripts/audit-rewrite-production-readiness.py --verification-result <external-evidence-dir>/verification-result.json --evidence-dir <external-evidence-dir>`
   - `python3 scripts/task_audit.py --check --phase pre-closeout`
   - `node scripts/lint-repository-knowledge.js`
 - Progress log:
   - 2026-05-18: 仓库侧 `scaleTarget` 边界、生产证据 bundle verifier、证据目录 CLI 和 runbook 已提交；完成度审计仍未在仓库内发现真实外部生产 artifacts。
   - 2026-05-18: repo-side verifier/runbook 已补入 `daily-query-volume.json`，外部 artifacts 需要同时覆盖千万级日查询证明。
   - 2026-05-18: repo-side verifier/readiness audit 已要求顶层与 `scaleTargetEvidenceManifest` 同时保留 `evidenceFileDigests`，外部 artifacts 归档后必须可复算 SHA-256。
-- Next action: 外部环境 owner 按 `docs/deployments/benchmark-production-evidence-runbook.md` 收集 evidence directory，运行 `python3 scripts/verify-benchmark-production-evidence.py --evidence-dir <external-evidence-dir> --output <external-evidence-dir>/verification-result.json`，并归档原始 artifacts、可复算 SHA-256 的 evidence directory、通过校验的 JSON 输出和含摘要的 `scaleTargetEvidenceManifest`。
+  - 2026-05-18: repo-side readiness audit 已要求同时传入原始 `--evidence-dir` 并复算必需证据文件 SHA-256/sizeBytes；仅提交 JSON 不足以完成目标。
+- Next action: 外部环境 owner 按 `docs/deployments/benchmark-production-evidence-runbook.md` 收集 evidence directory，运行 `python3 scripts/verify-benchmark-production-evidence.py --evidence-dir <external-evidence-dir> --output <external-evidence-dir>/verification-result.json` 和 `python3 scripts/audit-rewrite-production-readiness.py --verification-result <external-evidence-dir>/verification-result.json --evidence-dir <external-evidence-dir>`，并归档原始 artifacts、可复算 SHA-256 的 evidence directory、通过校验的 JSON 输出和含摘要的 `scaleTargetEvidenceManifest`。
 - Escalation: 如果生产或准生产窗口、数据布局证明、长期 replay、指标导出、账单导出或原始文件摘要归档无法在目标周期提供，保持目标未完成并要求 owner 明确可执行窗口、证据归档位置和负责验收的人。
 - Human decision: 确认可用于留证的生产或准生产环境、执行窗口、证据目录归档位置、成本账单来源、谁运行 verifier、谁复核 `evidenceFileDigests`，以及谁把通过后的含摘要 `scaleTargetEvidenceManifest` 提交到 benchmark 任务。
 - INBOX ref: INBOX-005

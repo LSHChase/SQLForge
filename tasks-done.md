@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-READINESS-RAW-DIGEST-AUDIT-20260518: 复算外部证据文件摘要
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-READINESS-RAW-DIGEST-AUDIT-20260518 recompute raw evidence digests`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-READINESS-DIGEST-CONSISTENCY-AUDIT-20260518
+- Scope: 强化 audit-rewrite-production-readiness.py，要求提供原始 evidence directory，并复算必需证据文件的 SHA-256 与 sizeBytes，只有复算结果同时匹配 verification-result.json 顶层与 manifest 内 evidenceFileDigests 时才能通过外部生产证据审计。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-READINESS-RAW-DIGEST-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: readiness audit 现在要求 verification-result.json 与原始 evidence directory 同时提供，并复算必需证据文件 SHA-256/sizeBytes 后与顶层及 manifest 摘要比对；runbook 与外部 artifacts 任务台账已同步。
+  - Validation evidence: python3 scripts/audit-rewrite-production-readiness.py --self-test; python3 scripts/audit-rewrite-production-readiness.py (expected BLOCKED without external evidence); git diff --check; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate USER-CN-REWRITE-READINESS-RAW-DIGEST-AUDIT-20260518; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，并运行 verifier/audit；readiness audit 必须同时拿到 verification-result.json 和原始 evidence directory 以复算摘要。
+
 ### USER-CN-REWRITE-READINESS-DIGEST-CONSISTENCY-AUDIT-20260518: 校验证据摘要双层一致性
 
 - Status: done

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -232,7 +233,56 @@ def require_matching_evidence_file_digests(payload: dict[str, Any],
             missing.append("evidenceFileDigests." + file_name + ".sizeBytes!=scaleTargetEvidenceManifest")
 
 
-def check_external_verification_result(verification_result: Path | None) -> dict[str, Any]:
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def require_raw_evidence_file_digests(payload: dict[str, Any],
+                                      evidence_dir: Path | None,
+                                      missing: list[str]) -> None:
+    if evidence_dir is None:
+        missing.append("externalEvidenceDirectory")
+        return
+    if not evidence_dir.is_dir():
+        missing.append("externalEvidenceDirectory:notDirectory")
+        return
+    digests = payload.get("evidenceFileDigests")
+    if not isinstance(digests, dict):
+        return
+    for file_name in REQUIRED_EVIDENCE_FILES:
+        digest_entry = digests.get(file_name)
+        if not isinstance(digest_entry, dict):
+            continue
+        file_path = evidence_dir / file_name
+        if not file_path.is_file():
+            missing.append("externalEvidenceDirectory." + file_name)
+            continue
+        actual_sha256 = sha256_file(file_path)
+        actual_size_bytes = file_path.stat().st_size
+        if digest_entry.get("sha256") != actual_sha256:
+            missing.append("externalEvidenceDirectory." + file_name + ".sha256Mismatch")
+        if str(digest_entry.get("sizeBytes")) != str(actual_size_bytes):
+            missing.append("externalEvidenceDirectory." + file_name + ".sizeBytesMismatch")
+
+
+def collect_raw_evidence_file_digests(evidence_dir: Path) -> dict[str, dict[str, Any]]:
+    digests: dict[str, dict[str, Any]] = {}
+    for file_name in REQUIRED_EVIDENCE_FILES:
+        file_path = evidence_dir / file_name
+        if file_path.is_file():
+            digests[file_name] = {
+                "sha256": sha256_file(file_path),
+                "sizeBytes": file_path.stat().st_size,
+            }
+    return digests
+
+
+def check_external_verification_result(verification_result: Path | None,
+                                       evidence_dir: Path | None) -> dict[str, Any]:
     requirement = "external_production_scale_evidence_verified"
     if verification_result is None:
         return check_item(
@@ -258,6 +308,7 @@ def check_external_verification_result(verification_result: Path | None) -> dict
     if payload.get("parseErrors"):
         missing.append("parseErrors empty")
     require_evidence_file_digests(payload, missing, "")
+    require_raw_evidence_file_digests(payload, evidence_dir, missing)
 
     manifest = payload.get("scaleTargetEvidenceManifest")
     if not isinstance(manifest, dict):
@@ -327,12 +378,12 @@ def overall_status(checklist: list[dict[str, Any]]) -> str:
     return "PASSED"
 
 
-def audit(root: Path, verification_result: Path | None) -> dict[str, Any]:
+def audit(root: Path, verification_result: Path | None, evidence_dir: Path | None) -> dict[str, Any]:
     checklist = [
         check_research(root),
         check_rewrite_rule_coverage(root),
         check_recommendation_gate(root),
-        check_external_verification_result(verification_result),
+        check_external_verification_result(verification_result, evidence_dir),
     ]
     status = overall_status(checklist)
     return {
@@ -368,36 +419,42 @@ def write_payload(payload: dict[str, Any], output: Path | None) -> None:
     print(f"已写入改写生产就绪审计结果: {output}")
 
 
-def successful_verification_payload() -> dict[str, Any]:
+def write_self_test_evidence_dir(evidence_dir: Path) -> None:
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    (evidence_dir / "concurrency.json").write_text(
+        '{"observedConcurrency":10000,"proofRef":"concurrency.log"}',
+        encoding="utf-8",
+    )
+    (evidence_dir / "daily-query-volume.json").write_text(
+        '{"observedDailyQueryVolume":10000000,"proofRef":"daily-query-volume.log"}',
+        encoding="utf-8",
+    )
+    (evidence_dir / "data-layout.json").write_text(
+        '{"observedDatasetSizeBytes":30000000000000000,"proofRef":"data-layout.json"}',
+        encoding="utf-8",
+    )
+    (evidence_dir / "workload-replay.json").write_text(
+        '{"workloadReplayDurationHours":24,'
+        '"workloadReplayWindow":"2026-05-17T00:00Z/2026-05-18T00:00Z",'
+        '"proofRef":"replay.log"}',
+        encoding="utf-8",
+    )
+    (evidence_dir / "metrics.csv").write_text(
+        "p95_latency_ms,p99_latency_ms,scanned_bytes,cpu_usage_percent,queue_wait_ms\n"
+        "120,240,9876543210,72.5,8\n",
+        encoding="utf-8",
+    )
+    (evidence_dir / "cost-bill.json").write_text(
+        '{"costBillAmount":12345.67,"costBillCurrency":"USD","proofRef":"cost-bill.csv"}',
+        encoding="utf-8",
+    )
+
+
+def successful_verification_payload(evidence_file_digests: dict[str, dict[str, Any]]) -> dict[str, Any]:
     payload = {
         "status": "PASSED",
         "externalVerificationStatus": "VERIFIED",
-        "evidenceFileDigests": {
-            "concurrency.json": {
-                "sha256": "0" * 64,
-                "sizeBytes": 71,
-            },
-            "daily-query-volume.json": {
-                "sha256": "1" * 64,
-                "sizeBytes": 84,
-            },
-            "data-layout.json": {
-                "sha256": "2" * 64,
-                "sizeBytes": 83,
-            },
-            "workload-replay.json": {
-                "sha256": "3" * 64,
-                "sizeBytes": 120,
-            },
-            "metrics.csv": {
-                "sha256": "4" * 64,
-                "sizeBytes": 89,
-            },
-            "cost-bill.json": {
-                "sha256": "5" * 64,
-                "sizeBytes": 86,
-            },
-        },
+        "evidenceFileDigests": json.loads(json.dumps(evidence_file_digests)),
         "missingEvidence": [],
         "parseErrors": [],
         "scaleTargetEvidenceManifest": {
@@ -434,43 +491,51 @@ def successful_verification_payload() -> dict[str, Any]:
 
 
 def run_self_test() -> int:
-    blocked = audit(REPO_ROOT, None)
+    blocked = audit(REPO_ROOT, None, None)
     assert blocked["overallStatus"] == "BLOCKED", blocked
     with tempfile.TemporaryDirectory(prefix="rewrite-readiness-") as temp:
+        evidence_dir = Path(temp) / "evidence"
+        write_self_test_evidence_dir(evidence_dir)
+        evidence_file_digests = collect_raw_evidence_file_digests(evidence_dir)
         passed_path = Path(temp) / "verification-result.json"
-        passed_path.write_text(json.dumps(successful_verification_payload()), encoding="utf-8")
-        passed = audit(REPO_ROOT, passed_path)
+        passed_path.write_text(json.dumps(successful_verification_payload(evidence_file_digests)), encoding="utf-8")
+        missing_raw = audit(REPO_ROOT, passed_path, None)
+        assert missing_raw["overallStatus"] == "BLOCKED", missing_raw
+        passed = audit(REPO_ROOT, passed_path, evidence_dir)
         assert passed["overallStatus"] == "PASSED", passed
-        failed_payload = successful_verification_payload()
+        failed_payload = successful_verification_payload(evidence_file_digests)
         failed_payload["scaleTargetEvidenceManifest"]["verificationBundle"].pop("observedDailyQueryVolume")
         failed_path = Path(temp) / "verification-result-missing-daily.json"
         failed_path.write_text(json.dumps(failed_payload), encoding="utf-8")
-        failed = audit(REPO_ROOT, failed_path)
+        failed = audit(REPO_ROOT, failed_path, evidence_dir)
         assert failed["overallStatus"] == "BLOCKED", failed
-        failed_ref_payload = successful_verification_payload()
+        failed_ref_payload = successful_verification_payload(evidence_file_digests)
         failed_ref_payload["scaleTargetEvidenceManifest"].pop("costBillProofRef")
         failed_ref_path = Path(temp) / "verification-result-missing-proof-ref.json"
         failed_ref_path.write_text(json.dumps(failed_ref_payload), encoding="utf-8")
-        failed_ref = audit(REPO_ROOT, failed_ref_path)
+        failed_ref = audit(REPO_ROOT, failed_ref_path, evidence_dir)
         assert failed_ref["overallStatus"] == "BLOCKED", failed_ref
-        failed_digest_payload = successful_verification_payload()
+        failed_digest_payload = successful_verification_payload(evidence_file_digests)
         failed_digest_payload["evidenceFileDigests"].pop("metrics.csv")
         failed_digest_path = Path(temp) / "verification-result-missing-digest.json"
         failed_digest_path.write_text(json.dumps(failed_digest_payload), encoding="utf-8")
-        failed_digest = audit(REPO_ROOT, failed_digest_path)
+        failed_digest = audit(REPO_ROOT, failed_digest_path, evidence_dir)
         assert failed_digest["overallStatus"] == "BLOCKED", failed_digest
-        failed_manifest_digest_payload = successful_verification_payload()
+        failed_manifest_digest_payload = successful_verification_payload(evidence_file_digests)
         failed_manifest_digest_payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"].pop("metrics.csv")
         failed_manifest_digest_path = Path(temp) / "verification-result-missing-manifest-digest.json"
         failed_manifest_digest_path.write_text(json.dumps(failed_manifest_digest_payload), encoding="utf-8")
-        failed_manifest_digest = audit(REPO_ROOT, failed_manifest_digest_path)
+        failed_manifest_digest = audit(REPO_ROOT, failed_manifest_digest_path, evidence_dir)
         assert failed_manifest_digest["overallStatus"] == "BLOCKED", failed_manifest_digest
-        failed_mismatch_payload = successful_verification_payload()
+        failed_mismatch_payload = successful_verification_payload(evidence_file_digests)
         failed_mismatch_payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"]["metrics.csv"]["sha256"] = "6" * 64
         failed_mismatch_path = Path(temp) / "verification-result-mismatched-digest.json"
         failed_mismatch_path.write_text(json.dumps(failed_mismatch_payload), encoding="utf-8")
-        failed_mismatch = audit(REPO_ROOT, failed_mismatch_path)
+        failed_mismatch = audit(REPO_ROOT, failed_mismatch_path, evidence_dir)
         assert failed_mismatch["overallStatus"] == "BLOCKED", failed_mismatch
+        (evidence_dir / "metrics.csv").write_text("changed\n", encoding="utf-8")
+        failed_raw_digest = audit(REPO_ROOT, passed_path, evidence_dir)
+        assert failed_raw_digest["overallStatus"] == "BLOCKED", failed_raw_digest
     print("改写生产就绪审计自检通过")
     return 0
 
@@ -478,6 +543,7 @@ def run_self_test() -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="审计 SQL 改写推荐在仓库证据与外部生产证据下的就绪状态。")
     parser.add_argument("--verification-result", type=Path, help="verify-benchmark-production-evidence.py 输出的 JSON 文件。")
+    parser.add_argument("--evidence-dir", type=Path, help="原始外部生产证据目录，用于复算 evidenceFileDigests。")
     parser.add_argument("--output", type=Path, help="可选的 JSON 审计结果输出路径。")
     parser.add_argument("--self-test", action="store_true", help="运行内置通过与阻断模式检查。")
     return parser.parse_args()
@@ -487,7 +553,7 @@ def main() -> int:
     args = parse_args()
     if args.self_test:
         return run_self_test()
-    payload = audit(REPO_ROOT, args.verification_result)
+    payload = audit(REPO_ROOT, args.verification_result, args.evidence_dir)
     write_payload(payload, args.output)
     if payload["overallStatus"] == "PASSED":
         return 0
