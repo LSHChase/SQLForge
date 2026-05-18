@@ -112,7 +112,7 @@
 - `POST /api/benchmark-engine/tasks` 和 `GET /api/benchmark-engine/tasks/{taskId}` 的过渡骨架
 - `GET /api/benchmark-engine/reports/{reportId}` 的 JSON / PDF / HTML 报告查询骨架
 - 基于 MySQL `benchmark_task` / `benchmark_task_report`、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径、报告回写、报告查询与流程日志；当前还支持显式配置的 `external-file-queue` carrier，并把 `queueMode/queueEvidence` 回写到任务状态与审计载荷
-- benchmark task 现可持久化并查询 `scaleTarget`，用于声明 10000 并发、30PB 数据集、千万日查询、高复杂度和成本目标等生产规模意图，同时以 `TARGET_DECLARED_UNVERIFIED` 明确真实证明仍需报告和长窗口 workload evidence；`scaleTarget.evidenceManifest` 可保存外部生产规模证据引用与核验状态，并被 `scaleReadiness` 纳入 satisfied/missing evidence，但未核验引用不能替代真实达标证明
+- benchmark task 现可持久化并查询 `scaleTarget`，用于声明 10000 并发、30PB 数据集、千万日查询、高复杂度和成本目标等生产规模意图，同时以 `TARGET_DECLARED_UNVERIFIED` 明确真实证明仍需报告和长窗口 workload evidence；`scaleTarget.evidenceManifest` 可保存外部生产规模证据引用、核验状态与 `verificationBundle` 结构化核验包，并被 `scaleReadiness` 纳入 satisfied/missing evidence。只有 `externalVerificationStatus=VERIFIED` 且 bundle 同时覆盖 10000 并发、30PB 字节级数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待、成本账单和 verifierRef 时，引用才可用于生产规模覆盖；未核验引用或单独 VERIFIED 字符串不能替代真实达标证明
 - repo-closed 隔离执行 service、执行摘要，以及优先复用 `query-execution` 内部 workload capture、失败时显式 synthetic backfill、同批次 mixed live/fallback 时的 compensation-replay 可复现 orchestration
 - benchmark workload 与 execution summary 已保留 query-execution cache governance status/evidence，可把 cache hit/bypass/backfill/invalidation 以及 eviction/capacity 证据继续写入 governance trace payload
 - 持久化 `JSON/PDF/HTML` 导出产物 bundle、raw-data snapshot download，以及从已 externalize artifact 直接返回报告导出/下载的查询路径

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
@@ -109,6 +110,8 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertTrue(record.getScaleTargetJson().contains("\"targetConcurrency\":10000"));
         assertTrue(record.getScaleTargetJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(record.getScaleTargetJson().contains("\"concurrencyProofRef\":\"prod-run-20260518/concurrency.log\""));
+        assertTrue(record.getScaleTargetJson().contains("\"verificationBundle\""));
+        assertTrue(record.getScaleTargetJson().contains("\"observedConcurrency\":10000"));
         assertTrue(record.getThresholdsJson().contains("P99_LATENCY_MS"));
         assertEquals("comparison-dual-engine", record.getTemplateId());
         assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
@@ -138,6 +141,9 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals("prod-run-20260518/data-layout-30pb.json",
             restored.getScaleTarget().getEvidenceManifest().getDataLayoutProofRef());
         assertEquals("UNVERIFIED", restored.getScaleTarget().getEvidenceManifest().getExternalVerificationStatus());
+        assertNotNull(restored.getScaleTarget().getEvidenceManifest().getVerificationBundle());
+        assertEquals(Long.valueOf(30000000000000000L),
+            restored.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedDatasetSizeBytes());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, restored.getTemplateType());
         assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, restored.getTestSetSource());
         assertEquals(2, restored.getTestSetLabels().size());
@@ -521,7 +527,24 @@ class MybatisBenchmarkTaskRepositoryTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
+    }
+
+    private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {
+        BenchmarkScaleEvidenceBundleDTO bundle = new BenchmarkScaleEvidenceBundleDTO();
+        bundle.setObservedConcurrency(Integer.valueOf(10000));
+        bundle.setObservedDatasetSizeBytes(Long.valueOf(30000000000000000L));
+        bundle.setWorkloadReplayDurationHours(new BigDecimal("24"));
+        bundle.setP95LatencyMs(new BigDecimal("120"));
+        bundle.setP99LatencyMs(new BigDecimal("240"));
+        bundle.setScannedBytes(Long.valueOf(9876543210L));
+        bundle.setCpuUsagePercent(new BigDecimal("72.5"));
+        bundle.setQueueWaitMs(new BigDecimal("8"));
+        bundle.setCostBillAmount(new BigDecimal("12345.67"));
+        bundle.setCostBillCurrency("USD");
+        bundle.setVerifierRef("prod-run-20260518/verifier.json");
+        return bundle;
     }
 
     private BenchmarkTestSetLabelDTO label(BenchmarkTestSetLabelType type, String value) {

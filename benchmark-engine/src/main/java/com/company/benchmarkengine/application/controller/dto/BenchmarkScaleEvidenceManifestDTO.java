@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.controller.dto;
 
 import javax.validation.constraints.Size;
+import javax.validation.Valid;
 
 public class BenchmarkScaleEvidenceManifestDTO {
 
@@ -30,6 +31,9 @@ public class BenchmarkScaleEvidenceManifestDTO {
 
     @Size(max = 64, message = "externalVerificationStatus 超过 64 个字符")
     private String externalVerificationStatus;
+
+    @Valid
+    private BenchmarkScaleEvidenceBundleDTO verificationBundle;
 
     public String getEvidenceSource() {
         return evidenceSource;
@@ -101,5 +105,13 @@ public class BenchmarkScaleEvidenceManifestDTO {
 
     public void setExternalVerificationStatus(String externalVerificationStatus) {
         this.externalVerificationStatus = externalVerificationStatus;
+    }
+
+    public BenchmarkScaleEvidenceBundleDTO getVerificationBundle() {
+        return verificationBundle;
+    }
+
+    public void setVerificationBundle(BenchmarkScaleEvidenceBundleDTO verificationBundle) {
+        this.verificationBundle = verificationBundle;
     }
 }

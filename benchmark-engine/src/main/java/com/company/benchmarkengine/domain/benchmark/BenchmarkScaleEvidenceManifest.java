@@ -1,5 +1,7 @@
 package com.company.benchmarkengine.domain.benchmark;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public class BenchmarkScaleEvidenceManifest {
@@ -16,6 +18,7 @@ public class BenchmarkScaleEvidenceManifest {
     private final String scanCpuQueueMetricProofRef;
     private final String costBillProofRef;
     private final String externalVerificationStatus;
+    private final BenchmarkScaleEvidenceBundle verificationBundle;
 
     public BenchmarkScaleEvidenceManifest(String evidenceSource,
                                           String concurrencyProofRef,
@@ -26,6 +29,30 @@ public class BenchmarkScaleEvidenceManifest {
                                           String scanCpuQueueMetricProofRef,
                                           String costBillProofRef,
                                           String externalVerificationStatus) {
+        this(
+            evidenceSource,
+            concurrencyProofRef,
+            dataLayoutProofRef,
+            workloadReplayProofRef,
+            workloadReplayWindow,
+            p95P99MetricProofRef,
+            scanCpuQueueMetricProofRef,
+            costBillProofRef,
+            externalVerificationStatus,
+            null
+        );
+    }
+
+    public BenchmarkScaleEvidenceManifest(String evidenceSource,
+                                          String concurrencyProofRef,
+                                          String dataLayoutProofRef,
+                                          String workloadReplayProofRef,
+                                          String workloadReplayWindow,
+                                          String p95P99MetricProofRef,
+                                          String scanCpuQueueMetricProofRef,
+                                          String costBillProofRef,
+                                          String externalVerificationStatus,
+                                          BenchmarkScaleEvidenceBundle verificationBundle) {
         this.evidenceSource = normalizeText(evidenceSource);
         this.concurrencyProofRef = normalizeText(concurrencyProofRef);
         this.dataLayoutProofRef = normalizeText(dataLayoutProofRef);
@@ -35,6 +62,9 @@ public class BenchmarkScaleEvidenceManifest {
         this.scanCpuQueueMetricProofRef = normalizeText(scanCpuQueueMetricProofRef);
         this.costBillProofRef = normalizeText(costBillProofRef);
         this.externalVerificationStatus = normalizeVerificationStatus(externalVerificationStatus);
+        this.verificationBundle = verificationBundle == null || !verificationBundle.hasAnyEvidence()
+            ? null
+            : verificationBundle;
     }
 
     public boolean hasAnyEvidence() {
@@ -46,11 +76,38 @@ public class BenchmarkScaleEvidenceManifest {
             || hasText(p95P99MetricProofRef)
             || hasText(scanCpuQueueMetricProofRef)
             || hasText(costBillProofRef)
-            || STATUS_VERIFIED.equals(externalVerificationStatus);
+            || STATUS_VERIFIED.equals(externalVerificationStatus)
+            || verificationBundle != null;
     }
 
     public boolean isExternallyVerified() {
+        return hasVerifiedStatus() && hasVerifiedProductionEvidence(null);
+    }
+
+    public boolean isExternallyVerified(Integer targetConcurrency) {
+        return hasVerifiedStatus() && hasVerifiedProductionEvidence(targetConcurrency);
+    }
+
+    public boolean hasVerifiedStatus() {
         return STATUS_VERIFIED.equals(externalVerificationStatus);
+    }
+
+    public boolean hasVerifiedProductionEvidence(Integer targetConcurrency) {
+        return verificationBundle != null && verificationBundle.satisfiesProductionEvidence(targetConcurrency);
+    }
+
+    public List<String> satisfiedVerificationEvidence(Integer targetConcurrency) {
+        if (verificationBundle == null) {
+            return Collections.emptyList();
+        }
+        return verificationBundle.satisfiedProductionEvidence(targetConcurrency);
+    }
+
+    public List<String> missingVerificationEvidence(Integer targetConcurrency) {
+        if (verificationBundle == null) {
+            return Collections.singletonList("productionEvidenceBundle");
+        }
+        return verificationBundle.missingProductionEvidence(targetConcurrency);
     }
 
     public String getEvidenceSource() {
@@ -87,6 +144,10 @@ public class BenchmarkScaleEvidenceManifest {
 
     public String getExternalVerificationStatus() {
         return externalVerificationStatus;
+    }
+
+    public BenchmarkScaleEvidenceBundle getVerificationBundle() {
+        return verificationBundle;
     }
 
     private String normalizeVerificationStatus(String value) {

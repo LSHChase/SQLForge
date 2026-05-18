@@ -14,6 +14,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceBundle;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -463,9 +464,30 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             item.get("p95P99MetricProofRef") == null ? null : String.valueOf(item.get("p95P99MetricProofRef")),
             item.get("scanCpuQueueMetricProofRef") == null ? null : String.valueOf(item.get("scanCpuQueueMetricProofRef")),
             item.get("costBillProofRef") == null ? null : String.valueOf(item.get("costBillProofRef")),
-            item.get("externalVerificationStatus") == null ? null : String.valueOf(item.get("externalVerificationStatus"))
+            item.get("externalVerificationStatus") == null ? null : String.valueOf(item.get("externalVerificationStatus")),
+            readScaleEvidenceBundle(readObjectMap(item.get("verificationBundle")))
         );
         return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
+    }
+
+    private BenchmarkScaleEvidenceBundle readScaleEvidenceBundle(Map<String, Object> item) {
+        if (item == null || item.isEmpty()) {
+            return null;
+        }
+        BenchmarkScaleEvidenceBundle bundle = new BenchmarkScaleEvidenceBundle(
+            readInteger(item.get("observedConcurrency")),
+            readLong(item.get("observedDatasetSizeBytes")),
+            readBigDecimal(item.get("workloadReplayDurationHours")),
+            readBigDecimal(item.get("p95LatencyMs")),
+            readBigDecimal(item.get("p99LatencyMs")),
+            readLong(item.get("scannedBytes")),
+            readBigDecimal(item.get("cpuUsagePercent")),
+            readBigDecimal(item.get("queueWaitMs")),
+            readBigDecimal(item.get("costBillAmount")),
+            item.get("costBillCurrency") == null ? null : String.valueOf(item.get("costBillCurrency")),
+            item.get("verifierRef") == null ? null : String.valueOf(item.get("verifierRef"))
+        );
+        return bundle.hasAnyEvidence() ? bundle : null;
     }
 
     private List<BenchmarkTestSetLabel> readTestSetLabels(String json) {

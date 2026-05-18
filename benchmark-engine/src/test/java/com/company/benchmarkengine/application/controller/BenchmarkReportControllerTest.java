@@ -52,7 +52,10 @@ public class BenchmarkReportControllerTest {
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.targetConcurrency").value(10000))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.concurrencyProofRef")
                 .value("prod-run-20260518/concurrency.log"))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.verificationBundle.observedConcurrency")
+                .value(10000))
             .andExpect(content().string(containsString("productionExternalVerification")))
+            .andExpect(content().string(containsString("productionEvidenceBundle")))
             .andExpect(jsonPath("$.scaleReadiness.observedQueueWaitMs").exists())
             .andExpect(jsonPath("$.trendCharts[0].chartType").value("LATENCY_DISTRIBUTION_HISTOGRAM"))
             .andExpect(jsonPath("$.reportQueryPath").value("/api/benchmark-engine/reports/" + reportId))
@@ -122,7 +125,14 @@ public class BenchmarkReportControllerTest {
                     + "\"p95P99MetricProofRef\":\"prod-run-20260518/p95-p99.csv\","
                     + "\"scanCpuQueueMetricProofRef\":\"prod-run-20260518/scan-cpu-queue.csv\","
                     + "\"costBillProofRef\":\"prod-run-20260518/cost-bill.csv\","
-                    + "\"externalVerificationStatus\":\"UNVERIFIED\"}},"
+                    + "\"externalVerificationStatus\":\"UNVERIFIED\","
+                    + "\"verificationBundle\":{\"observedConcurrency\":10000,"
+                    + "\"observedDatasetSizeBytes\":30000000000000000,"
+                    + "\"workloadReplayDurationHours\":24,"
+                    + "\"p95LatencyMs\":120,\"p99LatencyMs\":240,"
+                    + "\"scannedBytes\":9876543210,\"cpuUsagePercent\":72.5,"
+                    + "\"queueWaitMs\":8,\"costBillAmount\":12345.67,"
+                    + "\"costBillCurrency\":\"USD\",\"verifierRef\":\"prod-run-20260518/verifier.json\"}}},"
                     + "\"readonlyRequired\":true,\"shadowEnvironmentMode\":\"REQUIRED\"}}"))
             .andExpect(status().isOk())
             .andReturn();

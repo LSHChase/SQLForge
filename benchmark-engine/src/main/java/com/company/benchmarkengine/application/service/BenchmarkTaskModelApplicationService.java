@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
@@ -28,6 +29,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkRegressionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceBundle;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -283,9 +285,30 @@ public class BenchmarkTaskModelApplicationService {
             evidenceManifestDto.getP95P99MetricProofRef(),
             evidenceManifestDto.getScanCpuQueueMetricProofRef(),
             evidenceManifestDto.getCostBillProofRef(),
-            evidenceManifestDto.getExternalVerificationStatus()
+            evidenceManifestDto.getExternalVerificationStatus(),
+            toScaleEvidenceBundle(evidenceManifestDto.getVerificationBundle())
         );
         return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
+    }
+
+    private BenchmarkScaleEvidenceBundle toScaleEvidenceBundle(BenchmarkScaleEvidenceBundleDTO bundleDto) {
+        if (bundleDto == null) {
+            return null;
+        }
+        BenchmarkScaleEvidenceBundle bundle = new BenchmarkScaleEvidenceBundle(
+            bundleDto.getObservedConcurrency(),
+            bundleDto.getObservedDatasetSizeBytes(),
+            bundleDto.getWorkloadReplayDurationHours(),
+            bundleDto.getP95LatencyMs(),
+            bundleDto.getP99LatencyMs(),
+            bundleDto.getScannedBytes(),
+            bundleDto.getCpuUsagePercent(),
+            bundleDto.getQueueWaitMs(),
+            bundleDto.getCostBillAmount(),
+            bundleDto.getCostBillCurrency(),
+            bundleDto.getVerifierRef()
+        );
+        return bundle.hasAnyEvidence() ? bundle : null;
     }
 
     private List<BenchmarkTestSetLabel> toTestSetLabels(List<BenchmarkTestSetLabelDTO> labelDtos) {

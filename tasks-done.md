@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-VERIFIER-20260518: 接入生产规模证据 bundle 校验器
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-VERIFIER-20260518 gate production evidence with verification bundle`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-MANIFEST-20260518
+- Scope: 在 benchmark-engine 的 scaleTarget.evidenceManifest 中接入结构化 production evidence bundle 与 verifier，逐项校验 10000 并发、30PB 数据布局、长期 workload replay、P95/P99、扫描字节、CPU、队列等待和成本账单；只有 bundle 真实满足阈值时才允许 productionExternalVerification 作为 scaleReadiness 证据，缺失或不达标时继续 NOT_PROVEN/PARTIAL，不提供或伪造外部生产 artifacts。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-VERIFIER-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added structured production evidence verificationBundle under scaleTarget.evidenceManifest, with domain validation for 10000 concurrency, 30PB byte-level data layout, 24-hour replay, P95/P99, scan bytes, CPU, queue wait, cost bill and verifierRef; scaleReadiness now accepts productionExternalVerification only when externalVerificationStatus=VERIFIED and the bundle satisfies those thresholds. Persisted/report/export/recommendation-comparison paths and docs/tests were updated.
+  - Validation evidence: mvn -pl benchmark-engine,sqlforge-shared -am -Dtest=BenchmarkScaleEvidenceManifestTest,BenchmarkTaskModelApplicationServiceTest,BenchmarkRecommendationComparisonApplicationServiceTest,BenchmarkReportControllerTest,MybatisBenchmarkTaskRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl benchmark-engine,sqlforge-shared -am validate pmd:pmd checkstyle:check; mvn -pl benchmark-engine,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-VERIFIER-20260518; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: This adds a repository-side evidence verifier boundary but still does not provide real production 10000-concurrency, 30PB data layout, long replay, P95/P99, scan/CPU/queue or cost bill artifacts. READY still requires externally supplied and verified production evidence.
+  - Next step: Collect real production benchmark artifacts, populate verificationBundle from those artifacts, and only set externalVerificationStatus=VERIFIED after independent verification.
+
 ### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-MANIFEST-20260518: 接入生产规模证据 manifest
 
 - Status: done

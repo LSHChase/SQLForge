@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
@@ -10,6 +11,7 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLa
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationComparisonResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationSqlRole;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceBundle;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
@@ -377,9 +379,30 @@ public class BenchmarkRecommendationComparisonApplicationService {
             evidenceManifestDto.getP95P99MetricProofRef(),
             evidenceManifestDto.getScanCpuQueueMetricProofRef(),
             evidenceManifestDto.getCostBillProofRef(),
-            evidenceManifestDto.getExternalVerificationStatus()
+            evidenceManifestDto.getExternalVerificationStatus(),
+            toScaleEvidenceBundle(evidenceManifestDto.getVerificationBundle())
         );
         return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
+    }
+
+    private BenchmarkScaleEvidenceBundle toScaleEvidenceBundle(BenchmarkScaleEvidenceBundleDTO bundleDto) {
+        if (bundleDto == null) {
+            return null;
+        }
+        BenchmarkScaleEvidenceBundle bundle = new BenchmarkScaleEvidenceBundle(
+            bundleDto.getObservedConcurrency(),
+            bundleDto.getObservedDatasetSizeBytes(),
+            bundleDto.getWorkloadReplayDurationHours(),
+            bundleDto.getP95LatencyMs(),
+            bundleDto.getP99LatencyMs(),
+            bundleDto.getScannedBytes(),
+            bundleDto.getCpuUsagePercent(),
+            bundleDto.getQueueWaitMs(),
+            bundleDto.getCostBillAmount(),
+            bundleDto.getCostBillCurrency(),
+            bundleDto.getVerifierRef()
+        );
+        return bundle.hasAnyEvidence() ? bundle : null;
     }
 
     private Integer resolveBenchmarkConcurrency(BenchmarkRecommendationComparisonCreateRequest request,
@@ -540,7 +563,23 @@ public class BenchmarkRecommendationComparisonApplicationService {
             || hasText(evidenceManifest.getP95P99MetricProofRef())
             || hasText(evidenceManifest.getScanCpuQueueMetricProofRef())
             || hasText(evidenceManifest.getCostBillProofRef())
-            || hasText(evidenceManifest.getExternalVerificationStatus()));
+            || hasText(evidenceManifest.getExternalVerificationStatus())
+            || hasAnyEvidenceBundle(evidenceManifest.getVerificationBundle()));
+    }
+
+    private boolean hasAnyEvidenceBundle(BenchmarkScaleEvidenceBundleDTO verificationBundle) {
+        return verificationBundle != null
+            && (verificationBundle.getObservedConcurrency() != null
+            || verificationBundle.getObservedDatasetSizeBytes() != null
+            || verificationBundle.getWorkloadReplayDurationHours() != null
+            || verificationBundle.getP95LatencyMs() != null
+            || verificationBundle.getP99LatencyMs() != null
+            || verificationBundle.getScannedBytes() != null
+            || verificationBundle.getCpuUsagePercent() != null
+            || verificationBundle.getQueueWaitMs() != null
+            || verificationBundle.getCostBillAmount() != null
+            || hasText(verificationBundle.getCostBillCurrency())
+            || hasText(verificationBundle.getVerifierRef()));
     }
 
     private String trimToNull(String value) {

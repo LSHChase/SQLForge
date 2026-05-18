@@ -253,8 +253,10 @@ public class BenchmarkReportExportService {
         if (evidenceManifest == null) {
             return "MISSING";
         }
+        Integer targetConcurrency = response.getScaleReadiness().getScaleTarget().getTargetConcurrency();
         return "source=" + evidenceManifest.getEvidenceSource()
             + ",verification=" + evidenceManifest.getExternalVerificationStatus()
+            + ",verificationBundleSatisfied=" + evidenceManifest.hasVerifiedProductionEvidence(targetConcurrency)
             + ",concurrencyRef=" + evidenceManifest.getConcurrencyProofRef()
             + ",dataLayoutRef=" + evidenceManifest.getDataLayoutProofRef()
             + ",replayRef=" + evidenceManifest.getWorkloadReplayProofRef()
