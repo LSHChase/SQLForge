@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518: 改写系列页面设计规范回归修正
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518 align rewrite page design`
+- Priority: 1
+- Depends on: USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517,HARN-FE-007,HARN-FE-006
+- Scope: 修正推荐结果/改写记录/改写历史/SQL 改写验证相关页面的前端布局，使其符合 docs/frontend/design-system.md 的管理页骨架、完整视口利用、避免卡片套卡片、优先左右/上下分区与紧凑 section 的规范；不新增后端 API、route、schema，不改变推荐、审批、发布、自动应用或 SQL 历史事实语义。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修正改写校验页桌面布局从纵向卡片堆叠回到左右工作区；扁平化结果摘要和证据区；补齐改写记录、改写历史深链入口的标题和上下文展示，避免复用页露出不符合改写系列语义的通用卡片堆叠。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518 --include-task-audit；npm run lint；npm run build；npm run test:frontend-page-governance；npm run test:sql-ui-contract；navigation/recommendation/history/detail/parse contract checks；npm run smoke:frontend-dev；git diff --check；R-186 before screenshot: .codex-log/USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518/before-rewrite-validation.png、before-recommendation.png、before-rewrite-history.png、before-recommendation-drawer.png；after screenshot: .codex-log/USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518/after-rewrite-validation-3.png、after-recommendation.png、after-rewrite-history.png、after-recommendation-drawer.png；Codex 读图截图自检确认改写校验页桌面左右工作区恢复、改写记录/改写历史入口标题语义正确、页面级横向溢出已修复。
+  - Residual risk: 未发现已知残余风险；改写记录和改写历史仍复用既有列表/详情能力，后续若新增独立页面壳需继续遵守 frontend design-system 的非卡片堆叠约束。
+  - Next step: 如后续扩展改写系列，应优先补页面契约脚本覆盖深链标题和布局断点，避免回退到上下卡片堆叠。
+
 ### USER-CN-REWRITE-TRIALS-UI-20260518: 改写试算前端入口与展示
 
 - Status: done

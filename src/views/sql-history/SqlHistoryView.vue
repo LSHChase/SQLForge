@@ -85,8 +85,9 @@ const exportFormatOptions = [
 ]
 
 const DETAIL_TAB_NAMES = ['overview', 'execution', 'sql', 'rewriteRecords', 'signals', 'refs', 'audit']
+const normalizeRouteQueryValue = value => (Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim())
 const normalizeDetailTab = value => {
-  const tabName = Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim()
+  const tabName = normalizeRouteQueryValue(value)
   return DETAIL_TAB_NAMES.includes(tabName) ? tabName : ''
 }
 
@@ -114,6 +115,12 @@ const exportForm = reactive({
   exportReason: 'frontend-sql-history-forensics'
 })
 
+const isRewriteHistoryEntry = computed(
+  () => normalizeRouteQueryValue(route.query.hasRewriteRecord) === 'true' || normalizeDetailTab(route.query.detailTab) === 'rewriteRecords'
+)
+const pageKicker = computed(() => (isRewriteHistoryEntry.value ? t('navigation.modules.rewriteGovernance') : PAGE_KICKER))
+const pageTitle = computed(() => (isRewriteHistoryEntry.value ? t('navigation.items.rewriteHistory') : t('sqlHistory.title')))
+const pageSummary = computed(() => t('sqlHistory.summary'))
 const routeTenantId = computed(() => String(route.query.tenantId || '').trim())
 const {
   searchForm,
@@ -1285,11 +1292,11 @@ watch(
 
 <template>
   <section class="sql-history-page" data-testid="sql-history-page">
-    <header class="sql-history-header surface-card">
+    <header class="sql-history-header surface-card" :class="{ 'rewrite-context-header': isRewriteHistoryEntry }">
       <SectionHeader
-        :eyebrow="PAGE_KICKER"
-        :title="t('sqlHistory.title')"
-        :summary="t('sqlHistory.summary')"
+        :eyebrow="pageKicker"
+        :title="pageTitle"
+        :summary="pageSummary"
         size="compact"
       >
         <template #actions>
@@ -1304,7 +1311,7 @@ watch(
           </div>
         </template>
       </SectionHeader>
-      <div class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
+      <div v-if="!isRewriteHistoryEntry" class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
         <MetricCard
           v-for="item in summaryMetrics"
           :key="item.key"
@@ -1864,6 +1871,10 @@ watch(
 .sql-history-header {
   display: grid;
   gap: var(--sqlforge-space-4);
+}
+
+.rewrite-context-header {
+  background: var(--sqlforge-surface-1);
 }
 
 .table-heading,

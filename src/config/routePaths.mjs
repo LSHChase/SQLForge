@@ -470,12 +470,12 @@ export const NAVIGATION_TREE = [
           mode: 'rewriteValidation'
         }
       }),
-      navItem('recommendationCenter', 'recommendationCenter.title', 'navigation.items.rewriteRecords', {
+      navItem('recommendationCenter', 'navigation.items.rewriteRecords', 'navigation.items.rewriteRecords', {
         query: {
           tab: 'rewriteLifecycle'
         }
       }),
-      navItem('sqlHistory', 'sqlHistory.title', 'navigation.items.rewriteHistory', {
+      navItem('sqlHistory', 'navigation.items.rewriteHistory', 'navigation.items.rewriteHistory', {
         query: {
           hasRewriteRecord: 'true',
           detailTab: 'rewriteRecords'

@@ -858,10 +858,9 @@ onMounted(loadGovernanceDatasources)
 
 <style scoped>
 .rewrite-validation-page {
-  gap: 20px;
+  gap: var(--sqlforge-space-4);
 }
 
-.rewrite-hero,
 .workspace-panel {
   border: 1px solid var(--sqlforge-border-default);
   border-radius: 8px;
@@ -871,9 +870,10 @@ onMounted(loadGovernanceDatasources)
 .rewrite-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
+  gap: var(--sqlforge-space-4);
   align-items: start;
-  padding: 24px;
+  padding: 0 0 var(--sqlforge-space-4);
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
 }
 
 .rewrite-hero__copy,
@@ -887,7 +887,9 @@ onMounted(loadGovernanceDatasources)
 }
 
 .rewrite-hero__actions {
-  align-items: flex-end;
+  flex-flow: row wrap;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .boundary-copy,
@@ -909,17 +911,19 @@ onMounted(loadGovernanceDatasources)
 
 .rewrite-layout {
   display: grid;
-  grid-template-columns: minmax(360px, 0.92fr) minmax(0, 1.08fr);
-  gap: 20px;
+  grid-template-columns: minmax(340px, 0.78fr) minmax(0, 1.22fr);
+  gap: var(--sqlforge-space-4);
   align-items: start;
 }
 
 .rewrite-layout-secondary {
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.74fr);
 }
 
 .workspace-panel {
-  padding: 20px;
+  padding: var(--sqlforge-space-4);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .section-heading,
@@ -965,7 +969,11 @@ onMounted(loadGovernanceDatasources)
 }
 
 .form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+}
+
+.rewrite-input-panel .form-grid {
+  grid-template-columns: 1fr;
 }
 
 .form-grid-single {
@@ -976,6 +984,13 @@ onMounted(loadGovernanceDatasources)
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+}
+
+.field-block :deep(.el-input),
+.field-block :deep(.el-select),
+.field-block :deep(.el-select__wrapper) {
+  width: 100%;
   min-width: 0;
 }
 
@@ -990,18 +1005,16 @@ onMounted(loadGovernanceDatasources)
 .summary-card,
 .evidence-item {
   min-width: 0;
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 8px;
-  background: var(--sqlforge-bg-page-deep);
-  padding: 12px;
+  padding: 0 0 var(--sqlforge-space-3);
 }
 
 .summary-card {
-  min-height: 84px;
+  min-height: auto;
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
 }
 
 .summary-card-compact {
-  min-height: 70px;
+  min-height: auto;
 }
 
 .summary-card strong,
@@ -1012,6 +1025,25 @@ onMounted(loadGovernanceDatasources)
 
 .evidence-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.result-section {
+  padding-top: var(--sqlforge-space-3);
+  border-top: 1px solid var(--sqlforge-border-subtle);
+}
+
+.evidence-item {
+  border-left: 2px solid var(--sqlforge-border-strong);
+  background: transparent;
+  padding-left: var(--sqlforge-space-3);
+}
+
+.rewrite-result-panel :deep(.sql-compare-block__panes) {
+  grid-template-columns: repeat(2, minmax(300px, 1fr));
+}
+
+.rewrite-result-panel :deep(.sql-compare-pane) {
+  min-width: 300px;
 }
 
 .evidence-item span {
@@ -1057,7 +1089,7 @@ onMounted(loadGovernanceDatasources)
   width: 100%;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 900px) {
   .rewrite-hero,
   .rewrite-layout,
   .rewrite-layout-secondary,

@@ -99,6 +99,16 @@ const lifecycleSuccessMessage = ref('')
 const validationRunErrorMessage = ref('')
 const activeDetailTab = ref('summary')
 const preferredDetailTab = ref(normalizeDetailTab(route.query.tab || route.query.detailTab))
+const isRewriteRecordEntry = computed(() => normalizeDetailTab(route.query.tab || route.query.detailTab) === 'rewriteLifecycle')
+const pageEyebrow = computed(() =>
+  isRewriteRecordEntry.value ? t('navigation.modules.rewriteGovernance') : t('recommendationCenter.eyebrow')
+)
+const pageTitle = computed(() =>
+  isRewriteRecordEntry.value ? t('navigation.items.rewriteRecords') : t('recommendationCenter.pageTitle')
+)
+const pageSummary = computed(() =>
+  isRewriteRecordEntry.value ? t('recommendationCenter.rewriteLifecycle.boundary') : t('recommendationCenter.boundarySummary')
+)
 const selectedRuleDiffId = ref('')
 const evidenceDrawerVisible = ref(false)
 const evidenceDrawerTitle = ref('')
@@ -1176,9 +1186,9 @@ watch(
 <template>
   <section class="recommendation-page" data-testid="recommendation-page">
     <SectionHeader
-      :eyebrow="t('recommendationCenter.eyebrow')"
-      :title="t('recommendationCenter.pageTitle')"
-      :summary="t('recommendationCenter.boundarySummary')"
+      :eyebrow="pageEyebrow"
+      :title="pageTitle"
+      :summary="pageSummary"
       :level="1"
       size="compact"
     />
