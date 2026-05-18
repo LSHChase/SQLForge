@@ -151,6 +151,21 @@ public class SqlOptimizationPipelineService {
     private static final Pattern OFFSET_PATTERN = Pattern.compile("(?is)\\bOFFSET\\s+\\d+\\b");
     private static final Pattern SEMI_STRUCTURED_FLATTEN_PATTERN =
         Pattern.compile("(?is)\\b(FLATTEN|EXPLODE)\\s*\\(");
+    private static final Pattern WITH_CLAUSE_PATTERN = Pattern.compile("(?is)^\\s*WITH\\b");
+    private static final Pattern ORDER_BY_FUNCTION_PATTERN =
+        Pattern.compile("(?is)\\bORDER\\s+BY\\b[^;]*(LOWER|UPPER|DATE_TRUNC|TRUNC|CAST|COALESCE|NVL)\\s*\\(");
+    private static final Pattern NOT_EQUAL_PATTERN = Pattern.compile("(?is)(<>|!=|\\bNOT\\s+LIKE\\b)");
+    private static final Pattern IS_NULL_PATTERN = Pattern.compile("(?is)\\bIS\\s+(?:NOT\\s+)?NULL\\b");
+    private static final Pattern ARRAY_FUNCTION_PATTERN =
+        Pattern.compile("(?is)\\b(ARRAY_CONTAINS|CONTAINS|ANY_MATCH|CARDINALITY|JSON_ARRAY_LENGTH)\\s*\\(");
+    private static final Pattern RANGE_JOIN_PATTERN =
+        Pattern.compile("(?is)\\bJOIN\\b.+\\bON\\b.+\\bBETWEEN\\b.+\\bAND\\b");
+    private static final Pattern CASE_EXPRESSION_PATTERN = Pattern.compile("(?is)\\bCASE\\s+WHEN\\b");
+    private static final Pattern COUNT_DISTINCT_PATTERN = Pattern.compile("(?is)\\bCOUNT\\s*\\(\\s*DISTINCT\\b");
+    private static final Pattern APPROX_DISTINCT_PATTERN =
+        Pattern.compile("(?is)\\b(APPROX_DISTINCT|HLL|HLL_UNION|HLL_CARDINALITY)\\s*\\(");
+    private static final Pattern PERCENTILE_PATTERN =
+        Pattern.compile("(?is)\\b(APPROX_PERCENTILE|PERCENTILE_CONT|PERCENTILE_DISC|QUANTILE)\\s*\\(");
 
     @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
     private String parserStrategy = "JSQLPARSER";
@@ -917,6 +932,234 @@ public class SqlOptimizationPipelineService {
                 "缺少稳定排序键会改变翻页边界或漏/重复记录。"
             );
         }
+        if (profile.getPredicateCount() == 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "FULL_SCAN_FILTER_GUARD",
+                "BUSINESS_FILTER_OR_READ_SCOPE_REQUIRED",
+                "无过滤 SELECT 必须补充业务范围、租户范围或只读扫描豁免证据。",
+                "在 PB 级数据上全表扫描会造成资源争抢，且可能越过预期数据范围。"
+            );
+        }
+        if (profile.getOrderByCount() > 0 && !profile.isLimitPresent()) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "ORDER_BY_WITHOUT_LIMIT_GUARD",
+                "TOPN_OR_CONSUMER_SORT_REQUIREMENT_REQUIRED",
+                "无 LIMIT 排序需要确认消费者是否真的需要全量有序结果。",
+                "全量排序可能引入宽 shuffle、spill 和长尾资源占用。"
+            );
+        }
+        if (profile.isLimitPresent() && profile.getOrderByCount() == 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "LIMIT_WITHOUT_ORDER_GUARD",
+                "STABLE_ORDERING_INTENT_REQUIRED",
+                "无 ORDER BY 的 LIMIT 需要确认是否允许非确定性抽样结果。",
+                "不同执行计划可能返回不同前 N 行，影响报表可复现性。"
+            );
+        }
+        if (profile.getRepeatedExpressionCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "REPEATED_EXPRESSION_TO_CTE",
+                "EXPRESSION_DETERMINISM_REQUIRED",
+                "重复复杂表达式可评审为 CTE、派生列或服务层预计算。",
+                "非确定性函数或引擎 CTE 内联行为可能改变性能和结果稳定性。"
+            );
+        }
+        if (profile.getUdfFunctionCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "UDF_EVALUATION_ISOLATION",
+                "UDF_DETERMINISM_AND_COST_REQUIRED",
+                "自定义函数应评审为前置过滤后执行、离线派生列或受治理服务函数。",
+                "UDF 的确定性、权限和资源消耗不能由静态解析证明。"
+            );
+        }
+        if (profile.getStringConcatenationCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "STRING_CONCAT_PRECOMPUTE",
+                "OUTPUT_FORMAT_CONTRACT_REQUIRED",
+                "高频字符串拼接可评审为展示层格式化或预计算展示字段。",
+                "空值、分隔符和字符集规则会影响输出等价性。"
+            );
+        }
+        if (profile.getLargeStringAggregateCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "LARGE_STRING_AGGREGATE_OFFLOAD",
+                "AGGREGATE_LENGTH_AND_ORDER_POLICY_REQUIRED",
+                "大字符串聚合可评审为明细下钻、离线摘要或受限长度聚合。",
+                "聚合顺序、截断策略和超长输出会影响业务可读性与内存占用。"
+            );
+        }
+        if (profile.getWindowFunctionCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "WINDOW_FRAME_PRECOMPUTE",
+                "WINDOW_FRAME_AND_ORDER_CONTRACT_REQUIRED",
+                "窗口函数可评审为分区预计算、指标层快照或 Top-N 专项改写。",
+                "窗口边界、排序并列值和分区基数会影响结果。"
+            );
+        }
+        if (matches(WITH_CLAUSE_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "CTE_MATERIALIZATION_POLICY",
+                "ENGINE_CTE_MATERIALIZATION_BEHAVIOR_REQUIRED",
+                "WITH 查询需要确认引擎会内联还是物化 CTE，并评审复用收益。",
+                "不同引擎的 CTE 策略不同，可能重复扫描或提前物化大量中间结果。"
+            );
+        }
+        if (matches(CASE_EXPRESSION_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "CASE_EXPRESSION_NORMALIZATION",
+                "CASE_BRANCH_EXCLUSIVITY_REQUIRED",
+                "CASE 表达式可评审为维表映射、派生字段或指标口径统一。",
+                "分支顺序、NULL 和兜底值会影响结果等价性。"
+            );
+        }
+        if (countMatches(COUNT_DISTINCT_PATTERN, sql) >= 2) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "MULTI_COUNT_DISTINCT_DECOMPOSITION",
+                "DISTINCT_CARDINALITY_AND_DEDUP_POLICY_REQUIRED",
+                "多个 COUNT DISTINCT 可评审为分阶段聚合或 sketch 预计算。",
+                "去重粒度和近似算法选择会影响精度与成本。"
+            );
+        }
+        if (matches(NOT_EQUAL_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "NEGATION_FILTER_REVIEW",
+                "SELECTIVITY_AND_NULL_POLICY_REQUIRED",
+                "否定谓词可评审为正向枚举、排除表或分区剪枝辅助条件。",
+                "否定谓词通常选择性弱，且 NULL 语义容易被误改。"
+            );
+        }
+        if (matches(IS_NULL_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "NULL_FILTER_INDEX_REVIEW",
+                "NULL_DISTRIBUTION_AND_INDEX_SUPPORT_REQUIRED",
+                "IS NULL/IS NOT NULL 可评审为空值分布统计、索引或派生标记列。",
+                "空值分布高度倾斜时，错误索引或物化策略可能收益很低。"
+            );
+        }
+        if (matches(ORDER_BY_FUNCTION_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "ORDER_BY_EXPRESSION_PRECOMPUTE",
+                "SORT_EXPRESSION_DETERMINISM_REQUIRED",
+                "函数排序键可评审为派生排序列或已排序服务对象。",
+                "排序表达式的时区、大小写和 NULL 顺序需要与原语句一致。"
+            );
+        }
+        if (matches(ARRAY_FUNCTION_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "ARRAY_CONTAINS_INDEX_REVIEW",
+                "ARRAY_PATH_AND_CARDINALITY_REQUIRED",
+                "数组包含或基数过滤可评审为预展开、倒排索引或半结构化字段索引。",
+                "数组顺序、重复元素和空数组语义会影响过滤结果。"
+            );
+        }
+        if (matches(RANGE_JOIN_PATTERN, sql)) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "RANGE_JOIN_BUCKETIZATION",
+                "RANGE_OVERLAP_AND_BUCKET_POLICY_REQUIRED",
+                "范围 join 可评审为时间桶、区间索引或预展开桥表。",
+                "区间重叠、边界闭开和桶粒度错误会改变匹配关系。"
+            );
+        }
+        if (profile.isDistinctPresent() && profile.getOrderByCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "DISTINCT_ORDER_BY_ALIGNMENT",
+                "ORDER_KEY_PROJECTION_COMPATIBILITY_REQUIRED",
+                "DISTINCT + ORDER BY 需要确认排序键与去重投影兼容。",
+                "排序键不在去重粒度内时，不同引擎可能产生不稳定排序或额外去重成本。"
+            );
+        }
+        if (profile.getCorrelatedSubqueryCount() > 0) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "CORRELATED_SUBQUERY_DECORRELATION",
+                "CORRELATION_KEY_UNIQUENESS_REQUIRED",
+                "关联子查询可评审为 decorrelation、semi join 或预聚合 join。",
+                "关联键不唯一或谓词作用域不清会导致行数放大。"
+            );
+        }
+        if (profile.getNestedSubqueryDepth() >= 2) {
+            addUnappliedRuleIfAbsent(
+                unappliedRules,
+                preconditions,
+                semanticRisks,
+                "L1",
+                "NESTED_SUBQUERY_FLATTENING",
+                "NESTED_SCOPE_AND_NULL_POLICY_REQUIRED",
+                "多层嵌套子查询可评审为分层 CTE 或显式 join 图。",
+                "嵌套作用域、NULL 和聚合边界不清时，扁平化会改变结果。"
+            );
+        }
     }
 
     private void addL2RuleCandidates(ParsedSqlProfile profile,
@@ -1172,6 +1415,39 @@ public class SqlOptimizationPipelineService {
                 "路径类型漂移和数组展开会影响结果与成本。"
             );
         }
+        if (matches(APPROX_DISTINCT_PATTERN, sql)) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "APPROX_DISTINCT_SKETCH_MV",
+                "SKETCH_ERROR_BOUND_AND_REFRESH_POLICY_REQUIRED",
+                "近似去重可推荐 HLL/sketch 物化结果或指标层复用。",
+                "近似误差、合并策略和刷新周期必须由业务接受。"
+            );
+        }
+        if (matches(PERCENTILE_PATTERN, sql)) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "PERCENTILE_SKETCH_PRECOMPUTE",
+                "PERCENTILE_ACCURACY_AND_MERGE_POLICY_REQUIRED",
+                "分位数聚合可推荐 sketch 预计算或离线指标层。",
+                "近似分位数不可随意合并，精度与样本边界必须验证。"
+            );
+        }
+        if (profile.getGroupByCount() >= 2 && profile.getAggregateFunctionCount() > 0) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                "ROLLUP_AGGREGATE_LATTICE",
+                "DIMENSION_HIERARCHY_AND_ROLLUP_POLICY_REQUIRED",
+                "多维聚合可推荐 rollup/lattice 物化视图或指标宽表。",
+                "维度层级、钻取路径和稀疏组合会影响存储成本与结果口径。"
+            );
+        }
     }
 
     private void addUnappliedRuleIfAbsent(List<Map<String, Object>> unappliedRules,
@@ -1233,6 +1509,18 @@ public class SqlOptimizationPipelineService {
 
     private boolean matches(Pattern pattern, String sql) {
         return pattern != null && StringUtils.hasText(sql) && pattern.matcher(sql).find();
+    }
+
+    private int countMatches(Pattern pattern, String sql) {
+        if (pattern == null || !StringUtils.hasText(sql)) {
+            return 0;
+        }
+        int count = 0;
+        Matcher matcher = pattern.matcher(sql);
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
     }
 
     private void addUnappliedRule(List<Map<String, Object>> unappliedRules,

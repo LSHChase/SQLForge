@@ -4,6 +4,28 @@
 
 ## Done
 
+### USER-CN-SELECT-REWRITE-50-20260518: 扩展 SELECT 推荐改写核心到 50 类
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-SELECT-REWRITE-50-20260518 expand select rewrite recommendations to 50`
+- Priority: 1
+- Depends on: USER-CN-SELECT-REWRITE-36-20260518
+- Scope: 基于 USER-CN-SELECT-REWRITE-36-20260518 的调研与实现，把 sql-optimization 推荐改写核心从 36+ 类提升到不少于 50 类常见复杂 SELECT 执行、解析与推荐改写场景；补齐规则输出、风险/前置条件、回归测试和文档索引；继续保持静态分析不自动应用高风险改写、不执行任意 SQL、审批和结果比对边界。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SELECT-REWRITE-50-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: verified current primary sources for materialized-view rewrite, cost-based join planning, dynamic filtering, stale/partition-aware MV compensation, and LLM rewrite validation; kept SQLForge boundary deterministic and manual-review/pull-only for high-risk recommendations.
+  - 2026-05-18: extended `SqlOptimizationPipelineService` with additional SELECT structural and physical recommendation rules covering full scans, unstable limit/sort, repeated expressions, UDFs, CTEs, string/window/sketch aggregates, array predicates, range joins, correlated/nested subqueries, and rollup-style precompute candidates.
+  - 2026-05-18: passed focused regression `mvn -pl sql-optimization,sqlforge-shared -am -Dtest=SqlOptimizationPipelineServiceTest#shouldExposeAtLeastFiftySelectRewriteRecommendationScenarios -Dsurefire.failIfNoSpecifiedTests=false test`.
+  - 2026-05-18: passed broader regression `mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false` with 247 tests, plus `node scripts/lint-repository-knowledge.js`, `python3 scripts/foreman.py validate USER-CN-SELECT-REWRITE-50-20260518`, `python3 scripts/task_audit.py --check --phase pre-closeout`, and `git diff --check`.
+- Context closeout:
+  - Completed scope: 完成最新 SQL 推荐改写方案/工具/专利/论文复核；将 sql-optimization 的 SELECT 推荐改写输出从 36+ 审计目标提升到 50+ 显式回归场景；新增 full scan、limit/order、重复表达式、UDF、CTE、字符串/窗口/sketch 聚合、数组谓词、range join、correlated/nested subquery、rollup lattice 等结构与物理候选规则；所有新增高风险规则仍保持 manual-review 或 PULL_ONLY_CANDIDATE，不执行任意 SQL、不自动应用。
+  - Validation evidence: mvn -pl sql-optimization,sqlforge-shared -am -Dtest=SqlOptimizationPipelineServiceTest#shouldExposeAtLeastFiftySelectRewriteRecommendationScenarios -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate USER-CN-SELECT-REWRITE-50-20260518; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: 本轮提升的是仓库内静态解析和推荐覆盖，不代表真实 10000 高并发、30PB 存储、千万级日查询环境已经实测达标；物化视图、动态过滤、sketch、分桶、文件整理、存储布局和 LLM/专利启发路径仍必须依赖真实 EXPLAIN、成本模型、结果 diff、审批和环境证据。
+  - Next step: 后续接入真实 Hetu/MRS EXPLAIN、运行统计和结果 diff 证据后，可把 50+ 静态规则升级为带成本排序、灰度绑定和自动暂停条件的生产推荐闭环。
+
 ### USER-CN-SELECT-REWRITE-36-20260518: 扩展 SELECT 推荐改写核心到 36 类
 
 - Status: done

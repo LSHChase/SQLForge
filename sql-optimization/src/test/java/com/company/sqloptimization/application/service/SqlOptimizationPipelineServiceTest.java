@@ -336,7 +336,7 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
-    void shouldExposeAtLeastThirtySixSelectRewriteRecommendationScenarios() {
+    void shouldExposeAtLeastFiftySelectRewriteRecommendationScenarios() {
         List<Sample> samples = Arrays.asList(
             sample("count-literal", "SELECT COUNT(1) FROM orders WHERE dt = DATE '2026-05-01'", "COUNT_ONE_TO_COUNT_STAR"),
             sample("duplicate-where", "SELECT order_id FROM orders WHERE dt = DATE '2026-05-01' AND dt = DATE '2026-05-01'",
@@ -419,7 +419,50 @@ class SqlOptimizationPipelineServiceTest {
             sample("date-grain", "SELECT DATE_TRUNC('day', order_date), SUM(amount) FROM orders "
                 + "GROUP BY DATE_TRUNC('day', order_date)", "DATE_GRANULARITY_MV"),
             sample("partition-compensation", "SELECT dt, SUM(amount) FROM orders "
-                + "WHERE dt >= DATE '2026-05-01' AND status = 'PAID' GROUP BY dt", "PARTITION_COMPENSATION_UNION")
+                + "WHERE dt >= DATE '2026-05-01' AND status = 'PAID' GROUP BY dt", "PARTITION_COMPENSATION_UNION"),
+            sample("with-cte", "WITH recent_orders AS (SELECT order_id, customer_id FROM orders "
+                + "WHERE dt = DATE '2026-05-01') SELECT customer_id FROM recent_orders", "CTE_MATERIALIZATION_POLICY"),
+            sample("full-scan", "SELECT order_id FROM orders", "FULL_SCAN_FILTER_GUARD"),
+            sample("order-without-limit", "SELECT order_id FROM orders WHERE dt = DATE '2026-05-01' ORDER BY amount DESC",
+                "ORDER_BY_WITHOUT_LIMIT_GUARD"),
+            sample("limit-without-order", "SELECT order_id FROM orders WHERE dt = DATE '2026-05-01' LIMIT 20",
+                "LIMIT_WITHOUT_ORDER_GUARD"),
+            sample("repeated-expression", "SELECT customer_id, amount * tax_rate AS tax_value FROM orders "
+                + "WHERE amount * tax_rate > 100 ORDER BY amount * tax_rate", "REPEATED_EXPRESSION_TO_CTE"),
+            sample("udf", "SELECT custom_score(amount) FROM orders WHERE dt = DATE '2026-05-01'",
+                "UDF_EVALUATION_ISOLATION"),
+            sample("string-concat", "SELECT CONCAT(first_name, last_name) FROM customers WHERE state = 'CA'",
+                "STRING_CONCAT_PRECOMPUTE"),
+            sample("string-aggregate", "SELECT customer_id, GROUP_CONCAT(product_name) FROM order_items "
+                + "GROUP BY customer_id", "LARGE_STRING_AGGREGATE_OFFLOAD"),
+            sample("window-frame", "SELECT customer_id, SUM(amount) OVER (PARTITION BY customer_id) AS total_amount "
+                + "FROM orders WHERE dt = DATE '2026-05-01'", "WINDOW_FRAME_PRECOMPUTE"),
+            sample("approx-distinct", "SELECT APPROX_DISTINCT(user_id) FROM events WHERE dt = DATE '2026-05-01'",
+                "APPROX_DISTINCT_SKETCH_MV"),
+            sample("multi-count-distinct", "SELECT COUNT(DISTINCT user_id), COUNT(DISTINCT session_id) "
+                + "FROM events WHERE dt = DATE '2026-05-01'", "MULTI_COUNT_DISTINCT_DECOMPOSITION"),
+            sample("not-equal", "SELECT order_id FROM orders WHERE status <> 'CANCELLED'", "NEGATION_FILTER_REVIEW"),
+            sample("null-filter", "SELECT customer_id FROM customers WHERE phone IS NULL", "NULL_FILTER_INDEX_REVIEW"),
+            sample("order-expression", "SELECT customer_id FROM customers WHERE state = 'CA' ORDER BY LOWER(customer_name)",
+                "ORDER_BY_EXPRESSION_PRECOMPUTE"),
+            sample("array-contains", "SELECT order_id FROM orders WHERE ARRAY_CONTAINS(tags, 'vip')",
+                "ARRAY_CONTAINS_INDEX_REVIEW"),
+            sample("range-join", "SELECT o.order_id FROM orders o JOIN promotions p "
+                + "ON o.order_date BETWEEN p.start_date AND p.end_date WHERE o.dt = DATE '2026-05-01'",
+                "RANGE_JOIN_BUCKETIZATION"),
+            sample("case-expression", "SELECT CASE WHEN amount > 0 THEN amount ELSE 0 END "
+                + "FROM orders WHERE dt = DATE '2026-05-01'", "CASE_EXPRESSION_NORMALIZATION"),
+            sample("distinct-order", "SELECT DISTINCT customer_id FROM orders "
+                + "WHERE dt = DATE '2026-05-01' ORDER BY customer_id", "DISTINCT_ORDER_BY_ALIGNMENT"),
+            sample("correlated-subquery", "SELECT c.customer_id FROM customers c WHERE EXISTS "
+                + "(SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)", "CORRELATED_SUBQUERY_DECORRELATION"),
+            sample("nested-subquery", "SELECT customer_id FROM customers WHERE customer_id IN "
+                + "(SELECT customer_id FROM orders WHERE amount > "
+                + "(SELECT AVG(amount) FROM orders WHERE dt = DATE '2026-05-01'))", "NESTED_SUBQUERY_FLATTENING"),
+            sample("percentile", "SELECT APPROX_PERCENTILE(amount, 0.95) FROM orders "
+                + "WHERE dt = DATE '2026-05-01'", "PERCENTILE_SKETCH_PRECOMPUTE"),
+            sample("rollup-lattice", "SELECT dt, status, SUM(amount) FROM orders "
+                + "WHERE dt = DATE '2026-05-01' GROUP BY dt, status", "ROLLUP_AGGREGATE_LATTICE")
         );
 
         Set<String> coveredRules = new LinkedHashSet<String>();
@@ -432,7 +475,7 @@ class SqlOptimizationPipelineServiceTest {
             assertFalse(model.isAutoApplyAllowed(), sample.name + " 不允许基于静态分析自动应用");
             coveredRules.add(sample.expectedRule);
         }
-        assertTrue(coveredRules.size() >= 36, "coveredRules=" + coveredRules);
+        assertTrue(coveredRules.size() >= 50, "coveredRules=" + coveredRules);
     }
 
     private String complexAntiPatternSql() {
