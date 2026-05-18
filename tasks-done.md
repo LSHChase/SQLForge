@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518: 改写系列页面布局规范加固
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518 harden rewrite page layouts`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518
+- Scope: 深入审查 SQL 改写验证、推荐结果/改写记录、改写历史相关页面在卡片堆叠、上下分布、完整视口利用和管理页骨架方面的设计违规点，并在不新增后端 API、route、schema、不改变推荐/审批/发布/自动应用/执行历史语义的前提下做前端布局优化、契约验证和视觉自检。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 找出并修复改写系列页面设计违规：SQL 改写验证页去掉结果区下方两张独立工作卡片，改为结果面板内共享上下文的推荐关联/复验 Tab，并在创建改写记录后自动切到复验以保留连续操作；推荐结果/改写记录页把筛选和推荐表格合并为单一 recommendation workbench，避免 ToolbarShell + 列表卡片上下堆叠；改写历史页把标题、错误、筛选、表格收敛进单一 history workbench，用分区线替代 header/filter/table 三层卡片。before/after 截图自检完成，Codex 读图/视觉复核后修复了复验按钮被隐藏的回归。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518；npm run lint；npm run build；npm run test:frontend-page-governance；npm run test:sql-ui-contract；npm run test:form-governance；node scripts/check-recommendation-page-contract.mjs；node scripts/check-history-page-contract.mjs；node scripts/check-history-detail-contract.mjs；node scripts/check-parse-workbench-contract.mjs；npm run smoke:frontend-dev；git diff --check。R-186 before screenshot/reference: .codex-log/USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518/after-rewrite-validation-3.png、.codex-log/USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518/after-recommendation.png、.codex-log/USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518/after-rewrite-history.png；after screenshot: .codex-log/USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518/after-rewrite-validation.png、.codex-log/USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518/after-recommendation-center.png、.codex-log/USER-CN-REWRITE-PAGE-LAYOUT-HARDENING-20260518/after-sql-history.png；visual self-review passed，已修复截图暴露的隐藏复验操作问题，未发现主路径新增 visual drift。
+  - Residual risk: 未改变后端 API、route、schema、推荐审批发布、自动应用或真实执行历史语义；推荐详情抽屉内部仍沿用原有详情分组，本轮只收敛主路径卡片堆叠和上下分布。
+  - Next step: 若继续优化，可单独拆任务收敛推荐详情抽屉内部章节密度。
+
 ### USER-CN-REWRITE-PAGE-DESIGN-FIX-20260518: 改写系列页面设计规范回归修正
 
 - Status: done

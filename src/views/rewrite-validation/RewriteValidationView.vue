@@ -61,6 +61,7 @@ const selectedEvidencePayload = ref(null)
 const evidenceDrawerVisible = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const followupActiveTab = ref('recommendations')
 
 const datasourceTypeOptions = ['AUTO', 'HETU', 'HIVE', 'SPARK', 'CLICKHOUSE', 'GAUSSDB']
 const sourceKindOptions = ['MANUAL', 'COMBINED_PARSE', 'STRUCTURE_PARSE', 'PARSE_BATCH', 'REPORT_BATCH', 'QUERY_HISTORY', 'SLOW_SQL']
@@ -375,6 +376,7 @@ async function runRewriteValidation() {
   successMessage.value = ''
   createdRewriteRecord.value = null
   validationRuns.value = []
+  followupActiveTab.value = 'recommendations'
   try {
     const initialTask = await submitOptimizationTask(buildTaskPayload(), {
       requestPrefix: 'frontend-rewrite-validation-task-submit'
@@ -410,6 +412,7 @@ async function createRewriteRecordFromResult() {
       requestPrefix: 'frontend-rewrite-validation-record-create'
     })
     form.validationRewriteRecordId = createdRewriteRecord.value?.rewriteRecordId || ''
+    followupActiveTab.value = 'validationRuns'
     successMessage.value = t('rewriteValidation.messages.recordCreated')
     await loadValidationRuns()
   } catch (error) {
@@ -509,6 +512,7 @@ function resetWorkspace() {
   validationRuns.value = []
   errorMessage.value = ''
   successMessage.value = ''
+  followupActiveTab.value = 'recommendations'
 }
 
 watch(
@@ -764,83 +768,90 @@ onMounted(loadGovernanceDatasources)
               </article>
             </div>
           </section>
+
+          <section class="result-section rewrite-followup-section">
+            <el-tabs v-model="followupActiveTab" class="rewrite-followup-tabs">
+              <el-tab-pane :label="t('rewriteValidation.sections.recommendationTitle')" name="recommendations">
+                <section class="followup-pane" data-testid="rewrite-validation-recommendation-links">
+                  <div class="section-heading section-heading-tight">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">{{ t('rewriteValidation.sections.recommendationKicker') }}</p>
+                      <h3 class="detail-title">{{ t('rewriteValidation.sections.recommendationTitle') }}</h3>
+                    </div>
+                    <el-button :loading="loading.recommendations" @click="refreshRelatedRecommendations">
+                      {{ t('rewriteValidation.actions.refreshRecommendations') }}
+                    </el-button>
+                  </div>
+                  <div class="summary-grid">
+                    <article v-for="item in evidenceCards" :key="item.label" class="summary-card summary-card-compact">
+                      <span class="summary-card-label">{{ item.label }}</span>
+                      <strong>{{ item.value }}</strong>
+                    </article>
+                  </div>
+                  <el-table :data="relatedRecommendations" border class="data-table" data-testid="rewrite-validation-recommendation-table">
+                    <el-table-column prop="recommendationId" :label="t('rewriteValidation.fields.recommendationId')" min-width="220" />
+                    <el-table-column prop="validationStatus" :label="t('rewriteValidation.fields.validationStatus')" min-width="150" />
+                    <el-table-column prop="riskLevel" :label="t('rewriteValidation.fields.riskLevel')" min-width="120" />
+                    <el-table-column prop="benefitLevel" :label="t('rewriteValidation.fields.benefitLevel')" min-width="120" />
+                    <el-table-column :label="t('rewriteValidation.fields.actions')" min-width="130">
+                      <template #default="{ row }">
+                        <el-button text @click="openRecommendationCenter(row)">
+                          {{ t('rewriteValidation.actions.openDetail') }}
+                        </el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                  <p v-if="!relatedRecommendations.length" class="empty-state">{{ t('rewriteValidation.messages.noRecommendation') }}</p>
+                </section>
+              </el-tab-pane>
+              <el-tab-pane :label="t('rewriteValidation.sections.validationTitle')" name="validationRuns">
+                <section class="followup-pane" data-testid="rewrite-validation-run-panel">
+                  <div class="section-heading">
+                    <div>
+                      <p class="section-kicker sqlforge-code-label">{{ t('rewriteValidation.sections.validationKicker') }}</p>
+                      <h3 class="detail-title">{{ t('rewriteValidation.sections.validationTitle') }}</h3>
+                      <p class="section-summary">{{ t('rewriteValidation.sections.validationSummary') }}</p>
+                    </div>
+                  </div>
+                  <div class="form-grid form-grid-single">
+                    <label class="field-block">
+                      <span class="field-label">{{ t('rewriteValidation.fields.rewriteRecordId') }}</span>
+                      <el-input v-model.trim="form.validationRewriteRecordId" data-testid="rewrite-validation-record-id" />
+                    </label>
+                    <label class="field-block">
+                      <span class="field-label">{{ t('rewriteValidation.fields.validationReason') }}</span>
+                      <el-input v-model.trim="form.validationReason" data-testid="rewrite-validation-reason" />
+                    </label>
+                  </div>
+                  <div class="action-row">
+                    <el-button
+                      :disabled="!canCreateValidationRun"
+                      :loading="loading.createValidationRun"
+                      data-testid="rewrite-validation-create-run"
+                      @click="createValidationRunForRecord"
+                    >
+                      {{ t('rewriteValidation.actions.createValidationRun') }}
+                    </el-button>
+                    <el-button :disabled="!canCreateValidationRun" :loading="loading.validationRuns" @click="loadValidationRuns">
+                      {{ t('rewriteValidation.actions.refreshValidationRuns') }}
+                    </el-button>
+                    <el-button :disabled="!canCreateValidationRun" data-testid="rewrite-validation-open-record" @click="openRewriteRecordCenter">
+                      {{ t('rewriteValidation.actions.openRewriteRecord') }}
+                    </el-button>
+                  </div>
+                  <el-table :data="validationRunRows" border class="data-table" data-testid="rewrite-validation-run-table">
+                    <el-table-column prop="validationRunId" :label="t('rewriteValidation.fields.validationRunId')" min-width="220" />
+                    <el-table-column prop="status" :label="t('rewriteValidation.fields.validationRunStatus')" min-width="130" />
+                    <el-table-column prop="comparisonStatus" :label="t('rewriteValidation.fields.comparisonStatus')" min-width="150" />
+                    <el-table-column prop="differenceType" :label="t('rewriteValidation.fields.differenceType')" min-width="160" />
+                    <el-table-column prop="autoApplyPaused" :label="t('rewriteValidation.fields.autoApplyPaused')" min-width="150" />
+                  </el-table>
+                  <p v-if="!validationRunRows.length" class="empty-state">{{ t('rewriteValidation.messages.noValidationRun') }}</p>
+                </section>
+              </el-tab-pane>
+            </el-tabs>
+          </section>
         </template>
-      </article>
-    </div>
-
-    <div class="rewrite-layout rewrite-layout-secondary">
-      <article class="workspace-panel" data-testid="rewrite-validation-recommendation-links">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('rewriteValidation.sections.recommendationKicker') }}</p>
-            <h2 class="section-title">{{ t('rewriteValidation.sections.recommendationTitle') }}</h2>
-            <p class="section-summary">{{ t('rewriteValidation.sections.recommendationSummary') }}</p>
-          </div>
-        </div>
-        <div class="summary-grid">
-          <article v-for="item in evidenceCards" :key="item.label" class="summary-card summary-card-compact">
-            <span class="summary-card-label">{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </article>
-        </div>
-        <el-table :data="relatedRecommendations" border class="data-table" data-testid="rewrite-validation-recommendation-table">
-          <el-table-column prop="recommendationId" :label="t('rewriteValidation.fields.recommendationId')" min-width="220" />
-          <el-table-column prop="validationStatus" :label="t('rewriteValidation.fields.validationStatus')" min-width="150" />
-          <el-table-column prop="riskLevel" :label="t('rewriteValidation.fields.riskLevel')" min-width="120" />
-          <el-table-column prop="benefitLevel" :label="t('rewriteValidation.fields.benefitLevel')" min-width="120" />
-          <el-table-column :label="t('rewriteValidation.fields.actions')" min-width="130">
-            <template #default="{ row }">
-              <el-button text @click="openRecommendationCenter(row)">
-                {{ t('rewriteValidation.actions.openDetail') }}
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <p v-if="!relatedRecommendations.length" class="empty-state">{{ t('rewriteValidation.messages.noRecommendation') }}</p>
-      </article>
-
-      <article class="workspace-panel" data-testid="rewrite-validation-run-panel">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('rewriteValidation.sections.validationKicker') }}</p>
-            <h2 class="section-title">{{ t('rewriteValidation.sections.validationTitle') }}</h2>
-            <p class="section-summary">{{ t('rewriteValidation.sections.validationSummary') }}</p>
-          </div>
-        </div>
-        <div class="form-grid form-grid-single">
-          <label class="field-block">
-            <span class="field-label">{{ t('rewriteValidation.fields.rewriteRecordId') }}</span>
-            <el-input v-model.trim="form.validationRewriteRecordId" data-testid="rewrite-validation-record-id" />
-          </label>
-          <label class="field-block">
-            <span class="field-label">{{ t('rewriteValidation.fields.validationReason') }}</span>
-            <el-input v-model.trim="form.validationReason" data-testid="rewrite-validation-reason" />
-          </label>
-        </div>
-        <div class="action-row">
-          <el-button
-            :disabled="!canCreateValidationRun"
-            :loading="loading.createValidationRun"
-            data-testid="rewrite-validation-create-run"
-            @click="createValidationRunForRecord"
-          >
-            {{ t('rewriteValidation.actions.createValidationRun') }}
-          </el-button>
-          <el-button :disabled="!canCreateValidationRun" :loading="loading.validationRuns" @click="loadValidationRuns">
-            {{ t('rewriteValidation.actions.refreshValidationRuns') }}
-          </el-button>
-          <el-button :disabled="!canCreateValidationRun" data-testid="rewrite-validation-open-record" @click="openRewriteRecordCenter">
-            {{ t('rewriteValidation.actions.openRewriteRecord') }}
-          </el-button>
-        </div>
-        <el-table :data="validationRunRows" border class="data-table" data-testid="rewrite-validation-run-table">
-          <el-table-column prop="validationRunId" :label="t('rewriteValidation.fields.validationRunId')" min-width="220" />
-          <el-table-column prop="status" :label="t('rewriteValidation.fields.validationRunStatus')" min-width="130" />
-          <el-table-column prop="comparisonStatus" :label="t('rewriteValidation.fields.comparisonStatus')" min-width="150" />
-          <el-table-column prop="differenceType" :label="t('rewriteValidation.fields.differenceType')" min-width="160" />
-          <el-table-column prop="autoApplyPaused" :label="t('rewriteValidation.fields.autoApplyPaused')" min-width="150" />
-        </el-table>
-        <p v-if="!validationRunRows.length" class="empty-state">{{ t('rewriteValidation.messages.noValidationRun') }}</p>
       </article>
     </div>
 
@@ -914,10 +925,6 @@ onMounted(loadGovernanceDatasources)
   grid-template-columns: minmax(340px, 0.78fr) minmax(0, 1.22fr);
   gap: var(--sqlforge-space-4);
   align-items: start;
-}
-
-.rewrite-layout-secondary {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.74fr);
 }
 
 .workspace-panel {
@@ -1032,6 +1039,22 @@ onMounted(loadGovernanceDatasources)
   border-top: 1px solid var(--sqlforge-border-subtle);
 }
 
+.rewrite-followup-section {
+  padding-top: var(--sqlforge-space-4);
+}
+
+.rewrite-followup-tabs :deep(.el-tabs__header) {
+  margin: 0 0 var(--sqlforge-space-3);
+}
+
+.rewrite-followup-tabs :deep(.el-tab-pane),
+.followup-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
 .evidence-item {
   border-left: 2px solid var(--sqlforge-border-strong);
   background: transparent;
@@ -1092,7 +1115,6 @@ onMounted(loadGovernanceDatasources)
 @media (max-width: 900px) {
   .rewrite-hero,
   .rewrite-layout,
-  .rewrite-layout-secondary,
   .form-grid,
   .evidence-grid {
     grid-template-columns: 1fr;

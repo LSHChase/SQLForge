@@ -12,10 +12,8 @@ import {
   lookupGovernanceTraces
 } from '../../services/runtimeGateApi'
 import { engineOptions } from '../common/formComponentGovernance'
-import EvidencePanel from '../common/EvidencePanel.vue'
 import MetricCard from '../common/MetricCard.vue'
 import SectionHeader from '../common/SectionHeader.vue'
-import ToolbarShell from '../common/ToolbarShell.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import { useSqlHistoryList } from './useSqlHistoryList'
 
@@ -1292,175 +1290,177 @@ watch(
 
 <template>
   <section class="sql-history-page" data-testid="sql-history-page">
-    <header class="sql-history-header surface-card" :class="{ 'rewrite-context-header': isRewriteHistoryEntry }">
-      <SectionHeader
-        :eyebrow="pageKicker"
-        :title="pageTitle"
-        :summary="pageSummary"
-        size="compact"
-      >
-        <template #actions>
-          <div class="action-row">
-            <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
-              {{ t('sqlHistory.actions.refresh') }}
-            </el-button>
-            <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
-              {{ t('sqlHistory.actions.lookup') }}
-            </el-button>
-            <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
-          </div>
-        </template>
-      </SectionHeader>
-      <div v-if="!isRewriteHistoryEntry" class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
-        <MetricCard
-          v-for="item in summaryMetrics"
-          :key="item.key"
-          v-bind="metricCardProps(item)"
-        />
-      </div>
-    </header>
-
-    <div v-if="visibleErrorMessage" class="inline-banner inline-banner-danger" data-testid="sql-history-error">
-      <strong>{{ t('sqlHistory.states.errorTitle') }}</strong>
-      <span>{{ visibleErrorMessage }}</span>
-    </div>
-
-    <ToolbarShell
-      class="filter-panel"
-      :eyebrow="t('sqlHistory.filters.eyebrow')"
-      :title="t('sqlHistory.filters.title')"
-      :summary="t('sqlHistory.filters.summary')"
-    >
-      <el-form class="filter-form" :model="searchForm" label-position="top" @submit.prevent="search">
-        <div class="field-grid">
-          <el-form-item
-            v-for="field in searchFields"
-            :key="field.key"
-            class="field-block"
-            :class="filterFieldClass(field)"
-            :style="filterFieldStyle(field)"
-          >
-            <template #label>{{ field.label }}</template>
-            <el-select
-              v-if="field.type === 'select'"
-              v-model="searchForm[field.key]"
-              :data-testid="field.testId"
-              v-bind="selectFieldProps(field)"
-            >
-              <el-option
-                v-for="option in field.options"
-                :key="`${field.key}-${option.value}`"
-                v-bind="option"
-              />
-            </el-select>
-            <el-date-picker
-              v-else-if="field.type === 'date'"
-              v-model="searchForm[field.key]"
-              :data-testid="field.testId"
-              v-bind="dateFieldProps(field)"
-            />
-            <el-input
-              v-else
-              v-model="searchForm[field.key]"
-              :data-testid="field.testId"
-              v-bind="inputFieldProps(field)"
-              @keyup.enter="search"
-            />
-          </el-form-item>
-        </div>
-      </el-form>
-      <div v-if="datasourceOptionsLoadFailed" class="filter-hint" data-testid="sql-history-datasource-options-fallback">
-        {{ t('sqlHistory.states.datasourceOptionsFallback') }}
-      </div>
-    </ToolbarShell>
-
-    <!-- data-testid="sql-history-query-history-table" -->
-    <EvidencePanel
-      class="table-panel"
-      test-id="sql-history-query-history-table"
-      :eyebrow="t('sqlHistory.table.kicker')"
-      :title="t('sqlHistory.table.title')"
-    >
-      <el-table
-        v-loading="loadingList"
-        :data="tableRows"
-        :element-loading-text="t('sqlHistory.states.loading')"
-        border
-      >
-        <el-table-column
-          v-for="column in historyTableColumns"
-          :key="column.key"
-          v-bind="tableColumnProps(column)"
+    <section class="history-workbench" :class="{ 'rewrite-context-header': isRewriteHistoryEntry }">
+      <header class="sql-history-header">
+        <SectionHeader
+          :eyebrow="pageKicker"
+          :title="pageTitle"
+          :summary="pageSummary"
+          size="compact"
         >
-          <template #default="{ row }">
-            <template v-if="column.slot === 'historyId'">
-              <button
-                type="button"
-                class="table-link"
-                data-testid="sql-history-trace-item"
-                @click="openHistoryDetail(row.historyId)"
-              >
-                {{ displayValue(row.historyId) }}
-              </button>
-              <div class="cell-subline">{{ displayValue(row.traceId) }}</div>
-            </template>
-            <template v-else-if="column.slot === 'reportKey'">
-              {{ displayValue(row.reportCode || row.sqlFingerprint) }}
-            </template>
-            <template v-else-if="column.slot === 'requestTenant'">
-              {{ displayValue(row.tenantId || requestTenantId) }}
-            </template>
-            <template v-else-if="column.slot === 'status'">
-              <span :class="statusClass(row.resultStatus)">{{ displayValue(row.resultStatus) }}</span>
-            </template>
-            <template v-else-if="column.slot === 'queryDate'">
-              {{ displayValue(row.queryDateStart) }} / {{ displayValue(row.queryDateEnd) }}
-              <div class="cell-subline">{{ displayValue(row.queryDateStatus) }}</div>
-            </template>
-            <template v-else-if="column.slot === 'sqlState'">
-              {{ booleanShort(row.parameterizedSqlFlag) }}
-              <div class="cell-subline">{{ displayValue(row.bindingMode) }}</div>
-            </template>
-            <template v-else-if="column.slot === 'governanceHits'">
-              {{ governanceHitText(row) }}
-            </template>
-            <template v-else-if="column.slot === 'submittedAt'">
-              {{ formatTimestamp(row.submittedAt) }}
-            </template>
-            <template v-else-if="column.slot === 'auditEventCount'">
-              {{ row.auditEventCount ?? '-' }}
-            </template>
-            <template v-else>
-              {{ displayValue(row[column.prop]) }}
-            </template>
+          <template #actions>
+            <div class="action-row">
+              <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
+                {{ t('sqlHistory.actions.refresh') }}
+              </el-button>
+              <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
+                {{ t('sqlHistory.actions.lookup') }}
+              </el-button>
+              <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
+            </div>
           </template>
-        </el-table-column>
-        <template #empty>
-          <el-empty :description="emptyDescription" />
-        </template>
-      </el-table>
-
-      <div class="table-footer">
-        <div class="footer-status">
-          {{ paginationStateText }}
-        </div>
-        <div class="pagination-cluster">
-          <el-pagination
-            v-model:page-size="pageInfo.pageSize"
-            v-model:current-page="pageInfo.currentPage"
-            class="pagination-row"
-            data-testid="sql-history-pagination"
-            background
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="pageInfo.total"
-            :page-sizes="LIST_PAGE_SIZE_OPTIONS"
-            :disabled="loadingList"
-            @current-change="handlePageChange"
-            @size-change="handlePageSizeChange"
+        </SectionHeader>
+        <div v-if="!isRewriteHistoryEntry" class="summary-strip" :aria-label="t('sqlHistory.metrics.label')">
+          <MetricCard
+            v-for="item in summaryMetrics"
+            :key="item.key"
+            v-bind="metricCardProps(item)"
           />
         </div>
+      </header>
+
+      <div v-if="visibleErrorMessage" class="inline-banner inline-banner-danger" data-testid="sql-history-error">
+        <strong>{{ t('sqlHistory.states.errorTitle') }}</strong>
+        <span>{{ visibleErrorMessage }}</span>
       </div>
-    </EvidencePanel>
+
+      <section class="filter-panel">
+        <SectionHeader
+          :eyebrow="t('sqlHistory.filters.eyebrow')"
+          :title="t('sqlHistory.filters.title')"
+          :summary="t('sqlHistory.filters.summary')"
+          size="compact"
+        />
+        <el-form class="filter-form" :model="searchForm" label-position="top" @submit.prevent="search">
+          <div class="field-grid">
+            <el-form-item
+              v-for="field in searchFields"
+              :key="field.key"
+              class="field-block"
+              :class="filterFieldClass(field)"
+              :style="filterFieldStyle(field)"
+            >
+              <template #label>{{ field.label }}</template>
+              <el-select
+                v-if="field.type === 'select'"
+                v-model="searchForm[field.key]"
+                :data-testid="field.testId"
+                v-bind="selectFieldProps(field)"
+              >
+                <el-option
+                  v-for="option in field.options"
+                  :key="`${field.key}-${option.value}`"
+                  v-bind="option"
+                />
+              </el-select>
+              <el-date-picker
+                v-else-if="field.type === 'date'"
+                v-model="searchForm[field.key]"
+                :data-testid="field.testId"
+                v-bind="dateFieldProps(field)"
+              />
+              <el-input
+                v-else
+                v-model="searchForm[field.key]"
+                :data-testid="field.testId"
+                v-bind="inputFieldProps(field)"
+                @keyup.enter="search"
+              />
+            </el-form-item>
+          </div>
+        </el-form>
+        <div v-if="datasourceOptionsLoadFailed" class="filter-hint" data-testid="sql-history-datasource-options-fallback">
+          {{ t('sqlHistory.states.datasourceOptionsFallback') }}
+        </div>
+      </section>
+
+      <section class="table-panel" data-testid="sql-history-query-history-table">
+        <SectionHeader
+          :eyebrow="t('sqlHistory.table.kicker')"
+          :title="t('sqlHistory.table.title')"
+          size="compact"
+        />
+        <el-table
+          v-loading="loadingList"
+          :data="tableRows"
+          :element-loading-text="t('sqlHistory.states.loading')"
+          border
+        >
+          <el-table-column
+            v-for="column in historyTableColumns"
+            :key="column.key"
+            v-bind="tableColumnProps(column)"
+          >
+            <template #default="{ row }">
+              <template v-if="column.slot === 'historyId'">
+                <button
+                  type="button"
+                  class="table-link"
+                  data-testid="sql-history-trace-item"
+                  @click="openHistoryDetail(row.historyId)"
+                >
+                  {{ displayValue(row.historyId) }}
+                </button>
+                <div class="cell-subline">{{ displayValue(row.traceId) }}</div>
+              </template>
+              <template v-else-if="column.slot === 'reportKey'">
+                {{ displayValue(row.reportCode || row.sqlFingerprint) }}
+              </template>
+              <template v-else-if="column.slot === 'requestTenant'">
+                {{ displayValue(row.tenantId || requestTenantId) }}
+              </template>
+              <template v-else-if="column.slot === 'status'">
+                <span :class="statusClass(row.resultStatus)">{{ displayValue(row.resultStatus) }}</span>
+              </template>
+              <template v-else-if="column.slot === 'queryDate'">
+                {{ displayValue(row.queryDateStart) }} / {{ displayValue(row.queryDateEnd) }}
+                <div class="cell-subline">{{ displayValue(row.queryDateStatus) }}</div>
+              </template>
+              <template v-else-if="column.slot === 'sqlState'">
+                {{ booleanShort(row.parameterizedSqlFlag) }}
+                <div class="cell-subline">{{ displayValue(row.bindingMode) }}</div>
+              </template>
+              <template v-else-if="column.slot === 'governanceHits'">
+                {{ governanceHitText(row) }}
+              </template>
+              <template v-else-if="column.slot === 'submittedAt'">
+                {{ formatTimestamp(row.submittedAt) }}
+              </template>
+              <template v-else-if="column.slot === 'auditEventCount'">
+                {{ row.auditEventCount ?? '-' }}
+              </template>
+              <template v-else>
+                {{ displayValue(row[column.prop]) }}
+              </template>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty :description="emptyDescription" />
+          </template>
+        </el-table>
+
+        <div class="table-footer">
+          <div class="footer-status">
+            {{ paginationStateText }}
+          </div>
+          <div class="pagination-cluster">
+            <el-pagination
+              v-model:page-size="pageInfo.pageSize"
+              v-model:current-page="pageInfo.currentPage"
+              class="pagination-row"
+              data-testid="sql-history-pagination"
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="pageInfo.total"
+              :page-sizes="LIST_PAGE_SIZE_OPTIONS"
+              :disabled="loadingList"
+              @current-change="handlePageChange"
+              @size-change="handlePageSizeChange"
+            />
+          </div>
+        </div>
+      </section>
+    </section>
 
     <el-drawer
       v-model="detailDrawerVisible"
@@ -1847,6 +1847,9 @@ watch(
 
 <style scoped>
 .sql-history-page,
+.history-workbench,
+.filter-panel,
+.table-panel,
 .drawer-stack,
 .dialog-stack,
 .rewrite-records-panel,
@@ -1861,11 +1864,17 @@ watch(
   color: var(--sqlforge-text-primary);
 }
 
-.surface-card {
+.history-workbench {
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-sm);
   background: var(--sqlforge-surface-2);
   padding: var(--sqlforge-space-5);
+}
+
+.filter-panel,
+.table-panel {
+  padding-top: var(--sqlforge-space-4);
+  border-top: 1px solid var(--sqlforge-border-subtle);
 }
 
 .sql-history-header {

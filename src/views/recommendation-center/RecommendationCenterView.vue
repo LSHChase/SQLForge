@@ -28,7 +28,6 @@ import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlCompareBlock from '../common/SqlCompareBlock.vue'
 import { buildRecommendedSqlDisplay } from '../common/sqlCompare.mjs'
-import ToolbarShell from '../common/ToolbarShell.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -1193,168 +1192,171 @@ watch(
       size="compact"
     />
 
-    <ToolbarShell
-      :eyebrow="t('recommendationCenter.filters.eyebrow')"
-      :title="t('recommendationCenter.filters.title')"
-      density="compact"
-    >
-      <div class="filter-grid">
-        <label class="field-block">
-          <span class="field-label">{{ t('common.fields.tenant') }}</span>
-          <el-input v-model.trim="form.tenantId" data-testid="recommendation-tenant-input" @keyup.enter="refreshRecommendationFromFirstPage" />
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('recommendationCenter.fields.sourceCategory') }}</span>
-          <el-select
-            v-model="recommendationFilters.sourceCategory"
-            clearable
-            data-testid="recommendation-source-category-filter"
-            @change="handleSourceCategoryChange"
-          >
-            <el-option v-for="item in sourceCategoryOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </label>
-        <label class="field-block field-block-wide">
-          <span class="field-label">{{ t('recommendationCenter.fields.sourceObject') }}</span>
-          <el-select
-            v-model="recommendationFilters.sourceObjectId"
-            clearable
-            filterable
-            :disabled="!selectedSourceCategory"
-            :loading="loading.sourceOptions"
-            data-testid="recommendation-source-object-filter"
-            @visible-change="visible => visible && loadSourceObjectOptions()"
-          >
-            <el-option v-for="item in sourceObjectOptions" :key="item.value" :label="item.label" :value="item.value">
-              <span>{{ item.label }}</span>
-            </el-option>
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('inline.viewsRecommendationCenterRecommendationCenterView.text005') }}</span>
-          <el-select v-model="recommendationFilters.recommendationType" clearable data-testid="recommendation-type-filter">
-            <el-option v-for="item in recommendationTypeOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.status') }}</span>
-          <el-select v-model="recommendationFilters.status" clearable data-testid="recommendation-status-filter">
-            <el-option v-for="item in recommendationStatusOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('recommendationCenter.fields.benefitLevel') }}</span>
-          <el-select v-model="recommendationFilters.benefitLevel" clearable data-testid="recommendation-benefit-filter">
-            <el-option v-for="item in benefitLevelOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('recommendationCenter.fields.riskLevel') }}</span>
-          <el-select v-model="recommendationFilters.riskLevel" clearable data-testid="recommendation-risk-filter">
-            <el-option v-for="item in riskLevelOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block">
-          <span class="field-label">{{ t('recommendationCenter.fields.validationStatus') }}</span>
-          <el-select v-model="recommendationFilters.validationStatus" clearable data-testid="recommendation-validation-filter">
-            <el-option v-for="item in validationStatusOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="field-block field-block-compact">
-          <span class="field-label">{{ t('recommendationCenter.fields.dispatch') }}</span>
-          <el-select v-model="recommendationFilters.requiresDispatch" clearable data-testid="recommendation-dispatch-filter">
-            <el-option v-for="item in booleanFilterOptions" :key="`dispatch-${item.label}`" :label="item.label" :value="item.value" />
-          </el-select>
-        </label>
-        <label class="field-block field-block-compact">
-          <span class="field-label">{{ t('recommendationCenter.fields.manualReviewRequired') }}</span>
-          <el-select v-model="recommendationFilters.manualReviewRequired" clearable data-testid="recommendation-manual-review-filter">
-            <el-option v-for="item in booleanFilterOptions" :key="`review-${item.label}`" :label="item.label" :value="item.value" />
-          </el-select>
-        </label>
-        <el-button type="primary" :loading="loading.page" data-testid="recommendation-refresh" @click="refreshRecommendationFromFirstPage">
-          {{ t('recommendationCenter.actions.refresh') }}
-        </el-button>
-        <el-button data-testid="recommendation-reset-filters" @click="resetRecommendationFilters">
-          {{ t('common.actions.reset') }}
-        </el-button>
-        <el-button @click="openRoutingGovernance">
-          {{ t('recommendationCenter.actions.openRouting') }}
-        </el-button>
-        <el-button @click="openAccelerationWorkbench">
-          {{ t('recommendationCenter.actions.openParse') }}
-        </el-button>
+    <section class="recommendation-workbench" data-testid="recommendation-list">
+      <div class="recommendation-filter-block">
+        <SectionHeader
+          :eyebrow="t('recommendationCenter.filters.eyebrow')"
+          :title="t('recommendationCenter.filters.title')"
+          :summary="t('recommendationCenter.list.summary', { count: recommendationPager.totalCount })"
+          size="compact"
+        />
+        <div class="filter-grid">
+          <label class="field-block">
+            <span class="field-label">{{ t('common.fields.tenant') }}</span>
+            <el-input v-model.trim="form.tenantId" data-testid="recommendation-tenant-input" @keyup.enter="refreshRecommendationFromFirstPage" />
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ t('recommendationCenter.fields.sourceCategory') }}</span>
+            <el-select
+              v-model="recommendationFilters.sourceCategory"
+              clearable
+              data-testid="recommendation-source-category-filter"
+              @change="handleSourceCategoryChange"
+            >
+              <el-option v-for="item in sourceCategoryOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="field-block field-block-wide">
+            <span class="field-label">{{ t('recommendationCenter.fields.sourceObject') }}</span>
+            <el-select
+              v-model="recommendationFilters.sourceObjectId"
+              clearable
+              filterable
+              :disabled="!selectedSourceCategory"
+              :loading="loading.sourceOptions"
+              data-testid="recommendation-source-object-filter"
+              @visible-change="visible => visible && loadSourceObjectOptions()"
+            >
+              <el-option v-for="item in sourceObjectOptions" :key="item.value" :label="item.label" :value="item.value">
+                <span>{{ item.label }}</span>
+              </el-option>
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ t('inline.viewsRecommendationCenterRecommendationCenterView.text005') }}</span>
+            <el-select v-model="recommendationFilters.recommendationType" clearable data-testid="recommendation-type-filter">
+              <el-option v-for="item in recommendationTypeOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.status') }}</span>
+            <el-select v-model="recommendationFilters.status" clearable data-testid="recommendation-status-filter">
+              <el-option v-for="item in recommendationStatusOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ t('recommendationCenter.fields.benefitLevel') }}</span>
+            <el-select v-model="recommendationFilters.benefitLevel" clearable data-testid="recommendation-benefit-filter">
+              <el-option v-for="item in benefitLevelOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ t('recommendationCenter.fields.riskLevel') }}</span>
+            <el-select v-model="recommendationFilters.riskLevel" clearable data-testid="recommendation-risk-filter">
+              <el-option v-for="item in riskLevelOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="field-block">
+            <span class="field-label">{{ t('recommendationCenter.fields.validationStatus') }}</span>
+            <el-select v-model="recommendationFilters.validationStatus" clearable data-testid="recommendation-validation-filter">
+              <el-option v-for="item in validationStatusOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="field-block field-block-compact">
+            <span class="field-label">{{ t('recommendationCenter.fields.dispatch') }}</span>
+            <el-select v-model="recommendationFilters.requiresDispatch" clearable data-testid="recommendation-dispatch-filter">
+              <el-option v-for="item in booleanFilterOptions" :key="`dispatch-${item.label}`" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="field-block field-block-compact">
+            <span class="field-label">{{ t('recommendationCenter.fields.manualReviewRequired') }}</span>
+            <el-select v-model="recommendationFilters.manualReviewRequired" clearable data-testid="recommendation-manual-review-filter">
+              <el-option v-for="item in booleanFilterOptions" :key="`review-${item.label}`" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <el-button type="primary" :loading="loading.page" data-testid="recommendation-refresh" @click="refreshRecommendationFromFirstPage">
+            {{ t('recommendationCenter.actions.refresh') }}
+          </el-button>
+          <el-button data-testid="recommendation-reset-filters" @click="resetRecommendationFilters">
+            {{ t('common.actions.reset') }}
+          </el-button>
+          <el-button @click="openRoutingGovernance">
+            {{ t('recommendationCenter.actions.openRouting') }}
+          </el-button>
+          <el-button @click="openAccelerationWorkbench">
+            {{ t('recommendationCenter.actions.openParse') }}
+          </el-button>
+        </div>
       </div>
-    </ToolbarShell>
 
-    <p v-if="errorMessage" class="error-banner" data-testid="recommendation-error">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="error-banner" data-testid="recommendation-error">{{ errorMessage }}</p>
 
-    <section class="recommendation-list-panel" data-testid="recommendation-list">
-      <SectionHeader
-        :eyebrow="t('recommendationCenter.list.eyebrow')"
-        :title="t('recommendationCenter.list.title')"
-        :summary="t('recommendationCenter.list.summary', { count: recommendationPager.totalCount })"
-        size="compact"
-      />
+      <div class="recommendation-list-panel">
+        <SectionHeader
+          :eyebrow="t('recommendationCenter.list.eyebrow')"
+          :title="t('recommendationCenter.list.title')"
+          size="compact"
+        />
 
-      <el-table
-        v-loading="loading.page"
-        :data="recommendations"
-        row-key="recommendationId"
-        highlight-current-row
-        data-testid="recommendation-item"
-        @row-click="openRecommendationDetail"
-        @sort-change="handleRecommendationSortChange"
-      >
-        <el-table-column prop="recommendationType" :label="t('inline.viewsRecommendationCenterRecommendationCenterView.text005')" min-width="140" sortable="custom" />
-        <el-table-column prop="summary" :label="t('recommendationCenter.detail.title')" min-width="260">
-          <template #default="{ row }">
-            <strong class="table-main-text">{{ row.summary || row.recommendationId }}</strong>
-            <span class="table-muted-text">{{ row.expectedGain || row.reason || '-' }}</span>
-            <span class="table-muted-text">
-              {{ t('recommendationCenter.fields.sourceKind') }}:
-              {{ displayValue(firstDisplayValue(row.sourceKind, row.sourceType)) }}
-              · {{ t('recommendationCenter.fields.sourceId') }}:
-              {{ displayValue(firstDisplayValue(row.sourceId, row.reportCode, row.historyId, row.logicalObjectKey)) }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130" sortable="custom">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'FAILED' ? 'danger' : 'info'">{{ row.status || 'UNKNOWN' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="benefitLevel" :label="t('recommendationCenter.fields.benefitLevel')" min-width="120" sortable="custom" />
-        <el-table-column prop="riskLevel" :label="t('recommendationCenter.fields.riskLevel')" min-width="120" sortable="custom">
-          <template #default="{ row }">
-            <el-tag :type="['HIGH', 'CRITICAL'].includes(String(row.riskLevel || '').toUpperCase()) ? 'warning' : 'info'">
-              {{ row.riskLevel || 'UNKNOWN' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="validationStatus" :label="t('recommendationCenter.fields.validationStatus')" min-width="150" sortable="custom" />
-        <el-table-column prop="requiresDispatch" :label="t('recommendationCenter.fields.dispatch')" min-width="120" sortable="custom">
-          <template #default="{ row }">{{ boolText(row.requiresDispatch) || 'false' }}</template>
-        </el-table-column>
-        <el-table-column prop="manualReviewRequired" :label="t('recommendationCenter.fields.manualReviewRequired')" min-width="170" sortable="custom">
-          <template #default="{ row }">{{ boolText(row.manualReviewRequired) || 'false' }}</template>
-        </el-table-column>
-        <el-table-column prop="createdAt" :label="t('recommendationCenter.fields.createdAt')" min-width="170" sortable="custom" />
-        <el-table-column prop="recommendationId" :label="t('accelerationGovernanceWorkbench.fields.recommendationId')" min-width="190" sortable="custom" />
-      </el-table>
+        <el-table
+          v-loading="loading.page"
+          :data="recommendations"
+          row-key="recommendationId"
+          highlight-current-row
+          data-testid="recommendation-item"
+          @row-click="openRecommendationDetail"
+          @sort-change="handleRecommendationSortChange"
+        >
+          <el-table-column prop="recommendationType" :label="t('inline.viewsRecommendationCenterRecommendationCenterView.text005')" min-width="140" sortable="custom" />
+          <el-table-column prop="summary" :label="t('recommendationCenter.detail.title')" min-width="260">
+            <template #default="{ row }">
+              <strong class="table-main-text">{{ row.summary || row.recommendationId }}</strong>
+              <span class="table-muted-text">{{ row.expectedGain || row.reason || '-' }}</span>
+              <span class="table-muted-text">
+                {{ t('recommendationCenter.fields.sourceKind') }}:
+                {{ displayValue(firstDisplayValue(row.sourceKind, row.sourceType)) }}
+                · {{ t('recommendationCenter.fields.sourceId') }}:
+                {{ displayValue(firstDisplayValue(row.sourceId, row.reportCode, row.historyId, row.logicalObjectKey)) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130" sortable="custom">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'FAILED' ? 'danger' : 'info'">{{ row.status || 'UNKNOWN' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="benefitLevel" :label="t('recommendationCenter.fields.benefitLevel')" min-width="120" sortable="custom" />
+          <el-table-column prop="riskLevel" :label="t('recommendationCenter.fields.riskLevel')" min-width="120" sortable="custom">
+            <template #default="{ row }">
+              <el-tag :type="['HIGH', 'CRITICAL'].includes(String(row.riskLevel || '').toUpperCase()) ? 'warning' : 'info'">
+                {{ row.riskLevel || 'UNKNOWN' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="validationStatus" :label="t('recommendationCenter.fields.validationStatus')" min-width="150" sortable="custom" />
+          <el-table-column prop="requiresDispatch" :label="t('recommendationCenter.fields.dispatch')" min-width="120" sortable="custom">
+            <template #default="{ row }">{{ boolText(row.requiresDispatch) || 'false' }}</template>
+          </el-table-column>
+          <el-table-column prop="manualReviewRequired" :label="t('recommendationCenter.fields.manualReviewRequired')" min-width="170" sortable="custom">
+            <template #default="{ row }">{{ boolText(row.manualReviewRequired) || 'false' }}</template>
+          </el-table-column>
+          <el-table-column prop="createdAt" :label="t('recommendationCenter.fields.createdAt')" min-width="170" sortable="custom" />
+          <el-table-column prop="recommendationId" :label="t('accelerationGovernanceWorkbench.fields.recommendationId')" min-width="190" sortable="custom" />
+        </el-table>
 
-      <el-pagination
-        v-if="recommendationPager.totalCount > recommendationPager.size"
-        v-model:current-page="recommendationPager.page"
-        background
-        data-testid="recommendation-pagination"
-        layout="total, sizes, prev, pager, next"
-        :page-sizes="[8, 16, 32, 64]"
-        :page-size="recommendationPager.size"
-        :total="recommendationPager.totalCount"
-        @current-change="handleRecommendationPageChange"
-        @size-change="handleRecommendationSizeChange"
-      />
+        <el-pagination
+          v-if="recommendationPager.totalCount > recommendationPager.size"
+          v-model:current-page="recommendationPager.page"
+          background
+          data-testid="recommendation-pagination"
+          layout="total, sizes, prev, pager, next"
+          :page-sizes="[8, 16, 32, 64]"
+          :page-size="recommendationPager.size"
+          :total="recommendationPager.totalCount"
+          @current-change="handleRecommendationPageChange"
+          @size-change="handleRecommendationSizeChange"
+        />
+      </div>
     </section>
 
     <el-drawer
@@ -1899,19 +1901,28 @@ watch(
   gap: var(--sqlforge-space-5);
 }
 
+.recommendation-workbench,
 .recommendation-list-panel,
 .detail-drawer-body {
   display: flex;
   flex-direction: column;
   gap: var(--sqlforge-space-4);
   min-width: 0;
-  padding: var(--sqlforge-space-5);
 }
 
-.recommendation-list-panel {
+.recommendation-workbench {
+  padding: var(--sqlforge-space-5);
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-sm);
   background: var(--sqlforge-surface-2);
+}
+
+.recommendation-filter-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sqlforge-space-3);
+  padding-bottom: var(--sqlforge-space-4);
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
 }
 
 .detail-drawer-body {
