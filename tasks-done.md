@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-READINESS-MANIFEST-PROOF-AUDIT-20260518: 强化生产就绪 manifest 证据审计
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-READINESS-MANIFEST-PROOF-AUDIT-20260518 require manifest proof refs`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518
+- Scope: 强化 audit-rewrite-production-readiness.py 对外部 verification-result.json 的校验，要求 manifest 级 VERIFIED 状态、PRODUCTION_EVIDENCE_DIRECTORY 来源、所有生产证据 proofRef 与 workloadReplayWindow，避免缺少证据引用的手写 JSON 通过完成度审计。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-READINESS-MANIFEST-PROOF-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 生产就绪审计现在要求 external verification manifest 包含 PRODUCTION_EVIDENCE_DIRECTORY 来源、manifest 级 VERIFIED 状态、所有生产证据 proofRef 与 workloadReplayWindow；self-test 覆盖缺失 proofRef 时必须 BLOCKED。
+  - Validation evidence: python3 scripts/audit-rewrite-production-readiness.py --self-test；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；node scripts/check-developer-copy-language.mjs --changed；git diff --check；node scripts/lint-repository-knowledge.js；python3 scripts/foreman.py validate USER-CN-REWRITE-READINESS-MANIFEST-PROOF-AUDIT-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，并提供包含完整 proofRef 的 verification-result.json。
+
 ### USER-CN-BENCHMARK-EVIDENCE-DAILY-VOLUME-CLI-20260518: 显式化日查询量证据阈值 CLI
 
 - Status: done

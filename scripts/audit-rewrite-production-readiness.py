@@ -212,8 +212,23 @@ def check_external_verification_result(verification_result: Path | None) -> dict
     if not isinstance(manifest, dict):
         missing.append("scaleTargetEvidenceManifest")
         manifest = {}
-    if not manifest.get("dailyQueryVolumeProofRef"):
-        missing.append("dailyQueryVolumeProofRef")
+    if manifest.get("evidenceSource") != "PRODUCTION_EVIDENCE_DIRECTORY":
+        missing.append("evidenceSource=PRODUCTION_EVIDENCE_DIRECTORY")
+    if manifest.get("externalVerificationStatus") != "VERIFIED":
+        missing.append("scaleTargetEvidenceManifest.externalVerificationStatus=VERIFIED")
+    required_manifest_refs = [
+        "concurrencyProofRef",
+        "dailyQueryVolumeProofRef",
+        "dataLayoutProofRef",
+        "workloadReplayProofRef",
+        "workloadReplayWindow",
+        "p95P99MetricProofRef",
+        "scanCpuQueueMetricProofRef",
+        "costBillProofRef",
+    ]
+    for proof_ref in required_manifest_refs:
+        if not manifest.get(proof_ref):
+            missing.append(proof_ref)
     bundle = manifest.get("verificationBundle")
     if not isinstance(bundle, dict):
         missing.append("verificationBundle")
@@ -307,7 +322,16 @@ def successful_verification_payload() -> dict[str, Any]:
         "missingEvidence": [],
         "parseErrors": [],
         "scaleTargetEvidenceManifest": {
+            "evidenceSource": "PRODUCTION_EVIDENCE_DIRECTORY",
+            "concurrencyProofRef": "concurrency.log",
             "dailyQueryVolumeProofRef": "daily-query-volume.log",
+            "dataLayoutProofRef": "data-layout.json",
+            "workloadReplayProofRef": "replay.log",
+            "workloadReplayWindow": "2026-05-17T00:00Z/2026-05-18T00:00Z",
+            "p95P99MetricProofRef": "metrics.csv",
+            "scanCpuQueueMetricProofRef": "metrics.csv",
+            "costBillProofRef": "cost-bill.csv",
+            "externalVerificationStatus": "VERIFIED",
             "verificationBundle": {
                 "observedConcurrency": MIN_PRODUCTION_CONCURRENCY,
                 "observedDailyQueryVolume": MIN_PRODUCTION_DAILY_QUERY_VOLUME,
@@ -340,6 +364,12 @@ def run_self_test() -> int:
         failed_path.write_text(json.dumps(failed_payload), encoding="utf-8")
         failed = audit(REPO_ROOT, failed_path)
         assert failed["overallStatus"] == "BLOCKED", failed
+        failed_ref_payload = successful_verification_payload()
+        failed_ref_payload["scaleTargetEvidenceManifest"].pop("costBillProofRef")
+        failed_ref_path = Path(temp) / "verification-result-missing-proof-ref.json"
+        failed_ref_path.write_text(json.dumps(failed_ref_payload), encoding="utf-8")
+        failed_ref = audit(REPO_ROOT, failed_ref_path)
+        assert failed_ref["overallStatus"] == "BLOCKED", failed_ref
     print("改写生产就绪审计自检通过")
     return 0
 
