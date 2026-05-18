@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-READINESS-DIGEST-CONSISTENCY-AUDIT-20260518: 校验证据摘要双层一致性
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-READINESS-DIGEST-CONSISTENCY-AUDIT-20260518 require digest consistency`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518
+- Scope: 强化 audit-rewrite-production-readiness.py 对 verification-result.json 的证据摘要校验，要求顶层 evidenceFileDigests 与 scaleTargetEvidenceManifest.evidenceFileDigests 对每个必需文件的 sha256 和 sizeBytes 完全一致，并在 runbook 中说明不一致时不得声明 READY。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-READINESS-DIGEST-CONSISTENCY-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 强化改写生产就绪审计，要求 verification-result.json 顶层 evidenceFileDigests 与 scaleTargetEvidenceManifest.evidenceFileDigests 对每个必需文件的 sha256 和 sizeBytes 完全一致；self-test 覆盖摘要不一致时必须 BLOCKED；runbook 同步说明不一致不得声明 READY。
+  - Validation evidence: python3 scripts/audit-rewrite-production-readiness.py --self-test；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；git diff --check；node scripts/check-developer-copy-language.mjs --changed；node scripts/lint-repository-knowledge.js；python3 scripts/foreman.py validate USER-CN-REWRITE-READINESS-DIGEST-CONSISTENCY-AUDIT-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，并运行 verifier/audit 生成顶层与 manifest 摘要一致的 verification-result.json。
+
 ### USER-CN-BENCHMARK-EVIDENCE-DIGEST-HANDOFF-LEDGER-20260518: 同步生产证据摘要交接台账
 
 - Status: done

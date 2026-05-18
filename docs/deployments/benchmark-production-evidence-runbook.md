@@ -49,7 +49,7 @@ python3 scripts/audit-rewrite-production-readiness.py \
   --output /path/to/production-evidence/rewrite-readiness-audit.json
 ```
 
-该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json` 或缺少千万级日查询等任一外部证据时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
+该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json`、缺少千万级日查询等任一外部证据，或顶层与 manifest 内的 `evidenceFileDigests` 不一致时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
 
 归档 `verification-result.json` 时必须同时保存原始 evidence directory。评审者可用 `evidenceFileDigests` 对照原始文件重新计算 SHA-256；若缺少任一必需文件摘要，完成度审计必须保持 `BLOCKED`。
 

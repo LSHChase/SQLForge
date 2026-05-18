@@ -214,6 +214,24 @@ def require_evidence_file_digests(payload: dict[str, Any], missing: list[str], f
             )
 
 
+def require_matching_evidence_file_digests(payload: dict[str, Any],
+                                           manifest: dict[str, Any],
+                                           missing: list[str]) -> None:
+    top_level_digests = payload.get("evidenceFileDigests")
+    manifest_digests = manifest.get("evidenceFileDigests")
+    if not isinstance(top_level_digests, dict) or not isinstance(manifest_digests, dict):
+        return
+    for file_name in REQUIRED_EVIDENCE_FILES:
+        top_entry = top_level_digests.get(file_name)
+        manifest_entry = manifest_digests.get(file_name)
+        if not isinstance(top_entry, dict) or not isinstance(manifest_entry, dict):
+            continue
+        if top_entry.get("sha256") != manifest_entry.get("sha256"):
+            missing.append("evidenceFileDigests." + file_name + ".sha256!=scaleTargetEvidenceManifest")
+        if str(top_entry.get("sizeBytes")) != str(manifest_entry.get("sizeBytes")):
+            missing.append("evidenceFileDigests." + file_name + ".sizeBytes!=scaleTargetEvidenceManifest")
+
+
 def check_external_verification_result(verification_result: Path | None) -> dict[str, Any]:
     requirement = "external_production_scale_evidence_verified"
     if verification_result is None:
@@ -263,6 +281,7 @@ def check_external_verification_result(verification_result: Path | None) -> dict
         if not manifest.get(proof_ref):
             missing.append(proof_ref)
     require_evidence_file_digests(manifest, missing, "scaleTargetEvidenceManifest.")
+    require_matching_evidence_file_digests(payload, manifest, missing)
     bundle = manifest.get("verificationBundle")
     if not isinstance(bundle, dict):
         missing.append("verificationBundle")
@@ -408,7 +427,9 @@ def successful_verification_payload() -> dict[str, Any]:
             },
         },
     }
-    payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"] = payload["evidenceFileDigests"]
+    payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"] = json.loads(
+        json.dumps(payload["evidenceFileDigests"])
+    )
     return payload
 
 
@@ -444,6 +465,12 @@ def run_self_test() -> int:
         failed_manifest_digest_path.write_text(json.dumps(failed_manifest_digest_payload), encoding="utf-8")
         failed_manifest_digest = audit(REPO_ROOT, failed_manifest_digest_path)
         assert failed_manifest_digest["overallStatus"] == "BLOCKED", failed_manifest_digest
+        failed_mismatch_payload = successful_verification_payload()
+        failed_mismatch_payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"]["metrics.csv"]["sha256"] = "6" * 64
+        failed_mismatch_path = Path(temp) / "verification-result-mismatched-digest.json"
+        failed_mismatch_path.write_text(json.dumps(failed_mismatch_payload), encoding="utf-8")
+        failed_mismatch = audit(REPO_ROOT, failed_mismatch_path)
+        assert failed_mismatch["overallStatus"] == "BLOCKED", failed_mismatch
     print("改写生产就绪审计自检通过")
     return 0
 
