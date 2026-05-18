@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-EVIDENCE-DAILY-VOLUME-CLI-20260518: 显式化日查询量证据阈值 CLI
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-EVIDENCE-DAILY-VOLUME-CLI-20260518 expose daily volume threshold`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518
+- Scope: 让生产规模压测证据 verifier 像并发、数据规模和 replay 时长一样显式暴露日查询量阈值参数，并在 runbook 中固定本目标使用 10000000，减少外部 evidence owner 交付歧义。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-DAILY-VOLUME-CLI-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 生产规模压测证据 verifier 新增 --min-daily-query-volume，evaluate_evidence_dir 使用显式日查询阈值，self-test 覆盖默认失败与覆盖阈值通过路径；runbook 在校验命令中显式固定 10000000 日查询目标。
+  - Validation evidence: python3 scripts/verify-benchmark-production-evidence.py --help；python3 scripts/verify-benchmark-production-evidence.py --self-test；python3 scripts/audit-rewrite-production-readiness.py --self-test；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；node scripts/check-developer-copy-language.mjs --changed；node scripts/lint-repository-knowledge.js；git diff --check；python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-DAILY-VOLUME-CLI-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，然后按 runbook 使用 --min-daily-query-volume 10000000 生成 verification-result.json。
+
 ### USER-CN-REWRITE-LATEST-RESEARCH-REFRESH-20260518: 刷新 SQL 改写最新研究证据
 
 - Status: done

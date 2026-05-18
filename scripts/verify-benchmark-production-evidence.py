@@ -87,6 +87,7 @@ def require_positive_decimal(value: Decimal, evidence_name: str, missing: list[s
 
 def evaluate_evidence_dir(evidence_dir: Path,
                           target_concurrency: int,
+                          min_daily_query_volume: int,
                           min_dataset_size_bytes: int,
                           min_replay_hours: Decimal) -> dict[str, Any]:
     missing: list[str] = []
@@ -124,10 +125,10 @@ def evaluate_evidence_dir(evidence_dir: Path,
         manifest_refs["dailyQueryVolumeProofRef"] = str(
             daily_query_volume.get("proofRef") or "daily-query-volume.json"
         )
-        if observed_daily_query_volume < MIN_PRODUCTION_DAILY_QUERY_VOLUME:
+        if observed_daily_query_volume < min_daily_query_volume:
             missing.append(
                 "productionEvidenceBundle.dailyQueryVolume:"
-                f"required={MIN_PRODUCTION_DAILY_QUERY_VOLUME},actual={observed_daily_query_volume}"
+                f"required={min_daily_query_volume},actual={observed_daily_query_volume}"
             )
     except EvidenceError as exc:
         parse_errors.append(str(exc))
@@ -218,7 +219,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
         "externalVerificationStatus": external_status,
         "thresholds": {
             "targetConcurrency": target_concurrency,
-            "minDailyQueryVolume": MIN_PRODUCTION_DAILY_QUERY_VOLUME,
+            "minDailyQueryVolume": min_daily_query_volume,
             "minDatasetSizeBytes": min_dataset_size_bytes,
             "minReplayHours": min_replay_hours,
         },
@@ -289,6 +290,7 @@ def run_self_test() -> int:
         passed = evaluate_evidence_dir(
             evidence_dir,
             MIN_PRODUCTION_CONCURRENCY,
+            MIN_PRODUCTION_DAILY_QUERY_VOLUME,
             MIN_PRODUCTION_DATASET_SIZE_BYTES,
             MIN_LONG_REPLAY_HOURS,
         )
@@ -299,6 +301,7 @@ def run_self_test() -> int:
         failed = evaluate_evidence_dir(
             evidence_dir,
             MIN_PRODUCTION_CONCURRENCY,
+            MIN_PRODUCTION_DAILY_QUERY_VOLUME,
             MIN_PRODUCTION_DATASET_SIZE_BYTES,
             MIN_LONG_REPLAY_HOURS,
         )
@@ -310,11 +313,20 @@ def run_self_test() -> int:
         failed_daily_volume = evaluate_evidence_dir(
             evidence_dir,
             MIN_PRODUCTION_CONCURRENCY,
+            MIN_PRODUCTION_DAILY_QUERY_VOLUME,
             MIN_PRODUCTION_DATASET_SIZE_BYTES,
             MIN_LONG_REPLAY_HOURS,
         )
         assert failed_daily_volume["status"] == "FAILED", failed_daily_volume
         assert any("dailyQueryVolume" in item for item in failed_daily_volume["missingEvidence"]), failed_daily_volume
+        override_daily_volume = evaluate_evidence_dir(
+            evidence_dir,
+            MIN_PRODUCTION_CONCURRENCY,
+            9999999,
+            MIN_PRODUCTION_DATASET_SIZE_BYTES,
+            MIN_LONG_REPLAY_HOURS,
+        )
+        assert override_daily_volume["status"] == "PASSED", override_daily_volume
     print("压测生产证据校验器自检通过")
     return 0
 
@@ -326,6 +338,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--evidence-dir", type=Path, help="包含生产证据 artifacts 的目录。")
     parser.add_argument("--output", type=Path, help="可选的 JSON 校验结果输出路径。")
     parser.add_argument("--target-concurrency", type=int, default=MIN_PRODUCTION_CONCURRENCY)
+    parser.add_argument("--min-daily-query-volume", type=int, default=MIN_PRODUCTION_DAILY_QUERY_VOLUME)
     parser.add_argument("--min-dataset-size-bytes", type=int, default=MIN_PRODUCTION_DATASET_SIZE_BYTES)
     parser.add_argument("--min-replay-hours", type=Decimal, default=MIN_LONG_REPLAY_HOURS)
     parser.add_argument("--self-test", action="store_true", help="运行内置校验器自检。")
@@ -342,6 +355,7 @@ def main() -> int:
     payload = evaluate_evidence_dir(
         args.evidence_dir,
         args.target_concurrency,
+        args.min_daily_query_volume,
         args.min_dataset_size_bytes,
         args.min_replay_hours,
     )

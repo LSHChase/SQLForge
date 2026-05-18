@@ -24,8 +24,14 @@
 ```bash
 python3 scripts/verify-benchmark-production-evidence.py \
   --evidence-dir /path/to/production-evidence \
+  --target-concurrency 10000 \
+  --min-daily-query-volume 10000000 \
+  --min-dataset-size-bytes 30000000000000000 \
+  --min-replay-hours 24 \
   --output /path/to/production-evidence/verification-result.json
 ```
+
+本目标必须使用上述默认生产阈值。`--min-daily-query-volume` 只让外部 owner 在命令行上显式确认千万级日查询要求；SQL 推荐改写完成度审计仍固定要求 `observedDailyQueryVolume >= 10000000`。
 
 自检脚本本身：
 
