@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationComparisonResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskStatusResponse;
@@ -68,6 +69,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         assertEquals(Integer.valueOf(2), response.getTestSet().getTotalCases());
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"scaleTarget\""));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"targetDailyQueryVolume\":10000000"));
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("prod-run-20260518/concurrency.log"));
         assertEquals("QUEUED", response.getBenchmarkTask().getStatus().name());
         assertNotNull(repository.findTestSetByTestSetId(response.getTestSet().getTestSetId()));
 
@@ -78,6 +80,9 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         assertEquals("THIRTY_PB", status.getScaleTarget().getTargetDatasetSizeLabel());
         assertEquals(Long.valueOf(10000000L), status.getScaleTarget().getTargetDailyQueryVolume());
         assertEquals("TARGET_DECLARED_UNVERIFIED", status.getScaleTarget().getEvidenceStatus());
+        assertNotNull(status.getScaleTarget().getEvidenceManifest());
+        assertEquals("prod-run-20260518/concurrency.log",
+            status.getScaleTarget().getEvidenceManifest().getConcurrencyProofRef());
         assertEquals(BenchmarkTestSetSource.RECOMMENDATION_GENERATION, status.getTestSetSource());
         assertTrue(status.getTestSetSourceRefs().stream().anyMatch(ref -> ref.getType() == BenchmarkSourceReferenceType.RECOMMENDATION));
         verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).writeAudit(any());
@@ -134,7 +139,22 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         scaleTarget.setTargetDailyQueryVolume(Long.valueOf(10000000L));
         scaleTarget.setTargetComplexityProfile("HIGH_COMPLEXITY_SELECT");
         scaleTarget.setTargetCostEfficiency("minimize-scan-cpu-and-cost-per-query");
+        scaleTarget.setEvidenceManifest(productionEvidenceManifest());
         return scaleTarget;
+    }
+
+    private BenchmarkScaleEvidenceManifestDTO productionEvidenceManifest() {
+        BenchmarkScaleEvidenceManifestDTO manifest = new BenchmarkScaleEvidenceManifestDTO();
+        manifest.setEvidenceSource("PROD_REPLAY");
+        manifest.setConcurrencyProofRef("prod-run-20260518/concurrency.log");
+        manifest.setDataLayoutProofRef("prod-run-20260518/data-layout-30pb.json");
+        manifest.setWorkloadReplayProofRef("prod-run-20260518/replay-window.log");
+        manifest.setWorkloadReplayWindow("2026-05-17T00:00Z/2026-05-18T00:00Z");
+        manifest.setP95P99MetricProofRef("prod-run-20260518/p95-p99.csv");
+        manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
+        manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
+        manifest.setExternalVerificationStatus("UNVERIFIED");
+        return manifest;
     }
 
     private SqlOptimizationAccelerationRecommendation safeRecommendation() {

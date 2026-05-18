@@ -5,6 +5,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkExecutionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
@@ -294,6 +295,23 @@ public class BenchmarkIsolatedExecutionService {
         notes.add("scaleTargetComplexityProfile=" + scaleTarget.getTargetComplexityProfile());
         notes.add("scaleTargetCostEfficiency=" + scaleTarget.getTargetCostEfficiency());
         notes.add("scaleTargetBoundary=" + scaleTarget.getEvidenceBoundary());
+        appendScaleEvidenceManifestNotes(notes, scaleTarget.getEvidenceManifest());
+    }
+
+    private void appendScaleEvidenceManifestNotes(List<String> notes, BenchmarkScaleEvidenceManifest evidenceManifest) {
+        if (evidenceManifest == null) {
+            notes.add("productionEvidenceManifest=null");
+            return;
+        }
+        notes.add("productionEvidenceSource=" + evidenceManifest.getEvidenceSource());
+        notes.add("productionEvidenceVerification=" + evidenceManifest.getExternalVerificationStatus());
+        notes.add("productionConcurrencyProofRef=" + evidenceManifest.getConcurrencyProofRef());
+        notes.add("productionDataLayoutProofRef=" + evidenceManifest.getDataLayoutProofRef());
+        notes.add("productionWorkloadReplayProofRef=" + evidenceManifest.getWorkloadReplayProofRef());
+        notes.add("productionWorkloadReplayWindow=" + evidenceManifest.getWorkloadReplayWindow());
+        notes.add("productionP95P99MetricProofRef=" + evidenceManifest.getP95P99MetricProofRef());
+        notes.add("productionScanCpuQueueMetricProofRef=" + evidenceManifest.getScanCpuQueueMetricProofRef());
+        notes.add("productionCostBillProofRef=" + evidenceManifest.getCostBillProofRef());
     }
 
     private BenchmarkScaleReadinessAssessment buildScaleReadiness(BenchmarkTask task,
@@ -329,20 +347,24 @@ public class BenchmarkIsolatedExecutionService {
         addPositiveEvidence(satisfied, missing, "costBillOrResourceUnit", resourceUnit);
         satisfied.add("completedBenchmarkTask");
         String workloadEvidenceStatus = resolveWorkloadEvidenceStatus(workloadOrchestration);
-        if ("LIVE_ORCHESTRATED".equals(workloadEvidenceStatus)) {
+        BenchmarkScaleEvidenceManifest evidenceManifest = scaleTarget.getEvidenceManifest();
+        addProductionEvidenceManifest(satisfied, missing, evidenceManifest);
+        if ("LIVE_ORCHESTRATED".equals(workloadEvidenceStatus) || hasVerifiedLongReplayProof(evidenceManifest)) {
             satisfied.add("workloadWindow");
         } else {
             missing.add("workloadWindow:" + workloadEvidenceStatus);
         }
         if (scaleTarget.getTargetConcurrency() != null
-            && (task.getConcurrency() == null || task.getConcurrency().intValue() < scaleTarget.getTargetConcurrency().intValue())) {
+            && (task.getConcurrency() == null || task.getConcurrency().intValue() < scaleTarget.getTargetConcurrency().intValue())
+            && !hasVerifiedProofRef(evidenceManifest, evidenceManifest == null ? null : evidenceManifest.getConcurrencyProofRef())) {
             missing.add("targetConcurrencyCovered:required=" + scaleTarget.getTargetConcurrency()
                 + ",actual=" + task.getConcurrency());
         } else {
             satisfied.add("targetConcurrencyCovered");
         }
         if (scaleTarget.getTargetDatasetSizeLabel() != null
-            && !scaleTarget.getTargetDatasetSizeLabel().equalsIgnoreCase(task.getDatasetSizeLabel())) {
+            && !scaleTarget.getTargetDatasetSizeLabel().equalsIgnoreCase(task.getDatasetSizeLabel())
+            && !hasVerifiedProofRef(evidenceManifest, evidenceManifest == null ? null : evidenceManifest.getDataLayoutProofRef())) {
             missing.add("targetDatasetCovered:required=" + scaleTarget.getTargetDatasetSizeLabel()
                 + ",actual=" + task.getDatasetSizeLabel());
         } else {
@@ -350,7 +372,8 @@ public class BenchmarkIsolatedExecutionService {
         }
         if (scaleTarget.getTargetDailyQueryVolume() != null
             && (projectedDailyCapacity == null
-            || projectedDailyCapacity.compareTo(new BigDecimal(scaleTarget.getTargetDailyQueryVolume().longValue())) < 0)) {
+            || projectedDailyCapacity.compareTo(new BigDecimal(scaleTarget.getTargetDailyQueryVolume().longValue())) < 0)
+            && !hasVerifiedLongReplayProof(evidenceManifest)) {
             missing.add("targetDailyQueryVolumeCovered:required=" + scaleTarget.getTargetDailyQueryVolume()
                 + ",projected=" + projectedDailyCapacity);
         } else {
@@ -379,6 +402,55 @@ public class BenchmarkIsolatedExecutionService {
             missing,
             buildScaleReadinessSummary(status, satisfied, missing)
         );
+    }
+
+    private void addProductionEvidenceManifest(List<String> satisfied,
+                                               List<String> missing,
+                                               BenchmarkScaleEvidenceManifest evidenceManifest) {
+        if (evidenceManifest == null) {
+            missing.add("productionEvidenceManifest");
+            missing.add("productionConcurrencyProof");
+            missing.add("productionDataLayoutProof");
+            missing.add("productionLongReplayProof");
+            missing.add("productionP95P99MetricProof");
+            missing.add("productionScanCpuQueueMetricProof");
+            missing.add("productionCostBillProof");
+            missing.add("productionExternalVerification");
+            return;
+        }
+        satisfied.add("productionEvidenceManifest");
+        addProofRefEvidence(satisfied, missing, "productionConcurrencyProof", evidenceManifest.getConcurrencyProofRef());
+        addProofRefEvidence(satisfied, missing, "productionDataLayoutProof", evidenceManifest.getDataLayoutProofRef());
+        if (StringUtils.hasText(evidenceManifest.getWorkloadReplayProofRef())
+            && StringUtils.hasText(evidenceManifest.getWorkloadReplayWindow())) {
+            satisfied.add("productionLongReplayProof");
+        } else {
+            missing.add("productionLongReplayProof");
+        }
+        addProofRefEvidence(satisfied, missing, "productionP95P99MetricProof", evidenceManifest.getP95P99MetricProofRef());
+        addProofRefEvidence(
+            satisfied,
+            missing,
+            "productionScanCpuQueueMetricProof",
+            evidenceManifest.getScanCpuQueueMetricProofRef()
+        );
+        addProofRefEvidence(satisfied, missing, "productionCostBillProof", evidenceManifest.getCostBillProofRef());
+        if (evidenceManifest.isExternallyVerified()) {
+            satisfied.add("productionExternalVerification");
+        } else {
+            missing.add("productionExternalVerification:status=" + evidenceManifest.getExternalVerificationStatus());
+        }
+    }
+
+    private void addProofRefEvidence(List<String> satisfied,
+                                     List<String> missing,
+                                     String evidenceName,
+                                     String proofRef) {
+        if (StringUtils.hasText(proofRef)) {
+            satisfied.add(evidenceName);
+            return;
+        }
+        missing.add(evidenceName);
     }
 
     private void addPresenceEvidence(List<String> satisfied,
@@ -424,13 +496,32 @@ public class BenchmarkIsolatedExecutionService {
                 && (item.startsWith("workloadWindow:")
                 || item.startsWith("targetConcurrencyCovered:")
                 || item.startsWith("targetDatasetCovered:")
-                || item.startsWith("targetDailyQueryVolumeCovered:"))) {
+                || item.startsWith("targetDailyQueryVolumeCovered:")
+                || item.startsWith("productionEvidenceManifest")
+                || item.startsWith("productionConcurrencyProof")
+                || item.startsWith("productionDataLayoutProof")
+                || item.startsWith("productionLongReplayProof")
+                || item.startsWith("productionP95P99MetricProof")
+                || item.startsWith("productionScanCpuQueueMetricProof")
+                || item.startsWith("productionCostBillProof")
+                || item.startsWith("productionExternalVerification"))) {
                 return BenchmarkScaleReadinessStatus.NOT_PROVEN;
             }
         }
         return satisfied == null || satisfied.size() < 4
             ? BenchmarkScaleReadinessStatus.NOT_PROVEN
             : BenchmarkScaleReadinessStatus.PARTIAL;
+    }
+
+    private boolean hasVerifiedLongReplayProof(BenchmarkScaleEvidenceManifest evidenceManifest) {
+        return evidenceManifest != null
+            && evidenceManifest.isExternallyVerified()
+            && StringUtils.hasText(evidenceManifest.getWorkloadReplayProofRef())
+            && StringUtils.hasText(evidenceManifest.getWorkloadReplayWindow());
+    }
+
+    private boolean hasVerifiedProofRef(BenchmarkScaleEvidenceManifest evidenceManifest, String proofRef) {
+        return evidenceManifest != null && evidenceManifest.isExternallyVerified() && StringUtils.hasText(proofRef);
     }
 
     private String buildScaleReadinessSummary(BenchmarkScaleReadinessStatus status,

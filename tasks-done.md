@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-MANIFEST-20260518: 接入生产规模证据 manifest
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-MANIFEST-20260518 add production scale evidence manifest`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-SCALE-READINESS-REPORT-20260518
+- Scope: 在 benchmark-engine 的 scaleTarget/scaleReadiness 链路中接入 external scale evidence manifest，要求真实 10000 并发、30PB 数据布局、长窗口 workload replay、P95/P99/扫描字节/CPU/队列等待和成本账单以结构化 evidence refs 输入并持久化/导出；缺失时继续输出 NOT_PROVEN 或 PARTIAL，不把声明目标误写成生产证明。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-MANIFEST-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Added scaleTarget evidenceManifest DTO/domain mapping for production concurrency, 30PB data layout, long replay, metric, scan/cpu/queue and cost bill proof refs; scaleReadiness now records satisfied/missing production evidence and requires VERIFIED external status before using refs as target/workload coverage; JSON/raw/export/persistence/recommendation-comparison/docs are covered.
+  - Validation evidence: mvn -pl benchmark-engine,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false; mvn -pl benchmark-engine,sqlforge-shared -am validate pmd:pmd checkstyle:check; mvn -pl benchmark-engine,sqlforge-shared -am -Dtest=BenchmarkTaskModelApplicationServiceTest,BenchmarkRecommendationComparisonApplicationServiceTest,BenchmarkReportControllerTest,MybatisBenchmarkTaskRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-MANIFEST-20260518; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: This only ingests and preserves evidence refs/status; it does not supply actual production 10000-concurrency, 30PB, long replay, metric or bill artifacts. Unverified refs remain NOT_PROVEN/PARTIAL until external artifacts are provided and verified.
+  - Next step: Collect real environment benchmark artifacts and set externalVerificationStatus=VERIFIED through a follow-up verifier before claiming READY.
+
 ### USER-CN-BENCHMARK-SCALE-READINESS-REPORT-20260518: 补齐压测报告规模就绪评估
 
 - Status: done

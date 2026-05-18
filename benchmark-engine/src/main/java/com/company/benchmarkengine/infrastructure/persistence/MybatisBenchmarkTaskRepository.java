@@ -14,6 +14,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
@@ -444,8 +445,27 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             item.get("targetCostEfficiency") == null ? null : String.valueOf(item.get("targetCostEfficiency")),
             item.get("evidenceStatus") == null ? null : String.valueOf(item.get("evidenceStatus")),
             item.get("evidenceBoundary") == null ? null : String.valueOf(item.get("evidenceBoundary")),
-            readStringList(item.get("requiredEvidence"))
+            readStringList(item.get("requiredEvidence")),
+            readScaleEvidenceManifest(readObjectMap(item.get("evidenceManifest")))
         );
+    }
+
+    private BenchmarkScaleEvidenceManifest readScaleEvidenceManifest(Map<String, Object> item) {
+        if (item == null || item.isEmpty()) {
+            return null;
+        }
+        BenchmarkScaleEvidenceManifest evidenceManifest = new BenchmarkScaleEvidenceManifest(
+            item.get("evidenceSource") == null ? null : String.valueOf(item.get("evidenceSource")),
+            item.get("concurrencyProofRef") == null ? null : String.valueOf(item.get("concurrencyProofRef")),
+            item.get("dataLayoutProofRef") == null ? null : String.valueOf(item.get("dataLayoutProofRef")),
+            item.get("workloadReplayProofRef") == null ? null : String.valueOf(item.get("workloadReplayProofRef")),
+            item.get("workloadReplayWindow") == null ? null : String.valueOf(item.get("workloadReplayWindow")),
+            item.get("p95P99MetricProofRef") == null ? null : String.valueOf(item.get("p95P99MetricProofRef")),
+            item.get("scanCpuQueueMetricProofRef") == null ? null : String.valueOf(item.get("scanCpuQueueMetricProofRef")),
+            item.get("costBillProofRef") == null ? null : String.valueOf(item.get("costBillProofRef")),
+            item.get("externalVerificationStatus") == null ? null : String.valueOf(item.get("externalVerificationStatus"))
+        );
+        return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
     }
 
     private List<BenchmarkTestSetLabel> readTestSetLabels(String json) {

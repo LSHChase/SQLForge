@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
@@ -9,6 +10,7 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLa
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationComparisonResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationSqlRole;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
@@ -341,6 +343,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
         resolved.setTargetDailyQueryVolume(requested == null ? null : requested.getTargetDailyQueryVolume());
         resolved.setTargetComplexityProfile(requested == null ? null : trimToNull(requested.getTargetComplexityProfile()));
         resolved.setTargetCostEfficiency(requested == null ? null : trimToNull(requested.getTargetCostEfficiency()));
+        resolved.setEvidenceManifest(requested == null ? null : requested.getEvidenceManifest());
         return hasAnyScaleTarget(resolved) ? resolved : null;
     }
 
@@ -356,8 +359,27 @@ public class BenchmarkRecommendationComparisonApplicationService {
             scaleTarget.getTargetCostEfficiency(),
             BenchmarkScaleTarget.STATUS_TARGET_DECLARED_UNVERIFIED,
             BenchmarkScaleTarget.DEFAULT_EVIDENCE_BOUNDARY,
-            null
+            null,
+            toScaleEvidenceManifest(scaleTarget.getEvidenceManifest())
         );
+    }
+
+    private BenchmarkScaleEvidenceManifest toScaleEvidenceManifest(BenchmarkScaleEvidenceManifestDTO evidenceManifestDto) {
+        if (evidenceManifestDto == null) {
+            return null;
+        }
+        BenchmarkScaleEvidenceManifest evidenceManifest = new BenchmarkScaleEvidenceManifest(
+            evidenceManifestDto.getEvidenceSource(),
+            evidenceManifestDto.getConcurrencyProofRef(),
+            evidenceManifestDto.getDataLayoutProofRef(),
+            evidenceManifestDto.getWorkloadReplayProofRef(),
+            evidenceManifestDto.getWorkloadReplayWindow(),
+            evidenceManifestDto.getP95P99MetricProofRef(),
+            evidenceManifestDto.getScanCpuQueueMetricProofRef(),
+            evidenceManifestDto.getCostBillProofRef(),
+            evidenceManifestDto.getExternalVerificationStatus()
+        );
+        return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
     }
 
     private Integer resolveBenchmarkConcurrency(BenchmarkRecommendationComparisonCreateRequest request,
@@ -504,7 +526,21 @@ public class BenchmarkRecommendationComparisonApplicationService {
             || hasText(scaleTarget.getTargetDatasetSizeLabel())
             || scaleTarget.getTargetDailyQueryVolume() != null
             || hasText(scaleTarget.getTargetComplexityProfile())
-            || hasText(scaleTarget.getTargetCostEfficiency()));
+            || hasText(scaleTarget.getTargetCostEfficiency())
+            || hasAnyEvidenceManifest(scaleTarget.getEvidenceManifest()));
+    }
+
+    private boolean hasAnyEvidenceManifest(BenchmarkScaleEvidenceManifestDTO evidenceManifest) {
+        return evidenceManifest != null
+            && (hasText(evidenceManifest.getEvidenceSource())
+            || hasText(evidenceManifest.getConcurrencyProofRef())
+            || hasText(evidenceManifest.getDataLayoutProofRef())
+            || hasText(evidenceManifest.getWorkloadReplayProofRef())
+            || hasText(evidenceManifest.getWorkloadReplayWindow())
+            || hasText(evidenceManifest.getP95P99MetricProofRef())
+            || hasText(evidenceManifest.getScanCpuQueueMetricProofRef())
+            || hasText(evidenceManifest.getCostBillProofRef())
+            || hasText(evidenceManifest.getExternalVerificationStatus()));
     }
 
     private String trimToNull(String value) {

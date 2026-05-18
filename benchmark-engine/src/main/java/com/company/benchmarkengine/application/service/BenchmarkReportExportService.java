@@ -8,6 +8,7 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkThresholdA
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -175,6 +176,8 @@ public class BenchmarkReportExportService {
             .append(response.getScaleReadiness().getReadinessStatus())
             .append(", workloadEvidence=")
             .append(response.getScaleReadiness().getWorkloadEvidenceStatus())
+            .append(", productionEvidence=")
+            .append(productionEvidenceSummary(response))
             .append(", missing=")
             .append(response.getScaleReadiness().getMissingEvidence())
             .append('\n');
@@ -235,10 +238,29 @@ public class BenchmarkReportExportService {
         builder.append("<section><h2>规模就绪</h2><div class=\"meta\">");
         appendHtmlMeta(builder, "状态", String.valueOf(response.getScaleReadiness().getReadinessStatus()));
         appendHtmlMeta(builder, "Workload 证据", response.getScaleReadiness().getWorkloadEvidenceStatus());
+        appendHtmlMeta(builder, "生产证据", productionEvidenceSummary(response));
         appendHtmlMeta(builder, "投影日容量", String.valueOf(response.getScaleReadiness().getProjectedDailyQueryCapacity()));
         appendHtmlMeta(builder, "资源单元/百万查询", String.valueOf(response.getScaleReadiness().getEstimatedResourceUnitPerMillionQueries()));
         appendHtmlMeta(builder, "缺失证据", String.valueOf(response.getScaleReadiness().getMissingEvidence()));
         builder.append("</div></section>");
+    }
+
+    private String productionEvidenceSummary(BenchmarkReportResponse response) {
+        BenchmarkScaleEvidenceManifest evidenceManifest = response.getScaleReadiness() == null
+            || response.getScaleReadiness().getScaleTarget() == null
+            ? null
+            : response.getScaleReadiness().getScaleTarget().getEvidenceManifest();
+        if (evidenceManifest == null) {
+            return "MISSING";
+        }
+        return "source=" + evidenceManifest.getEvidenceSource()
+            + ",verification=" + evidenceManifest.getExternalVerificationStatus()
+            + ",concurrencyRef=" + evidenceManifest.getConcurrencyProofRef()
+            + ",dataLayoutRef=" + evidenceManifest.getDataLayoutProofRef()
+            + ",replayRef=" + evidenceManifest.getWorkloadReplayProofRef()
+            + ",metricRef=" + evidenceManifest.getP95P99MetricProofRef()
+            + ",scanCpuQueueRef=" + evidenceManifest.getScanCpuQueueMetricProofRef()
+            + ",costBillRef=" + evidenceManifest.getCostBillProofRef();
     }
 
     private void appendHtmlThresholdTable(StringBuilder builder,

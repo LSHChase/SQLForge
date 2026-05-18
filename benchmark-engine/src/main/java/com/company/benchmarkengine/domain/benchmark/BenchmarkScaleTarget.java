@@ -19,7 +19,14 @@ public class BenchmarkScaleTarget {
             "cpuAndMemory",
             "queueWaitMs",
             "costBillOrResourceUnit",
-            "workloadWindow"
+            "workloadWindow",
+            "productionConcurrencyProof",
+            "productionDataLayoutProof",
+            "productionLongReplayProof",
+            "productionP95P99MetricProof",
+            "productionScanCpuQueueMetricProof",
+            "productionCostBillProof",
+            "productionExternalVerification"
         )
     );
 
@@ -31,6 +38,7 @@ public class BenchmarkScaleTarget {
     private final String evidenceStatus;
     private final String evidenceBoundary;
     private final List<String> requiredEvidence;
+    private final BenchmarkScaleEvidenceManifest evidenceManifest;
 
     public BenchmarkScaleTarget(Integer targetConcurrency,
                                 String targetDatasetSizeLabel,
@@ -40,6 +48,28 @@ public class BenchmarkScaleTarget {
                                 String evidenceStatus,
                                 String evidenceBoundary,
                                 List<String> requiredEvidence) {
+        this(
+            targetConcurrency,
+            targetDatasetSizeLabel,
+            targetDailyQueryVolume,
+            targetComplexityProfile,
+            targetCostEfficiency,
+            evidenceStatus,
+            evidenceBoundary,
+            requiredEvidence,
+            null
+        );
+    }
+
+    public BenchmarkScaleTarget(Integer targetConcurrency,
+                                String targetDatasetSizeLabel,
+                                Long targetDailyQueryVolume,
+                                String targetComplexityProfile,
+                                String targetCostEfficiency,
+                                String evidenceStatus,
+                                String evidenceBoundary,
+                                List<String> requiredEvidence,
+                                BenchmarkScaleEvidenceManifest evidenceManifest) {
         this.targetConcurrency = targetConcurrency;
         this.targetDatasetSizeLabel = normalizeText(targetDatasetSizeLabel);
         this.targetDailyQueryVolume = targetDailyQueryVolume;
@@ -52,6 +82,7 @@ public class BenchmarkScaleTarget {
             ? evidenceBoundary.trim()
             : DEFAULT_EVIDENCE_BOUNDARY;
         this.requiredEvidence = normalizeRequiredEvidence(requiredEvidence);
+        this.evidenceManifest = evidenceManifest == null || !evidenceManifest.hasAnyEvidence() ? null : evidenceManifest;
     }
 
     public boolean hasAnyTarget() {
@@ -59,7 +90,8 @@ public class BenchmarkScaleTarget {
             || hasText(targetDatasetSizeLabel)
             || targetDailyQueryVolume != null
             || hasText(targetComplexityProfile)
-            || hasText(targetCostEfficiency);
+            || hasText(targetCostEfficiency)
+            || evidenceManifest != null;
     }
 
     public Integer getTargetConcurrency() {
@@ -92,6 +124,10 @@ public class BenchmarkScaleTarget {
 
     public List<String> getRequiredEvidence() {
         return requiredEvidence;
+    }
+
+    public BenchmarkScaleEvidenceManifest getEvidenceManifest() {
+        return evidenceManifest;
     }
 
     private List<String> normalizeRequiredEvidence(List<String> requestedEvidence) {

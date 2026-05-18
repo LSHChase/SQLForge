@@ -50,6 +50,9 @@ public class BenchmarkReportControllerTest {
             .andExpect(jsonPath("$.targetEngines[0]").value("HETU"))
             .andExpect(jsonPath("$.scaleReadiness.readinessStatus").value("NOT_PROVEN"))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.targetConcurrency").value(10000))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.concurrencyProofRef")
+                .value("prod-run-20260518/concurrency.log"))
+            .andExpect(content().string(containsString("productionExternalVerification")))
             .andExpect(jsonPath("$.scaleReadiness.observedQueueWaitMs").exists())
             .andExpect(jsonPath("$.trendCharts[0].chartType").value("LATENCY_DISTRIBUTION_HISTOGRAM"))
             .andExpect(jsonPath("$.reportQueryPath").value("/api/benchmark-engine/reports/" + reportId))
@@ -110,7 +113,16 @@ public class BenchmarkReportControllerTest {
                     + "\"datasetSizeLabel\":\"TEN_GB\","
                     + "\"scaleTarget\":{\"targetConcurrency\":10000,\"targetDatasetSizeLabel\":\"THIRTY_PB\","
                     + "\"targetDailyQueryVolume\":10000000,\"targetComplexityProfile\":\"HIGH_COMPLEXITY_SELECT\","
-                    + "\"targetCostEfficiency\":\"minimize-scan-cpu-and-cost-per-query\"},"
+                    + "\"targetCostEfficiency\":\"minimize-scan-cpu-and-cost-per-query\","
+                    + "\"evidenceManifest\":{\"evidenceSource\":\"PROD_REPLAY\","
+                    + "\"concurrencyProofRef\":\"prod-run-20260518/concurrency.log\","
+                    + "\"dataLayoutProofRef\":\"prod-run-20260518/data-layout-30pb.json\","
+                    + "\"workloadReplayProofRef\":\"prod-run-20260518/replay-window.log\","
+                    + "\"workloadReplayWindow\":\"2026-05-17T00:00Z/2026-05-18T00:00Z\","
+                    + "\"p95P99MetricProofRef\":\"prod-run-20260518/p95-p99.csv\","
+                    + "\"scanCpuQueueMetricProofRef\":\"prod-run-20260518/scan-cpu-queue.csv\","
+                    + "\"costBillProofRef\":\"prod-run-20260518/cost-bill.csv\","
+                    + "\"externalVerificationStatus\":\"UNVERIFIED\"}},"
                     + "\"readonlyRequired\":true,\"shadowEnvironmentMode\":\"REQUIRED\"}}"))
             .andExpect(status().isOk())
             .andReturn();

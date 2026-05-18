@@ -1,5 +1,6 @@
 package com.company.benchmarkengine.application.service;
 
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
@@ -27,6 +28,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkRegressionSummary;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
@@ -263,8 +265,27 @@ public class BenchmarkTaskModelApplicationService {
             scaleTargetDto.getTargetCostEfficiency(),
             BenchmarkScaleTarget.STATUS_TARGET_DECLARED_UNVERIFIED,
             BenchmarkScaleTarget.DEFAULT_EVIDENCE_BOUNDARY,
-            null
+            null,
+            toScaleEvidenceManifest(scaleTargetDto.getEvidenceManifest())
         );
+    }
+
+    private BenchmarkScaleEvidenceManifest toScaleEvidenceManifest(BenchmarkScaleEvidenceManifestDTO evidenceManifestDto) {
+        if (evidenceManifestDto == null) {
+            return null;
+        }
+        BenchmarkScaleEvidenceManifest evidenceManifest = new BenchmarkScaleEvidenceManifest(
+            evidenceManifestDto.getEvidenceSource(),
+            evidenceManifestDto.getConcurrencyProofRef(),
+            evidenceManifestDto.getDataLayoutProofRef(),
+            evidenceManifestDto.getWorkloadReplayProofRef(),
+            evidenceManifestDto.getWorkloadReplayWindow(),
+            evidenceManifestDto.getP95P99MetricProofRef(),
+            evidenceManifestDto.getScanCpuQueueMetricProofRef(),
+            evidenceManifestDto.getCostBillProofRef(),
+            evidenceManifestDto.getExternalVerificationStatus()
+        );
+        return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
     }
 
     private List<BenchmarkTestSetLabel> toTestSetLabels(List<BenchmarkTestSetLabelDTO> labelDtos) {

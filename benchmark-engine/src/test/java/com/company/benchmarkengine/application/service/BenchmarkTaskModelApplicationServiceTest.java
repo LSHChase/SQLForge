@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
@@ -101,6 +102,9 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals("THIRTY_PB", statusResponse.getScaleTarget().getTargetDatasetSizeLabel());
         assertEquals(Long.valueOf(10000000L), statusResponse.getScaleTarget().getTargetDailyQueryVolume());
         assertEquals("TARGET_DECLARED_UNVERIFIED", statusResponse.getScaleTarget().getEvidenceStatus());
+        assertNotNull(statusResponse.getScaleTarget().getEvidenceManifest());
+        assertEquals("prod-run-20260518/concurrency.log",
+            statusResponse.getScaleTarget().getEvidenceManifest().getConcurrencyProofRef());
         assertEquals("comparison-dual-engine", statusResponse.getTemplateId());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, statusResponse.getTemplateType());
         assertEquals("set-route-comparison", statusResponse.getTestSetId());
@@ -146,12 +150,15 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals(BenchmarkScaleReadinessStatus.NOT_PROVEN, response.getScaleReadiness().getReadinessStatus());
         assertEquals(new BigDecimal("1000"), response.getScaleReadiness().getObservedQueueWaitMs());
         assertTrue(response.getScaleReadiness().getSatisfiedEvidence().contains("queueWaitMs"));
+        assertTrue(response.getScaleReadiness().getSatisfiedEvidence().contains("productionConcurrencyProof"));
+        assertTrue(response.getScaleReadiness().getMissingEvidence().toString().contains("productionExternalVerification"));
         assertTrue(response.getScaleReadiness().getMissingEvidence().toString().contains("targetConcurrencyCovered"));
         assertEquals("tenant-a", report.getTenantId());
         assertNotNull(report.getExecutionSummary());
         assertNotNull(report.getExecutionSummary().getScaleReadiness());
         assertTrue(report.getExecutionSummary().getPhaseNotes().contains("scaleTargetStatus=TARGET_DECLARED_UNVERIFIED"));
         assertTrue(report.getExecutionSummary().getPhaseNotes().contains("scaleTargetDailyQueryVolume=10000000"));
+        assertTrue(report.getExecutionSummary().getPhaseNotes().contains("productionEvidenceVerification=UNVERIFIED"));
         BenchmarkReportRawDataResponse rawData = service.buildRawDataResponse(report);
         assertNotNull(rawData.getScaleReadiness());
         BenchmarkReportExportService exportService = new BenchmarkReportExportService();
@@ -161,7 +168,9 @@ class BenchmarkTaskModelApplicationServiceTest {
         BenchmarkReportArtifact rawDataArtifact = exportService.buildRawDataArtifact(rawData);
         assertTrue(jsonArtifact.getContent().contains("\"scaleReadiness\""));
         assertTrue(pdfArtifact.getContent().contains("scaleReadiness=NOT_PROVEN"));
+        assertTrue(pdfArtifact.getContent().contains("productionEvidence=source=PROD_REPLAY"));
         assertTrue(htmlArtifact.getContent().contains("规模就绪"));
+        assertTrue(htmlArtifact.getContent().contains("prod-run-20260518/cost-bill.csv"));
         assertTrue(rawDataArtifact.getContent().contains("\"scaleReadiness\""));
         assertEquals(Integer.valueOf(4), Integer.valueOf(report.getExportArtifacts().size()));
     }
@@ -315,7 +324,22 @@ class BenchmarkTaskModelApplicationServiceTest {
         target.setTargetDailyQueryVolume(Long.valueOf(10000000L));
         target.setTargetComplexityProfile("HIGH_COMPLEXITY_SELECT");
         target.setTargetCostEfficiency("minimize-scan-cpu-and-cost-per-query");
+        target.setEvidenceManifest(productionEvidenceManifest());
         return target;
+    }
+
+    private BenchmarkScaleEvidenceManifestDTO productionEvidenceManifest() {
+        BenchmarkScaleEvidenceManifestDTO manifest = new BenchmarkScaleEvidenceManifestDTO();
+        manifest.setEvidenceSource("PROD_REPLAY");
+        manifest.setConcurrencyProofRef("prod-run-20260518/concurrency.log");
+        manifest.setDataLayoutProofRef("prod-run-20260518/data-layout-30pb.json");
+        manifest.setWorkloadReplayProofRef("prod-run-20260518/replay-window.log");
+        manifest.setWorkloadReplayWindow("2026-05-17T00:00Z/2026-05-18T00:00Z");
+        manifest.setP95P99MetricProofRef("prod-run-20260518/p95-p99.csv");
+        manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
+        manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
+        manifest.setExternalVerificationStatus("UNVERIFIED");
+        return manifest;
     }
 
     private BenchmarkTestSetLabelDTO label(BenchmarkTestSetLabelType type, String value) {

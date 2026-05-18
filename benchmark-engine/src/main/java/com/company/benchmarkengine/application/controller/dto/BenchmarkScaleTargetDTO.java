@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.controller.dto;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Size;
+import javax.validation.Valid;
 
 public class BenchmarkScaleTargetDTO {
 
@@ -19,6 +20,9 @@ public class BenchmarkScaleTargetDTO {
 
     @Size(max = 128, message = "targetCostEfficiency 超过 128 个字符")
     private String targetCostEfficiency;
+
+    @Valid
+    private BenchmarkScaleEvidenceManifestDTO evidenceManifest;
 
     public Integer getTargetConcurrency() {
         return targetConcurrency;
@@ -58,5 +62,13 @@ public class BenchmarkScaleTargetDTO {
 
     public void setTargetCostEfficiency(String targetCostEfficiency) {
         this.targetCostEfficiency = targetCostEfficiency;
+    }
+
+    public BenchmarkScaleEvidenceManifestDTO getEvidenceManifest() {
+        return evidenceManifest;
+    }
+
+    public void setEvidenceManifest(BenchmarkScaleEvidenceManifestDTO evidenceManifest) {
+        this.evidenceManifest = evidenceManifest;
     }
 }
