@@ -110,6 +110,16 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getUnappliedRules(), "FUNCTION_PREDICATE_TO_RANGE"));
         assertEquals("NOT_REAL_EXECUTION_GAIN", model.getExpectedBenefit().get("claimBoundary"));
         assertEquals("RESULT_DIFF_REQUIRED", model.getEstimatedCost().get("validation"));
+        Map<String, Object> productionGate = nestedMap(model.getExpectedBenefit(), "productionScaleGate");
+        assertEquals("EXTERNAL_EVIDENCE_REQUIRED", productionGate.get("status"));
+        assertEquals("THIRTY_PB", productionGate.get("targetDatasetSizeLabel"));
+        assertEquals(Integer.valueOf(10000), productionGate.get("targetConcurrency"));
+        assertEquals(Long.valueOf(10000000L), productionGate.get("targetDailyQueryVolume"));
+        assertTrue(((List<?>) productionGate.get("requiredEvidence")).contains("VERIFIED_COST_BILL"));
+        assertEquals("USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-EXTERNAL-ARTIFACTS-20260518",
+            productionGate.get("blockedTask"));
+        assertEquals("EXTERNAL_EVIDENCE_REQUIRED",
+            nestedMap(model.getEstimatedCost(), "productionScaleGate").get("status"));
         assertEquals("RESULT_DIFF_THEN_MANUAL_REVIEW", model.getValidationMethod());
         assertTrue(model.isManualReviewRequired());
         assertFalse(model.isAutoApplyAllowed());
@@ -543,6 +553,13 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> nestedMap(Map<String, Object> value, String key) {
+        Object nested = value.get(key);
+        assertTrue(nested instanceof Map, "缺少嵌套 map：" + key);
+        return (Map<String, Object>) nested;
     }
 
     private static final class Sample {

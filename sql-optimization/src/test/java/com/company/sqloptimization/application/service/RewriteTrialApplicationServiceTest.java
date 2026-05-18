@@ -97,6 +97,13 @@ class RewriteTrialApplicationServiceTest {
         assertNotNull(recommendation);
         assertFalse(recommendation.getSourceProblems().isEmpty());
         assertFalse(recommendation.getIssueRuleLinks().isEmpty());
+        Map<String, Object> productionBenefitGate = nestedMap(recommendation.getExpectedBenefit(), "productionScaleGate");
+        assertEquals("EXTERNAL_EVIDENCE_REQUIRED", productionBenefitGate.get("status"));
+        assertEquals("PRODUCTION_SCALE_NOT_PROVEN_BY_STATIC_REWRITE", productionBenefitGate.get("claimBoundary"));
+        assertEquals("THIRTY_PB", productionBenefitGate.get("targetDatasetSizeLabel"));
+        assertTrue(((List<?>) productionBenefitGate.get("requiredEvidence")).contains("VERIFIED_30PB_DATA_LAYOUT"));
+        assertEquals("EXTERNAL_EVIDENCE_REQUIRED",
+            nestedMap(recommendation.getEstimatedCost(), "productionScaleGate").get("status"));
 
         ArgumentCaptor<OptimizationTaskSubmitRequest> submitCaptor =
             ArgumentCaptor.forClass(OptimizationTaskSubmitRequest.class);
@@ -206,6 +213,8 @@ class RewriteTrialApplicationServiceTest {
         assertNotNull(recommendation);
         assertEquals("MIXED", recommendation.getEvidenceLevel().name());
         assertEquals("SUCCESS", recommendation.getExpectedBenefit().get("planEvidenceStatus"));
+        assertEquals("EXTERNAL_EVIDENCE_REQUIRED",
+            nestedMap(recommendation.getExpectedBenefit(), "productionScaleGate").get("status"));
         Map<String, Object> costPlanEvidence = nestedMap(recommendation.getEstimatedCost(), "planEvidence");
         assertEquals("EXPLAIN_PLAN", costPlanEvidence.get("evidenceLevel"));
         assertEquals(Boolean.TRUE, recommendation.getEstimatedCost().get("explainPlanAvailable"));

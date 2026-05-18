@@ -114,6 +114,22 @@ public class SqlOptimizationPipelineService {
             "DATE_TRUNC", "CAST", "COALESCE", "IF", "NULLIF", "LOWER", "UPPER", "CONCAT", "CONCAT_WS",
             "SUBSTR", "SUBSTRING", "TRIM", "LTRIM", "RTRIM", "REPLACE", "REGEXP_REPLACE", "FORMAT"
         ));
+    private static final int PRODUCTION_TARGET_CONCURRENCY = 10000;
+    private static final long PRODUCTION_TARGET_DAILY_QUERY_VOLUME = 10000000L;
+    private static final long PRODUCTION_TARGET_DATASET_SIZE_BYTES = 30000000000000000L;
+    private static final int PRODUCTION_TARGET_REPLAY_HOURS = 24;
+    private static final List<String> PRODUCTION_SCALE_REQUIRED_EVIDENCE = Collections.unmodifiableList(
+        Arrays.asList(
+            "VERIFIED_10000_CONCURRENCY",
+            "VERIFIED_30PB_DATA_LAYOUT",
+            "VERIFIED_24H_WORKLOAD_REPLAY",
+            "VERIFIED_P95_P99_LATENCY",
+            "VERIFIED_SCAN_BYTES",
+            "VERIFIED_CPU_USAGE",
+            "VERIFIED_QUEUE_WAIT",
+            "VERIFIED_COST_BILL"
+        )
+    );
     private static final Pattern STRING_LIKE_PROJECTION_PATTERN =
         Pattern.compile("(?i)(^|[._])(?:name|title|desc|description|comment|remark|note|text|content|address|email|phone|status|type|code|label)$");
     private static final Pattern STRING_AGGREGATE_PATTERN =
@@ -1666,6 +1682,7 @@ public class SqlOptimizationPipelineService {
         benefit.put("appliedRuleCount", Integer.valueOf(outcome.appliedRules.size()));
         benefit.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
         benefit.put("level", staticBenefitLevel(profile, outcome));
+        benefit.put("productionScaleGate", productionScaleGate());
         return benefit;
     }
 
@@ -1676,7 +1693,27 @@ public class SqlOptimizationPipelineService {
         cost.put("manualReviewRequired", Boolean.valueOf(manualReviewRequired));
         cost.put("followUp", manualReviewRequired ? "REVIEW_RULE_PRECONDITIONS" : "VALIDATE_L0_CANDIDATE");
         cost.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
+        cost.put("productionScaleGate", productionScaleGate());
         return cost;
+    }
+
+    private Map<String, Object> productionScaleGate() {
+        LinkedHashMap<String, Object> gate = new LinkedHashMap<String, Object>();
+        gate.put("status", "EXTERNAL_EVIDENCE_REQUIRED");
+        gate.put("claimBoundary", "PRODUCTION_SCALE_NOT_PROVEN_BY_STATIC_REWRITE");
+        gate.put("targetConcurrency", Integer.valueOf(PRODUCTION_TARGET_CONCURRENCY));
+        gate.put("targetDatasetSizeLabel", "THIRTY_PB");
+        gate.put("targetDatasetSizeBytes", Long.valueOf(PRODUCTION_TARGET_DATASET_SIZE_BYTES));
+        gate.put("targetDailyQueryVolume", Long.valueOf(PRODUCTION_TARGET_DAILY_QUERY_VOLUME));
+        gate.put("requiredReplayHours", Integer.valueOf(PRODUCTION_TARGET_REPLAY_HOURS));
+        gate.put("requiredEvidence", PRODUCTION_SCALE_REQUIRED_EVIDENCE);
+        gate.put(
+            "verifierCommand",
+            "python3 scripts/verify-benchmark-production-evidence.py --evidence-dir <external-evidence-dir> "
+                + "--output <external-evidence-dir>/verification-result.json"
+        );
+        gate.put("blockedTask", "USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-EXTERNAL-ARTIFACTS-20260518");
+        return gate;
     }
 
     private String staticBenefitLevel(ParsedSqlProfile profile, RewriteOutcome outcome) {

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-PRODUCTION-SCALE-GATE-20260518: 在改写推荐模型中显式携带生产规模证据门禁
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-PRODUCTION-SCALE-GATE-20260518 add production scale gate to rewrite recommendations`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-BLOCKER-20260518
+- Scope: 在 SELECT 推荐改写核心输出中加入生产规模 readiness gate，明确 30PB 数据布局、千万级日查询、10000 并发、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单均需要外部 VERIFIED 证据；保持静态推荐不自动应用、不执行任意 SQL、不把 repo-side 测试或 verifier 误写为生产达标。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-PRODUCTION-SCALE-GATE-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 在 SELECT 推荐改写核心输出中新增 productionScaleGate，随 expectedBenefit 与 estimatedCost 一起进入规则输出和 rewrite trial 持久化推荐，明确 10000 并发、30PB 数据布局、千万级日查询、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单均需要外部 VERIFIED 证据；保持静态推荐不自动应用、不执行任意 SQL、不把 EXPLAIN_ONLY 或 repo-side verifier 当作生产达标。
+  - Validation evidence: mvn -pl sql-optimization,sqlforge-shared -am -Dtest=SqlOptimizationPipelineServiceTest#shouldBuildLayeredRecommendationRuleOutputModel+shouldExposeAtLeastFiftySelectRewriteRecommendationScenarios,RewriteTrialApplicationServiceTest#shouldCreateSingleTrialRecommendationFromSafeParseProblems+shouldCarryExplainPlanEvidenceFromParseBatchIntoRecommendation -Dsurefire.failIfNoSpecifiedTests=false test passed with 4 tests; mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false passed with 252 tests; python3 scripts/foreman.py validate USER-CN-REWRITE-PRODUCTION-SCALE-GATE-20260518 passed; node scripts/lint-repository-knowledge.js passed; git diff --check passed.
+  - Residual risk: 真实外部生产或准生产 artifacts 仍未提供；本任务只把生产规模证据边界下沉到改写推荐 payload，不能证明 30PB、10000 并发、千万级日查询或成本账单已经达标。
+  - Next step: 等待 INBOX-005 外部 owner 提供 evidence directory 并运行 scripts/verify-benchmark-production-evidence.py 生成 VERIFIED verification-result.json，再把 scaleTargetEvidenceManifest 提交到 benchmark 任务。
+
 ### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-BLOCKER-20260518: 登记生产规模压测外部证据阻塞项
 
 - Status: done
