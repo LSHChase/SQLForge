@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-SCALE-READINESS-REPORT-20260518: 补齐压测报告规模就绪评估
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-SCALE-READINESS-REPORT-20260518 add benchmark scale readiness reporting`
+- Priority: 1
+- Depends on: N/A
+- Scope: 在 benchmark-engine 报告层从 scaleTarget 生成 scaleReadiness 评估，基于实际报告指标、并发/数据集覆盖、日查询量投影、workload 来源和成本/资源单元估算输出 NOT_PROVEN/PARTIAL/READY 证据状态，并暴露到 JSON/raw-data/export 与持久化 execution_summary_json。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-SCALE-READINESS-REPORT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Benchmark scaleTarget now emits persisted scaleReadiness in execution summary, report JSON, raw-data, export, and governance trace, with NOT_PROVEN/PARTIAL/READY status derived from observed latency, scan bytes, CPU, memory, queue wait, workload evidence, target coverage, daily capacity projection, and resource-unit estimate.
+  - Validation evidence: Passed: mvn -pl benchmark-engine,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false; mvn -pl benchmark-engine,sqlforge-shared -am validate pmd:pmd checkstyle:check; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate USER-CN-BENCHMARK-SCALE-READINESS-REPORT-20260518; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Scale readiness is an evidence boundary from current benchmark reports, not real 10000-concurrency, 30PB, long replay, or production cost bill proof; missing external production-grade evidence remains NOT_PROVEN or PARTIAL.
+  - Next step: Feed real long-running production benchmark evidence, 30PB data layout proof, and cost bills into scaleTarget/report inputs before claiming READY.
+
 ### USER-CN-BENCHMARK-SCALE-READINESS-20260518: 补齐推荐对比压测生产规模目标证据
 
 - Status: done

@@ -11,6 +11,7 @@ public class BenchmarkExecutionSummary {
     private final Integer sampleCount;
     private final Long executionDurationMs;
     private final String workloadDigest;
+    private final BenchmarkScaleReadinessAssessment scaleReadiness;
     private final List<String> phaseNotes;
 
     public BenchmarkExecutionSummary(String executionMode,
@@ -19,11 +20,22 @@ public class BenchmarkExecutionSummary {
                                      Long executionDurationMs,
                                      String workloadDigest,
                                      List<String> phaseNotes) {
+        this(executionMode, isolationSummary, sampleCount, executionDurationMs, workloadDigest, null, phaseNotes);
+    }
+
+    public BenchmarkExecutionSummary(String executionMode,
+                                     String isolationSummary,
+                                     Integer sampleCount,
+                                     Long executionDurationMs,
+                                     String workloadDigest,
+                                     BenchmarkScaleReadinessAssessment scaleReadiness,
+                                     List<String> phaseNotes) {
         this.executionMode = executionMode;
         this.isolationSummary = isolationSummary;
         this.sampleCount = sampleCount;
         this.executionDurationMs = executionDurationMs;
         this.workloadDigest = workloadDigest;
+        this.scaleReadiness = scaleReadiness;
         this.phaseNotes = immutableCopy(phaseNotes);
     }
 
@@ -52,6 +64,10 @@ public class BenchmarkExecutionSummary {
 
     public String getWorkloadDigest() {
         return workloadDigest;
+    }
+
+    public BenchmarkScaleReadinessAssessment getScaleReadiness() {
+        return scaleReadiness;
     }
 
     public List<String> getPhaseNotes() {

@@ -3,6 +3,8 @@ package com.company.benchmarkengine.application.service;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkEngineProfile;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkExecutionSummary;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
@@ -14,12 +16,12 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloa
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -105,6 +107,16 @@ public class BenchmarkIsolatedExecutionService {
             task.getThresholds(),
             engineProfiles.get(0)
         );
+        List<String> phaseNotes = buildPhaseNotes(
+            task,
+            complexity,
+            datasetWeight,
+            concurrencyWeight,
+            targetEngines,
+            totalDurationMs,
+            workloadDigest,
+            workloadOrchestration
+        );
         return new BenchmarkIsolatedExecutionResult(
             new BenchmarkExecutionSummary(
                 workloadOrchestration.getExecutionMode(),
@@ -112,16 +124,8 @@ public class BenchmarkIsolatedExecutionService {
                 Integer.valueOf(sampleCount),
                 Long.valueOf(totalDurationMs),
                 workloadDigest,
-                buildPhaseNotes(
-                    task,
-                    complexity,
-                    datasetWeight,
-                    concurrencyWeight,
-                    targetEngines,
-                    totalDurationMs,
-                    workloadDigest,
-                    workloadOrchestration
-                )
+                buildScaleReadiness(task, complexity, engineProfiles, workloadOrchestration),
+                phaseNotes
             ),
             engineProfiles,
             assessments,
@@ -290,6 +294,218 @@ public class BenchmarkIsolatedExecutionService {
         notes.add("scaleTargetComplexityProfile=" + scaleTarget.getTargetComplexityProfile());
         notes.add("scaleTargetCostEfficiency=" + scaleTarget.getTargetCostEfficiency());
         notes.add("scaleTargetBoundary=" + scaleTarget.getEvidenceBoundary());
+    }
+
+    private BenchmarkScaleReadinessAssessment buildScaleReadiness(BenchmarkTask task,
+                                                                  int sqlComplexity,
+                                                                  List<BenchmarkEngineProfile> engineProfiles,
+                                                                  WorkloadOrchestration workloadOrchestration) {
+        BenchmarkScaleTarget scaleTarget = task.getScaleTarget();
+        if (scaleTarget == null) {
+            return null;
+        }
+        List<String> satisfied = new ArrayList<String>();
+        List<String> missing = new ArrayList<String>();
+        BigDecimal maxP95 = maxMetric(engineProfiles, MetricExtractor.P95);
+        BigDecimal maxP99 = maxMetric(engineProfiles, MetricExtractor.P99);
+        BigDecimal maxCpu = maxMetric(engineProfiles, MetricExtractor.CPU);
+        BigDecimal maxMemory = maxMetric(engineProfiles, MetricExtractor.MEMORY);
+        BigDecimal maxScannedBytes = maxMetric(engineProfiles, MetricExtractor.SCANNED_BYTES);
+        BigDecimal queueWaitMs = estimateQueueWaitMs(task);
+        BigDecimal bestQps = maxMetric(engineProfiles, MetricExtractor.ACTUAL_QPS);
+        BigDecimal projectedDailyCapacity = bestQps == null ? null : bestQps.multiply(new BigDecimal("86400"));
+        BigDecimal resourceUnit = estimateResourceUnitPerMillionQueries(
+            maxP99,
+            maxCpu,
+            maxMemory,
+            maxScannedBytes,
+            queueWaitMs,
+            projectedDailyCapacity
+        );
+        addPresenceEvidence(satisfied, missing, "p95P99Latency", maxP95, maxP99);
+        addPositiveEvidence(satisfied, missing, "scanBytes", maxScannedBytes);
+        addPresenceEvidence(satisfied, missing, "cpuAndMemory", maxCpu, maxMemory);
+        addNonNegativeEvidence(satisfied, missing, "queueWaitMs", queueWaitMs);
+        addPositiveEvidence(satisfied, missing, "costBillOrResourceUnit", resourceUnit);
+        satisfied.add("completedBenchmarkTask");
+        String workloadEvidenceStatus = resolveWorkloadEvidenceStatus(workloadOrchestration);
+        if ("LIVE_ORCHESTRATED".equals(workloadEvidenceStatus)) {
+            satisfied.add("workloadWindow");
+        } else {
+            missing.add("workloadWindow:" + workloadEvidenceStatus);
+        }
+        if (scaleTarget.getTargetConcurrency() != null
+            && (task.getConcurrency() == null || task.getConcurrency().intValue() < scaleTarget.getTargetConcurrency().intValue())) {
+            missing.add("targetConcurrencyCovered:required=" + scaleTarget.getTargetConcurrency()
+                + ",actual=" + task.getConcurrency());
+        } else {
+            satisfied.add("targetConcurrencyCovered");
+        }
+        if (scaleTarget.getTargetDatasetSizeLabel() != null
+            && !scaleTarget.getTargetDatasetSizeLabel().equalsIgnoreCase(task.getDatasetSizeLabel())) {
+            missing.add("targetDatasetCovered:required=" + scaleTarget.getTargetDatasetSizeLabel()
+                + ",actual=" + task.getDatasetSizeLabel());
+        } else {
+            satisfied.add("targetDatasetCovered");
+        }
+        if (scaleTarget.getTargetDailyQueryVolume() != null
+            && (projectedDailyCapacity == null
+            || projectedDailyCapacity.compareTo(new BigDecimal(scaleTarget.getTargetDailyQueryVolume().longValue())) < 0)) {
+            missing.add("targetDailyQueryVolumeCovered:required=" + scaleTarget.getTargetDailyQueryVolume()
+                + ",projected=" + projectedDailyCapacity);
+        } else {
+            satisfied.add("targetDailyQueryVolumeCovered");
+        }
+        if (scaleTarget.getTargetComplexityProfile() != null && sqlComplexity < 8) {
+            missing.add("targetComplexityCovered:profile=" + scaleTarget.getTargetComplexityProfile()
+                + ",observedComplexity=" + sqlComplexity);
+        } else {
+            satisfied.add("targetComplexityCovered");
+        }
+        BenchmarkScaleReadinessStatus status = resolveReadinessStatus(satisfied, missing);
+        return new BenchmarkScaleReadinessAssessment(
+            status,
+            scaleTarget,
+            maxP95,
+            maxP99,
+            maxCpu,
+            maxMemory,
+            maxScannedBytes,
+            queueWaitMs,
+            projectedDailyCapacity,
+            resourceUnit,
+            workloadEvidenceStatus,
+            satisfied,
+            missing,
+            buildScaleReadinessSummary(status, satisfied, missing)
+        );
+    }
+
+    private void addPresenceEvidence(List<String> satisfied,
+                                     List<String> missing,
+                                     String evidenceName,
+                                     BigDecimal first,
+                                     BigDecimal second) {
+        if (first != null && second != null) {
+            satisfied.add(evidenceName);
+            return;
+        }
+        missing.add(evidenceName);
+    }
+
+    private void addPositiveEvidence(List<String> satisfied,
+                                     List<String> missing,
+                                     String evidenceName,
+                                     BigDecimal value) {
+        if (value != null && value.compareTo(BigDecimal.ZERO) > 0) {
+            satisfied.add(evidenceName);
+            return;
+        }
+        missing.add(evidenceName);
+    }
+
+    private void addNonNegativeEvidence(List<String> satisfied,
+                                        List<String> missing,
+                                        String evidenceName,
+                                        BigDecimal value) {
+        if (value != null && value.compareTo(BigDecimal.ZERO) >= 0) {
+            satisfied.add(evidenceName);
+            return;
+        }
+        missing.add(evidenceName);
+    }
+
+    private BenchmarkScaleReadinessStatus resolveReadinessStatus(List<String> satisfied, List<String> missing) {
+        if (missing == null || missing.isEmpty()) {
+            return BenchmarkScaleReadinessStatus.READY;
+        }
+        for (String item : missing) {
+            if (item != null
+                && (item.startsWith("workloadWindow:")
+                || item.startsWith("targetConcurrencyCovered:")
+                || item.startsWith("targetDatasetCovered:")
+                || item.startsWith("targetDailyQueryVolumeCovered:"))) {
+                return BenchmarkScaleReadinessStatus.NOT_PROVEN;
+            }
+        }
+        return satisfied == null || satisfied.size() < 4
+            ? BenchmarkScaleReadinessStatus.NOT_PROVEN
+            : BenchmarkScaleReadinessStatus.PARTIAL;
+    }
+
+    private String buildScaleReadinessSummary(BenchmarkScaleReadinessStatus status,
+                                              List<String> satisfied,
+                                              List<String> missing) {
+        return "scale readiness=" + status.name()
+            + ", satisfied=" + (satisfied == null ? 0 : satisfied.size())
+            + ", missing=" + (missing == null ? 0 : missing.size());
+    }
+
+    private String resolveWorkloadEvidenceStatus(WorkloadOrchestration workloadOrchestration) {
+        if (workloadOrchestration == null) {
+            return "NO_WORKLOAD_ORCHESTRATION";
+        }
+        String source = workloadOrchestration.getWorkloadSource();
+        if (source != null && source.toUpperCase(Locale.ROOT).contains("LIVE")
+            && EXECUTION_MODE_ORCHESTRATED.equals(workloadOrchestration.getExecutionMode())) {
+            return "LIVE_ORCHESTRATED";
+        }
+        if (workloadOrchestration.isBackfillApplied()) {
+            return "SYNTHETIC_BACKFILL";
+        }
+        if (EXECUTION_MODE_ORCHESTRATED.equals(workloadOrchestration.getExecutionMode())) {
+            return "ORCHESTRATED_NON_LIVE";
+        }
+        return "SYNTHETIC_ONLY";
+    }
+
+    private BigDecimal estimateResourceUnitPerMillionQueries(BigDecimal maxP99,
+                                                              BigDecimal maxCpu,
+                                                              BigDecimal maxMemory,
+                                                              BigDecimal maxScannedBytes,
+                                                              BigDecimal queueWaitMs,
+                                                              BigDecimal projectedDailyCapacity) {
+        if (maxP99 == null || maxCpu == null || maxMemory == null || maxScannedBytes == null
+            || projectedDailyCapacity == null || projectedDailyCapacity.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        BigDecimal scannedGb = maxScannedBytes.divide(new BigDecimal("1073741824"), 6, RoundingMode.HALF_UP);
+        BigDecimal memoryGb = maxMemory.divide(new BigDecimal("1024"), 6, RoundingMode.HALF_UP);
+        BigDecimal latencySeconds = maxP99.divide(new BigDecimal("1000"), 6, RoundingMode.HALF_UP);
+        BigDecimal queueWaitSeconds = queueWaitMs == null
+            ? BigDecimal.ZERO
+            : queueWaitMs.divide(new BigDecimal("1000"), 6, RoundingMode.HALF_UP);
+        BigDecimal totalResourceUnit = scannedGb.add(memoryGb).add(maxCpu).add(latencySeconds).add(queueWaitSeconds);
+        BigDecimal millionQueries = projectedDailyCapacity.divide(new BigDecimal("1000000"), 6, RoundingMode.HALF_UP);
+        if (millionQueries.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        return totalResourceUnit.divide(millionQueries, 6, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal estimateQueueWaitMs(BenchmarkTask task) {
+        if (task == null || task.getSubmittedAt() == null || task.getStartedAt() == null) {
+            return null;
+        }
+        long waitMs = Math.max(0L, task.getStartedAt().toEpochMilli() - task.getSubmittedAt().toEpochMilli());
+        return new BigDecimal(String.valueOf(waitMs));
+    }
+
+    private BigDecimal maxMetric(List<BenchmarkEngineProfile> profiles, MetricExtractor extractor) {
+        if (profiles == null || profiles.isEmpty()) {
+            return null;
+        }
+        BigDecimal current = null;
+        for (BenchmarkEngineProfile profile : profiles) {
+            if (profile == null) {
+                continue;
+            }
+            BigDecimal value = extractor.extract(profile);
+            if (value != null && (current == null || value.compareTo(current) > 0)) {
+                current = value;
+            }
+        }
+        return current;
     }
 
     private String buildEngineNote(BenchmarkTask task,
@@ -560,6 +776,48 @@ public class BenchmarkIsolatedExecutionService {
 
     private long asLong(BigDecimal value) {
         return value.longValue();
+    }
+
+    private interface MetricExtractor {
+
+        MetricExtractor P95 = new MetricExtractor() {
+            @Override
+            public BigDecimal extract(BenchmarkEngineProfile profile) {
+                return profile.getP95LatencyMs();
+            }
+        };
+        MetricExtractor P99 = new MetricExtractor() {
+            @Override
+            public BigDecimal extract(BenchmarkEngineProfile profile) {
+                return profile.getP99LatencyMs();
+            }
+        };
+        MetricExtractor CPU = new MetricExtractor() {
+            @Override
+            public BigDecimal extract(BenchmarkEngineProfile profile) {
+                return profile.getCpuUsagePercent();
+            }
+        };
+        MetricExtractor MEMORY = new MetricExtractor() {
+            @Override
+            public BigDecimal extract(BenchmarkEngineProfile profile) {
+                return profile.getMemoryUsageMb();
+            }
+        };
+        MetricExtractor SCANNED_BYTES = new MetricExtractor() {
+            @Override
+            public BigDecimal extract(BenchmarkEngineProfile profile) {
+                return profile.getScannedDataBytes();
+            }
+        };
+        MetricExtractor ACTUAL_QPS = new MetricExtractor() {
+            @Override
+            public BigDecimal extract(BenchmarkEngineProfile profile) {
+                return profile.getActualQps();
+            }
+        };
+
+        BigDecimal extract(BenchmarkEngineProfile profile);
     }
 
     private static final class SyntheticEngineProbe implements Callable<Long> {

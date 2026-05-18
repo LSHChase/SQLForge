@@ -17,6 +17,7 @@ public class BenchmarkScaleTarget {
             "p95P99Latency",
             "scanBytes",
             "cpuAndMemory",
+            "queueWaitMs",
             "costBillOrResourceUnit",
             "workloadWindow"
         )

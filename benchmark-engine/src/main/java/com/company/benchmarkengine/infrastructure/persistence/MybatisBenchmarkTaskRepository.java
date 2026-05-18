@@ -12,6 +12,8 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
@@ -424,22 +426,26 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
         }
         try {
             Map<String, Object> item = objectMapper.readValue(json, MAP_OF_OBJECTS);
-            if (item == null || item.isEmpty()) {
-                return null;
-            }
-            return new BenchmarkScaleTarget(
-                readInteger(item.get("targetConcurrency")),
-                item.get("targetDatasetSizeLabel") == null ? null : String.valueOf(item.get("targetDatasetSizeLabel")),
-                readLong(item.get("targetDailyQueryVolume")),
-                item.get("targetComplexityProfile") == null ? null : String.valueOf(item.get("targetComplexityProfile")),
-                item.get("targetCostEfficiency") == null ? null : String.valueOf(item.get("targetCostEfficiency")),
-                item.get("evidenceStatus") == null ? null : String.valueOf(item.get("evidenceStatus")),
-                item.get("evidenceBoundary") == null ? null : String.valueOf(item.get("evidenceBoundary")),
-                readStringList(item.get("requiredEvidence"))
-            );
+            return readScaleTargetMap(item);
         } catch (Exception ex) {
             throw new IllegalArgumentException("压测规模目标反序列化失败", ex);
         }
+    }
+
+    private BenchmarkScaleTarget readScaleTargetMap(Map<String, Object> item) {
+        if (item == null || item.isEmpty()) {
+            return null;
+        }
+        return new BenchmarkScaleTarget(
+            readInteger(item.get("targetConcurrency")),
+            item.get("targetDatasetSizeLabel") == null ? null : String.valueOf(item.get("targetDatasetSizeLabel")),
+            readLong(item.get("targetDailyQueryVolume")),
+            item.get("targetComplexityProfile") == null ? null : String.valueOf(item.get("targetComplexityProfile")),
+            item.get("targetCostEfficiency") == null ? null : String.valueOf(item.get("targetCostEfficiency")),
+            item.get("evidenceStatus") == null ? null : String.valueOf(item.get("evidenceStatus")),
+            item.get("evidenceBoundary") == null ? null : String.valueOf(item.get("evidenceBoundary")),
+            readStringList(item.get("requiredEvidence"))
+        );
     }
 
     private List<BenchmarkTestSetLabel> readTestSetLabels(String json) {
@@ -648,10 +654,49 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
                 item.get("sampleCount") == null ? null : Integer.valueOf(String.valueOf(item.get("sampleCount"))),
                 item.get("executionDurationMs") == null ? null : Long.valueOf(String.valueOf(item.get("executionDurationMs"))),
                 item.get("workloadDigest") == null ? null : String.valueOf(item.get("workloadDigest")),
+                readScaleReadiness(item.get("scaleReadiness")),
                 readStringList(item.get("phaseNotes"))
             );
         } catch (Exception ex) {
             throw new IllegalArgumentException("压测执行摘要反序列化失败", ex);
+        }
+    }
+
+    private BenchmarkScaleReadinessAssessment readScaleReadiness(Object rawValue) {
+        Map<String, Object> item = readObjectMap(rawValue);
+        if (item == null || item.isEmpty()) {
+            return null;
+        }
+        return new BenchmarkScaleReadinessAssessment(
+            readEnum(item.get("readinessStatus"), BenchmarkScaleReadinessStatus.class, BenchmarkScaleReadinessStatus.NOT_PROVEN),
+            readScaleTargetMap(readObjectMap(item.get("scaleTarget"))),
+            readBigDecimal(item.get("observedMaxP95LatencyMs")),
+            readBigDecimal(item.get("observedMaxP99LatencyMs")),
+            readBigDecimal(item.get("observedMaxCpuUsagePercent")),
+            readBigDecimal(item.get("observedMaxMemoryUsageMb")),
+            readBigDecimal(item.get("observedMaxScannedDataBytes")),
+            readBigDecimal(item.get("observedQueueWaitMs")),
+            readBigDecimal(item.get("projectedDailyQueryCapacity")),
+            readBigDecimal(item.get("estimatedResourceUnitPerMillionQueries")),
+            item.get("workloadEvidenceStatus") == null ? null : String.valueOf(item.get("workloadEvidenceStatus")),
+            readStringList(item.get("satisfiedEvidence")),
+            readStringList(item.get("missingEvidence")),
+            item.get("summary") == null ? null : String.valueOf(item.get("summary"))
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readObjectMap(Object rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawValue instanceof Map<?, ?>) {
+            return (Map<String, Object>) rawValue;
+        }
+        try {
+            return objectMapper.readValue(String.valueOf(rawValue), MAP_OF_OBJECTS);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("压测对象载荷反序列化失败", ex);
         }
     }
 

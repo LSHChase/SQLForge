@@ -1,6 +1,7 @@
 package com.company.benchmarkengine.application.controller.vo;
 
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.time.Instant;
@@ -18,6 +19,7 @@ public class BenchmarkReportRawDataResponse {
     private final List<DataSourceTypeEnum> targetEngines;
     private final List<BenchmarkEngineMetricVO> engineResults;
     private final List<BenchmarkThresholdAssessmentVO> thresholdAssessments;
+    private final BenchmarkScaleReadinessAssessment scaleReadiness;
     private final BenchmarkRegressionSummaryVO regressionSummary;
     private final List<BenchmarkAlertLinkageVO> alertLinkages;
     private final List<BenchmarkTrendChartVO> trendCharts;
@@ -53,6 +55,7 @@ public class BenchmarkReportRawDataResponse {
             engineResults,
             thresholdAssessments,
             null,
+            null,
             java.util.Collections.<BenchmarkAlertLinkageVO>emptyList(),
             trendCharts,
             recommendations,
@@ -72,6 +75,7 @@ public class BenchmarkReportRawDataResponse {
                                           List<DataSourceTypeEnum> targetEngines,
                                           List<BenchmarkEngineMetricVO> engineResults,
                                           List<BenchmarkThresholdAssessmentVO> thresholdAssessments,
+                                          BenchmarkScaleReadinessAssessment scaleReadiness,
                                           BenchmarkRegressionSummaryVO regressionSummary,
                                           List<BenchmarkAlertLinkageVO> alertLinkages,
                                           List<BenchmarkTrendChartVO> trendCharts,
@@ -89,6 +93,7 @@ public class BenchmarkReportRawDataResponse {
         this.targetEngines = targetEngines;
         this.engineResults = engineResults;
         this.thresholdAssessments = thresholdAssessments;
+        this.scaleReadiness = scaleReadiness;
         this.regressionSummary = regressionSummary;
         this.alertLinkages = alertLinkages;
         this.trendCharts = trendCharts;
@@ -136,6 +141,10 @@ public class BenchmarkReportRawDataResponse {
 
     public List<BenchmarkThresholdAssessmentVO> getThresholdAssessments() {
         return thresholdAssessments;
+    }
+
+    public BenchmarkScaleReadinessAssessment getScaleReadiness() {
+        return scaleReadiness;
     }
 
     public BenchmarkRegressionSummaryVO getRegressionSummary() {

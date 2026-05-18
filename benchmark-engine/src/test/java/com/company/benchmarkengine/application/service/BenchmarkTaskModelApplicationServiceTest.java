@@ -18,6 +18,9 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmit
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType;
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -139,15 +142,32 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertEquals("/api/benchmark-engine/reports/report-benchmark-task-003/raw-data", response.getRawDataDownloadPath());
         assertEquals("ENGINE_SELECTION", response.getRecommendations().get(0).getCategory());
         assertEquals("EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE", response.getImplementationStage());
+        assertNotNull(response.getScaleReadiness());
+        assertEquals(BenchmarkScaleReadinessStatus.NOT_PROVEN, response.getScaleReadiness().getReadinessStatus());
+        assertEquals(new BigDecimal("1000"), response.getScaleReadiness().getObservedQueueWaitMs());
+        assertTrue(response.getScaleReadiness().getSatisfiedEvidence().contains("queueWaitMs"));
+        assertTrue(response.getScaleReadiness().getMissingEvidence().toString().contains("targetConcurrencyCovered"));
         assertEquals("tenant-a", report.getTenantId());
         assertNotNull(report.getExecutionSummary());
+        assertNotNull(report.getExecutionSummary().getScaleReadiness());
         assertTrue(report.getExecutionSummary().getPhaseNotes().contains("scaleTargetStatus=TARGET_DECLARED_UNVERIFIED"));
         assertTrue(report.getExecutionSummary().getPhaseNotes().contains("scaleTargetDailyQueryVolume=10000000"));
+        BenchmarkReportRawDataResponse rawData = service.buildRawDataResponse(report);
+        assertNotNull(rawData.getScaleReadiness());
+        BenchmarkReportExportService exportService = new BenchmarkReportExportService();
+        BenchmarkReportArtifact jsonArtifact = exportService.buildReportArtifact(response, BenchmarkReportFormat.JSON);
+        BenchmarkReportArtifact pdfArtifact = exportService.buildReportArtifact(response, BenchmarkReportFormat.PDF);
+        BenchmarkReportArtifact htmlArtifact = exportService.buildReportArtifact(response, BenchmarkReportFormat.HTML);
+        BenchmarkReportArtifact rawDataArtifact = exportService.buildRawDataArtifact(rawData);
+        assertTrue(jsonArtifact.getContent().contains("\"scaleReadiness\""));
+        assertTrue(pdfArtifact.getContent().contains("scaleReadiness=NOT_PROVEN"));
+        assertTrue(htmlArtifact.getContent().contains("规模就绪"));
+        assertTrue(rawDataArtifact.getContent().contains("\"scaleReadiness\""));
         assertEquals(Integer.valueOf(4), Integer.valueOf(report.getExportArtifacts().size()));
     }
 
     @Test
-    void shouldBuildRegressionGuardReportWithFail结论() {
+    void shouldBuildRegressionGuardReportWithFailVerdict() {
         BenchmarkTaskModelApplicationService service = new BenchmarkTaskModelApplicationService();
         BenchmarkTaskSubmitRequest request = baseRequest(BenchmarkTaskType.REGRESSION_GUARD);
         request.getTaskContext().setTargetEngines(Arrays.asList(DataSourceTypeEnum.HETU));

@@ -3,6 +3,7 @@ package com.company.benchmarkengine.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,9 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifactKind;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskType;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkThresholdVerdict;
@@ -23,6 +27,7 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,6 +58,31 @@ class BenchmarkGovernanceTraceServiceTest {
             Integer.valueOf(4),
             Long.valueOf(400L),
             "qe-digest-001",
+            new BenchmarkScaleReadinessAssessment(
+                BenchmarkScaleReadinessStatus.NOT_PROVEN,
+                new BenchmarkScaleTarget(
+                    Integer.valueOf(10000),
+                    "THIRTY_PB",
+                    Long.valueOf(10000000L),
+                    "HIGH_COMPLEXITY_SELECT",
+                    "minimize-scan-cpu-and-cost-per-query",
+                    null,
+                    null,
+                    null
+                ),
+                new BigDecimal("45"),
+                new BigDecimal("61"),
+                new BigDecimal("37"),
+                new BigDecimal("512"),
+                new BigDecimal("268435456"),
+                new BigDecimal("1000"),
+                new BigDecimal("9676800"),
+                new BigDecimal("4.201282"),
+                "SYNTHETIC_ONLY",
+                Arrays.asList("p95P99Latency", "scanBytes", "cpuAndMemory", "queueWaitMs", "costBillOrResourceUnit"),
+                Arrays.asList("workloadWindow:SYNTHETIC_ONLY", "targetConcurrencyCovered:required=10000,actual=16"),
+                "scale readiness=NOT_PROVEN, satisfied=5, missing=2"
+            ),
             Arrays.asList(
                 "workloadSource=QUERY_EXECUTION_SYNC",
                 "backfillApplied=false",
@@ -134,6 +164,9 @@ class BenchmarkGovernanceTraceServiceTest {
                 + "|evictionReason:CAPACITY_EVICTED|evictedEntryCount:1|maxEntriesPerPolicy:2|policyCachedEntryCount:2|ttlSeconds:60",
             ((Map) engines.get("HETU")).get("cacheGovernanceEvidence")
         );
+        assertTrue(request.getExecutionSummaryJson().contains("\"scaleReadiness\""));
+        assertTrue(request.getExecutionSummaryJson().contains("\"readinessStatus\":\"NOT_PROVEN\""));
+        assertTrue(request.getExecutionSummaryJson().contains("\"observedQueueWaitMs\":1000"));
         assertEquals("VERIFIED", request.getArtifacts().get(0).getStorageEvidence().split(";")[1].split("=")[1]);
         assertEquals(Integer.valueOf(180), request.getArtifacts().get(0).getRetentionDays());
     }

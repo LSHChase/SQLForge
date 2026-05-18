@@ -8,7 +8,6 @@ import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskSubmi
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTestSetLabelDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationComparisonResponse;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
-import com.company.benchmarkengine.application.controller.vo.BenchmarkTestSetResponse;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationSqlRole;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;

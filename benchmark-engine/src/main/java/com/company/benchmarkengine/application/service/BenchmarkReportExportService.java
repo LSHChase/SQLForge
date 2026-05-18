@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.MediaType;
@@ -118,6 +117,7 @@ public class BenchmarkReportExportService {
         builder.append("verdict=").append(response.getVerdict()).append('\n');
         builder.append("targetEngines=").append(response.getTargetEngines()).append('\n');
         builder.append("generatedAt=").append(response.getGeneratedAt()).append('\n');
+        appendScaleReadinessSummary(builder, response);
         appendEngineSummary(builder, response.getEngineResults());
         appendThresholdSummary(builder, response.getThresholdAssessments());
         appendRecommendationSummary(builder, response.getRecommendations());
@@ -144,6 +144,7 @@ public class BenchmarkReportExportService {
         appendHtmlMeta(builder, "生成时间", String.valueOf(response.getGeneratedAt()));
         appendHtmlMeta(builder, "目标引擎", String.valueOf(response.getTargetEngines()));
         builder.append("</div></section>");
+        appendHtmlScaleReadiness(builder, response);
         appendHtmlEngineTable(builder, response.getEngineResults());
         appendHtmlThresholdTable(builder, response.getThresholdAssessments());
         appendHtmlTrendCharts(builder, response);
@@ -164,6 +165,19 @@ public class BenchmarkReportExportService {
                 .append(engineResult.getVerdict())
                 .append('\n');
         }
+    }
+
+    private void appendScaleReadinessSummary(StringBuilder builder, BenchmarkReportResponse response) {
+        if (response.getScaleReadiness() == null) {
+            return;
+        }
+        builder.append("scaleReadiness=")
+            .append(response.getScaleReadiness().getReadinessStatus())
+            .append(", workloadEvidence=")
+            .append(response.getScaleReadiness().getWorkloadEvidenceStatus())
+            .append(", missing=")
+            .append(response.getScaleReadiness().getMissingEvidence())
+            .append('\n');
     }
 
     private void appendThresholdSummary(StringBuilder builder,
@@ -212,6 +226,19 @@ public class BenchmarkReportExportService {
                 .append(engineResult.getVerdict()).append("</td></tr>");
         }
         builder.append("</tbody></table></section>");
+    }
+
+    private void appendHtmlScaleReadiness(StringBuilder builder, BenchmarkReportResponse response) {
+        if (response.getScaleReadiness() == null) {
+            return;
+        }
+        builder.append("<section><h2>规模就绪</h2><div class=\"meta\">");
+        appendHtmlMeta(builder, "状态", String.valueOf(response.getScaleReadiness().getReadinessStatus()));
+        appendHtmlMeta(builder, "Workload 证据", response.getScaleReadiness().getWorkloadEvidenceStatus());
+        appendHtmlMeta(builder, "投影日容量", String.valueOf(response.getScaleReadiness().getProjectedDailyQueryCapacity()));
+        appendHtmlMeta(builder, "资源单元/百万查询", String.valueOf(response.getScaleReadiness().getEstimatedResourceUnitPerMillionQueries()));
+        appendHtmlMeta(builder, "缺失证据", String.valueOf(response.getScaleReadiness().getMissingEvidence()));
+        builder.append("</div></section>");
     }
 
     private void appendHtmlThresholdTable(StringBuilder builder,

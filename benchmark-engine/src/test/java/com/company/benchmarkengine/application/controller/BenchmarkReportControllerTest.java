@@ -48,6 +48,9 @@ public class BenchmarkReportControllerTest {
             .andExpect(jsonPath("$.availableFormats[1]").value("PDF"))
             .andExpect(jsonPath("$.availableFormats[2]").value("HTML"))
             .andExpect(jsonPath("$.targetEngines[0]").value("HETU"))
+            .andExpect(jsonPath("$.scaleReadiness.readinessStatus").value("NOT_PROVEN"))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.targetConcurrency").value(10000))
+            .andExpect(jsonPath("$.scaleReadiness.observedQueueWaitMs").exists())
             .andExpect(jsonPath("$.trendCharts[0].chartType").value("LATENCY_DISTRIBUTION_HISTOGRAM"))
             .andExpect(jsonPath("$.reportQueryPath").value("/api/benchmark-engine/reports/" + reportId))
             .andExpect(jsonPath("$.rawDataDownloadPath").value("/api/benchmark-engine/reports/" + reportId + "/raw-data"))
@@ -90,7 +93,8 @@ public class BenchmarkReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(header().string("Content-Disposition", containsString("benchmark-raw-data-")))
-            .andExpect(content().string(containsString(reportId)));
+            .andExpect(content().string(containsString(reportId)))
+            .andExpect(content().string(containsString("\"scaleReadiness\"")));
 
         mockMvc.perform(addProtectedHeaders(get("/api/benchmark-engine/reports/{reportId}", reportId), "tenant-b"))
             .andExpect(status().isForbidden())
@@ -103,6 +107,10 @@ public class BenchmarkReportControllerTest {
                 .content("{\"tenantId\":\"tenant-a\",\"taskType\":\"COMPARISON\",\"sqlText\":\"SELECT * FROM orders\","
                     + "\"taskContext\":{\"priority\":\"HIGH\",\"targetEngines\":[\"HETU\",\"HIVE\"],"
                     + "\"concurrency\":16,\"durationSeconds\":300,\"rampUpSeconds\":30,"
+                    + "\"datasetSizeLabel\":\"TEN_GB\","
+                    + "\"scaleTarget\":{\"targetConcurrency\":10000,\"targetDatasetSizeLabel\":\"THIRTY_PB\","
+                    + "\"targetDailyQueryVolume\":10000000,\"targetComplexityProfile\":\"HIGH_COMPLEXITY_SELECT\","
+                    + "\"targetCostEfficiency\":\"minimize-scan-cpu-and-cost-per-query\"},"
                     + "\"readonlyRequired\":true,\"shadowEnvironmentMode\":\"REQUIRED\"}}"))
             .andExpect(status().isOk())
             .andReturn();

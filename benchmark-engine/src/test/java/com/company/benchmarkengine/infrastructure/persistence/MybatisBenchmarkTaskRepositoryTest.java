@@ -24,6 +24,7 @@ import com.company.benchmarkengine.application.service.BenchmarkTaskModelApplica
 import com.company.benchmarkengine.config.BenchmarkTaskExecutionProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportFormat;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskError;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTaskPhase;
@@ -223,6 +224,8 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertTrue(record.getThresholdAssessmentsJson().contains("P99_LATENCY_MS"));
         assertTrue(record.getRecommendationsJson().contains("REGRESSION_GATE"));
         assertTrue(record.getExecutionSummaryJson().contains("REPO_CLOSED_ISOLATED_EXECUTOR"));
+        assertTrue(record.getExecutionSummaryJson().contains("\"scaleReadiness\""));
+        assertTrue(record.getExecutionSummaryJson().contains("\"observedQueueWaitMs\":5000"));
         assertTrue(record.getExportArtifactsJson().contains("\"format\":\"PDF\""));
         verify(reportMapper).insert(any(BenchmarkReportRecord.class));
         verify(reportMapper).update(any(BenchmarkReportRecord.class));
@@ -238,6 +241,17 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals(1, byTaskId.getThresholdAssessments().size());
         assertEquals("REGRESSION_GATE", byTaskId.getRecommendations().get(0).getCategory());
         assertNotNull(byTaskId.getExecutionSummary());
+        assertNotNull(byTaskId.getExecutionSummary().getScaleReadiness());
+        assertEquals(
+            BenchmarkScaleReadinessStatus.NOT_PROVEN,
+            byTaskId.getExecutionSummary().getScaleReadiness().getReadinessStatus()
+        );
+        assertEquals(
+            new BigDecimal("5000"),
+            byTaskId.getExecutionSummary().getScaleReadiness().getObservedQueueWaitMs()
+        );
+        assertTrue(byTaskId.getExecutionSummary().getScaleReadiness().getMissingEvidence().toString()
+            .contains("targetConcurrencyCovered"));
         assertEquals(4, byTaskId.getExportArtifacts().size());
         assertEquals(BenchmarkReportFormat.HTML, byTaskId.findArtifact(BenchmarkReportFormat.HTML).getFormat());
         assertNotNull(byTaskId.findRawDataArtifact());

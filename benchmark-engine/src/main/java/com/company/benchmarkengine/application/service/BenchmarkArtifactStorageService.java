@@ -3,7 +3,6 @@ package com.company.benchmarkengine.application.service;
 import com.company.benchmarkengine.config.BenchmarkArtifactStorageProperties;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.infrastructure.governance.GovernanceCapabilityClient;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
