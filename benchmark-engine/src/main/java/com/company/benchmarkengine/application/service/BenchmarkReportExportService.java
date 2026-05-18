@@ -263,7 +263,8 @@ public class BenchmarkReportExportService {
             + ",replayRef=" + evidenceManifest.getWorkloadReplayProofRef()
             + ",metricRef=" + evidenceManifest.getP95P99MetricProofRef()
             + ",scanCpuQueueRef=" + evidenceManifest.getScanCpuQueueMetricProofRef()
-            + ",costBillRef=" + evidenceManifest.getCostBillProofRef();
+            + ",costBillRef=" + evidenceManifest.getCostBillProofRef()
+            + ",evidenceFileDigestCount=" + evidenceManifest.getEvidenceFileDigests().size();
     }
 
     private void appendHtmlThresholdTable(StringBuilder builder,

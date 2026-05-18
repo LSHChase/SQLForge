@@ -1,13 +1,25 @@
 package com.company.benchmarkengine.domain.benchmark;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class BenchmarkScaleEvidenceManifest {
 
     public static final String STATUS_VERIFIED = "VERIFIED";
     public static final String STATUS_UNVERIFIED = "UNVERIFIED";
+    public static final List<String> REQUIRED_EVIDENCE_FILES = Collections.unmodifiableList(Arrays.asList(
+        "concurrency.json",
+        "daily-query-volume.json",
+        "data-layout.json",
+        "workload-replay.json",
+        "metrics.csv",
+        "cost-bill.json"
+    ));
 
     private final String evidenceSource;
     private final String concurrencyProofRef;
@@ -19,6 +31,7 @@ public class BenchmarkScaleEvidenceManifest {
     private final String scanCpuQueueMetricProofRef;
     private final String costBillProofRef;
     private final String externalVerificationStatus;
+    private final Map<String, BenchmarkScaleEvidenceFileDigest> evidenceFileDigests;
     private final BenchmarkScaleEvidenceBundle verificationBundle;
 
     public BenchmarkScaleEvidenceManifest(String evidenceSource,
@@ -41,6 +54,7 @@ public class BenchmarkScaleEvidenceManifest {
             scanCpuQueueMetricProofRef,
             costBillProofRef,
             externalVerificationStatus,
+            null,
             null
         );
     }
@@ -66,6 +80,7 @@ public class BenchmarkScaleEvidenceManifest {
             scanCpuQueueMetricProofRef,
             costBillProofRef,
             externalVerificationStatus,
+            null,
             verificationBundle
         );
     }
@@ -81,6 +96,34 @@ public class BenchmarkScaleEvidenceManifest {
                                           String costBillProofRef,
                                           String externalVerificationStatus,
                                           BenchmarkScaleEvidenceBundle verificationBundle) {
+        this(
+            evidenceSource,
+            concurrencyProofRef,
+            dailyQueryVolumeProofRef,
+            dataLayoutProofRef,
+            workloadReplayProofRef,
+            workloadReplayWindow,
+            p95P99MetricProofRef,
+            scanCpuQueueMetricProofRef,
+            costBillProofRef,
+            externalVerificationStatus,
+            null,
+            verificationBundle
+        );
+    }
+
+    public BenchmarkScaleEvidenceManifest(String evidenceSource,
+                                          String concurrencyProofRef,
+                                          String dailyQueryVolumeProofRef,
+                                          String dataLayoutProofRef,
+                                          String workloadReplayProofRef,
+                                          String workloadReplayWindow,
+                                          String p95P99MetricProofRef,
+                                          String scanCpuQueueMetricProofRef,
+                                          String costBillProofRef,
+                                          String externalVerificationStatus,
+                                          Map<String, BenchmarkScaleEvidenceFileDigest> evidenceFileDigests,
+                                          BenchmarkScaleEvidenceBundle verificationBundle) {
         this.evidenceSource = normalizeText(evidenceSource);
         this.concurrencyProofRef = normalizeText(concurrencyProofRef);
         this.dailyQueryVolumeProofRef = normalizeText(dailyQueryVolumeProofRef);
@@ -91,6 +134,7 @@ public class BenchmarkScaleEvidenceManifest {
         this.scanCpuQueueMetricProofRef = normalizeText(scanCpuQueueMetricProofRef);
         this.costBillProofRef = normalizeText(costBillProofRef);
         this.externalVerificationStatus = normalizeVerificationStatus(externalVerificationStatus);
+        this.evidenceFileDigests = normalizeEvidenceFileDigests(evidenceFileDigests);
         this.verificationBundle = verificationBundle == null || !verificationBundle.hasAnyEvidence()
             ? null
             : verificationBundle;
@@ -107,6 +151,7 @@ public class BenchmarkScaleEvidenceManifest {
             || hasText(scanCpuQueueMetricProofRef)
             || hasText(costBillProofRef)
             || STATUS_VERIFIED.equals(externalVerificationStatus)
+            || !evidenceFileDigests.isEmpty()
             || verificationBundle != null;
     }
 
@@ -123,21 +168,50 @@ public class BenchmarkScaleEvidenceManifest {
     }
 
     public boolean hasVerifiedProductionEvidence(Integer targetConcurrency) {
-        return verificationBundle != null && verificationBundle.satisfiesProductionEvidence(targetConcurrency);
+        return verificationBundle != null
+            && verificationBundle.satisfiesProductionEvidence(targetConcurrency)
+            && hasCompleteEvidenceFileDigests();
     }
 
     public List<String> satisfiedVerificationEvidence(Integer targetConcurrency) {
+        List<String> satisfied = new ArrayList<String>();
         if (verificationBundle == null) {
-            return Collections.emptyList();
+            if (hasCompleteEvidenceFileDigests()) {
+                satisfied.add("productionEvidenceManifest.evidenceFileDigests");
+            }
+            return Collections.unmodifiableList(satisfied);
         }
-        return verificationBundle.satisfiedProductionEvidence(targetConcurrency);
+        satisfied.addAll(verificationBundle.satisfiedProductionEvidence(targetConcurrency));
+        if (hasCompleteEvidenceFileDigests()) {
+            satisfied.add("productionEvidenceManifest.evidenceFileDigests");
+        }
+        return Collections.unmodifiableList(satisfied);
     }
 
     public List<String> missingVerificationEvidence(Integer targetConcurrency) {
+        List<String> missing = new ArrayList<String>();
         if (verificationBundle == null) {
-            return Collections.singletonList("productionEvidenceBundle");
+            missing.add("productionEvidenceBundle");
+        } else {
+            missing.addAll(verificationBundle.missingProductionEvidence(targetConcurrency));
         }
-        return verificationBundle.missingProductionEvidence(targetConcurrency);
+        missing.addAll(missingEvidenceFileDigests());
+        return Collections.unmodifiableList(missing);
+    }
+
+    public boolean hasCompleteEvidenceFileDigests() {
+        return missingEvidenceFileDigests().isEmpty();
+    }
+
+    public List<String> missingEvidenceFileDigests() {
+        List<String> missing = new ArrayList<String>();
+        for (String fileName : REQUIRED_EVIDENCE_FILES) {
+            BenchmarkScaleEvidenceFileDigest digest = evidenceFileDigests.get(fileName);
+            if (digest == null || !digest.isComplete()) {
+                missing.add("productionEvidenceManifest.evidenceFileDigests." + fileName);
+            }
+        }
+        return Collections.unmodifiableList(missing);
     }
 
     public String getEvidenceSource() {
@@ -180,8 +254,29 @@ public class BenchmarkScaleEvidenceManifest {
         return externalVerificationStatus;
     }
 
+    public Map<String, BenchmarkScaleEvidenceFileDigest> getEvidenceFileDigests() {
+        return evidenceFileDigests;
+    }
+
     public BenchmarkScaleEvidenceBundle getVerificationBundle() {
         return verificationBundle;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigest> normalizeEvidenceFileDigests(
+        Map<String, BenchmarkScaleEvidenceFileDigest> value) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, BenchmarkScaleEvidenceFileDigest> normalized =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigest>();
+        for (Map.Entry<String, BenchmarkScaleEvidenceFileDigest> entry : value.entrySet()) {
+            if (hasText(entry.getKey()) && entry.getValue() != null && entry.getValue().hasAnyEvidence()) {
+                normalized.put(entry.getKey().trim(), entry.getValue());
+            }
+        }
+        return normalized.isEmpty()
+            ? Collections.<String, BenchmarkScaleEvidenceFileDigest>emptyMap()
+            : Collections.unmodifiableMap(normalized);
     }
 
     private String normalizeVerificationStatus(String value) {

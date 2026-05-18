@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class BenchmarkScaleEvidenceManifestTest {
@@ -56,6 +58,30 @@ class BenchmarkScaleEvidenceManifestTest {
         assertTrue(manifest.isExternallyVerified(Integer.valueOf(12000)));
         assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(12000)).isEmpty());
         assertTrue(manifest.satisfiedVerificationEvidence(Integer.valueOf(12000)).contains("productionEvidenceBundle.costBill"));
+        assertTrue(manifest.satisfiedVerificationEvidence(Integer.valueOf(12000))
+            .contains("productionEvidenceManifest.evidenceFileDigests"));
+    }
+
+    @Test
+    void shouldRejectVerifiedManifestWithoutCompleteEvidenceFileDigests() {
+        BenchmarkScaleEvidenceManifest manifest = new BenchmarkScaleEvidenceManifest(
+            "PROD_REPLAY",
+            "prod-run-20260518/concurrency.log",
+            "prod-run-20260518/daily-query-volume.json",
+            "prod-run-20260518/data-layout-30pb.json",
+            "prod-run-20260518/replay-window.log",
+            "2026-05-17T00:00Z/2026-05-18T00:00Z",
+            "prod-run-20260518/p95-p99.csv",
+            "prod-run-20260518/scan-cpu-queue.csv",
+            "prod-run-20260518/cost-bill.csv",
+            BenchmarkScaleEvidenceManifest.STATUS_VERIFIED,
+            null,
+            productionBundle(Integer.valueOf(12000))
+        );
+
+        assertFalse(manifest.isExternallyVerified(Integer.valueOf(12000)));
+        assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(12000)).toString()
+            .contains("evidenceFileDigests"));
     }
 
     private BenchmarkScaleEvidenceManifest manifestWithBundle(String status, BenchmarkScaleEvidenceBundle bundle) {
@@ -70,8 +96,26 @@ class BenchmarkScaleEvidenceManifestTest {
             "prod-run-20260518/scan-cpu-queue.csv",
             "prod-run-20260518/cost-bill.csv",
             status,
+            productionDigests(),
             bundle
         );
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigest> productionDigests() {
+        Map<String, BenchmarkScaleEvidenceFileDigest> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigest>();
+        for (String fileName : BenchmarkScaleEvidenceManifest.REQUIRED_EVIDENCE_FILES) {
+            digests.put(fileName, new BenchmarkScaleEvidenceFileDigest(repeat("a", 64), Long.valueOf(128L)));
+        }
+        return digests;
+    }
+
+    private String repeat(String value, int count) {
+        StringBuilder builder = new StringBuilder(value.length() * count);
+        for (int index = 0; index < count; index++) {
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private BenchmarkScaleEvidenceBundle productionBundle(Integer observedConcurrency) {

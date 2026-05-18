@@ -54,6 +54,8 @@ public class BenchmarkReportControllerTest {
                 .value("prod-run-20260518/concurrency.log"))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.dailyQueryVolumeProofRef")
                 .value("prod-run-20260518/daily-query-volume.json"))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.evidenceFileDigests['metrics.csv'].sizeBytes")
+                .value(128))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.verificationBundle.observedConcurrency")
                 .value(10000))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.verificationBundle.observedDailyQueryVolume")
@@ -131,6 +133,13 @@ public class BenchmarkReportControllerTest {
                     + "\"scanCpuQueueMetricProofRef\":\"prod-run-20260518/scan-cpu-queue.csv\","
                     + "\"costBillProofRef\":\"prod-run-20260518/cost-bill.csv\","
                     + "\"externalVerificationStatus\":\"UNVERIFIED\","
+                    + "\"evidenceFileDigests\":{"
+                    + "\"concurrency.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
+                    + "\"daily-query-volume.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
+                    + "\"data-layout.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
+                    + "\"workload-replay.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
+                    + "\"metrics.csv\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128},"
+                    + "\"cost-bill.json\":{\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sizeBytes\":128}},"
                     + "\"verificationBundle\":{\"observedConcurrency\":10000,"
                     + "\"observedDailyQueryVolume\":10000000,"
                     + "\"observedDatasetSizeBytes\":30000000000000000,"

@@ -151,7 +151,7 @@
 - `deployments/`
   本地与目标环境部署说明。
   - `hetu-test-environment-deployment-runbook.md`：真实 Hetu / MRS 测试环境的最小部署、配置、启动、smoke 执行与证据留档手册。
-  - `benchmark-production-evidence-runbook.md`：真实生产规模压测证据目录格式、`verify-benchmark-production-evidence.py` 校验入口、`audit-rewrite-production-readiness.py` 完成度审计入口和 `verificationBundle` 生成边界。
+  - `benchmark-production-evidence-runbook.md`：真实生产规模压测证据目录格式、`verify-benchmark-production-evidence.py` 校验入口、`audit-rewrite-production-readiness.py` 完成度审计入口、`verificationBundle` 与 `evidenceFileDigests` 生成边界。
   - `test-environment-smoke-baseline.md`：外部测试环境独立 CI/CD 的最小部署后 smoke 入口、覆盖范围与证据边界。
   - `acceleration-rewrite-governance-smoke-runbook.md`：`HARN-142` 加速与改写治理工作台 repo-closed smoke、`PRW-012` 生产改写闭环 browser smoke、契约检查与 environment-backed 边界说明。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。

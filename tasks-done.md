@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518: 持久化生产证据文件摘要
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518 persist evidence file digests`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-EVIDENCE-FILE-DIGEST-AUDIT-20260518
+- Scope: 把 evidenceFileDigests 纳入可提交的 scaleTargetEvidenceManifest、benchmark DTO/domain/persistence/report 链路，并让 verified production evidence 要求完整必需证据文件摘要，避免最终审计通过的摘要在 benchmark 任务提交时丢失。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 把 evidenceFileDigests 纳入 scaleTargetEvidenceManifest 可提交模型、DTO、domain、persistence、report summary 和测试；生产 verified evidence 现在要求完整六个必需证据文件摘要；verifier 输出 manifest 内 digest map，readiness audit 同时要求顶层与 manifest 内摘要。
+  - Validation evidence: python3 scripts/verify-benchmark-production-evidence.py --self-test；python3 scripts/audit-rewrite-production-readiness.py --self-test；mvn -pl benchmark-engine,sqlforge-shared -am -Dtest=BenchmarkScaleEvidenceManifestTest,BenchmarkTaskModelApplicationServiceTest,BenchmarkRecommendationComparisonApplicationServiceTest,BenchmarkReportControllerTest,MybatisBenchmarkTaskRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl benchmark-engine,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；node scripts/check-developer-copy-language.mjs --changed；node scripts/lint-repository-knowledge.js；git diff --check；python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，并提交包含 evidenceFileDigests 的 scaleTargetEvidenceManifest 与 verification-result.json。
+
 ### USER-CN-BENCHMARK-EVIDENCE-FILE-DIGEST-AUDIT-20260518: 增加生产证据文件摘要审计
 
 - Status: done

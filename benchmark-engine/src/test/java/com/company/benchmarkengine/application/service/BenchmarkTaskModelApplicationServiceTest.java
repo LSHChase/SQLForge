@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceFileDigestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
@@ -42,6 +43,8 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class BenchmarkTaskModelApplicationServiceTest {
@@ -108,6 +111,8 @@ class BenchmarkTaskModelApplicationServiceTest {
             statusResponse.getScaleTarget().getEvidenceManifest().getConcurrencyProofRef());
         assertEquals("prod-run-20260518/daily-query-volume.json",
             statusResponse.getScaleTarget().getEvidenceManifest().getDailyQueryVolumeProofRef());
+        assertEquals(Long.valueOf(128L),
+            statusResponse.getScaleTarget().getEvidenceManifest().getEvidenceFileDigests().get("metrics.csv").getSizeBytes());
         assertNotNull(statusResponse.getScaleTarget().getEvidenceManifest().getVerificationBundle());
         assertEquals(Integer.valueOf(10000),
             statusResponse.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedConcurrency());
@@ -177,10 +182,12 @@ class BenchmarkTaskModelApplicationServiceTest {
         BenchmarkReportArtifact htmlArtifact = exportService.buildReportArtifact(response, BenchmarkReportFormat.HTML);
         BenchmarkReportArtifact rawDataArtifact = exportService.buildRawDataArtifact(rawData);
         assertTrue(jsonArtifact.getContent().contains("\"scaleReadiness\""));
+        assertTrue(jsonArtifact.getContent().contains("\"evidenceFileDigests\""));
         assertTrue(pdfArtifact.getContent().contains("scaleReadiness=NOT_PROVEN"));
         assertTrue(pdfArtifact.getContent().contains("productionEvidence=source=PROD_REPLAY"));
         assertTrue(pdfArtifact.getContent().contains("dailyQueryVolumeRef=prod-run-20260518/daily-query-volume.json"));
         assertTrue(pdfArtifact.getContent().contains("verificationBundleSatisfied=true"));
+        assertTrue(pdfArtifact.getContent().contains("evidenceFileDigestCount=6"));
         assertTrue(htmlArtifact.getContent().contains("规模就绪"));
         assertTrue(htmlArtifact.getContent().contains("prod-run-20260518/cost-bill.csv"));
         assertTrue(rawDataArtifact.getContent().contains("\"scaleReadiness\""));
@@ -382,8 +389,36 @@ class BenchmarkTaskModelApplicationServiceTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setEvidenceFileDigests(productionDigests());
         manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigestDTO> productionDigests() {
+        Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigestDTO>();
+        addDigest(digests, "concurrency.json");
+        addDigest(digests, "daily-query-volume.json");
+        addDigest(digests, "data-layout.json");
+        addDigest(digests, "workload-replay.json");
+        addDigest(digests, "metrics.csv");
+        addDigest(digests, "cost-bill.json");
+        return digests;
+    }
+
+    private void addDigest(Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests, String fileName) {
+        BenchmarkScaleEvidenceFileDigestDTO digest = new BenchmarkScaleEvidenceFileDigestDTO();
+        digest.setSha256(repeat("a", 64));
+        digest.setSizeBytes(Long.valueOf(128L));
+        digests.put(fileName, digest);
+    }
+
+    private String repeat(String value, int count) {
+        StringBuilder builder = new StringBuilder(value.length() * count);
+        for (int index = 0; index < count; index++) {
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {

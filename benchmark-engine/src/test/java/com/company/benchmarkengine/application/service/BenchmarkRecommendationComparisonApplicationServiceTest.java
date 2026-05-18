@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceFileDigestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommendationComparisonResponse;
@@ -31,6 +32,8 @@ import com.company.sqlforge.common.exception.BizException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -73,6 +76,8 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("prod-run-20260518/concurrency.log"));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("prod-run-20260518/daily-query-volume.json"));
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"evidenceFileDigests\""));
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"metrics.csv\""));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"observedConcurrency\":10000"));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"observedDailyQueryVolume\":10000000"));
         assertEquals("QUEUED", response.getBenchmarkTask().getStatus().name());
@@ -161,8 +166,36 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setEvidenceFileDigests(productionDigests());
         manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigestDTO> productionDigests() {
+        Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigestDTO>();
+        addDigest(digests, "concurrency.json");
+        addDigest(digests, "daily-query-volume.json");
+        addDigest(digests, "data-layout.json");
+        addDigest(digests, "workload-replay.json");
+        addDigest(digests, "metrics.csv");
+        addDigest(digests, "cost-bill.json");
+        return digests;
+    }
+
+    private void addDigest(Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests, String fileName) {
+        BenchmarkScaleEvidenceFileDigestDTO digest = new BenchmarkScaleEvidenceFileDigestDTO();
+        digest.setSha256(repeat("b", 64));
+        digest.setSizeBytes(Long.valueOf(128L));
+        digests.put(fileName, digest);
+    }
+
+    private String repeat(String value, int count) {
+        StringBuilder builder = new StringBuilder(value.length() * count);
+        for (int index = 0; index < count; index++) {
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {

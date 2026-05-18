@@ -15,6 +15,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReferenceType
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessAssessment;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleReadinessStatus;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceBundle;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceFileDigest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -64,6 +65,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -466,9 +468,31 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
             item.get("scanCpuQueueMetricProofRef") == null ? null : String.valueOf(item.get("scanCpuQueueMetricProofRef")),
             item.get("costBillProofRef") == null ? null : String.valueOf(item.get("costBillProofRef")),
             item.get("externalVerificationStatus") == null ? null : String.valueOf(item.get("externalVerificationStatus")),
+            readScaleEvidenceFileDigests(readObjectMap(item.get("evidenceFileDigests"))),
             readScaleEvidenceBundle(readObjectMap(item.get("verificationBundle")))
         );
         return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigest> readScaleEvidenceFileDigests(Map<String, Object> item) {
+        if (item == null || item.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, BenchmarkScaleEvidenceFileDigest> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigest>();
+        for (Map.Entry<String, Object> entry : item.entrySet()) {
+            Map<String, Object> digestMap = readObjectMap(entry.getValue());
+            if (digestMap != null) {
+                BenchmarkScaleEvidenceFileDigest digest = new BenchmarkScaleEvidenceFileDigest(
+                    digestMap.get("sha256") == null ? null : String.valueOf(digestMap.get("sha256")),
+                    readLong(digestMap.get("sizeBytes"))
+                );
+                if (digest.hasAnyEvidence()) {
+                    digests.put(entry.getKey(), digest);
+                }
+            }
+        }
+        return digests;
     }
 
     private BenchmarkScaleEvidenceBundle readScaleEvidenceBundle(Map<String, Object> item) {

@@ -39,7 +39,7 @@ python3 scripts/verify-benchmark-production-evidence.py \
 python3 scripts/verify-benchmark-production-evidence.py --self-test
 ```
 
-通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段，并在 `evidenceFileDigests` 下记录每个必需证据文件的 `sha256` 与 `sizeBytes`。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
+通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段，并在顶层和 manifest 内的 `evidenceFileDigests` 记录每个必需证据文件的 `sha256` 与 `sizeBytes`。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
 
 验证 SQL 推荐改写目标的完整完成度时，再执行：
 

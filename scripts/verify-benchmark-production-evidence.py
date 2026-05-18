@@ -242,6 +242,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
         "scanCpuQueueMetricProofRef": manifest_refs["scanCpuQueueMetricProofRef"],
         "costBillProofRef": manifest_refs["costBillProofRef"],
         "externalVerificationStatus": external_status,
+        "evidenceFileDigests": evidence_file_digests,
         "verificationBundle": bundle,
     }
     return {

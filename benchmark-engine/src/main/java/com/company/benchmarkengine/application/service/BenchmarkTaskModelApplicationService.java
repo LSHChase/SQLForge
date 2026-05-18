@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceFileDigestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
@@ -30,6 +31,7 @@ import com.company.benchmarkengine.domain.benchmark.BenchmarkReport;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkReportArtifact;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceBundle;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceFileDigest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkTask;
@@ -47,7 +49,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -287,9 +291,32 @@ public class BenchmarkTaskModelApplicationService {
             evidenceManifestDto.getScanCpuQueueMetricProofRef(),
             evidenceManifestDto.getCostBillProofRef(),
             evidenceManifestDto.getExternalVerificationStatus(),
+            toScaleEvidenceFileDigests(evidenceManifestDto.getEvidenceFileDigests()),
             toScaleEvidenceBundle(evidenceManifestDto.getVerificationBundle())
         );
         return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigest> toScaleEvidenceFileDigests(
+        Map<String, BenchmarkScaleEvidenceFileDigestDTO> digestDtos) {
+        if (digestDtos == null || digestDtos.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, BenchmarkScaleEvidenceFileDigest> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigest>();
+        for (Map.Entry<String, BenchmarkScaleEvidenceFileDigestDTO> entry : digestDtos.entrySet()) {
+            BenchmarkScaleEvidenceFileDigestDTO digestDto = entry.getValue();
+            if (digestDto != null) {
+                BenchmarkScaleEvidenceFileDigest digest = new BenchmarkScaleEvidenceFileDigest(
+                    digestDto.getSha256(),
+                    digestDto.getSizeBytes()
+                );
+                if (digest.hasAnyEvidence()) {
+                    digests.put(entry.getKey(), digest);
+                }
+            }
+        }
+        return digests;
     }
 
     private BenchmarkScaleEvidenceBundle toScaleEvidenceBundle(BenchmarkScaleEvidenceBundleDTO bundleDto) {

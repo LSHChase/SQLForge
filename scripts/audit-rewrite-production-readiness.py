@@ -190,22 +190,28 @@ def require_positive(bundle: dict[str, Any], field: str, missing: list[str]) -> 
         missing.append(field + ":required>0,actual=" + str(actual))
 
 
-def require_evidence_file_digests(payload: dict[str, Any], missing: list[str]) -> None:
+def require_evidence_file_digests(payload: dict[str, Any], missing: list[str], field_prefix: str) -> None:
     digests = payload.get("evidenceFileDigests")
     if not isinstance(digests, dict):
-        missing.append("evidenceFileDigests")
+        missing.append(field_prefix + "evidenceFileDigests")
         return
     for file_name in REQUIRED_EVIDENCE_FILES:
         digest_entry = digests.get(file_name)
         if not isinstance(digest_entry, dict):
-            missing.append("evidenceFileDigests." + file_name)
+            missing.append(field_prefix + "evidenceFileDigests." + file_name)
             continue
         sha256 = str(digest_entry.get("sha256") or "")
         if not re.fullmatch(r"[0-9a-f]{64}", sha256):
-            missing.append("evidenceFileDigests." + file_name + ".sha256")
-        size_bytes = decimal_value(digest_entry.get("sizeBytes"), "evidenceFileDigests." + file_name + ".sizeBytes", missing)
+            missing.append(field_prefix + "evidenceFileDigests." + file_name + ".sha256")
+        size_bytes = decimal_value(
+            digest_entry.get("sizeBytes"),
+            field_prefix + "evidenceFileDigests." + file_name + ".sizeBytes",
+            missing,
+        )
         if size_bytes is not None and size_bytes <= Decimal("0"):
-            missing.append("evidenceFileDigests." + file_name + ".sizeBytes:required>0,actual=" + str(size_bytes))
+            missing.append(
+                field_prefix + "evidenceFileDigests." + file_name + ".sizeBytes:required>0,actual=" + str(size_bytes)
+            )
 
 
 def check_external_verification_result(verification_result: Path | None) -> dict[str, Any]:
@@ -233,7 +239,7 @@ def check_external_verification_result(verification_result: Path | None) -> dict
         missing.append("missingEvidence empty")
     if payload.get("parseErrors"):
         missing.append("parseErrors empty")
-    require_evidence_file_digests(payload, missing)
+    require_evidence_file_digests(payload, missing, "")
 
     manifest = payload.get("scaleTargetEvidenceManifest")
     if not isinstance(manifest, dict):
@@ -256,6 +262,7 @@ def check_external_verification_result(verification_result: Path | None) -> dict
     for proof_ref in required_manifest_refs:
         if not manifest.get(proof_ref):
             missing.append(proof_ref)
+    require_evidence_file_digests(manifest, missing, "scaleTargetEvidenceManifest.")
     bundle = manifest.get("verificationBundle")
     if not isinstance(bundle, dict):
         missing.append("verificationBundle")
@@ -343,7 +350,7 @@ def write_payload(payload: dict[str, Any], output: Path | None) -> None:
 
 
 def successful_verification_payload() -> dict[str, Any]:
-    return {
+    payload = {
         "status": "PASSED",
         "externalVerificationStatus": "VERIFIED",
         "evidenceFileDigests": {
@@ -401,6 +408,8 @@ def successful_verification_payload() -> dict[str, Any]:
             },
         },
     }
+    payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"] = payload["evidenceFileDigests"]
+    return payload
 
 
 def run_self_test() -> int:
@@ -429,6 +438,12 @@ def run_self_test() -> int:
         failed_digest_path.write_text(json.dumps(failed_digest_payload), encoding="utf-8")
         failed_digest = audit(REPO_ROOT, failed_digest_path)
         assert failed_digest["overallStatus"] == "BLOCKED", failed_digest
+        failed_manifest_digest_payload = successful_verification_payload()
+        failed_manifest_digest_payload["scaleTargetEvidenceManifest"]["evidenceFileDigests"].pop("metrics.csv")
+        failed_manifest_digest_path = Path(temp) / "verification-result-missing-manifest-digest.json"
+        failed_manifest_digest_path.write_text(json.dumps(failed_manifest_digest_payload), encoding="utf-8")
+        failed_manifest_digest = audit(REPO_ROOT, failed_manifest_digest_path)
+        assert failed_manifest_digest["overallStatus"] == "BLOCKED", failed_manifest_digest
     print("改写生产就绪审计自检通过")
     return 0
 

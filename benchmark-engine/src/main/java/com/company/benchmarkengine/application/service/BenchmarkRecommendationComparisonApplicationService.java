@@ -2,6 +2,7 @@ package com.company.benchmarkengine.application.service;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkRecommendationComparisonCreateRequest;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceFileDigestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
@@ -12,6 +13,7 @@ import com.company.benchmarkengine.application.controller.vo.BenchmarkRecommenda
 import com.company.benchmarkengine.application.controller.vo.BenchmarkTaskSubmitResponse;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkRecommendationSqlRole;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceBundle;
+import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceFileDigest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleEvidenceManifest;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkScaleTarget;
 import com.company.benchmarkengine.domain.benchmark.BenchmarkSourceReference;
@@ -381,9 +383,32 @@ public class BenchmarkRecommendationComparisonApplicationService {
             evidenceManifestDto.getScanCpuQueueMetricProofRef(),
             evidenceManifestDto.getCostBillProofRef(),
             evidenceManifestDto.getExternalVerificationStatus(),
+            toScaleEvidenceFileDigests(evidenceManifestDto.getEvidenceFileDigests()),
             toScaleEvidenceBundle(evidenceManifestDto.getVerificationBundle())
         );
         return evidenceManifest.hasAnyEvidence() ? evidenceManifest : null;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigest> toScaleEvidenceFileDigests(
+        Map<String, BenchmarkScaleEvidenceFileDigestDTO> digestDtos) {
+        if (digestDtos == null || digestDtos.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, BenchmarkScaleEvidenceFileDigest> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigest>();
+        for (Map.Entry<String, BenchmarkScaleEvidenceFileDigestDTO> entry : digestDtos.entrySet()) {
+            BenchmarkScaleEvidenceFileDigestDTO digestDto = entry.getValue();
+            if (digestDto != null) {
+                BenchmarkScaleEvidenceFileDigest digest = new BenchmarkScaleEvidenceFileDigest(
+                    digestDto.getSha256(),
+                    digestDto.getSizeBytes()
+                );
+                if (digest.hasAnyEvidence()) {
+                    digests.put(entry.getKey(), digest);
+                }
+            }
+        }
+        return digests;
     }
 
     private BenchmarkScaleEvidenceBundle toScaleEvidenceBundle(BenchmarkScaleEvidenceBundleDTO bundleDto) {
@@ -567,6 +592,8 @@ public class BenchmarkRecommendationComparisonApplicationService {
             || hasText(evidenceManifest.getScanCpuQueueMetricProofRef())
             || hasText(evidenceManifest.getCostBillProofRef())
             || hasText(evidenceManifest.getExternalVerificationStatus())
+            || (evidenceManifest.getEvidenceFileDigests() != null
+            && !evidenceManifest.getEvidenceFileDigests().isEmpty())
             || hasAnyEvidenceBundle(evidenceManifest.getVerificationBundle()));
     }
 

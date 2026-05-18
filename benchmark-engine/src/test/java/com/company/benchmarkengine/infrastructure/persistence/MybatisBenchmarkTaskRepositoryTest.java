@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceManifestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceBundleDTO;
+import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleEvidenceFileDigestDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkTaskContextDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkSourceReferenceDTO;
 import com.company.benchmarkengine.application.controller.dto.BenchmarkScaleTargetDTO;
@@ -65,7 +66,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -111,6 +114,8 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertTrue(record.getScaleTargetJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(record.getScaleTargetJson().contains("\"concurrencyProofRef\":\"prod-run-20260518/concurrency.log\""));
         assertTrue(record.getScaleTargetJson().contains("\"dailyQueryVolumeProofRef\":\"prod-run-20260518/daily-query-volume.json\""));
+        assertTrue(record.getScaleTargetJson().contains("\"evidenceFileDigests\""));
+        assertTrue(record.getScaleTargetJson().contains("\"metrics.csv\""));
         assertTrue(record.getScaleTargetJson().contains("\"verificationBundle\""));
         assertTrue(record.getScaleTargetJson().contains("\"observedConcurrency\":10000"));
         assertTrue(record.getScaleTargetJson().contains("\"observedDailyQueryVolume\":10000000"));
@@ -148,6 +153,8 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertNotNull(restored.getScaleTarget().getEvidenceManifest().getVerificationBundle());
         assertEquals(Long.valueOf(10000000L),
             restored.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedDailyQueryVolume());
+        assertEquals(Long.valueOf(128L),
+            restored.getScaleTarget().getEvidenceManifest().getEvidenceFileDigests().get("metrics.csv").getSizeBytes());
         assertEquals(Long.valueOf(30000000000000000L),
             restored.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedDatasetSizeBytes());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, restored.getTemplateType());
@@ -534,8 +541,36 @@ class MybatisBenchmarkTaskRepositoryTest {
         manifest.setScanCpuQueueMetricProofRef("prod-run-20260518/scan-cpu-queue.csv");
         manifest.setCostBillProofRef("prod-run-20260518/cost-bill.csv");
         manifest.setExternalVerificationStatus("UNVERIFIED");
+        manifest.setEvidenceFileDigests(productionDigests());
         manifest.setVerificationBundle(productionEvidenceBundle());
         return manifest;
+    }
+
+    private Map<String, BenchmarkScaleEvidenceFileDigestDTO> productionDigests() {
+        Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests =
+            new LinkedHashMap<String, BenchmarkScaleEvidenceFileDigestDTO>();
+        addDigest(digests, "concurrency.json");
+        addDigest(digests, "daily-query-volume.json");
+        addDigest(digests, "data-layout.json");
+        addDigest(digests, "workload-replay.json");
+        addDigest(digests, "metrics.csv");
+        addDigest(digests, "cost-bill.json");
+        return digests;
+    }
+
+    private void addDigest(Map<String, BenchmarkScaleEvidenceFileDigestDTO> digests, String fileName) {
+        BenchmarkScaleEvidenceFileDigestDTO digest = new BenchmarkScaleEvidenceFileDigestDTO();
+        digest.setSha256(repeat("c", 64));
+        digest.setSizeBytes(Long.valueOf(128L));
+        digests.put(fileName, digest);
+    }
+
+    private String repeat(String value, int count) {
+        StringBuilder builder = new StringBuilder(value.length() * count);
+        for (int index = 0; index < count; index++) {
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {
