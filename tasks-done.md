@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-REWRITE-50-TRIAL-INTEGRATION-20260518: 串联 50 类改写规则到试算问题链路
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-50-TRIAL-INTEGRATION-20260518 wire 50 rewrite rules into trial flow`
+- Priority: 1
+- Depends on: USER-CN-SELECT-REWRITE-50-20260518
+- Scope: 在 USER-CN-SELECT-REWRITE-50-20260518 已扩展 50+ SELECT 推荐规则的基础上，修复 rewrite trial 来源问题识别和 allowlist 仍停留在旧规则集的问题，使 50+ 规则能进入试算来源问题、筛选、issueRuleLinks 和人工复核统计链路；不改变自动应用边界、不执行任意 SQL、不新增持久化 schema。
+- Validation:
+  - `mvn -pl sql-optimization,sqlforge-shared -am -Dtest=RewriteTrialApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+  - `mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false`
+  - `node scripts/lint-repository-knowledge.js`
+  - `git diff --check`
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-50-TRIAL-INTEGRATION-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: expanded rewrite trial source-problem derivation to include the 50+ recommendation rule catalog, while preserving safe-rule-only task submission.
+  - 2026-05-18: added trial coverage for derived FULL_SCAN_FILTER_GUARD and provided APPROX_DISTINCT_SKETCH_MV source problems, plus adjusted aggregate statistics for the broader catalog.
+- Context closeout:
+  - Completed scope: 串联 USER-CN-SELECT-REWRITE-50-20260518 的 50+ SELECT 推荐规则到 rewrite trial 来源问题、issueRuleLinks、人工复核统计和提交前安全过滤链路；保留 safe-rule-only 自动提交边界，不执行任意 SQL，不新增持久化 schema。
+  - Validation evidence: mvn -pl sql-optimization,sqlforge-shared -am -Dtest=RewriteTrialApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test passed; mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false passed with 249 tests; node scripts/lint-repository-knowledge.js passed; git diff --check passed; python3 scripts/foreman.py validate USER-CN-REWRITE-50-TRIAL-INTEGRATION-20260518 passed; python3 scripts/task_audit.py --check --phase pre-closeout passed.
+  - Residual risk: 本任务仍是静态 trial 集成和单元/模块回归验证，尚未引入真实 EXPLAIN/cost/result diff、运行时统计、并发压测或 30PB 级数据布局证据；生产规模有效性需要后续任务补齐。
+  - Next step: 接入真实 EXPLAIN 与运行时统计回放，把 50+ 规则从静态问题链路推进到成本/结果等价/收益证据闭环。
+
 ### USER-CN-SELECT-REWRITE-50-20260518: 扩展 SELECT 推荐改写核心到 50 类
 
 - Status: done

@@ -96,6 +96,16 @@ public class RewriteTrialApplicationService {
             "REPEATED_SUBQUERY_RISK",
             "LARGE_STRING_RESULT_RISK",
             "COMPLEX_QUERY_GRAPH_RISK",
+            "SELECT_STAR_EXPANSION",
+            "OR_TO_UNION_ALL",
+            "FUNCTION_PREDICATE_TO_RANGE",
+            "SCALAR_SUBQUERY_TO_JOIN",
+            "REPEATED_SUBQUERY_TO_CTE",
+            "NOT_EXISTS_TO_ANTI_JOIN",
+            "ORDER_RANDOM_REVIEW",
+            "PRECOMPUTE_MV",
+            "PARTITION_PRUNING",
+            "BUCKET_JOIN",
             "DISTINCT_DEDUP_REVIEW",
             "GROUP_BY_TO_DISTINCT",
             "HAVING_TO_WHERE_PUSHDOWN",
@@ -133,7 +143,29 @@ public class RewriteTrialApplicationService {
             "PIVOT_AGGREGATE_PRECOMPUTE",
             "DATE_GRANULARITY_MV",
             "PARTITION_COMPENSATION_UNION",
-            "SEMISTRUCTURED_COLUMN_INDEX"
+            "SEMISTRUCTURED_COLUMN_INDEX",
+            "FULL_SCAN_FILTER_GUARD",
+            "ORDER_BY_WITHOUT_LIMIT_GUARD",
+            "LIMIT_WITHOUT_ORDER_GUARD",
+            "REPEATED_EXPRESSION_TO_CTE",
+            "UDF_EVALUATION_ISOLATION",
+            "STRING_CONCAT_PRECOMPUTE",
+            "LARGE_STRING_AGGREGATE_OFFLOAD",
+            "WINDOW_FRAME_PRECOMPUTE",
+            "CTE_MATERIALIZATION_POLICY",
+            "CASE_EXPRESSION_NORMALIZATION",
+            "MULTI_COUNT_DISTINCT_DECOMPOSITION",
+            "NEGATION_FILTER_REVIEW",
+            "NULL_FILTER_INDEX_REVIEW",
+            "ORDER_BY_EXPRESSION_PRECOMPUTE",
+            "ARRAY_CONTAINS_INDEX_REVIEW",
+            "RANGE_JOIN_BUCKETIZATION",
+            "DISTINCT_ORDER_BY_ALIGNMENT",
+            "CORRELATED_SUBQUERY_DECORRELATION",
+            "NESTED_SUBQUERY_FLATTENING",
+            "APPROX_DISTINCT_SKETCH_MV",
+            "PERCENTILE_SKETCH_PRECOMPUTE",
+            "ROLLUP_AGGREGATE_LATTICE"
         ))
     );
     private static final Set<String> DERIVED_MANUAL_REVIEW_PROBLEMS = Collections.unmodifiableSet(
@@ -407,7 +439,17 @@ public class RewriteTrialApplicationService {
             String candidateSql = candidateGenerated ? artifactContent(suggestion, "REWRITTEN_SQL", "candidateSql") : null;
             String taskId = candidateGenerated ? taskIdFor(idempotencyKey(run, sqlFingerprint, sourceProblems)) : null;
             if (candidateGenerated) {
-                submitRewriteTaskIfPossible(taskId, run, parseTaskId, parseHistoryId, historyId, datasourceCode, sqlText, sqlFingerprint, sourceProblems);
+                submitRewriteTaskIfPossible(
+                    taskId,
+                    run,
+                    parseTaskId,
+                    parseHistoryId,
+                    historyId,
+                    datasourceCode,
+                    sqlText,
+                    sqlFingerprint,
+                    filterSourceProblems(sourceProblems, selectedAppliedRules)
+                );
             }
             String recommendationId = candidateGenerated
                 ? persistRecommendation(run, parseTaskId, parseHistoryId, historyId, datasourceCode, sqlText, sqlFingerprint,
@@ -492,7 +534,64 @@ public class RewriteTrialApplicationService {
                     manualProblemSummary(warning), parseTaskId, parseHistoryId, historyId, batchItemId));
             }
         }
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel ruleModel =
+            pipelineService.buildRecommendationRuleOutputModel(profile);
+        addRuleOutputProblems(
+            problems,
+            ruleModel.getUnappliedRules(),
+            parseTaskId,
+            parseHistoryId,
+            historyId,
+            batchItemId
+        );
+        addRuleOutputProblems(
+            problems,
+            ruleModel.getRuleChain(),
+            parseTaskId,
+            parseHistoryId,
+            historyId,
+            batchItemId
+        );
         return new ArrayList<Map<String, Object>>(problems.values());
+    }
+
+    private void addRuleOutputProblems(LinkedHashMap<String, Map<String, Object>> problems,
+                                       List<Map<String, Object>> ruleEntries,
+                                       String parseTaskId,
+                                       String parseHistoryId,
+                                       String historyId,
+                                       String batchItemId) {
+        if (ruleEntries == null || ruleEntries.isEmpty()) {
+            return;
+        }
+        for (Map<String, Object> entry : ruleEntries) {
+            String rule = objectText(entry.get("rule"));
+            if (!isEligibleProblem(rule) || !isManualReviewRuleOutput(entry) || problems.containsKey(rule)) {
+                continue;
+            }
+            problems.put(rule, sourceProblem(
+                "ISSUE_SCENE",
+                rule,
+                rule,
+                severityFor(rule),
+                priorityFor(rule),
+                firstText(objectText(entry.get("description")), manualProblemSummary(rule)),
+                parseTaskId,
+                parseHistoryId,
+                historyId,
+                batchItemId
+            ));
+        }
+    }
+
+    private boolean isManualReviewRuleOutput(Map<String, Object> entry) {
+        if (entry == null || entry.isEmpty()) {
+            return false;
+        }
+        String status = objectText(entry.get("status"));
+        return Boolean.TRUE.equals(entry.get("manualReviewRequired"))
+            || "NOT_APPLIED".equals(status)
+            || "PULL_ONLY_CANDIDATE".equals(status);
     }
 
     private List<Map<String, Object>> normalizeSourceProblems(List<Map<String, Object>> requested,
@@ -533,6 +632,20 @@ public class RewriteTrialApplicationService {
         for (Map<String, Object> problem : sourceProblems) {
             String scene = objectText(problem.get("issueScene"));
             if (issueFilter.contains(scene)) {
+                result.add(problem);
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> filterSourceProblems(List<Map<String, Object>> sourceProblems, List<String> selectedScenes) {
+        if (sourceProblems == null || sourceProblems.isEmpty() || selectedScenes == null || selectedScenes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LinkedHashSet<String> selected = new LinkedHashSet<String>(selectedScenes);
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> problem : sourceProblems) {
+            if (selected.contains(objectText(problem.get("issueScene")))) {
                 result.add(problem);
             }
         }

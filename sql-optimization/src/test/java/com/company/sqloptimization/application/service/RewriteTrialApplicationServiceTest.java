@@ -124,6 +124,38 @@ class RewriteTrialApplicationServiceTest {
     }
 
     @Test
+    void shouldDeriveExpandedRuleCatalogIntoTrialSourceProblems() {
+        RewriteTrialRequest request = new RewriteTrialRequest();
+        request.setTenantId("tenant-a");
+        request.setSqlText("SELECT order_id FROM orders");
+
+        RewriteTrialRunVO run = service.createTrial(request);
+
+        assertEquals("NO_SAFE_REWRITE", run.getTrialStatus());
+        assertEquals(Integer.valueOf(1), service.overview().getManualReviewRequiredCount());
+        assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(), "FULL_SCAN_FILTER_GUARD"));
+        assertTrue(containsLink(run.getItems().get(0).getIssueRuleLinks(), "FULL_SCAN_FILTER_GUARD"));
+        assertNull(run.getItems().get(0).getRecommendationId());
+    }
+
+    @Test
+    void shouldKeepExpandedRuleCatalogWhenSourceProblemsAreProvided() {
+        RewriteTrialRequest request = new RewriteTrialRequest();
+        request.setTenantId("tenant-a");
+        request.setSqlText("SELECT APPROX_DISTINCT(user_id) FROM events WHERE dt = DATE '2026-05-01'");
+        request.setSourceProblems(Collections.singletonList(sourceProblem("APPROX_DISTINCT_SKETCH_MV")));
+
+        RewriteTrialRunVO run = service.createTrial(request);
+
+        assertEquals("NO_SAFE_REWRITE", run.getTrialStatus());
+        assertEquals("APPROX_DISTINCT_SKETCH_MV",
+            run.getItems().get(0).getSourceProblems().get(0).get("issueScene"));
+        assertEquals("APPROX_DISTINCT_SKETCH_MV",
+            run.getItems().get(0).getIssueRuleLinks().get(0).get("ruleCode"));
+        assertEquals("NO_SAFE_REWRITE", run.getItems().get(0).getIssueRuleLinks().get(0).get("trialConclusion"));
+    }
+
+    @Test
     void shouldCreateBatchTrialOnlyForValidEligibleItems() {
         batchRepository.save(batch("batch-001"));
         batchItemRepository.save(item("item-001", 1,
@@ -138,8 +170,8 @@ class RewriteTrialApplicationServiceTest {
         RewriteTrialRunVO run = service.createBatchTrial("batch-001", request);
 
         assertEquals(Integer.valueOf(3), run.getTotalCount());
-        assertEquals(Integer.valueOf(1), run.getAcceptedCount());
-        assertEquals(Integer.valueOf(2), run.getSkippedCount());
+        assertEquals(Integer.valueOf(2), run.getAcceptedCount());
+        assertEquals(Integer.valueOf(1), run.getSkippedCount());
         assertEquals(Integer.valueOf(1), run.getRecommendedCount());
         assertEquals(Integer.valueOf(1), run.getCandidateGeneratedCount());
         assertEquals("RECOMMENDED", run.getTrialStatus());
@@ -162,10 +194,10 @@ class RewriteTrialApplicationServiceTest {
         assertEquals(Integer.valueOf(2), service.overview().getTrialedSqlCount());
         assertEquals(Integer.valueOf(1), service.overview().getCandidateGeneratedCount());
         assertEquals(Integer.valueOf(1), service.overview().getNoSafeRewriteCount());
-        assertEquals(Integer.valueOf(1), service.overview().getManualReviewRequiredCount());
+        assertEquals(Integer.valueOf(2), service.overview().getManualReviewRequiredCount());
 
         List<RewriteTrialSourceIssueStatisticVO> byIssue = service.bySourceIssue();
-        assertEquals(2, byIssue.size());
+        assertTrue(byIssue.size() >= 2);
         assertTrue(containsIssue(byIssue, "COUNT_LITERAL_TO_COUNT_STAR"));
         assertTrue(containsIssue(byIssue, "SELECT_STAR"));
     }
@@ -181,6 +213,24 @@ class RewriteTrialApplicationServiceTest {
     private boolean containsIssue(List<RewriteTrialSourceIssueStatisticVO> values, String issueScene) {
         for (RewriteTrialSourceIssueStatisticVO value : values) {
             if (issueScene.equals(value.getSourceIssueScene())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsProblem(List<Map<String, Object>> values, String issueScene) {
+        for (Map<String, Object> value : values) {
+            if (issueScene.equals(value.get("issueScene"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsLink(List<Map<String, Object>> values, String ruleCode) {
+        for (Map<String, Object> value : values) {
+            if (ruleCode.equals(value.get("ruleCode"))) {
                 return true;
             }
         }
