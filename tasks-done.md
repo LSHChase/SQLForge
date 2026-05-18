@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-EVIDENCE-DIGEST-HANDOFF-LEDGER-20260518: 同步生产证据摘要交接台账
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-EVIDENCE-DIGEST-HANDOFF-LEDGER-20260518 sync digest evidence handoff`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518
+- Scope: 同步 tasks.md 与 INBOX.md 中等待外部生产规模证据的交接说明，显式要求 evidenceFileDigests、原始 evidence directory 可复算 SHA-256，以及含摘要的 scaleTargetEvidenceManifest，避免外部 owner 仍按旧版无摘要清单交付。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-DIGEST-HANDOFF-LEDGER-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 同步 tasks.md 与 INBOX.md 中外部生产规模证据交接说明，显式要求 evidenceFileDigests、原始 evidence directory 可复算 SHA-256，以及含摘要的 scaleTargetEvidenceManifest。
+  - Validation evidence: python3 scripts/task_audit.py --check --phase pre-closeout；node scripts/lint-repository-knowledge.js；python3 scripts/foreman.py validate USER-CN-BENCHMARK-EVIDENCE-DIGEST-HANDOFF-LEDGER-20260518；git diff --check。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，并归档原始 evidence directory、verification-result.json 与含 evidenceFileDigests 的 scaleTargetEvidenceManifest。
+
 ### USER-CN-BENCHMARK-EVIDENCE-DIGEST-MANIFEST-PERSIST-20260518: 持久化生产证据文件摘要
 
 - Status: done
