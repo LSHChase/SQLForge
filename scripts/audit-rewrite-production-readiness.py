@@ -64,6 +64,11 @@ def check_research(root: Path) -> dict[str, Any]:
         "Snowflake",
         "Patent",
         "Rulescript 2026",
+        "Efficient Cost-Based Rewrite",
+        "LASER",
+        "SLER",
+        "Trino 481",
+        "Snowflake 2026 performance improvements",
         "E3-Rewrite 2025",
     ]
     missing = [term for term in required_terms if term not in text]

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-LATEST-RESEARCH-REFRESH-20260518: 刷新 SQL 改写最新研究证据
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-LATEST-RESEARCH-REFRESH-20260518 refresh latest rewrite research markers`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518
+- Scope: 把 2026-03 至 2026-05 新近 SQL query rewrite / cost-based rewrite / learned rule discovery 来源补入研究归档，并让生产就绪审计显式检查这些最新研究标记，避免以旧调研替代最新方案分析。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-LATEST-RESEARCH-REFRESH-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 补充 2026-03 至 2026-05 新近 SQL 改写研究与引擎优化来源，包括 cost-dependent rewrite、LASER/SQL-GRPO、SLER、Trino 481 和 Snowflake 2026 performance improvements；生产就绪审计同步要求这些最新研究标记。
+  - Validation evidence: python3 scripts/audit-rewrite-production-readiness.py --self-test；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；node scripts/check-developer-copy-language.mjs --changed；git diff --check；node scripts/lint-repository-knowledge.js；python3 scripts/foreman.py validate USER-CN-REWRITE-LATEST-RESEARCH-REFRESH-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询外部生产 evidence 仍未提供，整体目标保持 blocked。
+  - Next step: 等待 INBOX-005 指定的外部生产或准生产 artifacts，然后运行 verify-benchmark-production-evidence.py 和 audit-rewrite-production-readiness.py。
+
 ### USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518: 新增改写推荐生产就绪完成度审计 CLI
 
 - Status: done

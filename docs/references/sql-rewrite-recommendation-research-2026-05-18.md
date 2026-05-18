@@ -28,6 +28,16 @@
   - 关键点：logical partition change tracking 支持部分 stale MV 的 full/partial text match、delta join 和 rewrite hints。
 - Rulescript 2026: <https://arxiv.org/abs/2605.05536>
   - 关键点：新近研究强调 rewrite rule 的匹配阶段和转换阶段分离，并追求 engine-agnostic / verifiable rule DSL。
+- Efficient Cost-Based Rewrite in a Bottom-Up Optimizer 2026: <https://arxiv.org/abs/2605.05044>
+  - 关键点：2026-05 新近研究指出 QRW 与 CBO 分离会让部分规则在无成本上下文时误判收益；可用中间 CBO 结果缓存和上界剪枝降低 cost-dependent rewrite 的优化开销。
+- LASER / SQL-GRPO 2026: <https://arxiv.org/abs/2604.06804>
+  - 关键点：2026-04 新近研究用执行验证的慢 SQL 语料、规则引导反模式扩展和 SQL-GRPO 训练小模型发现延迟敏感改写；工程落点是候选生成和离线 rule mining，不是生产自动改写。
+- SLER learning-to-rank rule discovery 2026: <https://arxiv.org/abs/2603.04169>
+  - 关键点：2026-03 新近研究通过标准化计划模板和 learning-to-rank 缩小规则枚举空间，并在真实 SQL workload 上生成大规模 rewrite rule 库；对 SQLForge 的价值是补充规则发现 backlog，而不是绕过等价性/收益验证。
+- Trino 481 release notes: <https://trino.io/docs/current/release/release-481.html>
+  - 关键点：2026-05 release 继续围绕选择性 `AND`/`OR` 谓词、未知统计 join ordering、fresh materialized view、partition predicate 和 connector pushdown 优化；说明 BI 场景的收益仍高度依赖统计、connector 和引擎版本。
+- Snowflake 2026 performance improvements: <https://docs.snowflake.com/en/release-notes/performance-improvements-2026>
+  - 关键点：2026 官方记录覆盖 runtime pruning、skew join handling、QAS 并行扫描、CTE early aggregation、view subcolumn pushdown、range pruning、structured search optimization 和 CASE 编译优化；这些强化了 SQLForge 仅输出建议并要求外部引擎证据的边界。
 - CIDR 2026 LLM rewrite verification: <https://www.vldb.org/cidrdb/papers/2026/p33-narasayya.pdf>
   - 关键点：LLM rewrite 有收益潜力，但约 32% 结果不等价；工程上必须借助优化器或结果验证证明等价。
 - E3-Rewrite 2025: <https://arxiv.org/abs/2508.09023>
@@ -42,6 +52,8 @@
 - Rewrite recommendation payloads must carry the same production-scale gate as benchmark evidence: 30PB data layout, 10000 concurrency, 24h replay, P95/P99, scan bytes, CPU, queue wait and cost bill require external `VERIFIED` artifacts before any BI-scale readiness claim.
 - For BI-scale workloads, recommendation coverage must include SPJG/MV, join statistics, dynamic filtering, partition/freshness compensation, result cache, file layout, semi-structured extraction, window Top-N, set operations, and pagination.
 - LLM or patent-inspired rewrite paths may become future candidate generation sources, but this task keeps the core deterministic and static-parse-based. Any generated SQL remains blocked by SQLForge approval and validation gates.
+- 2026 cost-dependent / learned rewrite research strengthens the same boundary: SQLForge may use learned systems or cost-aware papers to prioritize future rule candidates, but a BI-scale recommendation still needs optimizer evidence, workload replay, cost bill and result equivalence before being considered production-ready.
+- Recent Trino and Snowflake releases show that many effective optimizations now live in engine/runtime behavior such as pruning, skew handling, pushdown, QAS, MV freshness and CTE aggregation placement. SQLForge should therefore surface engine coordination and proof requirements instead of claiming static SQL text changes alone can guarantee 30PB / 10M daily-query benefit.
 - `USER-CN-SELECT-REWRITE-50-20260518` extends the same deterministic boundary: new scenarios improve parse-time detection and recommendation evidence for additional common SELECT shapes, but still do not execute SQL, create materialized views, change storage layout, or allow automatic application without validation.
 
 ## Implemented Mapping In These Tasks
