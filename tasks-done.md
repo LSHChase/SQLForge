@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-BLOCKER-20260518: 登记生产规模压测外部证据阻塞项
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-BLOCKER-20260518 record external production evidence blocker`
+- Priority: 1
+- Depends on: USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518
+- Scope: 将真实生产或准生产环境压测 artifacts 缺口登记为显式 blocked follow-up 和 INBOX 决策项，要求外部 owner 提供 10000 并发、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待、成本账单与 verification-result.json；仓库侧不得把 verifier/runbook 误判为目标完成。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-BLOCKER-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增生产规模压测外部证据 blocked follow-up 与 INBOX-005，明确真实 production/pre-production artifacts、verification-result.json、scaleTargetEvidenceManifest 提交流程和 owner 决策项；仓库侧 verifier/runbook/fixtures 不得被当作目标完成证据。
+  - Validation evidence: python3 scripts/task_audit.py --check --phase pre-closeout；node scripts/lint-repository-knowledge.js；git diff --check；python3 scripts/foreman.py validate USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-BLOCKER-20260518。
+  - Residual risk: 真实外部生产规模 artifacts 仍未提供；当前提交只把等待项纳入治理台账，不能证明 10000 并发、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待或成本账单已经达成。
+  - Next step: 等待 INBOX-005 人工确认外部环境、执行窗口、证据归档位置和 owner 后，按 docs/deployments/benchmark-production-evidence-runbook.md 运行 verifier 并提交通过后的 manifest。
+
 ### USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518: 补齐生产规模证据目录导入校验入口
 
 - Status: done
