@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-REWRITE-EXPLAIN-EVIDENCE-20260518: 串联 EXPLAIN 证据到改写试算推荐
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-EXPLAIN-EVIDENCE-20260518 carry explain evidence into rewrite trials`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把 parse batch 已有的 Hetu EXPLAIN planAnalysisJson 带入 rewrite trial 来源问题与推荐证据模型：sourceProblems 附带 explain plan 摘要，推荐 evidenceLevel 从纯 STATIC_PARSE 提升为带 EXPLAIN 的 MIXED，仅作为 EXPLAIN_ONLY 证据；不执行任意 SQL、不新增 schema、不改变自动应用边界。
+- Validation:
+  - `mvn -pl sql-optimization,sqlforge-shared -am -Dtest=RewriteTrialApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+  - `mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false`
+  - `node scripts/lint-repository-knowledge.js`
+  - `git diff --check`
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-EXPLAIN-EVIDENCE-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-18: wired parse batch planAnalysisJson into rewrite trial sourceProblems as bounded EXPLAIN_ONLY planEvidence.
+  - 2026-05-18: promoted persisted recommendations with successful EXPLAIN evidence to MIXED evidenceLevel while preserving no-real-gain and no-result-equivalence claim boundaries.
+- Context closeout:
+  - Completed scope: 把 parse batch 已有 Hetu EXPLAIN planAnalysisJson 带入 rewrite trial 来源问题和持久化推荐证据模型：sourceProblems 增加 EXPLAIN_ONLY planEvidence 摘要，成功 EXPLAIN 的 recommendation evidenceLevel 提升为 MIXED，并在 expectedBenefit/estimatedCost 中保留非真实收益、非结果等价边界；不执行任意 SQL、不新增 schema、不改变自动应用边界。
+  - Validation evidence: mvn -pl sql-optimization,sqlforge-shared -am -Dtest=RewriteTrialApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test passed with 7 tests; mvn -pl sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false passed with 250 tests; node scripts/lint-repository-knowledge.js passed; git diff --check passed; python3 scripts/foreman.py validate USER-CN-REWRITE-EXPLAIN-EVIDENCE-20260518 passed; python3 scripts/task_audit.py --check --phase pre-closeout passed.
+  - Residual risk: 本任务只接入 parse batch 已有 EXPLAIN 证据并保留 EXPLAIN_ONLY 边界，仍未完成真实结果等价验证、执行前后成本对比、运行时统计回放、并发压测或 30PB 数据布局证据。
+  - Next step: 继续接入 rewrite validation / benchmark 比对，把 candidate SQL 与原 SQL 的结果等价、EXPLAIN 前后差异和运行时收益形成闭环。
+
 ### USER-CN-REWRITE-50-TRIAL-INTEGRATION-20260518: 串联 50 类改写规则到试算问题链路
 
 - Status: done

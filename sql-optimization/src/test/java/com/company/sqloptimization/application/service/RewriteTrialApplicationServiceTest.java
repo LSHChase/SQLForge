@@ -178,6 +178,40 @@ class RewriteTrialApplicationServiceTest {
     }
 
     @Test
+    void shouldCarryExplainPlanEvidenceFromParseBatchIntoRecommendation() {
+        batchRepository.save(batch("batch-001"));
+        ParseBatchItem item = item("item-001", 1,
+            "SELECT count(1) FROM orders WHERE id = 1 AND id = 1", "VALID", ParseBatchItemStatus.SUCCESS);
+        item.recordPlanAnalysis(
+            "SUCCESS",
+            "SUCCESS",
+            "{\"status\":\"SUCCESS\",\"planText\":\"Fragment 0: scan orders\",\"datasourceCode\":\"hetu_main\","
+                + "\"costMs\":12,\"evidence\":[\"sqlExecution=EXPLAIN_ONLY\"]}",
+            Instant.now()
+        );
+        batchItemRepository.save(item);
+
+        RewriteTrialBatchRequest request = new RewriteTrialBatchRequest();
+        request.setTenantId("tenant-a");
+        RewriteTrialRunVO run = service.createBatchTrial("batch-001", request);
+
+        assertEquals("RECOMMENDED", run.getTrialStatus());
+        Map<String, Object> planEvidence = nestedMap(run.getItems().get(0).getSourceProblems().get(0), "planEvidence");
+        assertEquals("EXPLAIN_PLAN", planEvidence.get("evidenceLevel"));
+        assertEquals("SUCCESS", planEvidence.get("planAnalysisStatus"));
+        assertEquals("EXPLAIN_ONLY_NOT_RESULT_EQUIVALENCE", planEvidence.get("claimBoundary"));
+
+        AccelerationRecommendation recommendation =
+            recommendationRepository.findByRecommendationId(run.getItems().get(0).getRecommendationId());
+        assertNotNull(recommendation);
+        assertEquals("MIXED", recommendation.getEvidenceLevel().name());
+        assertEquals("SUCCESS", recommendation.getExpectedBenefit().get("planEvidenceStatus"));
+        Map<String, Object> costPlanEvidence = nestedMap(recommendation.getEstimatedCost(), "planEvidence");
+        assertEquals("EXPLAIN_PLAN", costPlanEvidence.get("evidenceLevel"));
+        assertEquals(Boolean.TRUE, recommendation.getEstimatedCost().get("explainPlanAvailable"));
+    }
+
+    @Test
     void shouldAggregateRewriteTrialStatisticsBySourceIssue() {
         RewriteTrialRequest candidate = new RewriteTrialRequest();
         candidate.setTenantId("tenant-a");
@@ -235,6 +269,13 @@ class RewriteTrialApplicationServiceTest {
             }
         }
         return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> nestedMap(Map<String, Object> value, String key) {
+        Object nested = value.get(key);
+        assertTrue(nested instanceof Map);
+        return (Map<String, Object>) nested;
     }
 
     private ParseBatch batch(String batchId) {

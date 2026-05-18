@@ -181,6 +181,8 @@ public class RewriteTrialApplicationService {
     );
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<List<String>>() {
     };
+    private static final TypeReference<Map<String, Object>> STRING_OBJECT_MAP_TYPE = new TypeReference<Map<String, Object>>() {
+    };
 
     private final RewriteTrialRepository rewriteTrialRepository;
     private final ParseBatchRepository parseBatchRepository;
@@ -231,6 +233,7 @@ public class RewriteTrialApplicationService {
             request.getSqlText(),
             request.getSourceProblems(),
             Collections.<String>emptySet(),
+            null,
             now
         );
         rewriteTrialRepository.saveItem(item);
@@ -294,6 +297,7 @@ public class RewriteTrialApplicationService {
                 batchItem.getSqlText(),
                 null,
                 issueFilter,
+                batchItem.getPlanAnalysisJson(),
                 now
             );
             if (item.getTrialStatus() != RewriteTrialStatus.NOT_REQUESTED) {
@@ -405,6 +409,7 @@ public class RewriteTrialApplicationService {
                                          String sqlText,
                                          List<Map<String, Object>> requestedSourceProblems,
                                          Set<String> issueFilter,
+                                         String planAnalysisJson,
                                          Instant now) {
         String sqlFingerprint = StringUtils.hasText(sqlText) ? SqlFingerprintUtils.fingerprint(sqlText.trim()) : null;
         try {
@@ -412,9 +417,11 @@ public class RewriteTrialApplicationService {
                 pipelineService.analyze(sqlText, DataSourceTypeEnum.AUTO);
             OptimizationTaskSuggestion suggestion = pipelineService.buildRewriteSuggestion(profile);
             List<String> appliedRules = readAppliedRules(suggestion);
+            Map<String, Object> planEvidence = planEvidence(planAnalysisJson);
             List<Map<String, Object>> sourceProblems = requestedSourceProblems == null || requestedSourceProblems.isEmpty()
-                ? deriveSourceProblems(profile, appliedRules, parseTaskId, parseHistoryId, historyId, batchItemId)
+                ? deriveSourceProblems(profile, appliedRules, parseTaskId, parseHistoryId, historyId, batchItemId, planEvidence)
                 : normalizeSourceProblems(requestedSourceProblems, parseTaskId, parseHistoryId, historyId, batchItemId);
+            sourceProblems = withPlanEvidence(sourceProblems, planEvidence);
             sourceProblems = applyIssueFilter(sourceProblems, issueFilter);
             if (sourceProblems.isEmpty()) {
                 return RewriteTrialItem.builder()
@@ -453,7 +460,7 @@ public class RewriteTrialApplicationService {
             }
             String recommendationId = candidateGenerated
                 ? persistRecommendation(run, parseTaskId, parseHistoryId, historyId, datasourceCode, sqlText, sqlFingerprint,
-                    candidateSql, sourceProblems, issueRuleLinks, profile, suggestion)
+                    candidateSql, sourceProblems, issueRuleLinks, profile, suggestion, planEvidence)
                 : null;
             return RewriteTrialItem.builder()
                 .trialItemId(UUID.randomUUID().toString())
@@ -520,7 +527,8 @@ public class RewriteTrialApplicationService {
                                                            String parseTaskId,
                                                            String parseHistoryId,
                                                            String historyId,
-                                                           String batchItemId) {
+                                                           String batchItemId,
+                                                           Map<String, Object> planEvidence) {
         LinkedHashMap<String, Map<String, Object>> problems = new LinkedHashMap<String, Map<String, Object>>();
         for (String appliedRule : appliedRules) {
             if (SAFE_REWRITE_PROBLEMS.contains(appliedRule)) {
@@ -552,6 +560,7 @@ public class RewriteTrialApplicationService {
             historyId,
             batchItemId
         );
+        attachPlanEvidence(problems, planEvidence);
         return new ArrayList<Map<String, Object>>(problems.values());
     }
 
@@ -592,6 +601,35 @@ public class RewriteTrialApplicationService {
         return Boolean.TRUE.equals(entry.get("manualReviewRequired"))
             || "NOT_APPLIED".equals(status)
             || "PULL_ONLY_CANDIDATE".equals(status);
+    }
+
+    private void attachPlanEvidence(LinkedHashMap<String, Map<String, Object>> problems,
+                                    Map<String, Object> planEvidence) {
+        if (problems == null || problems.isEmpty() || planEvidence == null || planEvidence.isEmpty()) {
+            return;
+        }
+        for (Map<String, Object> problem : problems.values()) {
+            problem.put("planEvidence", planEvidence);
+        }
+    }
+
+    private List<Map<String, Object>> withPlanEvidence(List<Map<String, Object>> sourceProblems,
+                                                       Map<String, Object> planEvidence) {
+        if (sourceProblems == null || sourceProblems.isEmpty() || planEvidence == null || planEvidence.isEmpty()) {
+            return sourceProblems;
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(sourceProblems.size());
+        for (Map<String, Object> sourceProblem : sourceProblems) {
+            if (sourceProblem == null || sourceProblem.isEmpty()) {
+                continue;
+            }
+            LinkedHashMap<String, Object> copy = new LinkedHashMap<String, Object>(sourceProblem);
+            if (!copy.containsKey("planEvidence")) {
+                copy.put("planEvidence", planEvidence);
+            }
+            result.add(copy);
+        }
+        return result;
     }
 
     private List<Map<String, Object>> normalizeSourceProblems(List<Map<String, Object>> requested,
@@ -759,7 +797,8 @@ public class RewriteTrialApplicationService {
                                          List<Map<String, Object>> sourceProblems,
                                          List<Map<String, Object>> issueRuleLinks,
                                          SqlOptimizationPipelineService.ParsedSqlProfile profile,
-                                         OptimizationTaskSuggestion suggestion) {
+                                         OptimizationTaskSuggestion suggestion,
+                                         Map<String, Object> planEvidence) {
         String recommendationId = recommendationIdFor(idempotencyKey(run, sqlFingerprint, sourceProblems));
         if (recommendationRepository.findByRecommendationId(recommendationId) != null) {
             return recommendationId;
@@ -791,15 +830,15 @@ public class RewriteTrialApplicationService {
             .sourceType(GovernanceSourceType.PARSE)
             .sourceKind(resolveGovernanceSourceKind(run.getSourceKind()))
             .sourceId(firstText(run.getSourceId(), parseHistoryId, parseTaskId, historyId, run.getBatchId()))
-            .evidenceLevel(EvidenceLevel.STATIC_PARSE)
+            .evidenceLevel(recommendationEvidenceLevel(planEvidence))
             .sourceProblems(sourceProblems)
             .issueRuleLinks(issueRuleLinks)
             .ruleChain(ruleModel.getRuleChain())
             .unappliedRules(ruleModel.getUnappliedRules())
             .preconditions(ruleModel.getPreconditions())
             .semanticRisks(ruleModel.getSemanticRisks())
-            .expectedBenefit(ruleModel.getExpectedBenefit())
-            .estimatedCost(ruleModel.getEstimatedCost())
+            .expectedBenefit(expectedBenefitWithPlanEvidence(ruleModel.getExpectedBenefit(), planEvidence))
+            .estimatedCost(estimatedCostWithPlanEvidence(ruleModel.getEstimatedCost(), planEvidence))
             .confidence(ruleModel.getConfidence())
             .validationMethod(ruleModel.getValidationMethod())
             .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
@@ -827,6 +866,95 @@ public class RewriteTrialApplicationService {
             return suggestion.getBenefits().get(0).getSummary();
         }
         return "已生成可进入结果校验的静态试算候选。";
+    }
+
+    private Map<String, Object> planEvidence(String planAnalysisJson) {
+        if (!StringUtils.hasText(planAnalysisJson)) {
+            return Collections.emptyMap();
+        }
+        try {
+            Map<String, Object> raw = objectMapper.readValue(planAnalysisJson, STRING_OBJECT_MAP_TYPE);
+            String status = objectText(raw.get("status"));
+            if (!StringUtils.hasText(status)) {
+                return Collections.emptyMap();
+            }
+            LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
+            boolean explainAvailable = "SUCCESS".equals(status);
+            evidence.put("evidenceLevel", explainAvailable ? EvidenceLevel.EXPLAIN_PLAN.name() : EvidenceLevel.STATIC_PARSE.name());
+            evidence.put("planAnalysisStatus", status);
+            evidence.put("claimBoundary", "EXPLAIN_ONLY_NOT_RESULT_EQUIVALENCE");
+            evidence.put("planTextAvailable", Boolean.valueOf(StringUtils.hasText(objectText(raw.get("planText")))));
+            String datasourceCode = objectText(raw.get("datasourceCode"));
+            if (StringUtils.hasText(datasourceCode)) {
+                evidence.put("datasourceCode", datasourceCode);
+            }
+            Object costMs = raw.get("costMs");
+            if (costMs != null) {
+                evidence.put("explainAnalysisCostMs", costMs);
+            }
+            Object rawEvidence = raw.get("evidence");
+            if (rawEvidence != null) {
+                evidence.put("evidence", rawEvidence);
+            }
+            String failureReason = objectText(raw.get("failureReason"));
+            if (StringUtils.hasText(failureReason)) {
+                evidence.put("failureReason", failureReason);
+            }
+            String planText = objectText(raw.get("planText"));
+            if (StringUtils.hasText(planText)) {
+                evidence.put("planTextPreview", abbreviate(planText, 512));
+            }
+            return evidence;
+        } catch (Exception ex) {
+            LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
+            evidence.put("evidenceLevel", EvidenceLevel.STATIC_PARSE.name());
+            evidence.put("planAnalysisStatus", "UNREADABLE");
+            evidence.put("claimBoundary", "EXPLAIN_EVIDENCE_UNREADABLE");
+            evidence.put("failureReason", abbreviate(ex.getMessage(), 256));
+            return evidence;
+        }
+    }
+
+    private EvidenceLevel recommendationEvidenceLevel(Map<String, Object> planEvidence) {
+        if (planEvidence != null && EvidenceLevel.EXPLAIN_PLAN.name().equals(objectText(planEvidence.get("evidenceLevel")))) {
+            return EvidenceLevel.MIXED;
+        }
+        return EvidenceLevel.STATIC_PARSE;
+    }
+
+    private Map<String, Object> expectedBenefitWithPlanEvidence(Map<String, Object> expectedBenefit,
+                                                                Map<String, Object> planEvidence) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<String, Object>();
+        if (expectedBenefit != null) {
+            result.putAll(expectedBenefit);
+        }
+        if (planEvidence != null && !planEvidence.isEmpty()) {
+            result.put("planEvidenceStatus", planEvidence.get("planAnalysisStatus"));
+            result.put("claimBoundary", "STATIC_REWRITE_WITH_EXPLAIN_ONLY_NOT_REAL_GAIN");
+        }
+        return result;
+    }
+
+    private Map<String, Object> estimatedCostWithPlanEvidence(Map<String, Object> estimatedCost,
+                                                              Map<String, Object> planEvidence) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<String, Object>();
+        if (estimatedCost != null) {
+            result.putAll(estimatedCost);
+        }
+        if (planEvidence != null && !planEvidence.isEmpty()) {
+            boolean explainAvailable = EvidenceLevel.EXPLAIN_PLAN.name().equals(objectText(planEvidence.get("evidenceLevel")));
+            result.put("evidenceType", explainAvailable ? "STATIC_HEURISTIC_WITH_EXPLAIN_PLAN" : "STATIC_HEURISTIC");
+            result.put("explainPlanAvailable", Boolean.valueOf(explainAvailable));
+            result.put("planEvidence", planEvidence);
+        }
+        return result;
+    }
+
+    private String abbreviate(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength);
     }
 
     private List<String> readAppliedRules(OptimizationTaskSuggestion suggestion) {
