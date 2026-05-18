@@ -72,7 +72,9 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"scaleTarget\""));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("prod-run-20260518/concurrency.log"));
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("prod-run-20260518/daily-query-volume.json"));
         assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"observedConcurrency\":10000"));
+        assertTrue(response.getTestSet().getCases().get(0).getRawCaseDataJson().contains("\"observedDailyQueryVolume\":10000000"));
         assertEquals("QUEUED", response.getBenchmarkTask().getStatus().name());
         assertNotNull(repository.findTestSetByTestSetId(response.getTestSet().getTestSetId()));
 
@@ -151,6 +153,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
         BenchmarkScaleEvidenceManifestDTO manifest = new BenchmarkScaleEvidenceManifestDTO();
         manifest.setEvidenceSource("PROD_REPLAY");
         manifest.setConcurrencyProofRef("prod-run-20260518/concurrency.log");
+        manifest.setDailyQueryVolumeProofRef("prod-run-20260518/daily-query-volume.json");
         manifest.setDataLayoutProofRef("prod-run-20260518/data-layout-30pb.json");
         manifest.setWorkloadReplayProofRef("prod-run-20260518/replay-window.log");
         manifest.setWorkloadReplayWindow("2026-05-17T00:00Z/2026-05-18T00:00Z");
@@ -165,6 +168,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
     private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {
         BenchmarkScaleEvidenceBundleDTO bundle = new BenchmarkScaleEvidenceBundleDTO();
         bundle.setObservedConcurrency(Integer.valueOf(10000));
+        bundle.setObservedDailyQueryVolume(Long.valueOf(10000000L));
         bundle.setObservedDatasetSizeBytes(Long.valueOf(30000000000000000L));
         bundle.setWorkloadReplayDurationHours(new BigDecimal("24"));
         bundle.setP95LatencyMs(new BigDecimal("120"));

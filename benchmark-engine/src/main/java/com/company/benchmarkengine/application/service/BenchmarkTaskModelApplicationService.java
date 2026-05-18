@@ -279,6 +279,7 @@ public class BenchmarkTaskModelApplicationService {
         BenchmarkScaleEvidenceManifest evidenceManifest = new BenchmarkScaleEvidenceManifest(
             evidenceManifestDto.getEvidenceSource(),
             evidenceManifestDto.getConcurrencyProofRef(),
+            evidenceManifestDto.getDailyQueryVolumeProofRef(),
             evidenceManifestDto.getDataLayoutProofRef(),
             evidenceManifestDto.getWorkloadReplayProofRef(),
             evidenceManifestDto.getWorkloadReplayWindow(),
@@ -297,6 +298,7 @@ public class BenchmarkTaskModelApplicationService {
         }
         BenchmarkScaleEvidenceBundle bundle = new BenchmarkScaleEvidenceBundle(
             bundleDto.getObservedConcurrency(),
+            bundleDto.getObservedDailyQueryVolume(),
             bundleDto.getObservedDatasetSizeBytes(),
             bundleDto.getWorkloadReplayDurationHours(),
             bundleDto.getP95LatencyMs(),

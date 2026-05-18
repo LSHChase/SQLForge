@@ -121,6 +121,7 @@ public class SqlOptimizationPipelineService {
     private static final List<String> PRODUCTION_SCALE_REQUIRED_EVIDENCE = Collections.unmodifiableList(
         Arrays.asList(
             "VERIFIED_10000_CONCURRENCY",
+            "VERIFIED_10M_DAILY_QUERY_VOLUME",
             "VERIFIED_30PB_DATA_LAYOUT",
             "VERIFIED_24H_WORKLOAD_REPLAY",
             "VERIFIED_P95_P99_LATENCY",

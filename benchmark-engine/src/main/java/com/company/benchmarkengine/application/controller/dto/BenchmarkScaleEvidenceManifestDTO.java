@@ -11,6 +11,9 @@ public class BenchmarkScaleEvidenceManifestDTO {
     @Size(max = 256, message = "concurrencyProofRef 超过 256 个字符")
     private String concurrencyProofRef;
 
+    @Size(max = 256, message = "dailyQueryVolumeProofRef 超过 256 个字符")
+    private String dailyQueryVolumeProofRef;
+
     @Size(max = 256, message = "dataLayoutProofRef 超过 256 个字符")
     private String dataLayoutProofRef;
 
@@ -49,6 +52,14 @@ public class BenchmarkScaleEvidenceManifestDTO {
 
     public void setConcurrencyProofRef(String concurrencyProofRef) {
         this.concurrencyProofRef = concurrencyProofRef;
+    }
+
+    public String getDailyQueryVolumeProofRef() {
+        return dailyQueryVolumeProofRef;
+    }
+
+    public void setDailyQueryVolumeProofRef(String dailyQueryVolumeProofRef) {
+        this.dailyQueryVolumeProofRef = dailyQueryVolumeProofRef;
     }
 
     public String getDataLayoutProofRef() {

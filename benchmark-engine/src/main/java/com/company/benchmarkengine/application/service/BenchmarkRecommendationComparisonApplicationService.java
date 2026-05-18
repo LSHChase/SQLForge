@@ -373,6 +373,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
         BenchmarkScaleEvidenceManifest evidenceManifest = new BenchmarkScaleEvidenceManifest(
             evidenceManifestDto.getEvidenceSource(),
             evidenceManifestDto.getConcurrencyProofRef(),
+            evidenceManifestDto.getDailyQueryVolumeProofRef(),
             evidenceManifestDto.getDataLayoutProofRef(),
             evidenceManifestDto.getWorkloadReplayProofRef(),
             evidenceManifestDto.getWorkloadReplayWindow(),
@@ -391,6 +392,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
         }
         BenchmarkScaleEvidenceBundle bundle = new BenchmarkScaleEvidenceBundle(
             bundleDto.getObservedConcurrency(),
+            bundleDto.getObservedDailyQueryVolume(),
             bundleDto.getObservedDatasetSizeBytes(),
             bundleDto.getWorkloadReplayDurationHours(),
             bundleDto.getP95LatencyMs(),
@@ -557,6 +559,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
         return evidenceManifest != null
             && (hasText(evidenceManifest.getEvidenceSource())
             || hasText(evidenceManifest.getConcurrencyProofRef())
+            || hasText(evidenceManifest.getDailyQueryVolumeProofRef())
             || hasText(evidenceManifest.getDataLayoutProofRef())
             || hasText(evidenceManifest.getWorkloadReplayProofRef())
             || hasText(evidenceManifest.getWorkloadReplayWindow())
@@ -570,6 +573,7 @@ public class BenchmarkRecommendationComparisonApplicationService {
     private boolean hasAnyEvidenceBundle(BenchmarkScaleEvidenceBundleDTO verificationBundle) {
         return verificationBundle != null
             && (verificationBundle.getObservedConcurrency() != null
+            || verificationBundle.getObservedDailyQueryVolume() != null
             || verificationBundle.getObservedDatasetSizeBytes() != null
             || verificationBundle.getWorkloadReplayDurationHours() != null
             || verificationBundle.getP95LatencyMs() != null

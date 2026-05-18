@@ -26,13 +26,14 @@ _No tasks._
 - Status: blocked
 - Priority: 1
 - Depends on: USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-INGEST-20260518
-- Scope: 等待外部生产或准生产环境 owner 提供真实压测 evidence directory 与通过校验后的 `verification-result.json`，覆盖 10000 并发、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单；在 artifacts 到位前不得把 repo-side verifier、runbook 或测试 fixtures 视为生产规模目标完成。
+- Scope: 等待外部生产或准生产环境 owner 提供真实压测 evidence directory 与通过校验后的 `verification-result.json`，覆盖 10000 并发、千万级日查询、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单；在 artifacts 到位前不得把 repo-side verifier、runbook 或测试 fixtures 视为生产规模目标完成。
 - Validation:
   - `python3 scripts/verify-benchmark-production-evidence.py --evidence-dir <external-evidence-dir> --output <external-evidence-dir>/verification-result.json`
   - `python3 scripts/task_audit.py --check --phase pre-closeout`
   - `node scripts/lint-repository-knowledge.js`
 - Progress log:
   - 2026-05-18: 仓库侧 `scaleTarget` 边界、生产证据 bundle verifier、证据目录 CLI 和 runbook 已提交；完成度审计仍未在仓库内发现真实外部生产 artifacts。
+  - 2026-05-18: repo-side verifier/runbook 已补入 `daily-query-volume.json`，外部 artifacts 需要同时覆盖千万级日查询证明。
 - Next action: 外部环境 owner 按 `docs/deployments/benchmark-production-evidence-runbook.md` 收集 evidence directory，运行 `python3 scripts/verify-benchmark-production-evidence.py --evidence-dir <external-evidence-dir> --output <external-evidence-dir>/verification-result.json`，并归档原始 artifacts 与通过校验的 JSON 输出。
 - Escalation: 如果生产或准生产窗口、数据布局证明、长期 replay、指标导出或账单导出无法在目标周期提供，保持目标未完成并要求 owner 明确可执行窗口、证据归档位置和负责验收的人。
 - Human decision: 确认可用于留证的生产或准生产环境、执行窗口、证据目录归档位置、成本账单来源、谁运行 verifier，以及谁把通过后的 `scaleTargetEvidenceManifest` 提交到 benchmark 任务。

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518: 新增改写推荐生产就绪完成度审计 CLI
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518 add rewrite production readiness audit`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-PRODUCTION-SCALE-GATE-20260518
+- Scope: 新增一个 repo-side 完成度审计入口，把 SQL 推荐改写调研、50+ SELECT 规则覆盖、productionScaleGate、禁止静态自动应用与外部生产规模 verification-result.json 串成 prompt-to-artifact checklist；没有外部 VERIFIED 证据时必须输出 BLOCKED/非零退出，避免把仓库侧测试误判为 30PB/千万级日查询目标完成。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 SQL 改写生产就绪审计 CLI；把压测生产证据模型、校验器、DTO、持久化、报告和文档补齐千万级日查询证明要求；生产就绪审计在缺少外部 verification-result.json 时返回 BLOCKED。
+  - Validation evidence: python3 scripts/verify-benchmark-production-evidence.py --self-test；python3 scripts/audit-rewrite-production-readiness.py --self-test；python3 scripts/audit-rewrite-production-readiness.py（预期 code=2/BLOCKED，无外部 verification-result.json）；mvn -pl sql-optimization,sqlforge-shared -am -Dtest=SqlOptimizationPipelineServiceTest#shouldBuildLayeredRecommendationRuleOutputModel,RewriteTrialApplicationServiceTest#shouldCreateSingleTrialRecommendationFromSafeParseProblems -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl benchmark-engine,sql-optimization,sqlforge-shared -am test -Dsurefire.failIfNoSpecifiedTests=false；node scripts/lint-repository-knowledge.js；node scripts/check-developer-copy-language.mjs --changed；git diff --check；python3 scripts/foreman.py validate USER-CN-REWRITE-PRODUCTION-READINESS-AUDIT-20260518；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实 30PB/千万级日查询生产 evidence 目录和 verification-result.json 尚未由外部环境提供，目标整体仍保持阻断。
+  - Next step: 由生产/预发环境提供包含 daily-query-volume.json 的 evidence 目录，运行 verify-benchmark-production-evidence.py 输出 verification-result.json 后再运行 audit-rewrite-production-readiness.py。
+
 ### USER-CN-REWRITE-PRODUCTION-SCALE-GATE-20260518: 在改写推荐模型中显式携带生产规模证据门禁
 
 - Status: done

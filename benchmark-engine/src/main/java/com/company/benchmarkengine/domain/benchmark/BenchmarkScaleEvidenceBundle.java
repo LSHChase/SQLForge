@@ -8,12 +8,14 @@ import java.util.List;
 public class BenchmarkScaleEvidenceBundle {
 
     public static final int MIN_PRODUCTION_CONCURRENCY = 10000;
+    public static final long MIN_PRODUCTION_DAILY_QUERY_VOLUME = 10000000L;
     public static final long MIN_PRODUCTION_DATASET_SIZE_BYTES = 30000000000000000L;
     public static final BigDecimal MIN_LONG_REPLAY_HOURS = new BigDecimal("24");
 
     private static final BigDecimal ZERO = BigDecimal.ZERO;
 
     private final Integer observedConcurrency;
+    private final Long observedDailyQueryVolume;
     private final Long observedDatasetSizeBytes;
     private final BigDecimal workloadReplayDurationHours;
     private final BigDecimal p95LatencyMs;
@@ -26,6 +28,7 @@ public class BenchmarkScaleEvidenceBundle {
     private final String verifierRef;
 
     public BenchmarkScaleEvidenceBundle(Integer observedConcurrency,
+                                        Long observedDailyQueryVolume,
                                         Long observedDatasetSizeBytes,
                                         BigDecimal workloadReplayDurationHours,
                                         BigDecimal p95LatencyMs,
@@ -37,6 +40,7 @@ public class BenchmarkScaleEvidenceBundle {
                                         String costBillCurrency,
                                         String verifierRef) {
         this.observedConcurrency = observedConcurrency;
+        this.observedDailyQueryVolume = observedDailyQueryVolume;
         this.observedDatasetSizeBytes = observedDatasetSizeBytes;
         this.workloadReplayDurationHours = workloadReplayDurationHours;
         this.p95LatencyMs = p95LatencyMs;
@@ -51,6 +55,7 @@ public class BenchmarkScaleEvidenceBundle {
 
     public boolean hasAnyEvidence() {
         return observedConcurrency != null
+            || observedDailyQueryVolume != null
             || observedDatasetSizeBytes != null
             || workloadReplayDurationHours != null
             || p95LatencyMs != null
@@ -72,6 +77,10 @@ public class BenchmarkScaleEvidenceBundle {
         int requiredConcurrency = requiredConcurrency(targetConcurrency);
         if (observedConcurrency != null && observedConcurrency.intValue() >= requiredConcurrency) {
             satisfied.add("productionEvidenceBundle.concurrency");
+        }
+        if (observedDailyQueryVolume != null
+            && observedDailyQueryVolume.longValue() >= MIN_PRODUCTION_DAILY_QUERY_VOLUME) {
+            satisfied.add("productionEvidenceBundle.dailyQueryVolume");
         }
         if (observedDatasetSizeBytes != null
             && observedDatasetSizeBytes.longValue() >= MIN_PRODUCTION_DATASET_SIZE_BYTES) {
@@ -109,6 +118,11 @@ public class BenchmarkScaleEvidenceBundle {
             missing.add("productionEvidenceBundle.concurrency:required=" + requiredConcurrency
                 + ",actual=" + observedConcurrency);
         }
+        if (observedDailyQueryVolume == null
+            || observedDailyQueryVolume.longValue() < MIN_PRODUCTION_DAILY_QUERY_VOLUME) {
+            missing.add("productionEvidenceBundle.dailyQueryVolume:required="
+                + MIN_PRODUCTION_DAILY_QUERY_VOLUME + ",actual=" + observedDailyQueryVolume);
+        }
         if (observedDatasetSizeBytes == null
             || observedDatasetSizeBytes.longValue() < MIN_PRODUCTION_DATASET_SIZE_BYTES) {
             missing.add("productionEvidenceBundle.dataLayout30Pb:requiredBytes="
@@ -142,6 +156,10 @@ public class BenchmarkScaleEvidenceBundle {
 
     public Integer getObservedConcurrency() {
         return observedConcurrency;
+    }
+
+    public Long getObservedDailyQueryVolume() {
+        return observedDailyQueryVolume;
     }
 
     public Long getObservedDatasetSizeBytes() {

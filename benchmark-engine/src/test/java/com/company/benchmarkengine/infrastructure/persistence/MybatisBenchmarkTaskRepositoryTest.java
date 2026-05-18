@@ -110,8 +110,10 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertTrue(record.getScaleTargetJson().contains("\"targetConcurrency\":10000"));
         assertTrue(record.getScaleTargetJson().contains("\"targetDailyQueryVolume\":10000000"));
         assertTrue(record.getScaleTargetJson().contains("\"concurrencyProofRef\":\"prod-run-20260518/concurrency.log\""));
+        assertTrue(record.getScaleTargetJson().contains("\"dailyQueryVolumeProofRef\":\"prod-run-20260518/daily-query-volume.json\""));
         assertTrue(record.getScaleTargetJson().contains("\"verificationBundle\""));
         assertTrue(record.getScaleTargetJson().contains("\"observedConcurrency\":10000"));
+        assertTrue(record.getScaleTargetJson().contains("\"observedDailyQueryVolume\":10000000"));
         assertTrue(record.getThresholdsJson().contains("P99_LATENCY_MS"));
         assertEquals("comparison-dual-engine", record.getTemplateId());
         assertEquals("CROSS_ENGINE_COMPARISON", record.getTemplateType());
@@ -140,8 +142,12 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertNotNull(restored.getScaleTarget().getEvidenceManifest());
         assertEquals("prod-run-20260518/data-layout-30pb.json",
             restored.getScaleTarget().getEvidenceManifest().getDataLayoutProofRef());
+        assertEquals("prod-run-20260518/daily-query-volume.json",
+            restored.getScaleTarget().getEvidenceManifest().getDailyQueryVolumeProofRef());
         assertEquals("UNVERIFIED", restored.getScaleTarget().getEvidenceManifest().getExternalVerificationStatus());
         assertNotNull(restored.getScaleTarget().getEvidenceManifest().getVerificationBundle());
+        assertEquals(Long.valueOf(10000000L),
+            restored.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedDailyQueryVolume());
         assertEquals(Long.valueOf(30000000000000000L),
             restored.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedDatasetSizeBytes());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, restored.getTemplateType());
@@ -520,6 +526,7 @@ class MybatisBenchmarkTaskRepositoryTest {
         BenchmarkScaleEvidenceManifestDTO manifest = new BenchmarkScaleEvidenceManifestDTO();
         manifest.setEvidenceSource("PROD_REPLAY");
         manifest.setConcurrencyProofRef("prod-run-20260518/concurrency.log");
+        manifest.setDailyQueryVolumeProofRef("prod-run-20260518/daily-query-volume.json");
         manifest.setDataLayoutProofRef("prod-run-20260518/data-layout-30pb.json");
         manifest.setWorkloadReplayProofRef("prod-run-20260518/replay-window.log");
         manifest.setWorkloadReplayWindow("2026-05-17T00:00Z/2026-05-18T00:00Z");
@@ -534,6 +541,7 @@ class MybatisBenchmarkTaskRepositoryTest {
     private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {
         BenchmarkScaleEvidenceBundleDTO bundle = new BenchmarkScaleEvidenceBundleDTO();
         bundle.setObservedConcurrency(Integer.valueOf(10000));
+        bundle.setObservedDailyQueryVolume(Long.valueOf(10000000L));
         bundle.setObservedDatasetSizeBytes(Long.valueOf(30000000000000000L));
         bundle.setWorkloadReplayDurationHours(new BigDecimal("24"));
         bundle.setP95LatencyMs(new BigDecimal("120"));

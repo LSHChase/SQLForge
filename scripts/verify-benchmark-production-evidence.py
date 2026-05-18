@@ -14,6 +14,7 @@ from typing import Any
 
 
 MIN_PRODUCTION_CONCURRENCY = 10000
+MIN_PRODUCTION_DAILY_QUERY_VOLUME = 10000000
 MIN_PRODUCTION_DATASET_SIZE_BYTES = 30000000000000000
 MIN_LONG_REPLAY_HOURS = Decimal("24")
 
@@ -92,6 +93,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
     parse_errors: list[str] = []
     manifest_refs: dict[str, str | None] = {
         "concurrencyProofRef": None,
+        "dailyQueryVolumeProofRef": None,
         "dataLayoutProofRef": None,
         "workloadReplayProofRef": None,
         "p95P99MetricProofRef": None,
@@ -111,6 +113,25 @@ def evaluate_evidence_dir(evidence_dir: Path,
     except EvidenceError as exc:
         parse_errors.append(str(exc))
         missing.append("productionEvidenceBundle.concurrency")
+
+    try:
+        daily_query_volume = read_json(evidence_dir / "daily-query-volume.json")
+        observed_daily_query_volume = parse_int(
+            daily_query_volume.get("observedDailyQueryVolume"),
+            "observedDailyQueryVolume",
+        )
+        bundle["observedDailyQueryVolume"] = observed_daily_query_volume
+        manifest_refs["dailyQueryVolumeProofRef"] = str(
+            daily_query_volume.get("proofRef") or "daily-query-volume.json"
+        )
+        if observed_daily_query_volume < MIN_PRODUCTION_DAILY_QUERY_VOLUME:
+            missing.append(
+                "productionEvidenceBundle.dailyQueryVolume:"
+                f"required={MIN_PRODUCTION_DAILY_QUERY_VOLUME},actual={observed_daily_query_volume}"
+            )
+    except EvidenceError as exc:
+        parse_errors.append(str(exc))
+        missing.append("productionEvidenceBundle.dailyQueryVolume")
 
     try:
         data_layout = read_json(evidence_dir / "data-layout.json")
@@ -182,6 +203,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
     manifest = {
         "evidenceSource": "PRODUCTION_EVIDENCE_DIRECTORY",
         "concurrencyProofRef": manifest_refs["concurrencyProofRef"],
+        "dailyQueryVolumeProofRef": manifest_refs["dailyQueryVolumeProofRef"],
         "dataLayoutProofRef": manifest_refs["dataLayoutProofRef"],
         "workloadReplayProofRef": manifest_refs["workloadReplayProofRef"],
         "workloadReplayWindow": workload_window,
@@ -196,6 +218,7 @@ def evaluate_evidence_dir(evidence_dir: Path,
         "externalVerificationStatus": external_status,
         "thresholds": {
             "targetConcurrency": target_concurrency,
+            "minDailyQueryVolume": MIN_PRODUCTION_DAILY_QUERY_VOLUME,
             "minDatasetSizeBytes": min_dataset_size_bytes,
             "minReplayHours": min_replay_hours,
         },
@@ -235,6 +258,11 @@ def run_self_test() -> int:
     with tempfile.TemporaryDirectory(prefix="benchmark-evidence-") as temp:
         evidence_dir = Path(temp)
         write_fixture(evidence_dir, "concurrency.json", '{"observedConcurrency": 10000, "proofRef": "concurrency.log"}')
+        write_fixture(
+            evidence_dir,
+            "daily-query-volume.json",
+            '{"observedDailyQueryVolume": 10000000, "proofRef": "daily-query-volume.log"}',
+        )
         write_fixture(
             evidence_dir,
             "data-layout.json",
@@ -277,6 +305,16 @@ def run_self_test() -> int:
         assert failed["status"] == "FAILED", failed
         assert failed["externalVerificationStatus"] == "UNVERIFIED", failed
         assert any("concurrency" in item for item in failed["missingEvidence"]), failed
+        write_fixture(evidence_dir, "concurrency.json", '{"observedConcurrency": 10000}')
+        write_fixture(evidence_dir, "daily-query-volume.json", '{"observedDailyQueryVolume": 9999999}')
+        failed_daily_volume = evaluate_evidence_dir(
+            evidence_dir,
+            MIN_PRODUCTION_CONCURRENCY,
+            MIN_PRODUCTION_DATASET_SIZE_BYTES,
+            MIN_LONG_REPLAY_HOURS,
+        )
+        assert failed_daily_volume["status"] == "FAILED", failed_daily_volume
+        assert any("dailyQueryVolume" in item for item in failed_daily_volume["missingEvidence"]), failed_daily_volume
     print("压测生产证据校验器自检通过")
     return 0
 

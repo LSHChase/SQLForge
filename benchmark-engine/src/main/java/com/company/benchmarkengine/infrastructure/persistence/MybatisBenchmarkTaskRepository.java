@@ -458,6 +458,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
         BenchmarkScaleEvidenceManifest evidenceManifest = new BenchmarkScaleEvidenceManifest(
             item.get("evidenceSource") == null ? null : String.valueOf(item.get("evidenceSource")),
             item.get("concurrencyProofRef") == null ? null : String.valueOf(item.get("concurrencyProofRef")),
+            item.get("dailyQueryVolumeProofRef") == null ? null : String.valueOf(item.get("dailyQueryVolumeProofRef")),
             item.get("dataLayoutProofRef") == null ? null : String.valueOf(item.get("dataLayoutProofRef")),
             item.get("workloadReplayProofRef") == null ? null : String.valueOf(item.get("workloadReplayProofRef")),
             item.get("workloadReplayWindow") == null ? null : String.valueOf(item.get("workloadReplayWindow")),
@@ -476,6 +477,7 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
         }
         BenchmarkScaleEvidenceBundle bundle = new BenchmarkScaleEvidenceBundle(
             readInteger(item.get("observedConcurrency")),
+            readLong(item.get("observedDailyQueryVolume")),
             readLong(item.get("observedDatasetSizeBytes")),
             readBigDecimal(item.get("workloadReplayDurationHours")),
             readBigDecimal(item.get("p95LatencyMs")),

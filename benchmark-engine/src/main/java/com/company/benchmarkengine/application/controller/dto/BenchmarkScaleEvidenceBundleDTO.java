@@ -10,6 +10,9 @@ public class BenchmarkScaleEvidenceBundleDTO {
     @Min(value = 1L, message = "observedConcurrency 必须大于 0")
     private Integer observedConcurrency;
 
+    @Min(value = 1L, message = "observedDailyQueryVolume 必须大于 0")
+    private Long observedDailyQueryVolume;
+
     @Min(value = 1L, message = "observedDatasetSizeBytes 必须大于 0")
     private Long observedDatasetSizeBytes;
 
@@ -46,6 +49,14 @@ public class BenchmarkScaleEvidenceBundleDTO {
 
     public void setObservedConcurrency(Integer observedConcurrency) {
         this.observedConcurrency = observedConcurrency;
+    }
+
+    public Long getObservedDailyQueryVolume() {
+        return observedDailyQueryVolume;
+    }
+
+    public void setObservedDailyQueryVolume(Long observedDailyQueryVolume) {
+        this.observedDailyQueryVolume = observedDailyQueryVolume;
     }
 
     public Long getObservedDatasetSizeBytes() {

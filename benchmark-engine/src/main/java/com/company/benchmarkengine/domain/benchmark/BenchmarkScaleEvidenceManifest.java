@@ -11,6 +11,7 @@ public class BenchmarkScaleEvidenceManifest {
 
     private final String evidenceSource;
     private final String concurrencyProofRef;
+    private final String dailyQueryVolumeProofRef;
     private final String dataLayoutProofRef;
     private final String workloadReplayProofRef;
     private final String workloadReplayWindow;
@@ -32,6 +33,7 @@ public class BenchmarkScaleEvidenceManifest {
         this(
             evidenceSource,
             concurrencyProofRef,
+            null,
             dataLayoutProofRef,
             workloadReplayProofRef,
             workloadReplayWindow,
@@ -53,8 +55,35 @@ public class BenchmarkScaleEvidenceManifest {
                                           String costBillProofRef,
                                           String externalVerificationStatus,
                                           BenchmarkScaleEvidenceBundle verificationBundle) {
+        this(
+            evidenceSource,
+            concurrencyProofRef,
+            null,
+            dataLayoutProofRef,
+            workloadReplayProofRef,
+            workloadReplayWindow,
+            p95P99MetricProofRef,
+            scanCpuQueueMetricProofRef,
+            costBillProofRef,
+            externalVerificationStatus,
+            verificationBundle
+        );
+    }
+
+    public BenchmarkScaleEvidenceManifest(String evidenceSource,
+                                          String concurrencyProofRef,
+                                          String dailyQueryVolumeProofRef,
+                                          String dataLayoutProofRef,
+                                          String workloadReplayProofRef,
+                                          String workloadReplayWindow,
+                                          String p95P99MetricProofRef,
+                                          String scanCpuQueueMetricProofRef,
+                                          String costBillProofRef,
+                                          String externalVerificationStatus,
+                                          BenchmarkScaleEvidenceBundle verificationBundle) {
         this.evidenceSource = normalizeText(evidenceSource);
         this.concurrencyProofRef = normalizeText(concurrencyProofRef);
+        this.dailyQueryVolumeProofRef = normalizeText(dailyQueryVolumeProofRef);
         this.dataLayoutProofRef = normalizeText(dataLayoutProofRef);
         this.workloadReplayProofRef = normalizeText(workloadReplayProofRef);
         this.workloadReplayWindow = normalizeText(workloadReplayWindow);
@@ -70,6 +99,7 @@ public class BenchmarkScaleEvidenceManifest {
     public boolean hasAnyEvidence() {
         return hasText(evidenceSource)
             || hasText(concurrencyProofRef)
+            || hasText(dailyQueryVolumeProofRef)
             || hasText(dataLayoutProofRef)
             || hasText(workloadReplayProofRef)
             || hasText(workloadReplayWindow)
@@ -116,6 +146,10 @@ public class BenchmarkScaleEvidenceManifest {
 
     public String getConcurrencyProofRef() {
         return concurrencyProofRef;
+    }
+
+    public String getDailyQueryVolumeProofRef() {
+        return dailyQueryVolumeProofRef;
     }
 
     public String getDataLayoutProofRef() {

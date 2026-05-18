@@ -258,6 +258,7 @@ public class BenchmarkReportExportService {
             + ",verification=" + evidenceManifest.getExternalVerificationStatus()
             + ",verificationBundleSatisfied=" + evidenceManifest.hasVerifiedProductionEvidence(targetConcurrency)
             + ",concurrencyRef=" + evidenceManifest.getConcurrencyProofRef()
+            + ",dailyQueryVolumeRef=" + evidenceManifest.getDailyQueryVolumeProofRef()
             + ",dataLayoutRef=" + evidenceManifest.getDataLayoutProofRef()
             + ",replayRef=" + evidenceManifest.getWorkloadReplayProofRef()
             + ",metricRef=" + evidenceManifest.getP95P99MetricProofRef()

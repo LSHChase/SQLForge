@@ -9,6 +9,7 @@
 | File | Required fields | Purpose |
 |:---|:---|:---|
 | `concurrency.json` | `observedConcurrency`, optional `proofRef` | 证明真实并发数达到目标，默认目标为 `10000`。 |
+| `daily-query-volume.json` | `observedDailyQueryVolume`, optional `proofRef` | 证明真实日查询量达到千万级，默认目标为 `10000000`。 |
 | `data-layout.json` | `observedDatasetSizeBytes`, optional `proofRef` | 证明数据布局达到 30PB 字节级规模，默认阈值为 `30000000000000000`。 |
 | `workload-replay.json` | `workloadReplayDurationHours`, `workloadReplayWindow`, optional `proofRef` | 证明长期 workload replay，默认窗口不少于 24 小时。 |
 | `metrics.csv` | `p95_latency_ms`, `p99_latency_ms`, `scanned_bytes`, `cpu_usage_percent`, `queue_wait_ms` | 证明 P95/P99、扫描字节、CPU 和队列等待。多行时校验入口使用最大值作为保守证据。 |
@@ -34,6 +35,16 @@ python3 scripts/verify-benchmark-production-evidence.py --self-test
 
 通过时输出 `status=PASSED`、`externalVerificationStatus=VERIFIED`，并在 `scaleTargetEvidenceManifest` 下生成可提交到 benchmark task 的 manifest 片段。失败时输出 `status=FAILED`、`externalVerificationStatus=UNVERIFIED`，并列出 `missingEvidence` 和 `parseErrors`；失败输出不得用于声明 READY。
 
+验证 SQL 推荐改写目标的完整完成度时，再执行：
+
+```bash
+python3 scripts/audit-rewrite-production-readiness.py \
+  --verification-result /path/to/production-evidence/verification-result.json \
+  --output /path/to/production-evidence/rewrite-readiness-audit.json
+```
+
+该审计会同时检查推荐改写调研归档、50+ SELECT 规则覆盖、`productionScaleGate` 和外部 `VERIFIED` 证据。没有 `verification-result.json` 或缺少千万级日查询等任一外部证据时，输出 `overallStatus=BLOCKED`，不得把目标标记为完成。
+
 ## Submission Boundary
 
 只有满足以下条件，才能把输出 manifest 提交到 `scaleTarget.evidenceManifest`：
@@ -43,4 +54,4 @@ python3 scripts/verify-benchmark-production-evidence.py --self-test
 - `missingEvidence` 和 `parseErrors` 均为空。
 - 证据目录由外部生产或准生产环境产生，并已按环境留存策略归档。
 
-即使脚本通过，仓库内测试、manifest 或 verifier 也只是验证边界；没有外部 artifacts 时，不得把 10000 并发、30PB、长 replay、P95/P99、扫描/CPU/队列等待或成本账单写成已达成事实。
+即使脚本通过，仓库内测试、manifest 或 verifier 也只是验证边界；没有外部 artifacts 时，不得把 10000 并发、千万级日查询、30PB、长 replay、P95/P99、扫描/CPU/队列等待或成本账单写成已达成事实。

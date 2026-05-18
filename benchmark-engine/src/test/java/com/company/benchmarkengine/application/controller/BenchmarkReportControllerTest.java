@@ -52,8 +52,12 @@ public class BenchmarkReportControllerTest {
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.targetConcurrency").value(10000))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.concurrencyProofRef")
                 .value("prod-run-20260518/concurrency.log"))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.dailyQueryVolumeProofRef")
+                .value("prod-run-20260518/daily-query-volume.json"))
             .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.verificationBundle.observedConcurrency")
                 .value(10000))
+            .andExpect(jsonPath("$.scaleReadiness.scaleTarget.evidenceManifest.verificationBundle.observedDailyQueryVolume")
+                .value(10000000))
             .andExpect(content().string(containsString("productionExternalVerification")))
             .andExpect(content().string(containsString("productionEvidenceBundle")))
             .andExpect(jsonPath("$.scaleReadiness.observedQueueWaitMs").exists())
@@ -119,6 +123,7 @@ public class BenchmarkReportControllerTest {
                     + "\"targetCostEfficiency\":\"minimize-scan-cpu-and-cost-per-query\","
                     + "\"evidenceManifest\":{\"evidenceSource\":\"PROD_REPLAY\","
                     + "\"concurrencyProofRef\":\"prod-run-20260518/concurrency.log\","
+                    + "\"dailyQueryVolumeProofRef\":\"prod-run-20260518/daily-query-volume.json\","
                     + "\"dataLayoutProofRef\":\"prod-run-20260518/data-layout-30pb.json\","
                     + "\"workloadReplayProofRef\":\"prod-run-20260518/replay-window.log\","
                     + "\"workloadReplayWindow\":\"2026-05-17T00:00Z/2026-05-18T00:00Z\","
@@ -127,6 +132,7 @@ public class BenchmarkReportControllerTest {
                     + "\"costBillProofRef\":\"prod-run-20260518/cost-bill.csv\","
                     + "\"externalVerificationStatus\":\"UNVERIFIED\","
                     + "\"verificationBundle\":{\"observedConcurrency\":10000,"
+                    + "\"observedDailyQueryVolume\":10000000,"
                     + "\"observedDatasetSizeBytes\":30000000000000000,"
                     + "\"workloadReplayDurationHours\":24,"
                     + "\"p95LatencyMs\":120,\"p99LatencyMs\":240,"

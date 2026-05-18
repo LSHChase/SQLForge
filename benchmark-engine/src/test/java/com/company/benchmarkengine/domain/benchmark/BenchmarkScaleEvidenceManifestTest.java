@@ -25,6 +25,7 @@ class BenchmarkScaleEvidenceManifestTest {
             BenchmarkScaleEvidenceManifest.STATUS_VERIFIED,
             new BenchmarkScaleEvidenceBundle(
                 Integer.valueOf(9999),
+                Long.valueOf(9999999L),
                 Long.valueOf(29999999999999999L),
                 new BigDecimal("23.99"),
                 new BigDecimal("120"),
@@ -40,6 +41,7 @@ class BenchmarkScaleEvidenceManifestTest {
 
         assertFalse(manifest.isExternallyVerified(Integer.valueOf(10000)));
         assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(10000)).toString().contains("concurrency"));
+        assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(10000)).toString().contains("dailyQueryVolume"));
         assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(10000)).toString().contains("dataLayout30Pb"));
         assertTrue(manifest.missingVerificationEvidence(Integer.valueOf(10000)).toString().contains("longReplay"));
     }
@@ -60,6 +62,7 @@ class BenchmarkScaleEvidenceManifestTest {
         return new BenchmarkScaleEvidenceManifest(
             "PROD_REPLAY",
             "prod-run-20260518/concurrency.log",
+            "prod-run-20260518/daily-query-volume.json",
             "prod-run-20260518/data-layout-30pb.json",
             "prod-run-20260518/replay-window.log",
             "2026-05-17T00:00Z/2026-05-18T00:00Z",
@@ -74,6 +77,7 @@ class BenchmarkScaleEvidenceManifestTest {
     private BenchmarkScaleEvidenceBundle productionBundle(Integer observedConcurrency) {
         return new BenchmarkScaleEvidenceBundle(
             observedConcurrency,
+            Long.valueOf(10000000L),
             Long.valueOf(30000000000000000L),
             new BigDecimal("24"),
             new BigDecimal("120"),

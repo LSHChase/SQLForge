@@ -106,9 +106,13 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertNotNull(statusResponse.getScaleTarget().getEvidenceManifest());
         assertEquals("prod-run-20260518/concurrency.log",
             statusResponse.getScaleTarget().getEvidenceManifest().getConcurrencyProofRef());
+        assertEquals("prod-run-20260518/daily-query-volume.json",
+            statusResponse.getScaleTarget().getEvidenceManifest().getDailyQueryVolumeProofRef());
         assertNotNull(statusResponse.getScaleTarget().getEvidenceManifest().getVerificationBundle());
         assertEquals(Integer.valueOf(10000),
             statusResponse.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedConcurrency());
+        assertEquals(Long.valueOf(10000000L),
+            statusResponse.getScaleTarget().getEvidenceManifest().getVerificationBundle().getObservedDailyQueryVolume());
         assertEquals("comparison-dual-engine", statusResponse.getTemplateId());
         assertEquals(BenchmarkTemplateType.CROSS_ENGINE_COMPARISON, statusResponse.getTemplateType());
         assertEquals("set-route-comparison", statusResponse.getTestSetId());
@@ -175,6 +179,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         assertTrue(jsonArtifact.getContent().contains("\"scaleReadiness\""));
         assertTrue(pdfArtifact.getContent().contains("scaleReadiness=NOT_PROVEN"));
         assertTrue(pdfArtifact.getContent().contains("productionEvidence=source=PROD_REPLAY"));
+        assertTrue(pdfArtifact.getContent().contains("dailyQueryVolumeRef=prod-run-20260518/daily-query-volume.json"));
         assertTrue(pdfArtifact.getContent().contains("verificationBundleSatisfied=true"));
         assertTrue(htmlArtifact.getContent().contains("规模就绪"));
         assertTrue(htmlArtifact.getContent().contains("prod-run-20260518/cost-bill.csv"));
@@ -369,6 +374,7 @@ class BenchmarkTaskModelApplicationServiceTest {
         BenchmarkScaleEvidenceManifestDTO manifest = new BenchmarkScaleEvidenceManifestDTO();
         manifest.setEvidenceSource("PROD_REPLAY");
         manifest.setConcurrencyProofRef("prod-run-20260518/concurrency.log");
+        manifest.setDailyQueryVolumeProofRef("prod-run-20260518/daily-query-volume.json");
         manifest.setDataLayoutProofRef("prod-run-20260518/data-layout-30pb.json");
         manifest.setWorkloadReplayProofRef("prod-run-20260518/replay-window.log");
         manifest.setWorkloadReplayWindow("2026-05-17T00:00Z/2026-05-18T00:00Z");
@@ -383,6 +389,7 @@ class BenchmarkTaskModelApplicationServiceTest {
     private BenchmarkScaleEvidenceBundleDTO productionEvidenceBundle() {
         BenchmarkScaleEvidenceBundleDTO bundle = new BenchmarkScaleEvidenceBundleDTO();
         bundle.setObservedConcurrency(Integer.valueOf(10000));
+        bundle.setObservedDailyQueryVolume(Long.valueOf(10000000L));
         bundle.setObservedDatasetSizeBytes(Long.valueOf(30000000000000000L));
         bundle.setWorkloadReplayDurationHours(new BigDecimal("24"));
         bundle.setP95LatencyMs(new BigDecimal("120"));
