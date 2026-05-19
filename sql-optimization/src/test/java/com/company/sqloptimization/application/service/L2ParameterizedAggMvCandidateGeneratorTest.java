@@ -132,11 +132,6 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
     @Test
     void shouldBlockDeferredNonPrejoinMvShapesAndUnsafeRewriteCasesWithoutSql() {
         assertBlocked(
-            artifact("SELECT DATE_TRUNC('month', order_date) AS order_month, SUM(amount) AS total_amount "
-                + "FROM orders GROUP BY DATE_TRUNC('month', order_date)"),
-            "PARAMETERIZED_AGG_MV_ONLY"
-        );
-        assertBlocked(
             artifact("WITH recent_orders AS (SELECT customer_id, amount FROM orders) "
                 + "SELECT customer_id, SUM(amount) AS total_amount FROM recent_orders GROUP BY customer_id"),
             "COMMON_SUBGRAPH_MV_DEFERRED"

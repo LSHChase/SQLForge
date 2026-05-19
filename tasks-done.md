@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-008: 实现 ROLLUP_MV 候选生成
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-008 add rollup MV generator`
+- Priority: 1
+- Depends on: AMV-007
+- Scope: 支持保守自然日历的时间粒度上卷 MV 候选生成，新增 ROLLUP_MV 专用生成与路由，输出日粒度 MV 覆盖月/季/年查询的 DDL、MV-only rewrite SQL 和结构化 timeRollupEvidence；周粒度、财务日历、不可归一时间表达式、COUNT(DISTINCT)、百分位、中位数与复杂 UDAF 必须结构化阻断且不输出可发布 SQL；不改变 runtime 生效链路。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-008`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 ROLLUP_MV 专用候选生成器并接入 L2AccelerationArtifactBuilder；支持自然日历日粒度 MV 覆盖月/季度/年查询，生成细粒度 DDL、MV-only 二次聚合 rewrite SQL、AVG SUM/COUNT 组件重算和 timeRollupEvidence；周粒度、财务日历、不可归一时间表达式及不可合并指标保持结构化阻断且不输出 ddlSql/rewriteSql；runtime 生效链路仍为 PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE 与 NOT_CREATED。
+  - Validation evidence: mvn -pl sql-optimization -Dtest=L2RollupMvCandidateGeneratorTest,L2ParameterizedAggMvCandidateGeneratorTest,L2GrainMeasureDeriverTest,L2PrejoinMvCandidateGeneratorTest,L2StarAggMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization test; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate AMV-008; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: ROLLUP_MV 仍基于静态 SQL 画像和自然日历 DATE_TRUNC 语义，不证明财务日历、周起始日、时区转换或真实引擎物理收益；实际建表、刷新、审批发布与 runtime binding 仍需既有治理链路。
+  - Next step: AMV-009 可继续实现 COMMON_SUBGRAPH_MV；AMV-013 可补齐前端对 timeRollupEvidence 的结构化展示。
+
 ### AMV-007: 实现 STAR_AGG_MV 候选生成
 
 - Status: done
