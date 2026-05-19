@@ -186,12 +186,13 @@ public class RewritePublishEligibilityPolicy {
     private void requirePublishStatusReady(SqlRewriteRecord record,
                                            List<RewritePublishEligibilityReason> reasons) {
         if (record.getPublishStatus() == RewritePublishStatus.UNPUBLISHED
-            || record.getPublishStatus() == RewritePublishStatus.PUBLISH_FAILED) {
+            || record.getPublishStatus() == RewritePublishStatus.PUBLISH_FAILED
+            || record.getPublishStatus() == RewritePublishStatus.PAUSED) {
             return;
         }
         reasons.add(reason(
             "PUBLISH_STATUS_NOT_READY",
-            "只有 UNPUBLISHED 或 PUBLISH_FAILED 状态的改写记录可以进入发布资格检查。",
+            "只有 UNPUBLISHED、PUBLISH_FAILED 或 PAUSED 状态的改写记录可以进入发布资格检查。",
             "publishStatus",
             record.getRuntimeBindingId()
         ));

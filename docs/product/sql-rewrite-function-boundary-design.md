@@ -211,10 +211,10 @@ SQL 改写能力应拆成三个功能面：
 1. 解析、执行历史、慢 SQL 或人工输入生成 recommendation。
 2. 用户或策略把 recommendation 转换成 `sql_rewrite_record`。
 3. 改写记录进入待复核或待审批。
-4. 审批、驳回、发布、暂停和撤销均只改变改写记录状态，不触发额外发布流程。
-5. 发布动作把 `publishStatus` 置为 `PUBLISHED`；暂停动作把 `publishStatus` 置为 `PAUSED`。
-6. 发布资格、验证结果和告警只作为状态参考展示，不阻断状态按钮本身。
-7. 周期比对失败时，改写记录通过状态变更进入 paused / diverged / review required 状态。
+4. 审批和驳回只走改写记录领域状态机；发布、暂停和撤销必须先走统一授权入口和后端状态接口，再调用 query-execution runtime binding。
+5. 发布动作只有在 runtime binding 返回 `ACTIVE` 后才能把 `publishStatus` 置为 `PUBLISHED`；暂停动作只有在 runtime 返回 `PAUSED` 后才能把 `publishStatus` 置为 `PAUSED`。
+6. 发布资格、验证结果和告警是后端门禁和审计证据，页面按钮不得绕过这些接口直接改状态。
+7. 周期比对失败时，运行时暂停走 runtime binding；若暂停失败，只能记录失败 trace 和告警，不得直接改数据库状态伪造运行时暂停。
 
 `manualReviewRequired=true` 只表示需要人工查看，不表示审批通过。
 

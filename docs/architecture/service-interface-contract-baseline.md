@@ -433,19 +433,19 @@
 |:---|:---|:---|:---|
 | `manualReviewRequired` | `sql-optimization` recommendation / rewrite record | `true`, `false` | 风险或复核提示，只说明是否需要人工看过；不得自动代表审批通过。 |
 | `reviewStatus` | `sql-optimization` rewrite record | `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `CHANGES_REQUESTED` | 人类审批状态。只有 `APPROVED` 才允许把改写记录切换为发布状态。 |
-| `publishStatus` | `sql-optimization` rewrite record | `UNPUBLISHED`, `PUBLISHING`, `PUBLISHED`, `PAUSED`, `UNPUBLISHING`, `UNPUBLISH_FAILED`, `PUBLISH_FAILED` | 改写记录发布状态。审批、发布、暂停和撤销都只变更该状态和 trace，不直接触发 runtime binding 流程。 |
-| runtime binding status | `query-execution` runtime rewrite binding | `ACTIVE`, `PAUSED`, `UNPUBLISHED` | 独立运行时证据。`sql-optimization` 的改写记录状态按钮不直接创建、暂停或撤销该绑定。 |
+| `publishStatus` | `sql-optimization` rewrite record | `UNPUBLISHED`, `PUBLISHING`, `PUBLISHED`, `PAUSED`, `UNPUBLISHING`, `UNPUBLISH_FAILED`, `PUBLISH_FAILED` | 改写记录发布状态。发布、暂停和撤销必须先走后端状态接口与 runtime binding，再回写状态和 trace。 |
+| runtime binding status | `query-execution` runtime rewrite binding | `ACTIVE`, `PAUSED`, `UNPUBLISHED` | 运行时生效证据。`sql-optimization` 的发布、暂停和撤销动作必须调用该绑定链路，不能直接改库伪造运行时状态。 |
 
 目标服务协作契约如下，后续 PRW-002 至 PRW-009 实现时可调整具体 Java 类名，但不得改变语义边界：
 
 | Surface | Contract owner | Required behavior |
 |:---|:---|:---|
-| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}` | `sql-optimization` | 返回 `manualReviewRequired`, `reviewStatus`, `publishStatus`, `validationStatus`, source evidence 和审计 trace refs；历史 runtime binding 字段只作为兼容追踪，不作为发布动作的必填结果。 |
+| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}` | `sql-optimization` | 返回 `manualReviewRequired`, `reviewStatus`, `publishStatus`, `validationStatus`, source evidence、runtime binding 字段和审计 trace refs；运行时生效必须能追溯绑定 ID 与规则版本。 |
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/review` | `sql-optimization` | 接收审批结论与意见，写入审批人、时间和审计 trace；非法状态迁移由后端拒绝。 |
-| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish-eligibility` | `sql-optimization` | 返回发布状态参考与结构化拒绝原因；前端只能展示，不得用它阻断状态按钮。 |
-| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish` | `sql-optimization` | 审批通过后仅将改写记录 `publishStatus` 改为 `PUBLISHED`，写入操作人、时间、原因和 `lastPublishStatusTrace`；不调用 `query-execution`。 |
-| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 仅将已发布改写记录 `publishStatus` 改为 `PAUSED`，保留原因和 `lastPublishStatusTrace`；不调用 runtime binding 流程。 |
-| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish` | `sql-optimization` | 仅将 `PUBLISHED` 或 `PAUSED` 改写记录 `publishStatus` 改为 `UNPUBLISHED`，不删除历史改写记录，不调用 runtime binding 流程。 |
+| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish-eligibility` | `sql-optimization` | 返回发布门禁与结构化拒绝原因；前端只能展示，不得绕过后端策略直接变更状态。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish` | `sql-optimization` | 审批和资格通过后调用 `query-execution` runtime binding publish；只有返回 `ACTIVE` 后才将改写记录 `publishStatus` 改为 `PUBLISHED`，并写入操作人、原因、绑定 ID、规则版本和 `lastPublishStatusTrace`。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 调用 runtime binding pause；只有返回 `PAUSED` 后才将改写记录 `publishStatus` 改为 `PAUSED`，并保留原因和 runtime trace。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish` | `sql-optimization` | 调用 runtime binding unpublish；只有返回 `UNPUBLISHED` 后才将改写记录 `publishStatus` 改为 `UNPUBLISHED`，不删除历史改写记录。 |
 | `POST /api/query-execution/internal/rewrite-bindings/publish` | `query-execution` | 创建生产 runtime rewrite binding，返回 `runtimeBindingId` 与 `runtimeRuleVersion`；同租户同 SQL 指纹最多只能存在一个 `ACTIVE` binding。 |
 | `POST /api/query-execution/internal/rewrite-bindings/resolve-active` | `query-execution` | 以 tenant + SQL fingerprint 查询 `ACTIVE` runtime rewrite binding；可用 datasource evidence 收窄匹配。 |
 | `POST /api/query-execution/internal/rewrite-bindings/pause` | `query-execution` | 将 runtime rewrite binding 置为 `PAUSED`，保留原因、操作人、时间和版本追踪。 |

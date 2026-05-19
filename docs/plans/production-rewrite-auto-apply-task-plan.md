@@ -12,16 +12,16 @@
 2. 系统识别可改写候选并生成推荐 SQL。
 3. 人类在改写推荐或改写记录上完成审批。
 4. 系统完成或复用结果等价验证。
-5. 审批通过后通过状态接口把改写记录置为 `PUBLISHED`。
-6. 后续是否自动替换 SQL 由独立执行链路证据决定，改写记录发布动作不直接触发流程。
+5. 审批通过后，发布动作先调用 `query-execution` runtime binding；只有返回 `ACTIVE` 且绑定 ID / 规则版本可追溯，改写记录才进入 `PUBLISHED`。
+6. 后续是否自动替换 SQL 由 query-execution 执行链路命中 active runtime binding 的证据决定，不得仅凭数据库发布状态判断。
 7. SQL 执行历史记录原始 SQL、实际执行 SQL、改写来源、规则版本和状态。
-8. 周期比对发现差异时暂停改写记录状态，并告警留痕。
+8. 周期比对发现差异时先通过 runtime binding 暂停运行时规则，再回写改写记录状态、告警和审计；运行时暂停失败时必须留下失败 trace，不能伪造 `publishStatus=PAUSED`。
 
 ## 当前事实基线
 
 - `sql-optimization` 已能在解析/历史写入后触发 `REWRITE` 推荐任务，并能创建 SQL 改写记录、diff 与验证运行记录。
 - 推荐中心当前主要是只读入口；推荐本身不是审批状态机。
-- 改写记录已有结果验证与周期比对能力；比对失败后应先通过 `publishStatus=PAUSED` 控制改写记录状态。
+- 改写记录已有结果验证与周期比对能力；比对失败后的运行时暂停必须走 query-execution runtime binding，`publishStatus=PAUSED` 只能作为 runtime 返回后的本地追踪结果。
 - `query-execution` 目前已有“已批准加速绑定”概念，但该路径偏向加速计划选择，不等于 SQL 文本自动改写。
 - SQL 执行历史当前有 `rewriteApplied` 等字段，但执行时尚未被生产改写绑定真实驱动。
 - JDBC Agent 已有从 Redis 读取改写规则并改写 SQL 的能力，但当前缺少由人类审批后的改写记录发布到运行时规则源的生产管道。
@@ -32,7 +32,7 @@
 - 每个任务必须能独立实例化到 `tasks.md`，并通过 `python3 scripts/foreman.py instantiate <TASK_ID>` 开始执行。
 - 每个任务只修改一个清晰边界：模型、后端接口、运行时、前端或验证，不混写跨层大改。
 - 任务间以明确状态、接口和字段传递，不依赖“页面上看起来能点”作为验收。
-- 改写记录生命周期以 `sql_rewrite_record` 状态为主；query-execution runtime binding、JDBC Agent / Redis 只作为独立执行出口或兼容扩展，不能由发布按钮直接触发。
+- 改写记录生命周期以后端领域状态机和状态接口为入口；发布、暂停和撤销运行时生效必须走 query-execution runtime binding，不能直接改数据库状态绕过绑定链路。
 - 所有实现任务必须在开始前重新读取本文、`document-truth-baseline.md`、产品规格、接口基线和相关代码事实，不得只依赖本文摘要。
 
 ## 执行顺序
@@ -165,15 +165,15 @@
   - `POST /api/sql-optimization/rewrite-records/{id}/publish`
   - `POST /api/sql-optimization/rewrite-records/{id}/pause`
   - `POST /api/sql-optimization/rewrite-records/{id}/unpublish`
-- `publish` 只校验租户和审批状态，并把 `publishStatus` 改为 `PUBLISHED`。
-- `pause` / `unpublish` 只改变 `publishStatus`，不调用 `query-execution` runtime binding 流程。
-- 回写操作人、时间、原因和 `lastPublishStatusTrace`；发布资格策略仅作为展示参考。
+- `publish` 校验租户、审批状态和发布资格后调用 `query-execution` runtime binding；只有 runtime 返回 `ACTIVE` 后才能把 `publishStatus` 改为 `PUBLISHED`。
+- `pause` / `unpublish` 必须调用 `query-execution` runtime binding；只有 runtime 返回 `PAUSED` / `UNPUBLISHED` 后才能回写本地发布状态。
+- 回写操作人、时间、原因、runtime binding ID、规则版本和 `lastPublishStatusTrace`；发布资格策略是后端门禁，不只是展示参考。
 
 **验收**：
 
-- 发布成功后改写记录状态为 `PUBLISHED`。
-- 暂停或撤销只更新改写记录发布状态。
-- 所有状态动作保留操作人、原因和审计 trace。
+- 发布成功后改写记录状态为 `PUBLISHED`，且 runtime binding 状态为 `ACTIVE`。
+- 暂停或撤销成功后，本地发布状态与 runtime binding 返回状态一致。
+- 所有状态动作保留操作人、原因、runtime binding 证据和审计 trace；失败时不能用本地状态改写伪造运行时成功。
 
 ### PRW-007：在 query-execution 执行路径应用自动改写
 

@@ -279,7 +279,8 @@ public class RewriteValidationSchedulerService {
         Map<String, Object> publishStatusTrace = latest == null
             ? null
             : asMap(latest.getTraceRefs().get("lastPublishStatusTrace"));
-        if (publishStatusTrace != null && publishStatusTrace.get("errorType") != null) {
+        if (publishStatusTrace != null
+            && (publishStatusTrace.get("errorType") != null || publishStatusTrace.get("failureType") != null)) {
             return "FAILED";
         }
         return "UNKNOWN";

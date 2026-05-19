@@ -4,6 +4,28 @@
 
 ## Done
 
+### USER-CN-FLOW-AUTH-RUNTIME-CLEANUP-20260519: 清理流程与权限冗余链路
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-FLOW-AUTH-RUNTIME-CLEANUP-20260519 enforce rewrite runtime lifecycle`
+- Priority: 1
+- Depends on: N/A
+- Scope: 定位并优化本项目流程管控与权限管控实现，要求流程控制统一走后端领域状态机或状态接口，权限控制走统一授权入口，运行时生效走 runtime binding，清理/简化绕过这些链路的冗余代码，便于本地 sql 执行到改写加速全流程页面测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FLOW-AUTH-RUNTIME-CLEANUP-20260519`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-19: located SQL rewrite lifecycle as the overlapping flow/runtime control point and switched publish/pause/unpublish from local status-only changes to domain-state guarded, authorization-checked runtime binding calls.
+  - 2026-05-19: centralized rewrite-record actions on `GovernanceCapabilityClient.assertAuthorization`, removed the old status-only domain helper, and preserved runtime failure trace without fabricating paused runtime state.
+  - 2026-05-19: synchronized production rewrite docs and interface baseline so lifecycle actions must use backend state interfaces, unified authorization and query-execution runtime binding.
+  - 2026-05-19: targeted contract tests and full `mvn -pl sql-optimization,query-execution,sqlforge-shared -am test -DskipITs` passed.
+- Context closeout:
+  - Completed scope: rewrite lifecycle actions now route through domain state guards, unified authorization, and query-execution runtime binding; docs and tests updated
+  - Validation evidence: mvn -pl sql-optimization,query-execution,sqlforge-shared -am test -DskipITs; python3 scripts/foreman.py validate USER-CN-FLOW-AUTH-RUNTIME-CLEANUP-20260519; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: frontend smoke not run because this change is backend lifecycle and documentation only
+  - Next step: local page flow can test SQL execution rewrite by publishing through backend APIs and verifying runtime binding ACTIVE
+
 ### USER-CN-REWRITE-LIFECYCLE-STATUS-ONLY-20260519: 改写复核发布状态化
 
 - Status: done

@@ -7,6 +7,11 @@ import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
+import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordPublishActionRequest;
@@ -27,6 +32,7 @@ import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibili
 import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibilityPolicy;
 import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibilityReason;
 import com.company.sqloptimization.domain.rewrite.repository.SqlRewriteRecordRepository;
+import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionRuntimeRewriteBindingClient;
 import java.time.Instant;
@@ -46,17 +52,65 @@ public class SqlRewriteRecordApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "ACCELERATION_REWRITE_CONTRACT_BASELINE";
+    private static final String RESOURCE_TYPE_REWRITE_RECORD = "SQL_REWRITE_RECORD";
+    private static final String CREATE_OPERATION = "SQL_REWRITE_RECORD_CREATE";
+    private static final String LIST_OPERATION = "SQL_REWRITE_RECORD_LIST";
+    private static final String QUERY_OPERATION = "SQL_REWRITE_RECORD_QUERY";
+    private static final String REVIEW_OPERATION = "SQL_REWRITE_RECORD_REVIEW";
+    private static final String PUBLISH_OPERATION = "SQL_REWRITE_RECORD_PUBLISH";
+    private static final String PAUSE_OPERATION = "SQL_REWRITE_RECORD_PAUSE";
+    private static final String UNPUBLISH_OPERATION = "SQL_REWRITE_RECORD_UNPUBLISH";
+    private static final String VALIDATION_CREATE_OPERATION = "SQL_REWRITE_RECORD_VALIDATION_CREATE";
+    private static final String VALIDATION_QUERY_OPERATION = "SQL_REWRITE_RECORD_VALIDATION_QUERY";
 
     private final SqlRewriteRecordRepository sqlRewriteRecordRepository;
     private final QueryExecutionResultDigestClient queryExecutionResultDigestClient;
+    private final QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient;
+    private final GovernanceCapabilityClient governanceCapabilityClient;
     private final ResultDigestComparisonEngine resultDigestComparisonEngine;
     private final RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy;
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository) {
-        this(sqlRewriteRecordRepository, null, new ResultDigestComparisonEngine());
+        this(
+            sqlRewriteRecordRepository,
+            null,
+            new ResultDigestComparisonEngine(),
+            new RewritePublishEligibilityPolicy(),
+            null,
+            null
+        );
     }
 
     @Autowired
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
+                                              QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
+                                              GovernanceCapabilityClient governanceCapabilityClient) {
+        this(
+            sqlRewriteRecordRepository,
+            queryExecutionResultDigestClient,
+            resultDigestComparisonEngine,
+            new RewritePublishEligibilityPolicy(),
+            runtimeRewriteBindingClient,
+            governanceCapabilityClient
+        );
+    }
+
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
+                                              QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient) {
+        this(
+            sqlRewriteRecordRepository,
+            queryExecutionResultDigestClient,
+            resultDigestComparisonEngine,
+            new RewritePublishEligibilityPolicy(),
+            runtimeRewriteBindingClient,
+            null
+        );
+    }
+
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
                                               QueryExecutionResultDigestClient queryExecutionResultDigestClient,
                                               ResultDigestComparisonEngine resultDigestComparisonEngine) {
@@ -64,19 +118,9 @@ public class SqlRewriteRecordApplicationService {
             sqlRewriteRecordRepository,
             queryExecutionResultDigestClient,
             resultDigestComparisonEngine,
-            new RewritePublishEligibilityPolicy()
-        );
-    }
-
-    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
-                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
-                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
-                                              QueryExecutionRuntimeRewriteBindingClient ignoredRuntimeRewriteBindingClient) {
-        this(
-            sqlRewriteRecordRepository,
-            queryExecutionResultDigestClient,
-            resultDigestComparisonEngine,
-            new RewritePublishEligibilityPolicy()
+            new RewritePublishEligibilityPolicy(),
+            null,
+            null
         );
     }
 
@@ -84,8 +128,26 @@ public class SqlRewriteRecordApplicationService {
                                               QueryExecutionResultDigestClient queryExecutionResultDigestClient,
                                               ResultDigestComparisonEngine resultDigestComparisonEngine,
                                               RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy) {
+        this(
+            sqlRewriteRecordRepository,
+            queryExecutionResultDigestClient,
+            resultDigestComparisonEngine,
+            rewritePublishEligibilityPolicy,
+            null,
+            null
+        );
+    }
+
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
+                                              RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy,
+                                              QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
+                                              GovernanceCapabilityClient governanceCapabilityClient) {
         this.sqlRewriteRecordRepository = sqlRewriteRecordRepository;
         this.queryExecutionResultDigestClient = queryExecutionResultDigestClient;
+        this.runtimeRewriteBindingClient = runtimeRewriteBindingClient;
+        this.governanceCapabilityClient = governanceCapabilityClient;
         this.resultDigestComparisonEngine = resultDigestComparisonEngine;
         this.rewritePublishEligibilityPolicy = rewritePublishEligibilityPolicy;
     }
@@ -94,12 +156,14 @@ public class SqlRewriteRecordApplicationService {
                                               QueryExecutionResultDigestClient queryExecutionResultDigestClient,
                                               ResultDigestComparisonEngine resultDigestComparisonEngine,
                                               RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy,
-                                              QueryExecutionRuntimeRewriteBindingClient ignoredRuntimeRewriteBindingClient) {
+                                              QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient) {
         this(
             sqlRewriteRecordRepository,
             queryExecutionResultDigestClient,
             resultDigestComparisonEngine,
-            rewritePublishEligibilityPolicy
+            rewritePublishEligibilityPolicy,
+            runtimeRewriteBindingClient,
+            null
         );
     }
 
@@ -150,6 +214,7 @@ public class SqlRewriteRecordApplicationService {
             .risk(request.getRisk())
             .traceRefs(enrichRewriteTrialTraceRefs(request.getTraceRefs(), request.getSourceProblems(), request.getIssueRuleLinks()))
             .build();
+        assertRewriteAuthorization(rewriteRecord, CREATE_OPERATION);
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(rewriteRecord));
     }
 
@@ -159,6 +224,8 @@ public class SqlRewriteRecordApplicationService {
                                                        String sourceType) {
         String tenantId = requireContextTenant();
         String normalizedHistoryId = trimToNull(historyId);
+        assertRewriteAuthorization(tenantId, DataSourceTypeEnum.AUTO,
+            normalizedHistoryId == null ? tenantId : normalizedHistoryId, LIST_OPERATION);
         List<SqlRewriteRecord> records = normalizedHistoryId == null
             ? sqlRewriteRecordRepository.findRecordsByTenantId(tenantId)
             : sqlRewriteRecordRepository.findRecordsByTenantIdAndHistoryId(tenantId, normalizedHistoryId);
@@ -173,6 +240,7 @@ public class SqlRewriteRecordApplicationService {
 
     public SqlRewriteRecordVO getRewriteRecord(String rewriteRecordId) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
+        assertRewriteAuthorization(rewriteRecord, QUERY_OPERATION);
         return toRewriteRecordVo(rewriteRecord);
     }
 
@@ -186,6 +254,7 @@ public class SqlRewriteRecordApplicationService {
         if (!tenantId.equals(rewriteRecord.getTenantId())) {
             throw new AccessDeniedException("当前认证租户无权审核该改写记录");
         }
+        assertRewriteAuthorization(rewriteRecord, REVIEW_OPERATION);
         RewriteReviewStatus nextStatus = request.getReviewStatus();
         validateReviewTransition(rewriteRecord, nextStatus);
         String reviewNote = trimToNull(request.getReviewNote());
@@ -204,6 +273,7 @@ public class SqlRewriteRecordApplicationService {
 
     public RewritePublishEligibilityVO getPublishEligibility(String rewriteRecordId) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
+        assertRewriteAuthorization(rewriteRecord, QUERY_OPERATION);
         return toPublishEligibilityVo(evaluatePublishEligibility(rewriteRecord));
     }
 
@@ -211,22 +281,55 @@ public class SqlRewriteRecordApplicationService {
                                                    SqlRewriteRecordPublishActionRequest request) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
         requireSameActionTenant(rewriteRecord, request);
-        requireApprovedForPublish(rewriteRecord);
-        requirePublishStatus(rewriteRecord);
+        assertRewriteAuthorization(rewriteRecord, PUBLISH_OPERATION);
+        requireDomainState(new Runnable() {
+            @Override
+            public void run() {
+                rewriteRecord.requirePublishableRuntimeState();
+            }
+        });
+        requireEligibleForRuntimePublish(evaluatePublishEligibility(rewriteRecord));
         String operator = requireContextUser();
         String reason = actionReason(request);
         Instant now = Instant.now();
-        SqlRewriteRecord published = rewriteRecord.withPublishStatusOnly(
-            RewritePublishStatus.PUBLISHED,
+        RuntimeRewriteBindingResponse runtimeResponse;
+        try {
+            runtimeResponse = requireRuntimeRewriteBindingClient().publish(buildRuntimePublishRequest(rewriteRecord, operator));
+        } catch (RuntimeException ex) {
+            SqlRewriteRecord failed = rewriteRecord.withPublishFailed(
+                operator,
+                now,
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "PUBLISH",
+                    RewritePublishStatus.PUBLISH_FAILED,
+                    reason,
+                    operator,
+                    now,
+                    null,
+                    ex
+                )
+            );
+            sqlRewriteRecordRepository.saveRecord(failed);
+            throw ex;
+        }
+        requireRuntimePublishActive(runtimeResponse);
+        SqlRewriteRecord published = rewriteRecord.withPublishedRuntimeBinding(
+            runtimeResponse.getRuntimeBindingId(),
+            runtimeResponse.getRuntimeRuleVersion(),
+            runtimeResponse.getSqlFingerprint(),
+            runtimeBindingScope(runtimeResponse),
             operator,
             now,
-            buildPublishStatusTraceRefs(
+            buildRuntimeBindingTraceRefs(
                 rewriteRecord,
                 "PUBLISH",
                 RewritePublishStatus.PUBLISHED,
                 reason,
                 operator,
-                now
+                now,
+                runtimeResponse,
+                null
             )
         );
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(published));
@@ -236,21 +339,31 @@ public class SqlRewriteRecordApplicationService {
                                                  SqlRewriteRecordPublishActionRequest request) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
         requireSameActionTenant(rewriteRecord, request);
-        requirePublishedStatus(rewriteRecord, "pause");
+        assertRewriteAuthorization(rewriteRecord, PAUSE_OPERATION);
+        requireDomainState(new Runnable() {
+            @Override
+            public void run() {
+                rewriteRecord.requirePauseableRuntimeState();
+            }
+        });
         String operator = requireContextUser();
         String reason = actionReason(request);
         Instant now = Instant.now();
-        SqlRewriteRecord paused = rewriteRecord.withPublishStatusOnly(
-            RewritePublishStatus.PAUSED,
+        RuntimeRewriteBindingResponse runtimeResponse =
+            requireRuntimeRewriteBindingClient().pause(buildRuntimeStateChangeRequest(rewriteRecord, operator, reason));
+        requireRuntimeState(runtimeResponse, "PAUSED");
+        SqlRewriteRecord paused = rewriteRecord.withPausedRuntimeBinding(
             operator,
             now,
-            buildPublishStatusTraceRefs(
+            buildRuntimeBindingTraceRefs(
                 rewriteRecord,
                 "PAUSE",
                 RewritePublishStatus.PAUSED,
                 reason,
                 operator,
-                now
+                now,
+                runtimeResponse,
+                null
             )
         );
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(paused));
@@ -260,39 +373,83 @@ public class SqlRewriteRecordApplicationService {
                                                      SqlRewriteRecordPublishActionRequest request) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
         requireSameActionTenant(rewriteRecord, request);
-        requireUnpublishableStatus(rewriteRecord);
+        assertRewriteAuthorization(rewriteRecord, UNPUBLISH_OPERATION);
+        requireDomainState(new Runnable() {
+            @Override
+            public void run() {
+                rewriteRecord.requireUnpublishableRuntimeState();
+            }
+        });
         String operator = requireContextUser();
         String reason = actionReason(request);
         Instant now = Instant.now();
-        SqlRewriteRecord unpublished = rewriteRecord.withPublishStatusOnly(
-            RewritePublishStatus.UNPUBLISHED,
+        RuntimeRewriteBindingResponse runtimeResponse;
+        try {
+            runtimeResponse = requireRuntimeRewriteBindingClient()
+                .unpublish(buildRuntimeStateChangeRequest(rewriteRecord, operator, reason));
+        } catch (RuntimeException ex) {
+            SqlRewriteRecord failed = rewriteRecord.withUnpublishFailed(
+                operator,
+                now,
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "UNPUBLISH",
+                    RewritePublishStatus.UNPUBLISH_FAILED,
+                    reason,
+                    operator,
+                    now,
+                    null,
+                    ex
+                )
+            );
+            sqlRewriteRecordRepository.saveRecord(failed);
+            throw ex;
+        }
+        requireRuntimeState(runtimeResponse, "UNPUBLISHED");
+        SqlRewriteRecord unpublished = rewriteRecord.withUnpublishedRuntimeBinding(
             operator,
             now,
-            buildPublishStatusTraceRefs(
+            buildRuntimeBindingTraceRefs(
                 rewriteRecord,
                 "UNPUBLISH",
                 RewritePublishStatus.UNPUBLISHED,
                 reason,
                 operator,
-                now
+                now,
+                runtimeResponse,
+                null
             )
         );
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(unpublished));
     }
 
-    private Map<String, Object> buildPublishStatusTraceRefs(SqlRewriteRecord rewriteRecord,
-                                                            String action,
-                                                            RewritePublishStatus publishStatus,
-                                                            String reason,
-                                                            String operator,
-                                                            Instant occurredAt) {
+    private Map<String, Object> buildRuntimeBindingTraceRefs(SqlRewriteRecord rewriteRecord,
+                                                             String action,
+                                                             RewritePublishStatus publishStatus,
+                                                             String reason,
+                                                             String operator,
+                                                             Instant occurredAt,
+                                                             RuntimeRewriteBindingResponse runtimeResponse,
+                                                             RuntimeException failure) {
         Map<String, Object> traceRefs = new LinkedHashMap<String, Object>(rewriteRecord.getTraceRefs());
         Map<String, Object> publishTrace = new LinkedHashMap<String, Object>();
         publishTrace.put("action", action);
         publishTrace.put("publishStatus", publishStatus.name());
         publishTrace.put("operator", operator);
         publishTrace.put("occurredAt", occurredAt.toString());
-        publishTrace.put("statusOnly", Boolean.TRUE);
+        publishTrace.put("runtimeBinding", Boolean.TRUE);
+        if (runtimeResponse != null) {
+            publishTrace.put("runtimeBindingId", runtimeResponse.getRuntimeBindingId());
+            publishTrace.put("runtimeStatus", runtimeResponse.getStatus());
+            publishTrace.put("runtimeActive", Boolean.valueOf(runtimeResponse.isActive()));
+            publishTrace.put("runtimeRuleVersion", runtimeResponse.getRuntimeRuleVersion());
+            publishTrace.put("runtimeSummary", runtimeResponse.getRuntimeSummary());
+            publishTrace.put("runtimeDetails", parseJsonString(runtimeResponse.getRuntimeDetailsJson()));
+        }
+        if (failure != null) {
+            publishTrace.put("failureType", failure.getClass().getSimpleName());
+            publishTrace.put("failureReason", failure.getMessage());
+        }
         String trimmedReason = trimToNull(reason);
         if (trimmedReason != null) {
             publishTrace.put("reason", trimmedReason);
@@ -328,6 +485,7 @@ public class SqlRewriteRecordApplicationService {
         if (!tenantId.equals(rewriteRecord.getTenantId())) {
             throw new AccessDeniedException("当前认证租户无权为该改写记录创建校验运行");
         }
+        assertRewriteAuthorization(rewriteRecord, VALIDATION_CREATE_OPERATION);
         RewriteValidationRun validationRun = queryExecutionResultDigestClient == null
             ? buildClientSubmittedValidationRun(rewriteRecord, tenantId, request)
             : buildExecutedValidationRun(rewriteRecord, tenantId, request);
@@ -345,17 +503,38 @@ public class SqlRewriteRecordApplicationService {
         String operator = contextUserOrSystem();
         String reason = "定时校验发现差异：" + validationRun.getDifferenceType().name();
         Instant now = Instant.now();
-        return rewriteRecord.withPublishStatusOnly(
-            RewritePublishStatus.PAUSED,
+        RuntimeRewriteBindingResponse runtimeResponse;
+        try {
+            runtimeResponse =
+                requireRuntimeRewriteBindingClient().pause(buildRuntimeStateChangeRequest(rewriteRecord, operator, reason));
+            requireRuntimeState(runtimeResponse, "PAUSED");
+        } catch (RuntimeException ex) {
+            return rewriteRecord.withTraceRefs(
+                buildRuntimeBindingTraceRefs(
+                    rewriteRecord,
+                    "AUTO_PAUSE",
+                    rewriteRecord.getPublishStatus(),
+                    reason,
+                    operator,
+                    now,
+                    null,
+                    ex
+                ),
+                now
+            );
+        }
+        return rewriteRecord.withPausedRuntimeBinding(
             operator,
             now,
-            buildPublishStatusTraceRefs(
+            buildRuntimeBindingTraceRefs(
                 rewriteRecord,
                 "AUTO_PAUSE",
                 RewritePublishStatus.PAUSED,
                 reason,
                 operator,
-                now
+                now,
+                runtimeResponse,
+                null
             )
         );
     }
@@ -501,6 +680,162 @@ public class SqlRewriteRecordApplicationService {
         return policy;
     }
 
+    private RuntimeRewriteBindingPublishRequest buildRuntimePublishRequest(SqlRewriteRecord rewriteRecord,
+                                                                           String operator) {
+        RuntimeRewriteBindingPublishRequest request = new RuntimeRewriteBindingPublishRequest();
+        request.setTenantId(rewriteRecord.getTenantId());
+        request.setRewriteRecordId(rewriteRecord.getRewriteRecordId());
+        request.setRecommendationId(rewriteRecord.getRecommendationId());
+        request.setSourceType(name(rewriteRecord.getSourceType()));
+        request.setSourceKind(name(rewriteRecord.getSourceKind()));
+        request.setSourceId(rewriteRecord.getSourceId());
+        request.setSqlFingerprint(rewriteRecord.getSqlFingerprint());
+        request.setOriginalSqlDigest(SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText()));
+        request.setRecommendedSqlText(rewriteRecord.getRecommendedSqlText());
+        request.setDatasourceCode(rewriteRecord.getDatasourceCode());
+        request.setPublishedBy(operator);
+        return request;
+    }
+
+    private RuntimeRewriteBindingStateChangeRequest buildRuntimeStateChangeRequest(SqlRewriteRecord rewriteRecord,
+                                                                                   String operator,
+                                                                                   String reason) {
+        RuntimeRewriteBindingStateChangeRequest request = new RuntimeRewriteBindingStateChangeRequest();
+        request.setTenantId(rewriteRecord.getTenantId());
+        request.setRuntimeBindingId(rewriteRecord.getRuntimeBindingId());
+        request.setSqlFingerprint(rewriteRecord.getSqlFingerprint());
+        request.setOperatorId(operator);
+        request.setReason(reason);
+        return request;
+    }
+
+    private QueryExecutionRuntimeRewriteBindingClient requireRuntimeRewriteBindingClient() {
+        if (runtimeRewriteBindingClient != null) {
+            return runtimeRewriteBindingClient;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE,
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "query-execution runtime rewrite binding client 未配置"
+        );
+    }
+
+    private void requireRuntimePublishActive(RuntimeRewriteBindingResponse response) {
+        if (response != null
+            && response.isActive()
+            && "ACTIVE".equals(response.getStatus())
+            && StringUtils.hasText(response.getRuntimeBindingId())
+            && StringUtils.hasText(response.getRuntimeRuleVersion())) {
+            return;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE,
+            HttpStatus.CONFLICT,
+            "query-execution 未返回 ACTIVE 的运行时改写绑定"
+        );
+    }
+
+    private void requireRuntimeState(RuntimeRewriteBindingResponse response, String expectedStatus) {
+        if (response != null && expectedStatus.equals(response.getStatus())) {
+            return;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE,
+            HttpStatus.CONFLICT,
+            "query-execution 未返回 " + expectedStatus + " 的运行时改写绑定状态"
+        );
+    }
+
+    private String runtimeBindingScope(RuntimeRewriteBindingResponse response) {
+        return response.getTenantId() + ":" + response.getSqlFingerprint();
+    }
+
+    private void requireEligibleForRuntimePublish(RewritePublishEligibility eligibility) {
+        if (eligibility != null && eligibility.isEligible()) {
+            return;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
+            HttpStatus.CONFLICT,
+            "改写记录不满足发布资格：" + summarizeRefusalReasons(eligibility)
+        );
+    }
+
+    private String summarizeRefusalReasons(RewritePublishEligibility eligibility) {
+        if (eligibility == null || eligibility.getRefusalReasons().isEmpty()) {
+            return "UNKNOWN";
+        }
+        List<String> codes = new ArrayList<String>();
+        for (RewritePublishEligibilityReason reason : eligibility.getRefusalReasons()) {
+            codes.add(reason.getCode());
+        }
+        return codes.toString();
+    }
+
+    private void requireDomainState(Runnable stateCheck) {
+        try {
+            stateCheck.run();
+        } catch (IllegalStateException ex) {
+            throw new BizException(
+                ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
+                HttpStatus.CONFLICT,
+                ex.getMessage()
+            );
+        }
+    }
+
+    private void assertRewriteAuthorization(SqlRewriteRecord rewriteRecord, String operationCode) {
+        assertRewriteAuthorization(
+            rewriteRecord.getTenantId(),
+            resolveAuthorizationDatasourceType(rewriteRecord),
+            rewriteRecord.getRewriteRecordId(),
+            operationCode
+        );
+    }
+
+    private void assertRewriteAuthorization(String tenantId,
+                                            DataSourceTypeEnum datasourceType,
+                                            String resourceId,
+                                            String operationCode) {
+        if (governanceCapabilityClient == null) {
+            return;
+        }
+        governanceCapabilityClient.assertAuthorization(
+            tenantId,
+            datasourceType,
+            RESOURCE_TYPE_REWRITE_RECORD,
+            resourceId,
+            operationCode
+        );
+    }
+
+    private DataSourceTypeEnum resolveAuthorizationDatasourceType(SqlRewriteRecord rewriteRecord) {
+        String datasourceCode = rewriteRecord.getDatasourceCode();
+        if (StringUtils.hasText(datasourceCode)) {
+            try {
+                return DataSourceTypeEnum.valueOf(datasourceCode.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                return DataSourceTypeEnum.AUTO;
+            }
+        }
+        return DataSourceTypeEnum.AUTO;
+    }
+
+    private Object parseJsonString(String json) {
+        if (!StringUtils.hasText(json)) {
+            return null;
+        }
+        try {
+            return JsonUtils.fromJson(json, Map.class);
+        } catch (RuntimeException ex) {
+            return json;
+        }
+    }
+
+    private String name(Enum<?> value) {
+        return value == null ? null : value.name();
+    }
+
     private DataSourceTypeEnum resolveDatasourceType(SqlRewriteRecord rewriteRecord,
                                                      RewriteValidationRunCreateRequest request) {
         if (request != null && request.getDatasourceType() != null) {
@@ -542,6 +877,7 @@ public class SqlRewriteRecordApplicationService {
 
     public List<RewriteValidationRunVO> listValidationRuns(String rewriteRecordId) {
         SqlRewriteRecord rewriteRecord = requireRewriteRecord(rewriteRecordId);
+        assertRewriteAuthorization(rewriteRecord, VALIDATION_QUERY_OPERATION);
         List<RewriteValidationRun> runs =
             sqlRewriteRecordRepository.findValidationRunsByRewriteRecordId(rewriteRecord.getRewriteRecordId());
         List<RewriteValidationRunVO> result = new ArrayList<RewriteValidationRunVO>(runs.size());
@@ -561,63 +897,8 @@ public class SqlRewriteRecordApplicationService {
         }
     }
 
-    private void requireApprovedForPublish(SqlRewriteRecord rewriteRecord) {
-        if (rewriteRecord.getReviewStatus() == RewriteReviewStatus.APPROVED) {
-            return;
-        }
-        throw new BizException(
-            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
-            HttpStatus.CONFLICT,
-            "只有 APPROVED 状态的改写记录才能发布"
-        );
-    }
-
-    private void requirePublishStatus(SqlRewriteRecord rewriteRecord) {
-        RewritePublishStatus publishStatus = rewriteRecord.getPublishStatus();
-        if (publishStatus == RewritePublishStatus.UNPUBLISHED
-            || publishStatus == RewritePublishStatus.PUBLISH_FAILED
-            || publishStatus == RewritePublishStatus.PAUSED) {
-            return;
-        }
-        throw new BizException(
-            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
-            HttpStatus.CONFLICT,
-            "只有 UNPUBLISHED、PUBLISH_FAILED 或 PAUSED 状态的改写记录才能发布"
-        );
-    }
-
-    private void requirePublishedStatus(SqlRewriteRecord rewriteRecord, String action) {
-        if (rewriteRecord.getPublishStatus() == RewritePublishStatus.PUBLISHED) {
-            return;
-        }
-        throw new BizException(
-            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
-            HttpStatus.CONFLICT,
-            "只有 PUBLISHED 状态的改写记录才能执行 " + action
-        );
-    }
-
-    private void requireUnpublishableStatus(SqlRewriteRecord rewriteRecord) {
-        if (rewriteRecord.getPublishStatus() == RewritePublishStatus.PUBLISHED
-            || rewriteRecord.getPublishStatus() == RewritePublishStatus.PAUSED) {
-            return;
-        }
-        throw new BizException(
-            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
-            HttpStatus.CONFLICT,
-            "只有 PUBLISHED 或 PAUSED 状态的改写记录才能下线"
-        );
-    }
-
     private String actionReason(SqlRewriteRecordPublishActionRequest request) {
         return request == null ? null : trimToNull(request.getReason());
-    }
-
-    private void requireText(String value, String field) {
-        if (StringUtils.hasText(value)) {
-            return;
-        }
-        throw invalidArgument(field, field + " 为必填项");
     }
 
     private void validateReviewTransition(SqlRewriteRecord rewriteRecord,

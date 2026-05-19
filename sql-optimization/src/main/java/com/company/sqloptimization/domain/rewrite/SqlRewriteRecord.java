@@ -126,6 +126,34 @@ public class SqlRewriteRecord {
         return false;
     }
 
+    public void requirePublishableRuntimeState() {
+        if (reviewStatus != RewriteReviewStatus.APPROVED) {
+            throw new IllegalStateException("只有 APPROVED 状态的改写记录才能发布");
+        }
+        if (publishStatus == RewritePublishStatus.UNPUBLISHED
+            || publishStatus == RewritePublishStatus.PUBLISH_FAILED
+            || publishStatus == RewritePublishStatus.PAUSED) {
+            return;
+        }
+        throw new IllegalStateException("只有 UNPUBLISHED、PUBLISH_FAILED 或 PAUSED 状态的改写记录才能发布");
+    }
+
+    public void requirePauseableRuntimeState() {
+        if (publishStatus == RewritePublishStatus.PUBLISHED) {
+            return;
+        }
+        throw new IllegalStateException("只有 PUBLISHED 状态的改写记录才能执行 pause");
+    }
+
+    public void requireUnpublishableRuntimeState() {
+        if (publishStatus == RewritePublishStatus.PUBLISHED
+            || publishStatus == RewritePublishStatus.PAUSED
+            || publishStatus == RewritePublishStatus.UNPUBLISH_FAILED) {
+            return;
+        }
+        throw new IllegalStateException("只有 PUBLISHED、PAUSED 或 UNPUBLISH_FAILED 状态的改写记录才能下线");
+    }
+
     public SqlRewriteRecord withReview(RewriteReviewStatus nextReviewStatus,
                                        String nextReviewNote,
                                        String nextReviewedBy,
@@ -317,12 +345,11 @@ public class SqlRewriteRecord {
             .build();
     }
 
-    public SqlRewriteRecord withPublishStatusOnly(RewritePublishStatus nextPublishStatus,
-                                                  String operator,
-                                                  Instant updatedAt,
-                                                  Map<String, Object> nextTraceRefs) {
+    public SqlRewriteRecord withUnpublishFailed(String operator,
+                                                Instant updatedAt,
+                                                Map<String, Object> nextTraceRefs) {
         return copyBuilder(updatedAt, nextTraceRefs)
-            .publishStatus(nextPublishStatus)
+            .publishStatus(RewritePublishStatus.UNPUBLISH_FAILED)
             .runtimeBindingAt(updatedAt)
             .runtimeBindingBy(operator)
             .build();
