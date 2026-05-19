@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-007: 实现 STAR_AGG_MV 候选生成
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-007 add star aggregate MV generator`
+- Priority: 1
+- Depends on: AMV-006
+- Scope: 针对事实表 Join 维表后聚合的 SQL 生成 STAR_AGG_MV 候选；基于 Join 图保守识别事实表和维表字段，生成 Join 后聚合 DDL、只查询 MV 的二次过滤/二次聚合 rewrite SQL，并输出 factTable、dimensionTables、joinKeys、dimensionSources、measureSources、starSchemaEvidence；事实表无法识别、Join 数量不足、outer/non-equi join、粒度不覆盖、不可合并指标或安全谓词丢失时结构化阻断。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-007`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented STAR_AGG_MV routing and candidate generation for fact-table plus dimension-table join aggregate SQL; generated Join-after-aggregation MV DDL, MV-only rewrite SQL with secondary filtering/aggregation, and structured factTable, dimensionTables, joinKeys, dimensionSources, measureSources, and starSchemaEvidence fields while keeping single-join PREJOIN routing intact.
+  - Validation evidence: mvn -pl sql-optimization -DskipTests compile; mvn -pl sql-optimization -Dtest=L2StarAggMvCandidateGeneratorTest,L2PrejoinMvCandidateGeneratorTest,L2ParameterizedAggMvCandidateGeneratorTest,L2GrainMeasureDeriverTest,SqlDiffApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization test; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate AMV-007; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: STAR_AGG_MV fact/dimension recognition remains conservative static inference without table cardinality, unique-key, or join-selectivity metadata; runtime binding remains NOT_CREATED and publication still requires the existing approval path.
+  - Next step: AMV-008 can add ROLLUP_MV generation, and AMV-013 can add dedicated front-end presentation for STAR_AGG evidence.
+
 ### AMV-006: Implement PREJOIN_MV recommendation for join aggregate queries
 
 - Status: done

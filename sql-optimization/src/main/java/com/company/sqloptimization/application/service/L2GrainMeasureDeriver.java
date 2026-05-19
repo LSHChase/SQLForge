@@ -17,6 +17,7 @@ final class L2GrainMeasureDeriver {
 
     static final String MV_TYPE_PARAMETERIZED_AGG = "PARAMETERIZED_AGG_MV";
     static final String MV_TYPE_PREJOIN = "PREJOIN_MV";
+    static final String MV_TYPE_STAR_AGG = "STAR_AGG_MV";
     static final String MV_TYPE_ROLLUP = "ROLLUP_MV";
 
     private static final Set<String> DIRECT_MERGEABLE_FUNCTIONS =
@@ -57,9 +58,7 @@ final class L2GrainMeasureDeriver {
             predicateClassification
         );
         List<Map<String, Object>> joinGraph = mapList(advancedStructureProfile.get("joinGraph"));
-        String mvType = !joinGraph.isEmpty()
-            ? MV_TYPE_PREJOIN
-            : grainDerivation.hasTimeRollup ? MV_TYPE_ROLLUP : MV_TYPE_PARAMETERIZED_AGG;
+        String mvType = mvType(joinGraph, grainDerivation, measureDerivation);
         return new DerivationResult(
             mvType,
             grainDerivation.grain,
@@ -68,13 +67,39 @@ final class L2GrainMeasureDeriver {
             joinGraph,
             coverage,
             measureDerivation.blockingReasons,
-            reviewWarnings(joinGraph)
+            reviewWarnings(joinGraph, mvType)
         );
     }
 
-    private static List<Map<String, Object>> reviewWarnings(List<Map<String, Object>> joinGraph) {
+    private static String mvType(List<Map<String, Object>> joinGraph,
+                                 GrainDerivation grainDerivation,
+                                 MeasureDerivation measureDerivation) {
+        if (!joinGraph.isEmpty()) {
+            return joinGraph.size() >= 2 && !measureDerivation.measures.isEmpty()
+                ? MV_TYPE_STAR_AGG
+                : MV_TYPE_PREJOIN;
+        }
+        return grainDerivation.hasTimeRollup ? MV_TYPE_ROLLUP : MV_TYPE_PARAMETERIZED_AGG;
+    }
+
+    private static List<Map<String, Object>> reviewWarnings(List<Map<String, Object>> joinGraph, String mvType) {
         if (joinGraph == null || joinGraph.isEmpty()) {
             return Collections.emptyList();
+        }
+        if (MV_TYPE_STAR_AGG.equals(mvType)) {
+            LinkedHashMap<String, Object> warning = new LinkedHashMap<String, Object>();
+            warning.put("code", "STAR_SCHEMA_METADATA_MISSING");
+            warning.put(
+                "description",
+                "缺少唯一键、维表基数与 Join 选择率元数据，STAR_AGG_MV 只能基于静态 Join 拓扑和指标来源保守生成。"
+            );
+            warning.put("requiredEvidence", Arrays.asList(
+                "FACT_TABLE_ROW_COUNT",
+                "DIMENSION_KEY_UNIQUENESS",
+                "JOIN_SELECTIVITY"
+            ));
+            warning.put("generatedAllowed", Boolean.TRUE);
+            return Collections.<Map<String, Object>>singletonList(warning);
         }
         LinkedHashMap<String, Object> warning = new LinkedHashMap<String, Object>();
         warning.put("code", "ROW_AMPLIFICATION_METADATA_MISSING");

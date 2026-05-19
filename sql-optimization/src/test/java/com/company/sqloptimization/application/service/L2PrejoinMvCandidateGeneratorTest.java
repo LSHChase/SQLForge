@@ -16,12 +16,11 @@ class L2PrejoinMvCandidateGeneratorTest {
 
     @Test
     void shouldGeneratePrejoinWideTableAndRewriteAggregatesOnMvOnly() {
-        String sql = "SELECT c.customer_level, p.category, SUM(o.amount) AS total_amount "
+        String sql = "SELECT c.customer_level, SUM(o.amount) AS total_amount "
             + "FROM orders o "
             + "JOIN customers c ON o.customer_id = c.customer_id "
-            + "JOIN products p ON o.product_id = p.product_id "
             + "WHERE o.dt BETWEEN DATE '2026-05-01' AND DATE '2026-05-31' "
-            + "GROUP BY c.customer_level, p.category";
+            + "GROUP BY c.customer_level";
         Map<String, Object> artifact = artifact(sql);
 
         assertEquals("GENERATED", artifact.get("artifactStatus"));
@@ -30,17 +29,13 @@ class L2PrejoinMvCandidateGeneratorTest {
         assertEquals("REVIEW_REQUIRED", map(artifact.get("rowAmplificationRisk")).get("status"));
         assertFalse(maps(artifact.get("joinKeys")).isEmpty());
         assertTrue(hasMapping(maps(artifact.get("fieldMappings")), "c.customer_level", "customer_level"));
-        assertTrue(hasMapping(maps(artifact.get("fieldMappings")), "p.category", "category"));
 
         String ddlSql = String.valueOf(artifact.get("ddlSql"));
         assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW mv_sales_daily AS"));
         assertTrue(ddlSql.contains("FROM orders o"));
         assertTrue(ddlSql.contains("JOIN customers c ON"));
         assertTrue(ddlSql.contains("o.customer_id = c.customer_id"));
-        assertTrue(ddlSql.contains("JOIN products p ON"));
-        assertTrue(ddlSql.contains("o.product_id = p.product_id"));
         assertTrue(ddlSql.contains("c.customer_level AS customer_level"));
-        assertTrue(ddlSql.contains("p.category AS category"));
         assertTrue(ddlSql.contains("o.amount AS amount"));
         assertTrue(ddlSql.contains("o.dt AS dt"));
         assertFalse(ddlSql.contains("GROUP BY"));
@@ -50,10 +45,9 @@ class L2PrejoinMvCandidateGeneratorTest {
         assertTrue(rewriteSql.contains("FROM mv_sales_daily"));
         assertTrue(rewriteSql.contains("SUM(amount) AS total_amount"));
         assertTrue(rewriteSql.contains("dt BETWEEN DATE '2026-05-01' AND DATE '2026-05-31'"));
-        assertTrue(rewriteSql.contains("GROUP BY customer_level, category"));
+        assertTrue(rewriteSql.contains("GROUP BY customer_level"));
         assertFalse(rewriteSql.contains("JOIN customers"));
         assertFalse(rewriteSql.contains("orders o"));
-        assertFalse(rewriteSql.contains("products p"));
     }
 
     @Test

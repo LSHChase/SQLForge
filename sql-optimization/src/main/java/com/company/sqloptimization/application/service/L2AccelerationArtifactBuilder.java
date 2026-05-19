@@ -65,8 +65,18 @@ final class L2AccelerationArtifactBuilder {
         String mvName = mvName(input, profile);
         L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql = null;
         L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql = null;
+        L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql = null;
         if (blockingReasons.isEmpty()) {
-            if (L2GrainMeasureDeriver.MV_TYPE_PREJOIN.equals(grainMeasureDerivation.getMvType())) {
+            if (L2GrainMeasureDeriver.MV_TYPE_STAR_AGG.equals(grainMeasureDerivation.getMvType())) {
+                starAggCandidateSql = L2StarAggMvCandidateGenerator.generate(
+                    sourceSql,
+                    mvName,
+                    advancedStructureProfile,
+                    predicateClassification,
+                    grainMeasureDerivation
+                );
+                blockingReasons.addAll(starAggCandidateSql.getBlockingReasons());
+            } else if (L2GrainMeasureDeriver.MV_TYPE_PREJOIN.equals(grainMeasureDerivation.getMvType())) {
                 prejoinCandidateSql = L2PrejoinMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
@@ -112,6 +122,14 @@ final class L2AccelerationArtifactBuilder {
             artifact.put("aliasDisambiguation", prejoinCandidateSql.getAliasDisambiguation());
             artifact.put("rowAmplificationRisk", prejoinCandidateSql.getRowAmplificationRisk());
         }
+        if (starAggCandidateSql != null) {
+            artifact.put("factTable", starAggCandidateSql.getFactTable());
+            artifact.put("dimensionTables", starAggCandidateSql.getDimensionTables());
+            artifact.put("joinKeys", starAggCandidateSql.getJoinKeys());
+            artifact.put("dimensionSources", starAggCandidateSql.getDimensionSources());
+            artifact.put("measureSources", starAggCandidateSql.getMeasureSources());
+            artifact.put("starSchemaEvidence", starAggCandidateSql.getStarSchemaEvidence());
+        }
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
@@ -119,7 +137,13 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("runtimeRewriteBinding", "NOT_CREATED");
         artifact.put("source", source(input));
         if (blockingReasons.isEmpty()) {
-            if (prejoinCandidateSql != null) {
+            if (starAggCandidateSql != null) {
+                artifact.put("ddlSql", starAggCandidateSql.getDdlSql());
+                artifact.put("refreshSql", starAggCandidateSql.getRefreshSql());
+                artifact.put("rollbackSql", starAggCandidateSql.getRollbackSql());
+                artifact.put("validationSql", starAggCandidateSql.getValidationSql());
+                artifact.put("rewriteSql", starAggCandidateSql.getRewriteSql());
+            } else if (prejoinCandidateSql != null) {
                 artifact.put("ddlSql", prejoinCandidateSql.getDdlSql());
                 artifact.put("refreshSql", prejoinCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", prejoinCandidateSql.getRollbackSql());
