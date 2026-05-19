@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
+  createSqlRewriteRecord,
   formatRuntimeError,
   getDispatchContract,
   getDispatchEvents,
@@ -138,6 +139,22 @@ const booleanFilterOptions = [
   { label: 'true', value: true },
   { label: 'false', value: false }
 ]
+const rewriteRecordSourceTypeOptions = ['PARSE', 'QUERY']
+const rewriteRecordSourceKindOptions = [
+  'STRUCTURE_PARSE',
+  'COMBINED_PARSE',
+  'PARSE_BATCH',
+  'REPORT_BATCH',
+  'END_OF_DAY_SLOW_SQL',
+  'QUERY_HISTORY',
+  'SLOW_SQL',
+  'HIGH_P99',
+  'HIGH_SCAN',
+  'BENCHMARK_REGRESSION',
+  'MANUAL'
+]
+const rewriteRecordEvidenceLevelOptions = ['STATIC_PARSE', 'ACCESS_PARSE', 'EXPLAIN_PLAN', 'RUNTIME_HISTORY', 'BENCHMARK', 'MIXED']
+const rewriteRecordValidationStatusOptions = ['NOT_VALIDATED', 'VALIDATING', 'EQUIVALENT', 'DIVERGED', 'FAILED', 'EXPIRED']
 const sourceCategoryOptions = computed(() => [
   {
     label: t('recommendationCenter.sourceCategories.query'),
@@ -380,6 +397,31 @@ const frontendCompareRecommendedSql = computed(() =>
 )
 const hasFrontendCompareSql = computed(
   () => String(frontendCompareOriginalSql.value || '').trim() && String(frontendCompareRecommendedSql.value || '').trim()
+)
+
+const isRewriteRecommendation = computed(() =>
+  String(selectedRecommendation.value?.recommendationType || '').toUpperCase() === 'REWRITE'
+)
+
+const isRewriteReviewCandidate = computed(
+  () => isRewriteRecommendation.value
+    || Boolean(selectedRecommendation.value?.manualReviewRequired || recommendationDiff.value?.diffSummary?.manualReviewRequired)
+)
+
+const canCreateRewriteRecordFromRecommendation = computed(() => {
+  const recommendation = selectedRecommendation.value
+  if (!recommendation || !isRewriteReviewCandidate.value || !recommendation.recommendationId) {
+    return false
+  }
+  const originalSql = firstDisplayValue(recommendation.sourceSqlText, recommendationDiff.value?.originalSql)
+  const recommendedSql = firstDisplayValue(recommendation.recommendedSqlText, recommendationDiff.value?.recommendedSql)
+  return hasDisplayValue(originalSql) && hasDisplayValue(recommendedSql)
+})
+
+const rewriteRecordEntryActionText = computed(() =>
+  rewriteRecords.value.length
+    ? t('recommendationCenter.actions.openRewriteReview')
+    : t('recommendationCenter.actions.createRewriteRecordAndReview')
 )
 
 const requiresReviewGuard = computed(() => {
@@ -1049,6 +1091,166 @@ const performRewriteLifecycleAction = async action => {
   }
 }
 
+const normalizeEnumValue = (value, allowedValues, fallbackValue) => {
+  const normalized = String(value || '').trim().toUpperCase()
+  return allowedValues.includes(normalized) ? normalized : fallbackValue
+}
+
+const compactObject = payload => {
+  const result = {}
+  Object.entries(payload || {}).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      if (value.length) {
+        result[key] = value
+      }
+      return
+    }
+    if (value && typeof value === 'object') {
+      if (Object.keys(value).length) {
+        result[key] = value
+      }
+      return
+    }
+    if (value === false || value === 0 || value === true) {
+      result[key] = value
+      return
+    }
+    if (hasDisplayValue(value)) {
+      result[key] = value
+    }
+  })
+  return result
+}
+
+const buildRewriteRecordCreatePayload = () => {
+  const recommendation = selectedRecommendation.value || {}
+  const diff = recommendationDiff.value || {}
+  const diffSummary = diff.diffSummary || {}
+  const trace = recommendationTrace.value || {}
+  const sourceType = normalizeEnumValue(
+    firstDisplayValue(recommendation.sourceType, diff.sourceType),
+    rewriteRecordSourceTypeOptions,
+    'PARSE'
+  )
+  const sourceKind = normalizeEnumValue(
+    firstDisplayValue(recommendation.sourceKind, diff.sourceKind),
+    rewriteRecordSourceKindOptions,
+    sourceType === 'QUERY' ? 'QUERY_HISTORY' : 'STRUCTURE_PARSE'
+  )
+  const sourceId = firstDisplayValue(
+    recommendation.sourceId,
+    diff.sourceId,
+    recommendation.sourceSqlId,
+    trace.historyId,
+    recommendation.historyId,
+    trace.parseTaskId,
+    recommendation.parseTaskId,
+    recommendation.recommendationId
+  )
+  const originalSql = firstDisplayValue(recommendation.sourceSqlText, diff.originalSql)
+  const recommendedSql = firstDisplayValue(recommendation.recommendedSqlText, diff.recommendedSql)
+  const evidenceLevel = normalizeEnumValue(
+    firstDisplayValue(recommendation.evidenceLevel, diff.evidenceLevel),
+    rewriteRecordEvidenceLevelOptions,
+    'STATIC_PARSE'
+  )
+  const validationStatus = normalizeEnumValue(
+    recommendation.validationStatus,
+    rewriteRecordValidationStatusOptions,
+    'NOT_VALIDATED'
+  )
+  const historyId = firstDisplayValue(recommendation.historyId, trace.historyId)
+
+  return compactObject({
+    tenantId: form.tenantId,
+    recommendationId: recommendation.recommendationId,
+    sourceType,
+    sourceKind,
+    sourceId,
+    evidenceLevel,
+    historyId,
+    parseHistoryId: sourceType === 'PARSE' ? historyId : '',
+    sqlFingerprint: firstDisplayValue(recommendation.sqlFingerprint, diff.sqlFingerprint, trace.sqlFingerprint),
+    datasourceCode: recommendation.targetDatasource,
+    status: 'DRAFT',
+    validationStatus,
+    publishStatus: 'UNPUBLISHED',
+    autoApplyAllowed: false,
+    manualReviewRequired: firstDefined(recommendation.manualReviewRequired, diffSummary.manualReviewRequired, true),
+    alertStatus: firstDisplayValue(recommendation.alertStatus, trace.alertStatus, 'NONE'),
+    originalSqlText: originalSql,
+    recommendedSqlText: recommendedSql,
+    ruleChain: normalizeArray(recommendation.ruleChain),
+    sourceProblems: normalizeArray(recommendation.sourceProblems),
+    issueRuleLinks: normalizeArray(recommendation.issueRuleLinks),
+    diffSummary: compactObject({
+      diffStatus: firstDisplayValue(diff.diffStatus, diffSummary.diffStatus),
+      validationMethod: recommendation.validationMethod,
+      changeCount: diffSummary.changeCount,
+      ruleDiffCount: diffSummary.ruleDiffCount,
+      manualReviewRequired: firstDefined(recommendation.manualReviewRequired, diffSummary.manualReviewRequired),
+      autoApplyAllowed: firstDefined(recommendation.autoApplyAllowed, diffSummary.autoApplyAllowed),
+      evidenceBoundary: diffSummary.evidenceBoundary
+    }),
+    risk: compactObject({
+      riskLevel: recommendation.riskLevel,
+      riskSummary: recommendation.riskSummary,
+      manualReviewRequired: firstDefined(recommendation.manualReviewRequired, diffSummary.manualReviewRequired),
+      semanticRisks: normalizeArray(recommendation.semanticRisks),
+      preconditions: normalizeArray(recommendation.preconditions),
+      unappliedRules: normalizeArray(recommendation.unappliedRules)
+    }),
+    traceRefs: compactObject({
+      recommendationId: recommendation.recommendationId,
+      sourceType,
+      sourceKind,
+      sourceId,
+      historyId,
+      parseTaskId: firstDisplayValue(recommendation.parseTaskId, trace.parseTaskId),
+      batchId: firstDisplayValue(recommendation.batchId, trace.batchId),
+      reportCode: firstDisplayValue(recommendation.reportCode, trace.reportCode),
+      alertId: firstDisplayValue(recommendation.alertId, trace.alertId),
+      routeDecisionId: firstDisplayValue(recommendation.routeDecisionId, trace.routeDecisionId),
+      sqlFingerprint: firstDisplayValue(recommendation.sqlFingerprint, diff.sqlFingerprint, trace.sqlFingerprint),
+      createdFrom: 'RECOMMENDATION_CENTER'
+    })
+  })
+}
+
+const createRewriteRecordAndOpenReview = async () => {
+  if (!selectedRecommendation.value) {
+    lifecycleErrorMessage.value = t('recommendationCenter.states.selectRecommendation')
+    activeDetailTab.value = 'rewriteLifecycle'
+    return
+  }
+  activeDetailTab.value = 'rewriteLifecycle'
+  lifecycleErrorMessage.value = ''
+  lifecycleSuccessMessage.value = ''
+  if (rewriteRecords.value.length) {
+    const recordId = selectedRewriteRecordId.value || rewriteRecords.value[0]?.rewriteRecordId || ''
+    if (recordId && recordId !== selectedRewriteRecordId.value) {
+      await loadRewriteRecordLifecycle(recordId)
+    }
+    return
+  }
+  if (!canCreateRewriteRecordFromRecommendation.value) {
+    lifecycleErrorMessage.value = t('recommendationCenter.states.rewriteRecordCreateUnavailable')
+    return
+  }
+  loading.lifecycleAction = 'CREATE_RECORD'
+  try {
+    const created = await createSqlRewriteRecord(buildRewriteRecordCreatePayload(), {
+      requestPrefix: 'frontend-recommendation-rewrite-record-create'
+    })
+    await loadRewriteRecordsForRecommendation(selectedRecommendationId.value, created?.rewriteRecordId || '')
+    lifecycleSuccessMessage.value = t('recommendationCenter.states.rewriteRecordCreated')
+  } catch (error) {
+    lifecycleErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.lifecycleAction = ''
+  }
+}
+
 const openEvidenceDrawer = (title, payload) => {
   evidenceDrawerTitle.value = title
   evidenceDrawerPayload.value = payload
@@ -1387,9 +1589,21 @@ watch(
                 <p class="section-kicker sqlforge-code-label">{{ t('recommendationCenter.sections.focusSummary') }}</p>
                 <h3>{{ selectedRecommendation.summary || selectedRecommendation.recommendationId }}</h3>
               </div>
-              <el-tag :type="requiresReviewGuard ? 'warning' : 'success'">
-                {{ requiresReviewGuard ? t('recommendationCenter.fields.manualReviewRequired') : displayValue(selectedRecommendation.validationStatus) }}
-              </el-tag>
+              <div class="pane-actions">
+                <el-tag :type="requiresReviewGuard ? 'warning' : 'success'">
+                  {{ requiresReviewGuard ? t('recommendationCenter.fields.manualReviewRequired') : displayValue(selectedRecommendation.validationStatus) }}
+                </el-tag>
+                <el-button
+                  v-if="isRewriteReviewCandidate"
+                  type="primary"
+                  :disabled="!rewriteRecords.length && !canCreateRewriteRecordFromRecommendation"
+                  :loading="loading.lifecycleAction === 'CREATE_RECORD'"
+                  data-testid="recommendation-create-rewrite-record"
+                  @click="createRewriteRecordAndOpenReview"
+                >
+                  {{ rewriteRecordEntryActionText }}
+                </el-button>
+              </div>
             </div>
             <dl class="description-grid">
               <div v-for="item in focusSummaryCards" :key="item.key" class="description-item">
@@ -1662,6 +1876,16 @@ watch(
                 <p v-if="!rewriteRecords.length && !loading.lifecycle" class="muted-copy" data-testid="recommendation-rewrite-empty">
                   {{ t('recommendationCenter.states.noRewriteRecord') }}
                 </p>
+                <el-button
+                  v-if="!rewriteRecords.length && isRewriteReviewCandidate"
+                  type="primary"
+                  :disabled="!canCreateRewriteRecordFromRecommendation"
+                  :loading="loading.lifecycleAction === 'CREATE_RECORD'"
+                  data-testid="recommendation-empty-create-rewrite-record"
+                  @click="createRewriteRecordAndOpenReview"
+                >
+                  {{ t('recommendationCenter.actions.createRewriteRecordAndReview') }}
+                </el-button>
 
                 <template v-if="selectedRewriteRecord">
                   <dl class="description-grid" data-testid="recommendation-rewrite-lifecycle-status">

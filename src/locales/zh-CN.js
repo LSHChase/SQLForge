@@ -1248,6 +1248,8 @@ export default {
       openAlertCenter: '打开告警中心',
       refreshRewriteRecords: '刷新改写记录',
       refreshValidationRuns: '刷新验证运行',
+      createRewriteRecordAndReview: '创建改写记录并复核',
+      openRewriteReview: '进入改写复核',
       approveRewrite: '审批通过',
       rejectRewrite: '驳回',
       publishRewrite: '发布',
@@ -1336,6 +1338,8 @@ export default {
       awaitingRewriteReview: '等待改写审批或发布。',
       reviewNoteRequired: '驳回必须填写审批意见。',
       lifecycleActionApplied: '改写记录动作已提交，状态已从后端刷新。',
+      rewriteRecordCreated: '改写记录已创建，已进入复核与发布。',
+      rewriteRecordCreateUnavailable: '当前推荐缺少创建改写记录所需的原 SQL 或推荐 SQL。',
       noRefusalReasons: '当前没有发布资格拒绝原因。',
       noValidationRuns: '当前改写记录没有验证运行。'
     },

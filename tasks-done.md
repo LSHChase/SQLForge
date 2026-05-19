@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RECOMMENDATION-CREATE-REWRITE-RECORD-20260519: 推荐详情创建改写记录入口
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-RECOMMENDATION-CREATE-REWRITE-RECORD-20260519 add recommendation rewrite review action`
+- Priority: 1
+- Depends on: PRW-010
+- Scope: 在推荐结果详情中为 manualReviewRequired 或 REWRITE recommendation 提供创建 sql_rewrite_record 并进入改写复核与发布 Tab 的显式动作；复用现有后端 rewrite-record 创建、审批、发布接口，不新增 schema，不把 recommendation 自动写成生产执行事实。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-CREATE-REWRITE-RECORD-20260519`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 推荐详情新增创建改写记录/进入复核入口；REWRITE 或 manualReviewRequired recommendation 在具备原 SQL 与推荐 SQL 时可复用现有 sql_rewrite_record 创建接口进入改写复核与发布 Tab。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-RECOMMENDATION-CREATE-REWRITE-RECORD-20260519 --include-task-audit --extra-command node-scripts-check-recommendation-page-contract --extra-command git-diff-check 已通过，详见 docs/quality/validation-log.md。
+  - Residual risk: 未选择后端自动创建策略；当前保持用户显式创建，避免 recommendation 自动升级为生产改写记录。
+  - Next step: 真实租户命中解析问题后，在推荐详情点击创建改写记录并继续执行既有审批、验证与发布流程。
+
 ### USER-CN-REWRITE-GOAL-COMPLETION-AUDIT-20260518: 输出目标完成度映射审计
 
 - Status: done

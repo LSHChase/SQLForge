@@ -1264,6 +1264,8 @@ export default {
       openAlertCenter: 'Open alert center',
       refreshRewriteRecords: 'Refresh rewrite records',
       refreshValidationRuns: 'Refresh validation runs',
+      createRewriteRecordAndReview: 'Create rewrite record and review',
+      openRewriteReview: 'Open rewrite review',
       approveRewrite: 'Approve',
       rejectRewrite: 'Reject',
       publishRewrite: 'Publish',
@@ -1352,6 +1354,8 @@ export default {
       awaitingRewriteReview: 'Waiting for rewrite review or publish.',
       reviewNoteRequired: 'A review note is required when rejecting.',
       lifecycleActionApplied: 'Rewrite record action was submitted and refreshed from the backend.',
+      rewriteRecordCreated: 'Rewrite record created and opened for review and publish.',
+      rewriteRecordCreateUnavailable: 'This recommendation is missing the original or recommended SQL required to create a rewrite record.',
       noRefusalReasons: 'No publish eligibility refusal reason is present.',
       noValidationRuns: 'This rewrite record has no validation runs.'
     },
