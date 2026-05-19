@@ -97,6 +97,47 @@ governance:
             required-permissions:
               - optimization.status.read
             datasource-action: USE
+      SQL_REWRITE_RECORD:
+        operations:
+          SQL_REWRITE_RECORD_CREATE:
+            required-permissions:
+              - optimization.submit
+            datasource-action: USE
+          SQL_REWRITE_RECORD_LIST:
+            required-permissions:
+              - optimization.status.read
+              - governance.history.read
+            datasource-action: USE
+          SQL_REWRITE_RECORD_QUERY:
+            required-permissions:
+              - optimization.status.read
+              - governance.history.read
+            datasource-action: USE
+          SQL_REWRITE_RECORD_REVIEW:
+            required-permissions:
+              - optimization.submit
+            datasource-action: USE
+          SQL_REWRITE_RECORD_PUBLISH:
+            required-permissions:
+              - optimization.submit
+            datasource-action: USE
+          SQL_REWRITE_RECORD_PAUSE:
+            required-permissions:
+              - optimization.submit
+            datasource-action: USE
+          SQL_REWRITE_RECORD_UNPUBLISH:
+            required-permissions:
+              - optimization.submit
+            datasource-action: USE
+          SQL_REWRITE_RECORD_VALIDATION_CREATE:
+            required-permissions:
+              - optimization.submit
+            datasource-action: USE
+          SQL_REWRITE_RECORD_VALIDATION_QUERY:
+            required-permissions:
+              - optimization.status.read
+              - governance.history.read
+            datasource-action: USE
       BENCHMARK_ENGINE_TASK:
         operations:
           BENCHMARK_TASK_SUBMIT:

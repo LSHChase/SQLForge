@@ -184,6 +184,7 @@
 - `governance` 已把授权真值收口到 `governance.access-control.role-matrix`、`resource-model` 与 `datasource-authorization-matrix`
 - 当前统一授权入口为 `/api/governance/internal/authorization/decide`，由 `GovernanceAuthorizationMatrixApplicationService` 执行“租户校验 -> 角色权限 -> 数据源动作”三段式决策
 - `query-execution`、`sql-optimization`、`benchmark-engine` 已统一复用上述授权入口，不再各自维护占位式 datasource check
+- 当前资源模型已覆盖 `SQL_REWRITE_RECORD`，使 SQL 历史聚合改写记录时可按 `optimization.status.read` 或 `governance.history.read` 读取，同步把创建、审批、发布、暂停、撤销和验证创建限制在优化提交权限与数据源 `USE` 授权内
 - 数据源授权变更通过 `/api/governance/internal/authorization/datasource/change` 在运行态更新矩阵，支持吊销/恢复验证与权限变更审计
 - 当前 header-based stateless auth 已把每次受保护请求的鉴权建立/释放记录为 `LOGIN` / `LOGOUT` 审计事件；鉴权前置失败会记录失败型 `LOGIN` 审计事件
 - 当前 `governance` 已通过共享 AES-256 基线把密码 / token / key 类字段接入统一持久化保护入口：

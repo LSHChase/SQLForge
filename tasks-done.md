@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-SQL-REWRITE-HISTORY-ROUTE-20260519: Fix SQL rewrite history query unavailable route
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `HARN-SQL-REWRITE-HISTORY-ROUTE-20260519 fix rewrite history auth route`
+- Priority: 1
+- Depends on: N/A
+- Scope: Fix the SQL rewrite history query failure that reports [10009] SQL optimization rewrite record route unavailable by restoring the missing route/interface wiring, adding focused regression coverage, and preserving the existing governance/audit flow.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-SQL-REWRITE-HISTORY-ROUTE-20260519`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Restored SQL rewrite-history query availability by adding SQL_REWRITE_RECORD to the governance authorization resource model, covering list/detail/validation read paths and create/review/publish lifecycle actions, with matching application.yml configuration, documentation, and regression coverage for history-reader access.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-SQL-REWRITE-HISTORY-ROUTE-20260519 --include-task-audit with governance tests, history page/detail contract checks, repository knowledge lint, compile-governance check, developer copy check, and pre-closeout task audit all passing.
+  - Residual risk: A running governance process must be restarted before the new resource model is visible to sql-optimization authorization calls; the repository fix is committed and test-covered.
+  - Next step: Restart governance in any already-running local or deployed environment, then retry SQL history rewrite-record filtering or the rewriteRecords detail tab.
+
 ### HARN-L2-MV-ARTIFACT-20260519: L2 materialized-view acceleration artifact generation and rule explanations
 
 - Status: done

@@ -59,6 +59,20 @@ public class GovernanceAccessProperties {
             )
         );
         resourceModel.put(
+            "SQL_REWRITE_RECORD",
+            resource(
+                "SQL_REWRITE_RECORD_CREATE", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_LIST", permissions("USE", "optimization.status.read", "governance.history.read"),
+                "SQL_REWRITE_RECORD_QUERY", permissions("USE", "optimization.status.read", "governance.history.read"),
+                "SQL_REWRITE_RECORD_REVIEW", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_PUBLISH", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_PAUSE", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_UNPUBLISH", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_VALIDATION_CREATE", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_VALIDATION_QUERY", permissions("USE", "optimization.status.read", "governance.history.read")
+            )
+        );
+        resourceModel.put(
             "BENCHMARK_ENGINE_TASK",
             resource(
                 "BENCHMARK_TASK_SUBMIT", permission("benchmark.submit", "USE"),
@@ -207,6 +221,13 @@ public class GovernanceAccessProperties {
     private static OperationPolicyProperties permission(String permission, String datasourceAction) {
         OperationPolicyProperties properties = new OperationPolicyProperties();
         properties.getRequiredPermissions().add(permission);
+        properties.setDatasourceAction(datasourceAction);
+        return properties;
+    }
+
+    private static OperationPolicyProperties permissions(String datasourceAction, String... permissions) {
+        OperationPolicyProperties properties = new OperationPolicyProperties();
+        properties.getRequiredPermissions().addAll(Arrays.asList(permissions));
         properties.setDatasourceAction(datasourceAction);
         return properties;
     }
