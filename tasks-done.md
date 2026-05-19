@@ -4,6 +4,28 @@
 
 ## Done
 
+### USER-CN-L2-MV-ADVANCED-PLAN-20260519: 高级物化视图推荐任务包设计
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `USER-CN-L2-MV-ADVANCED-PLAN-20260519 add advanced MV task plan`
+- Priority: 1
+- Depends on: N/A
+- Scope: 基于用户确认的非 EXACT_QUERY_MV 方向，形成 L2 高级物化视图推荐方案与可执行任务文档，不改业务代码。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-L2-MV-ADVANCED-PLAN-20260519`
+  - `node scripts/lint-repository-knowledge.js`
+  - `git diff --check`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-19: added `docs/plans/l2-advanced-materialized-view-task-plan.md` and linked it from the docs plan indexes.
+  - 2026-05-19: registered the new plan in `docs/plans/document-coverage-matrix.md` after repository knowledge lint required coverage.
+- Context closeout:
+  - Completed scope: Created a non-EXACT advanced materialized view recommendation task plan covering parameterized aggregate, prejoin, star aggregate, rollup, common subgraph MV candidates, artifact contracts, governance flow, UI expectations, and implementation task breakdown.
+  - Validation evidence: node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py validate USER-CN-L2-MV-ADVANCED-PLAN-20260519
+  - Residual risk: Future implementation tasks still need code-level design and tests before any runtime behavior changes.
+  - Next step: Materialize AMV-001 when ready to begin implementation.
+
 ### USER-CN-MV-RUNTIME-REWRITE-BINDING-20260519: 让 MV rewriteSql 通过运行时 SQL 改写绑定无感生效
 
 - Status: done

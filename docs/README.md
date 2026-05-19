@@ -24,6 +24,7 @@
    - [加速与改写治理工作台方案](./product/acceleration-rewrite-governance-workbench-spec.md)
    - [SQL 改写功能分层设计](./product/sql-rewrite-function-boundary-design.md)
    - [生产自动改写闭环任务拆解计划](./plans/production-rewrite-auto-apply-task-plan.md)
+   - [L2 高级物化视图推荐任务拆解计划](./plans/l2-advanced-materialized-view-task-plan.md)
    - [前端复盘补漏基线](./product/frontend-retrospective-gap-closure-baseline.md)
    - [前端核心链路聚焦改造任务包](./plans/frontend-core-workflow-refocus-task-pack.md)
    - [C4 文字总览](./architecture/c4-overview.md)
@@ -103,6 +104,9 @@
 - `rules/`
   规则库与可执行约束。
   - `karpathy-guidelines.md`：Karpathy 风格 AI 编码行为的完整说明，保留四原则、适用形态与 SQLForge 落点。
+- `plans/`
+  执行计划、任务拆解与治理入口。
+  - `l2-advanced-materialized-view-task-plan.md`：L2 高级物化视图推荐任务包，覆盖参数外提聚合、预 Join、星型聚合、Rollup、公共子图 MV，明确禁止 `EXACT_QUERY_MV`。
 - `quality/`
   质量门禁、Java 规范治理与前后端分离检查基线。
 - `operations/`
