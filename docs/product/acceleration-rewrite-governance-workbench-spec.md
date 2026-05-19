@@ -335,7 +335,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
 - `manualReviewRequired` 只表示风险需要人工看，不等于审批通过。
 
-当前仓库 V1 `PRECOMPUTE_MV` 产物仍存在 exact-query-like 草案行为：可能把 source SQL 包进 MV DDL，并生成 `SELECT * FROM mv...` 级别 rewrite SQL。AMV-001 只把高级 MV 契约固化为长期边界，不声明系统层面已经消除该行为；代码侧修正由后续 `AMV-002`、`AMV-005`、`AMV-011`、`AMV-012`、`AMV-016` 等实现任务负责。
+当前仓库已通过 AMV-005 消除 `PARAMETERIZED_AGG_MV` 的 exact-query-like 生成路径：`GENERATED` 产物必须把参数字段提升为 MV 维度，`rewriteSql` 必须查询 MV 并二次过滤、二次聚合；`SELECT *`、不可合并指标、不稳定谓词、缺少明确目标引擎或非 AMV-005 范围的 MV 形态必须返回 `BLOCKED` 且不得输出 `ddlSql` / `rewriteSql`。`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV`、`COMMON_SUBGRAPH_MV` 的专用生成仍由后续 AMV 任务补齐。
 
 ### Advanced MV Runtime Path
 

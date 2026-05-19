@@ -229,7 +229,9 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(signalProfile.contains("\"aggregations\""));
         assertTrue(suggestion.getArtifacts().get(3).getContent().contains("\"artifactStatus\":\"GENERATED\""));
         assertTrue(suggestion.getArtifacts().get(3).getContent().contains("CREATE MATERIALIZED VIEW mv_report_sales"));
-        assertTrue(suggestion.getArtifacts().get(3).getContent().contains("SELECT * FROM mv_report_sales"));
+        assertTrue(suggestion.getArtifacts().get(3).getContent().contains("FROM mv_report_sales"));
+        assertTrue(suggestion.getArtifacts().get(3).getContent().contains("SUM(sum_amount) AS sum_amount"));
+        assertFalse(suggestion.getArtifacts().get(3).getContent().contains("SELECT * FROM mv_report_sales"));
         assertTrue(suggestion.getSummary().contains("加速推荐"));
     }
 

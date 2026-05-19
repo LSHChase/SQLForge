@@ -75,7 +75,8 @@ class ProductionRewriteClosedLoopEndToEndTest {
     private static final String SQL_FINGERPRINT = SqlFingerprintUtils.fingerprint(ORIGINAL_SQL);
     private static final String MV_ORIGINAL_SQL =
         "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id";
-    private static final String MV_REWRITE_SQL = "SELECT * FROM mv_sales_daily";
+    private static final String MV_REWRITE_SQL =
+        "SELECT customer_id, SUM(total_amount) AS total_amount FROM mv_sales_daily GROUP BY customer_id";
     private static final String MV_SQL_FINGERPRINT = SqlFingerprintUtils.fingerprint(MV_ORIGINAL_SQL);
 
     @AfterEach
@@ -333,12 +334,15 @@ class ProductionRewriteClosedLoopEndToEndTest {
     private Map<String, Object> generatedMvArtifact() {
         Map<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", "PRECOMPUTE_MV");
+        artifact.put("mvType", "PARAMETERIZED_AGG_MV");
         artifact.put("artifactStatus", "GENERATED");
         artifact.put("mvName", "mv_sales_daily");
         artifact.put("targetDatasource", "hetu_main");
-        artifact.put("ddlSql", "CREATE MATERIALIZED VIEW mv_sales_daily AS\n" + MV_ORIGINAL_SQL);
+        artifact.put("ddlSql", "CREATE MATERIALIZED VIEW mv_sales_daily AS\n"
+            + "SELECT customer_id, dt, SUM(amount) AS total_amount FROM orders GROUP BY customer_id, dt");
         artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_sales_daily");
-        artifact.put("validationSql", "SELECT COUNT(*) FROM mv_sales_daily");
+        artifact.put("validationSql", "WITH rewrite_result AS (" + MV_REWRITE_SQL + ") "
+            + "SELECT COUNT(*) FROM rewrite_result");
         artifact.put("rewriteSql", MV_REWRITE_SQL);
         artifact.put("blockingReasons", Collections.emptyList());
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");

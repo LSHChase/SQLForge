@@ -38,8 +38,8 @@
 - 当前 L2 规则已经能通过静态解析发现 `PRECOMPUTE_MV`、`PARTITION_PRUNING`、`BUCKET_JOIN`、`RESULT_CACHE`、`TOPN_PUSHDOWN` 等候选。
 - 当前 `PRECOMPUTE_MV` 主要由聚合函数或 `GROUP BY` 触发。
 - 当前物化视图产物生成依赖明确目标引擎，支持 `HETU`、`HIVE`、`SPARK`，缺失或为 `AUTO` 时会返回 `TARGET_ENGINE_REQUIRED`。
-- 当前产物包含 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`，但 `rewriteSql` 只是 `SELECT * FROM mv_xxx` 级别草案。
-- 当前 V1 代码和测试仍可能保留 exact-query-like MV 草案行为：`CREATE MATERIALIZED VIEW ... AS <sourceSql>` 加 `SELECT * FROM mv...` 只能作为待修正缺口记录，不能被 AMV-001 写成高级 MV 已完成事实。
+- 当前 `PARAMETERIZED_AGG_MV` 产物已由 AMV-005 生成参数外提型聚合 MV：参数字段进入 MV 维度，固定业务谓词进入 DDL base `WHERE`，安全谓词字段保留在 MV 维度并由 rewrite 继续过滤，`rewriteSql` 查询 MV 后二次过滤、二次聚合。
+- 当前 AMV-005 只覆盖 `PARAMETERIZED_AGG_MV`；`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV`、`COMMON_SUBGRAPH_MV` 的专用 DDL/rewrite 生成仍是后续任务范围，遇到对应形态必须结构化阻断或复核，不得退回 exact-query-like 草案。
 - 当前推荐中心/加速治理页面能展示 `accelerationArtifact`，但不会自动把 `accelerationArtifact.rewriteSql` 发布为运行时改写绑定。
 - 当前 runtime 自动生效路径属于 SQL 改写记录的审批、发布和 runtime binding，不属于 L2 加速产物展示本身。
 

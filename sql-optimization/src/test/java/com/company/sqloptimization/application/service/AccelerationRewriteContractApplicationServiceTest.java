@@ -602,7 +602,8 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setRecommendedSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id");
         request.setTraceRefs(Collections.<String, Object>singletonMap(
             "accelerationArtifact",
-            generatedMvArtifact("SELECT * FROM mv_sales_daily;")
+            generatedMvArtifact("SELECT customer_id, SUM(total_amount) AS total_amount "
+                + "FROM mv_sales_daily GROUP BY customer_id;")
         ));
 
         BizException exception = assertThrows(BizException.class, () -> service.createRewriteRecord(request));
@@ -644,7 +645,8 @@ class AccelerationRewriteContractApplicationServiceTest {
             .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
             .traceRefs(Collections.<String, Object>singletonMap(
                 "accelerationArtifact",
-                generatedMvArtifact("SELECT * FROM mv_sales_daily;")
+                generatedMvArtifact("SELECT customer_id, SUM(total_amount) AS total_amount "
+                    + "FROM mv_sales_daily GROUP BY customer_id;")
             ))
             .build());
 
@@ -733,12 +735,15 @@ class AccelerationRewriteContractApplicationServiceTest {
     private Map<String, Object> generatedMvArtifact(String rewriteSql) {
         Map<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", "PRECOMPUTE_MV");
+        artifact.put("mvType", "PARAMETERIZED_AGG_MV");
         artifact.put("artifactStatus", "GENERATED");
         artifact.put("mvName", "mv_sales_daily");
         artifact.put("targetDatasource", "hetu_main");
-        artifact.put("ddlSql", "CREATE MATERIALIZED VIEW mv_sales_daily AS SELECT 1");
+        artifact.put("ddlSql", "CREATE MATERIALIZED VIEW mv_sales_daily AS\n"
+            + "SELECT customer_id, dt, SUM(amount) AS total_amount FROM orders GROUP BY customer_id, dt");
         artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_sales_daily");
-        artifact.put("validationSql", "SELECT COUNT(*) FROM mv_sales_daily");
+        artifact.put("validationSql", "WITH rewrite_result AS (" + rewriteSql + ") "
+            + "SELECT COUNT(*) FROM rewrite_result");
         artifact.put("rewriteSql", rewriteSql);
         artifact.put("blockingReasons", Collections.emptyList());
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");

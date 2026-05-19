@@ -63,6 +63,17 @@ final class L2AccelerationArtifactBuilder {
             grainMeasureDerivation
         );
         String mvName = mvName(input, profile);
+        L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql = null;
+        if (blockingReasons.isEmpty()) {
+            candidateSql = L2ParameterizedAggMvCandidateGenerator.generate(
+                sourceSql,
+                mvName,
+                advancedStructureProfile,
+                predicateClassification,
+                grainMeasureDerivation
+            );
+            blockingReasons.addAll(candidateSql.getBlockingReasons());
+        }
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
         artifact.put("mvType", grainMeasureDerivation.getMvType());
@@ -90,11 +101,11 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("runtimeRewriteBinding", "NOT_CREATED");
         artifact.put("source", source(input));
         if (blockingReasons.isEmpty()) {
-            artifact.put("ddlSql", "CREATE MATERIALIZED VIEW " + mvName + " AS\n" + sourceSql + ";");
-            artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW " + mvName + ";");
-            artifact.put("rollbackSql", "DROP MATERIALIZED VIEW " + mvName + ";");
-            artifact.put("validationSql", validationSql(sourceSql, mvName));
-            artifact.put("rewriteSql", "SELECT * FROM " + mvName + ";");
+            artifact.put("ddlSql", candidateSql.getDdlSql());
+            artifact.put("refreshSql", candidateSql.getRefreshSql());
+            artifact.put("rollbackSql", candidateSql.getRollbackSql());
+            artifact.put("validationSql", candidateSql.getValidationSql());
+            artifact.put("rewriteSql", candidateSql.getRewriteSql());
         }
         return artifact;
     }
@@ -183,14 +194,6 @@ final class L2AccelerationArtifactBuilder {
         source.put("reportCode", input.reportCode);
         source.put("logicalObjectKey", input.logicalObjectKey);
         return source;
-    }
-
-    private static String validationSql(String sourceSql, String mvName) {
-        return "SELECT 'original' AS source_name, COUNT(*) AS row_count FROM (\n"
-            + sourceSql
-            + "\n) original_query\nUNION ALL\nSELECT 'materialized_view' AS source_name, COUNT(*) AS row_count FROM "
-            + mvName
-            + ";";
     }
 
     private static String mvName(AccelerationRecommendationInput input,

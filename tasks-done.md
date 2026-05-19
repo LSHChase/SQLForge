@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-005: 实现 PARAMETERIZED_AGG_MV 候选生成
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-005 add parameterized aggregate MV generator`
+- Priority: 1
+- Depends on: N/A
+- Scope: 根据 AMV-003 谓词分类与 AMV-004 粒度/指标模型生成 PARAMETERIZED_AGG_MV 的 DDL、刷新、验证、回滚和 rewrite SQL；参数字段提升为 MV 维度，rewrite 查询 MV 并二次过滤/二次聚合；SELECT *、不可合并指标、不稳定谓词、缺少目标引擎和非本任务 MV 类型必须结构化阻断；保留 PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE，不修改前端。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-005`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 PARAMETERIZED_AGG_MV 专用生成器并接入 L2 acceleration artifact；GENERATED 产物基于 AMV-003/004 的谓词、粒度和指标生成非 exact-query-like DDL、refresh、validation、rollback 与查询 MV 的 rewrite SQL；参数/安全字段保留为 MV 维度并在 rewrite 中过滤，固定业务 WHERE 保留在 DDL；非本任务 MV 形态和不安全场景结构化 BLOCKED 且不输出 SQL。
+  - Validation evidence: python3 scripts/foreman.py validate AMV-005 --include-task-audit --extra-command "mvn -pl sql-optimization,query-execution -am -Dtest=L2ParameterizedAggMvCandidateGeneratorTest,L2GrainMeasureDeriverTest,L2PredicateClassifierTest,SqlDiffApplicationServiceTest,SqlOptimizationPipelineServiceTest,AccelerationRewriteContractApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test" --extra-command "node scripts/lint-repository-knowledge.js" --extra-command "git diff --check"；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: AMV-005 只覆盖 PARAMETERIZED_AGG_MV；PREJOIN_MV、STAR_AGG_MV、ROLLUP_MV、COMMON_SUBGRAPH_MV、通用方言渲染与跨类型静态覆盖校验仍由后续 AMV 任务处理。
+  - Next step: 继续 AMV-006/AMV-008/AMV-010/AMV-011，补齐 Join、Rollup、方言渲染和通用 rewrite 覆盖校验。
+
 ### AMV-004: 实现粒度与指标推导模型
 
 - Status: done
