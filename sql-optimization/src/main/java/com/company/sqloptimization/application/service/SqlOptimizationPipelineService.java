@@ -195,7 +195,10 @@ public class SqlOptimizationPipelineService {
     private static final Pattern PERCENTILE_PATTERN =
         Pattern.compile("(?is)\\b(APPROX_PERCENTILE|PERCENTILE_CONT|PERCENTILE_DISC|QUANTILE)\\s*\\(");
     private static final Pattern SQL_LEVEL_FUNCTION_PATTERN =
-        Pattern.compile("(?is)\\b(CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP|LOCALTIME|LOCALTIMESTAMP|NOW|RAND|RANDOM|UUID)\\b\\s*(?:\\(|\\b)");
+        Pattern.compile(
+            "(?is)\\b(CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP|LOCALTIME|LOCALTIMESTAMP|NOW|RAND|RANDOM|UUID"
+                + "|CURRENT_USER|SESSION_USER)\\b\\s*(?:\\(|\\b)"
+        );
 
     @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
     private String parserStrategy = "JSQLPARSER";
@@ -1952,39 +1955,107 @@ public class SqlOptimizationPipelineService {
         if (expression == null || profile == null) {
             return;
         }
-        List<Expression> predicates = new ArrayList<Expression>();
-        flattenPredicateExpression(expression, predicates);
-        for (Expression predicate : predicates) {
-            profile.recordPredicate(
-                clause,
-                predicate,
-                collectColumnReferences(predicate),
-                collectFunctionNames(predicate)
-            );
-        }
+        recordPredicateNode(clause, expression, profile, "AND", null, new int[] {0});
     }
 
-    private void flattenPredicateExpression(Expression expression, List<Expression> collector) {
+    private void recordPredicateNode(String clause,
+                                     Expression expression,
+                                     ParsedSqlProfile profile,
+                                     String logicalContext,
+                                     String groupId,
+                                     int[] groupCounter) {
         if (expression == null) {
             return;
         }
         if (expression instanceof Parenthesis) {
-            flattenPredicateExpression(((Parenthesis) expression).getExpression(), collector);
+            recordPredicateNode(
+                clause,
+                ((Parenthesis) expression).getExpression(),
+                profile,
+                logicalContext,
+                groupId,
+                groupCounter
+            );
             return;
         }
         if (expression instanceof AndExpression) {
             AndExpression andExpression = (AndExpression) expression;
-            flattenPredicateExpression(andExpression.getLeftExpression(), collector);
-            flattenPredicateExpression(andExpression.getRightExpression(), collector);
+            if (StringUtils.hasText(groupId)) {
+                recordPredicateNode(
+                    clause,
+                    andExpression.getLeftExpression(),
+                    profile,
+                    logicalContext,
+                    groupId,
+                    groupCounter
+                );
+                recordPredicateNode(
+                    clause,
+                    andExpression.getRightExpression(),
+                    profile,
+                    logicalContext,
+                    groupId,
+                    groupCounter
+                );
+            } else {
+                recordPredicateNode(
+                    clause,
+                    andExpression.getLeftExpression(),
+                    profile,
+                    "AND",
+                    null,
+                    groupCounter
+                );
+                recordPredicateNode(
+                    clause,
+                    andExpression.getRightExpression(),
+                    profile,
+                    "AND",
+                    null,
+                    groupCounter
+                );
+            }
             return;
         }
         if (expression instanceof OrExpression) {
             OrExpression orExpression = (OrExpression) expression;
-            flattenPredicateExpression(orExpression.getLeftExpression(), collector);
-            flattenPredicateExpression(orExpression.getRightExpression(), collector);
+            String currentGroupId = StringUtils.hasText(groupId) ? groupId : nextPredicateGroupId(clause, groupCounter);
+            recordPredicateNode(
+                clause,
+                orExpression.getLeftExpression(),
+                profile,
+                "OR",
+                currentGroupId,
+                groupCounter
+            );
+            recordPredicateNode(
+                clause,
+                orExpression.getRightExpression(),
+                profile,
+                "OR",
+                currentGroupId,
+                groupCounter
+            );
             return;
         }
-        collector.add(expression);
+        profile.recordPredicate(
+            clause,
+            expression,
+            collectColumnReferences(expression),
+            collectFunctionNames(expression),
+            logicalContext,
+            groupId
+        );
+    }
+
+    private String nextPredicateGroupId(String clause, int[] groupCounter) {
+        String prefix = StringUtils.hasText(clause) ? clause.trim().toUpperCase(Locale.ROOT) : "PREDICATE";
+        prefix = prefix.replaceAll("[^A-Z0-9]+", "_").replaceAll("^_+", "").replaceAll("_+$", "");
+        if (!StringUtils.hasText(prefix)) {
+            prefix = "PREDICATE";
+        }
+        groupCounter[0]++;
+        return prefix + "_OR_" + groupCounter[0];
     }
 
     private List<String> collectColumnReferences(Expression expression) {
@@ -4038,8 +4109,17 @@ public class SqlOptimizationPipelineService {
         private void recordPredicate(String clause,
                                      Expression predicate,
                                      List<String> sourceColumns,
-                                     List<String> functionNames) {
-            advancedStructureProfile.recordPredicate(clause, predicate, sourceColumns, functionNames);
+                                     List<String> functionNames,
+                                     String logicalContext,
+                                     String groupId) {
+            advancedStructureProfile.recordPredicate(
+                clause,
+                predicate,
+                sourceColumns,
+                functionNames,
+                logicalContext,
+                groupId
+            );
         }
 
         private void recordJoin(FromItem leftItem, Join join) {
@@ -4305,7 +4385,9 @@ public class SqlOptimizationPipelineService {
         private void recordPredicate(String clause,
                                      Expression predicate,
                                      List<String> sourceColumns,
-                                     List<String> functionNames) {
+                                     List<String> functionNames,
+                                     String logicalContext,
+                                     String groupId) {
             if (predicate == null) {
                 return;
             }
@@ -4315,6 +4397,8 @@ public class SqlOptimizationPipelineService {
             item.put("predicateType", predicateType(predicate));
             item.put("sourceColumns", safeList(sourceColumns));
             item.put("functionNames", safeList(functionNames));
+            item.put("logicalContext", StringUtils.hasText(logicalContext) ? logicalContext : "AND");
+            item.put("groupId", StringUtils.hasText(groupId) ? groupId : "");
             addUnique(predicates, item);
         }
 

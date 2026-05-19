@@ -325,6 +325,8 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `runtimeRewriteBinding=NOT_CREATED`
 - `governanceBoundary=PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE`
 
+谓词契约中，`tenant_id` 按普通参数谓词进入 `externalizedPredicates[]`，不进入 `securityPredicates[]`。`securityPredicates[]` 只表示 SQL 中显式出现的非租户安全边界过滤，例如权限域、数据域、访问域；缺少这类显式安全谓词不得单独阻断 `GENERATED`，但一旦出现就不得在 MV 粒度、输出或 rewrite 过滤中丢失。
+
 状态语义：
 
 - `GENERATED` 必须同时具备 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql` 和查询 MV 的 `rewriteSql`。

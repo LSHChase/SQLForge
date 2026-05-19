@@ -253,9 +253,9 @@ GROUP BY o.dt, p.category, s.city
 
 每个谓词必须归入以下类别之一：
 
-- `EXTERNALIZED_PARAMETER_PREDICATE`：参数型过滤，例如日期、区域、渠道、客户、商品、租户等。字段必须保留在 MV 粒度或输出中，rewrite SQL 再应用该过滤。
+- `EXTERNALIZED_PARAMETER_PREDICATE`：参数型过滤，例如日期、区域、渠道、客户、商品、租户等。`tenant_id` 按普通参数过滤处理，字段必须保留在 MV 粒度或输出中，rewrite SQL 再应用该过滤。
 - `RETAINED_BUSINESS_PREDICATE`：业务固定过滤，例如 `status='PAID'`、`is_deleted=0`。可以保留在 MV DDL 中，但必须展示为保留谓词。
-- `SECURITY_PREDICATE`：安全或租户边界过滤，例如 `tenant_id`、权限域、数据域。不得丢失；要么保留在 MV 中，要么保留为 MV 字段并在 rewrite 中强制过滤。
+- `SECURITY_PREDICATE`：显式非租户安全边界过滤，例如权限域、数据域、访问域。不得丢失；要么保留在 MV 中，要么保留为 MV 字段并在 rewrite 中强制过滤。缺少显式非租户安全谓词不得单独阻断 `GENERATED`。
 - `BLOCKED_UNSTABLE_PREDICATE`：非确定或上下文相关谓词，例如 `current_date`、随机函数、会话变量。默认阻断高级 MV，除非后续任务明确提供稳定化策略。
 
 ### 粒度推导
@@ -292,7 +292,7 @@ MV 粒度必须由以下字段组成：
 - 原查询过滤字段存在于 MV 输出或 MV 粒度中。
 - 原查询分组粒度不细于 MV 粒度。
 - 原查询指标可由 MV 指标重算。
-- 安全谓词没有被丢失。
+- 显式非租户安全谓词没有被丢失；缺少显式非租户安全谓词不得单独阻断 `GENERATED`。
 - 推荐 SQL 仍是只读 SQL。
 
 不满足时，候选仍可展示为 `BLOCKED` 或 `REVIEW_REQUIRED`，但不得生成可发布 runtime binding 草案。
@@ -422,9 +422,9 @@ MV 粒度必须由以下字段组成：
 **范围**：
 
 - 新增谓词分类服务或组件。
-- 识别日期、区域、渠道、客户、商品、租户等参数谓词。
+- 识别日期、区域、渠道、客户、商品、租户等参数谓词，`tenant_id` 归入 `EXTERNALIZED_PARAMETER_PREDICATE`。
 - 识别 `status`、`is_deleted` 等业务固定谓词。
-- 识别 `tenant_id` 等安全谓词。
+- 识别权限域、数据域、访问域等显式非租户安全谓词。
 - 识别当前时间、随机函数、会话函数等不稳定谓词。
 
 **验收**：
@@ -432,7 +432,7 @@ MV 粒度必须由以下字段组成：
 - 每类谓词有单元测试。
 - 分类结果进入 `accelerationArtifact`。
 - 不稳定谓词触发结构化 `blockingReasons`。
-- 安全谓词丢失时不得生成 `GENERATED` 产物。
+- 显式非租户安全谓词一旦出现必须进入 `securityPredicates`，缺少显式非租户安全谓词不得单独阻断 `GENERATED`。
 
 ### AMV-004：实现粒度与指标推导模型
 

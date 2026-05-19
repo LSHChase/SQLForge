@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-003: 实现谓词分类器
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-003 add predicate classification artifact`
+- Priority: 1
+- Depends on: AMV-002
+- Scope: 新增谓词分类服务或组件，把 WHERE / HAVING 条件拆成参数外提、业务保留、安全边界和不稳定阻断四类；分类结果进入 accelerationArtifact；不稳定谓词触发结构化 blockingReasons；按已确认契约将 tenant_id 作为普通参数谓词，缺少显式安全谓词仍允许 GENERATED。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-003`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 更新高级 MV 谓词契约，将 tenant_id 明确归入参数谓词且缺少显式非租户安全谓词不阻断 GENERATED；新增 L2PredicateClassifier，把 WHERE/HAVING 谓词分类为 externalizedPredicates、retainedPredicates、securityPredicates、blockedPredicates；advancedStructureProfile 谓词保留 logicalContext/groupId；blockedPredicates 非空时 accelerationArtifact 返回 BLOCKED、结构化 blockingReasons 且不输出 ddlSql/rewriteSql。
+  - Validation evidence: python3 scripts/foreman.py validate AMV-003 --include-task-audit --extra-command "mvn -pl sql-optimization -Dtest=L2PredicateClassifierTest,StructureParseControllerTest,SqlOptimizationPipelineServiceTest,SqlDiffApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test" --extra-command "node scripts/lint-repository-knowledge.js" --extra-command "git diff --check"；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 本任务只实现谓词分类和不稳定谓词阻断，不修复 exact-query-like MV DDL/rewrite，也不实现粒度、指标、覆盖证明或专门前端谓词分类展示；这些仍归后续 AMV-004/005/011/012/013 等任务。
+  - Next step: 继续 AMV-004/AMV-005，将分类结果用于粒度/指标推导和 PARAMETERIZED_AGG_MV 候选生成。
+
 ### AMV-002: 扩展 SQL 结构画像
 
 - Status: done

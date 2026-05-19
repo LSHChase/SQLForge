@@ -790,6 +790,7 @@ repo-side 基线：
 - `BLOCKED` 必须返回 `blockingReasons[]`，不得生成可发布 runtime binding 草案。
 - `REVIEW_REQUIRED` 必须返回 `reviewWarnings[]`，只能进入人工复核，不能自动发布。
 - 高级证据字段包括 `joinGraph[]`、`externalizedPredicates[]`、`retainedPredicates[]`、`securityPredicates[]`、`blockedPredicates[]`；`coverage` 至少覆盖 `coversProjection`、`coversFilters`、`coversGrouping`、`coversMeasures`、`coversSecurity`。
+- 谓词分类中 `tenant_id` 按普通参数过滤进入 `externalizedPredicates[]`；`securityPredicates[]` 只承载 SQL 中显式出现的非租户安全边界过滤（权限域、数据域、访问域等）。缺少显式非租户安全谓词不得单独阻断 `GENERATED`，但已出现的安全谓词不得在 MV 产物或 rewrite 过滤中丢失。
 - `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
 - `runtimeRewriteBinding` 在 L2 产物中默认为 `NOT_CREATED`；L2 产物本身不表示已建 MV、已刷新、已验证、已审批或 runtime 已生效。
 

@@ -43,9 +43,19 @@ final class L2AccelerationArtifactBuilder {
 
     private static Map<String, Object> build(AccelerationRecommendationInput input,
                                              SqlOptimizationPipelineService.ParsedSqlProfile profile) {
-        String sourceSql = trimTrailingSemicolon(firstText(input.sourceSqlText, profile == null ? null : profile.getNormalizedSql()));
+        String sourceSql = trimTrailingSemicolon(firstText(
+            input.sourceSqlText,
+            profile == null ? null : profile.getNormalizedSql()
+        ));
         String targetEngine = normalizeEngine(input.targetEngine);
-        List<Map<String, Object>> blockingReasons = blockingReasons(sourceSql, targetEngine, profile);
+        L2PredicateClassifier.PredicateClassificationResult predicateClassification =
+            L2PredicateClassifier.classify(profile);
+        List<Map<String, Object>> blockingReasons = blockingReasons(
+            sourceSql,
+            targetEngine,
+            profile,
+            predicateClassification
+        );
         String mvName = mvName(input, profile);
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
@@ -55,6 +65,10 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("targetDatasource", input.targetDatasource);
         artifact.put("dialect", dialect(targetEngine));
         artifact.put("requiredEvidence", REQUIRED_EVIDENCE);
+        artifact.put("externalizedPredicates", predicateClassification.getExternalizedPredicates());
+        artifact.put("retainedPredicates", predicateClassification.getRetainedPredicates());
+        artifact.put("securityPredicates", predicateClassification.getSecurityPredicates());
+        artifact.put("blockedPredicates", predicateClassification.getBlockedPredicates());
         artifact.put("blockingReasons", blockingReasons);
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
@@ -74,7 +88,9 @@ final class L2AccelerationArtifactBuilder {
 
     private static List<Map<String, Object>> blockingReasons(String sourceSql,
                                                              String targetEngine,
-                                                             SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+                                                             SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                             L2PredicateClassifier.PredicateClassificationResult
+                                                                 predicateClassification) {
         List<Map<String, Object>> reasons = new ArrayList<Map<String, Object>>();
         if (!StringUtils.hasText(sourceSql)) {
             reasons.add(reason("SOURCE_SQL_REQUIRED", "缺少原 SQL，不能生成物化视图 AS SELECT。"));
@@ -91,6 +107,14 @@ final class L2AccelerationArtifactBuilder {
         }
         if (profile != null && profile.isSelectStar()) {
             reasons.add(reason("EXPLICIT_PROJECTION_REQUIRED", "SELECT * 需要先展开字段后才能生成可审查物化视图。"));
+        }
+        if (predicateClassification != null && predicateClassification.hasBlockedPredicates()) {
+            Map<String, Object> reason = reason(
+                "BLOCKED_UNSTABLE_PREDICATE",
+                "谓词包含当前时间、随机或会话上下文函数，缺少稳定化策略时不能生成高级物化视图产物。"
+            );
+            reason.put("blockedPredicates", predicateClassification.getBlockedPredicates());
+            reasons.add(reason);
         }
         return reasons;
     }
