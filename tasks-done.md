@@ -4,6 +4,31 @@
 
 ## Done
 
+### AMV-006: Implement PREJOIN_MV recommendation for join aggregate queries
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-006 add prejoin MV generator`
+- Priority: 1
+- Depends on: AMV-005
+- Scope: Add PREJOIN_MV routing and candidate generation for INNER equi-join queries with aggregation or GROUP BY, generating pull-only pre-join materialized view artifacts with structured review warnings and blocking unsafe join forms.
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-006`
+  - `mvn -pl sql-optimization -Dtest=L2PrejoinMvCandidateGeneratorTest,L2ParameterizedAggMvCandidateGeneratorTest test`
+  - `mvn -pl sql-optimization test`
+  - `python3 scripts/task_audit.py --check --phase pre-closeout`
+  - `git diff --check`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-19: implemented PREJOIN_MV routing, detail wide-table DDL/rewrite generation, structured join key/field mapping evidence, and row-amplification review warning for missing uniqueness/cardinality metadata.
+  - 2026-05-19: added PREJOIN_MV unit coverage for safe INNER equi-join aggregation, parameter-shape DDL reuse, CROSS/outer/non-equi/complex/ambiguous field blocking, and AMV-005 regression that safe join aggregates no longer emit JOIN_MV_TYPE_DEFERRED.
+  - 2026-05-19: validation passed with focused Maven suite, full sql-optimization module test suite, Foreman validate, pre-closeout task audit, and git diff whitespace check.
+- Context closeout:
+  - Completed scope: Implemented PREJOIN_MV routing for join aggregate/GROUP BY queries, generated pull-only detail wide-table MV artifacts with MV-only rewrite SQL, structured join key/field mapping evidence, row-amplification review warnings, and unsafe join blocking for CROSS, outer, non-equi, complex key, and ambiguous field cases.
+  - Validation evidence: mvn -pl sql-optimization -Dtest=L2PrejoinMvCandidateGeneratorTest,L2ParameterizedAggMvCandidateGeneratorTest test; mvn -pl sql-optimization test; python3 scripts/foreman.py validate AMV-006; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: PREJOIN_MV still relies on reviewWarnings when uniqueness/cardinality metadata is absent; runtime binding remains NOT_CREATED and actual publication stays in the existing approval path.
+  - Next step: AMV-007/AMV-013 can build STAR_AGG/front-end presentation on the structured artifact fields.
+
 ### AMV-005: 实现 PARAMETERIZED_AGG_MV 候选生成
 
 - Status: done

@@ -64,15 +64,27 @@ final class L2AccelerationArtifactBuilder {
         );
         String mvName = mvName(input, profile);
         L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql = null;
+        L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql = null;
         if (blockingReasons.isEmpty()) {
-            candidateSql = L2ParameterizedAggMvCandidateGenerator.generate(
-                sourceSql,
-                mvName,
-                advancedStructureProfile,
-                predicateClassification,
-                grainMeasureDerivation
-            );
-            blockingReasons.addAll(candidateSql.getBlockingReasons());
+            if (L2GrainMeasureDeriver.MV_TYPE_PREJOIN.equals(grainMeasureDerivation.getMvType())) {
+                prejoinCandidateSql = L2PrejoinMvCandidateGenerator.generate(
+                    sourceSql,
+                    mvName,
+                    advancedStructureProfile,
+                    predicateClassification,
+                    grainMeasureDerivation
+                );
+                blockingReasons.addAll(prejoinCandidateSql.getBlockingReasons());
+            } else {
+                candidateSql = L2ParameterizedAggMvCandidateGenerator.generate(
+                    sourceSql,
+                    mvName,
+                    advancedStructureProfile,
+                    predicateClassification,
+                    grainMeasureDerivation
+                );
+                blockingReasons.addAll(candidateSql.getBlockingReasons());
+            }
         }
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
@@ -94,6 +106,12 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("coverage", grainMeasureDerivation.getCoverage());
         artifact.put("blockingReasons", blockingReasons);
         artifact.put("reviewWarnings", grainMeasureDerivation.getReviewWarnings());
+        if (prejoinCandidateSql != null) {
+            artifact.put("joinKeys", prejoinCandidateSql.getJoinKeys());
+            artifact.put("fieldMappings", prejoinCandidateSql.getFieldMappings());
+            artifact.put("aliasDisambiguation", prejoinCandidateSql.getAliasDisambiguation());
+            artifact.put("rowAmplificationRisk", prejoinCandidateSql.getRowAmplificationRisk());
+        }
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
@@ -101,11 +119,19 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("runtimeRewriteBinding", "NOT_CREATED");
         artifact.put("source", source(input));
         if (blockingReasons.isEmpty()) {
-            artifact.put("ddlSql", candidateSql.getDdlSql());
-            artifact.put("refreshSql", candidateSql.getRefreshSql());
-            artifact.put("rollbackSql", candidateSql.getRollbackSql());
-            artifact.put("validationSql", candidateSql.getValidationSql());
-            artifact.put("rewriteSql", candidateSql.getRewriteSql());
+            if (prejoinCandidateSql != null) {
+                artifact.put("ddlSql", prejoinCandidateSql.getDdlSql());
+                artifact.put("refreshSql", prejoinCandidateSql.getRefreshSql());
+                artifact.put("rollbackSql", prejoinCandidateSql.getRollbackSql());
+                artifact.put("validationSql", prejoinCandidateSql.getValidationSql());
+                artifact.put("rewriteSql", prejoinCandidateSql.getRewriteSql());
+            } else {
+                artifact.put("ddlSql", candidateSql.getDdlSql());
+                artifact.put("refreshSql", candidateSql.getRefreshSql());
+                artifact.put("rollbackSql", candidateSql.getRollbackSql());
+                artifact.put("validationSql", candidateSql.getValidationSql());
+                artifact.put("rewriteSql", candidateSql.getRewriteSql());
+            }
         }
         return artifact;
     }

@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 final class L2GrainMeasureDeriver {
 
     static final String MV_TYPE_PARAMETERIZED_AGG = "PARAMETERIZED_AGG_MV";
+    static final String MV_TYPE_PREJOIN = "PREJOIN_MV";
     static final String MV_TYPE_ROLLUP = "ROLLUP_MV";
 
     private static final Set<String> DIRECT_MERGEABLE_FUNCTIONS =
@@ -55,17 +56,39 @@ final class L2GrainMeasureDeriver {
             measureDerivation,
             predicateClassification
         );
-        String mvType = grainDerivation.hasTimeRollup ? MV_TYPE_ROLLUP : MV_TYPE_PARAMETERIZED_AGG;
+        List<Map<String, Object>> joinGraph = mapList(advancedStructureProfile.get("joinGraph"));
+        String mvType = !joinGraph.isEmpty()
+            ? MV_TYPE_PREJOIN
+            : grainDerivation.hasTimeRollup ? MV_TYPE_ROLLUP : MV_TYPE_PARAMETERIZED_AGG;
         return new DerivationResult(
             mvType,
             grainDerivation.grain,
             grainDerivation.grain,
             measureDerivation.measures,
-            mapList(advancedStructureProfile.get("joinGraph")),
+            joinGraph,
             coverage,
             measureDerivation.blockingReasons,
-            Collections.<Map<String, Object>>emptyList()
+            reviewWarnings(joinGraph)
         );
+    }
+
+    private static List<Map<String, Object>> reviewWarnings(List<Map<String, Object>> joinGraph) {
+        if (joinGraph == null || joinGraph.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LinkedHashMap<String, Object> warning = new LinkedHashMap<String, Object>();
+        warning.put("code", "ROW_AMPLIFICATION_METADATA_MISSING");
+        warning.put(
+            "description",
+            "缺少唯一键、表基数与 Join 选择率元数据，PREJOIN_MV 只能说明 Join key 形态安全，不能证明无行数放大。"
+        );
+        warning.put("requiredEvidence", Arrays.asList(
+            "JOIN_KEY_UNIQUENESS",
+            "TABLE_CARDINALITY",
+            "JOIN_SELECTIVITY"
+        ));
+        warning.put("generatedAllowed", Boolean.TRUE);
+        return Collections.<Map<String, Object>>singletonList(warning);
     }
 
     private static GrainDerivation deriveGrain(Map<String, Object> advancedStructureProfile,

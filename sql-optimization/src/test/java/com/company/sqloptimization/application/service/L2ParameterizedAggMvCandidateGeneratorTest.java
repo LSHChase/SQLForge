@@ -130,16 +130,11 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
     }
 
     @Test
-    void shouldBlockDeferredMvShapesAndUnsafeRewriteCasesWithoutSql() {
+    void shouldBlockDeferredNonPrejoinMvShapesAndUnsafeRewriteCasesWithoutSql() {
         assertBlocked(
             artifact("SELECT DATE_TRUNC('month', order_date) AS order_month, SUM(amount) AS total_amount "
                 + "FROM orders GROUP BY DATE_TRUNC('month', order_date)"),
             "PARAMETERIZED_AGG_MV_ONLY"
-        );
-        assertBlocked(
-            artifact("SELECT o.customer_id, SUM(o.amount) AS total_amount FROM orders o "
-                + "JOIN customers c ON o.customer_id = c.customer_id GROUP BY o.customer_id"),
-            "JOIN_MV_TYPE_DEFERRED"
         );
         assertBlocked(
             artifact("WITH recent_orders AS (SELECT customer_id, amount FROM orders) "
@@ -156,6 +151,18 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
                 + "GROUP BY region ORDER BY total_amount DESC LIMIT 10"),
             "ORDER_LIMIT_REWRITE_UNSUPPORTED"
         );
+    }
+
+    @Test
+    void shouldRouteJoinAggregateToPrejoinInsteadOfDeferredAmv005Block() {
+        Map<String, Object> artifact = artifact("SELECT o.customer_id, SUM(o.amount) AS total_amount FROM orders o "
+            + "JOIN customers c ON o.customer_id = c.customer_id GROUP BY o.customer_id");
+
+        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("PREJOIN_MV", artifact.get("mvType"));
+        assertFalse(hasReason(maps(artifact.get("blockingReasons")), "JOIN_MV_TYPE_DEFERRED"));
+        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM mv_sales_daily"));
+        assertFalse(String.valueOf(artifact.get("rewriteSql")).contains("JOIN customers"));
     }
 
     private Map<String, Object> artifact(String sql) {
