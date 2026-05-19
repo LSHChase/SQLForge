@@ -93,6 +93,11 @@ class L2PredicateClassifierTest {
         assertTrue(hasExpression(maps(artifact.get("retainedPredicates")), "SUM(amount)"));
         assertTrue(maps(artifact.get("securityPredicates")).isEmpty());
         assertTrue(maps(artifact.get("blockedPredicates")).isEmpty());
+        assertEquals("PARAMETERIZED_AGG_MV", artifact.get("mvType"));
+        assertTrue(strings(artifact.get("grain")).contains("customer_id"));
+        assertTrue(strings(artifact.get("grain")).contains("dt"));
+        assertTrue(strings(artifact.get("grain")).contains("tenant_id"));
+        assertTrue(hasMeasure(maps(artifact.get("measures")), "total_amount", "SUM(total_amount)"));
         assertTrue(String.valueOf(artifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"));
     }
 
@@ -231,5 +236,19 @@ class L2PredicateClassifierTest {
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> maps(Object value) {
         return (List<Map<String, Object>>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> strings(Object value) {
+        return (List<String>) value;
+    }
+
+    private static boolean hasMeasure(List<Map<String, Object>> measures, String name, String rewriteExpression) {
+        for (Map<String, Object> measure : measures) {
+            if (name.equals(measure.get("name")) && rewriteExpression.equals(measure.get("rewriteExpression"))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

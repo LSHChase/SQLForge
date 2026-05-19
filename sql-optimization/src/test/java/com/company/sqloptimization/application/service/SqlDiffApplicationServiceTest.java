@@ -73,6 +73,9 @@ class SqlDiffApplicationServiceTest {
         assertEquals("物化视图预计算", diff.getRuleDiff().get(0).get("titleZh"));
         assertEquals("仅候选，需外部协同，不自动执行", diff.getRuleDiff().get(0).get("statusZh"));
         assertEquals("GENERATED", diff.getAccelerationArtifact().get("artifactStatus"));
+        assertEquals("PARAMETERIZED_AGG_MV", diff.getAccelerationArtifact().get("mvType"));
+        assertTrue(((List<?>) diff.getAccelerationArtifact().get("grain")).contains("customer_id"));
+        assertFalse(((List<?>) diff.getAccelerationArtifact().get("measures")).isEmpty());
         assertTrue(String.valueOf(diff.getAccelerationArtifact().get("ddlSql")).contains("CREATE MATERIALIZED VIEW mv_sales_daily"));
         assertTrue(String.valueOf(diff.getAccelerationArtifact().get("rewriteSql")).contains("SELECT * FROM mv_sales_daily"));
         assertEquals("GENERATED", diff.getDiffSummary().get("accelerationArtifactStatus"));

@@ -48,28 +48,41 @@ final class L2AccelerationArtifactBuilder {
             profile == null ? null : profile.getNormalizedSql()
         ));
         String targetEngine = normalizeEngine(input.targetEngine);
+        Map<String, Object> advancedStructureProfile = profile == null
+            ? null
+            : profile.toAdvancedStructureProfile();
         L2PredicateClassifier.PredicateClassificationResult predicateClassification =
-            L2PredicateClassifier.classify(profile);
+            L2PredicateClassifier.classify(advancedStructureProfile);
+        L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation =
+            L2GrainMeasureDeriver.derive(advancedStructureProfile, predicateClassification);
         List<Map<String, Object>> blockingReasons = blockingReasons(
             sourceSql,
             targetEngine,
             profile,
-            predicateClassification
+            predicateClassification,
+            grainMeasureDerivation
         );
         String mvName = mvName(input, profile);
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
+        artifact.put("mvType", grainMeasureDerivation.getMvType());
         artifact.put("artifactStatus", blockingReasons.isEmpty() ? STATUS_GENERATED : STATUS_BLOCKED);
         artifact.put("mvName", mvName);
         artifact.put("targetEngine", targetEngine);
         artifact.put("targetDatasource", input.targetDatasource);
         artifact.put("dialect", dialect(targetEngine));
+        artifact.put("grain", grainMeasureDerivation.getGrain());
+        artifact.put("dimensions", grainMeasureDerivation.getDimensions());
+        artifact.put("measures", grainMeasureDerivation.getMeasures());
+        artifact.put("joinGraph", grainMeasureDerivation.getJoinGraph());
         artifact.put("requiredEvidence", REQUIRED_EVIDENCE);
         artifact.put("externalizedPredicates", predicateClassification.getExternalizedPredicates());
         artifact.put("retainedPredicates", predicateClassification.getRetainedPredicates());
         artifact.put("securityPredicates", predicateClassification.getSecurityPredicates());
         artifact.put("blockedPredicates", predicateClassification.getBlockedPredicates());
+        artifact.put("coverage", grainMeasureDerivation.getCoverage());
         artifact.put("blockingReasons", blockingReasons);
+        artifact.put("reviewWarnings", grainMeasureDerivation.getReviewWarnings());
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
@@ -90,7 +103,9 @@ final class L2AccelerationArtifactBuilder {
                                                              String targetEngine,
                                                              SqlOptimizationPipelineService.ParsedSqlProfile profile,
                                                              L2PredicateClassifier.PredicateClassificationResult
-                                                                 predicateClassification) {
+                                                                 predicateClassification,
+                                                             L2GrainMeasureDeriver.DerivationResult
+                                                                 grainMeasureDerivation) {
         List<Map<String, Object>> reasons = new ArrayList<Map<String, Object>>();
         if (!StringUtils.hasText(sourceSql)) {
             reasons.add(reason("SOURCE_SQL_REQUIRED", "缺少原 SQL，不能生成物化视图 AS SELECT。"));
@@ -115,6 +130,9 @@ final class L2AccelerationArtifactBuilder {
             );
             reason.put("blockedPredicates", predicateClassification.getBlockedPredicates());
             reasons.add(reason);
+        }
+        if (grainMeasureDerivation != null) {
+            reasons.addAll(grainMeasureDerivation.getBlockingReasons());
         }
         return reasons;
     }

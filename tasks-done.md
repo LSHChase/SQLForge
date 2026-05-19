@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-004: 实现粒度与指标推导模型
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-004 add grain and measure derivation`
+- Priority: 1
+- Depends on: AMV-003
+- Scope: 根据 advancedStructureProfile 与 AMV-003 谓词分类结果推导高级 MV grain、dimensions、measures 与 coverage；支持 SUM、COUNT、MIN、MAX 可重聚合，AVG 拆成 SUM/COUNT，顶层聚合比例拆成分子/分母；COUNT(DISTINCT)、百分位、中位数、复杂 UDAF 等不可合并指标必须结构化阻断且不得输出可发布 ddlSql/rewriteSql；本任务不实现完整 PARAMETERIZED_AGG_MV DDL/rewrite 生成。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-004`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 L2GrainMeasureDeriver，并接入 PRECOMPUTE_MV accelerationArtifact；产物补齐 mvType、grain、dimensions、measures、joinGraph、coverage、reviewWarnings，SUM/COUNT/MIN/MAX、AVG 拆解和顶层聚合比例指标具备结构化 rewriteExpression；COUNT(DISTINCT)、百分位、中位数和复杂聚合指标进入 BLOCKED 且不输出 ddlSql/rewriteSql。
+  - Validation evidence: python3 scripts/foreman.py validate AMV-004 --include-task-audit --extra-command "mvn -pl sql-optimization -Dtest=L2GrainMeasureDeriverTest,L2PredicateClassifierTest,StructureParseControllerTest,SqlOptimizationPipelineServiceTest,SqlDiffApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test" --extra-command "git diff --check"；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: AMV-004 只完成粒度、指标和覆盖证明结构化推导；完整 PARAMETERIZED_AGG_MV DDL/rewrite 生成仍归 AMV-005，现有可合并指标场景仍保留 V1 草案 SQL 兼容行为。
+  - Next step: 继续 AMV-005，基于 AMV-003 谓词分类与 AMV-004 粒度/指标模型生成真正查询 MV 的 PARAMETERIZED_AGG_MV DDL、refresh、validation、rollback 和 rewrite SQL。
+
 ### AMV-003: 实现谓词分类器
 
 - Status: done
