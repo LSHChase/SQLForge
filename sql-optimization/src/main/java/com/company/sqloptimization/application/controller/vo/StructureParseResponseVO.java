@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.controller.vo;
 
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.util.List;
+import java.util.Map;
 
 public class StructureParseResponseVO {
 
@@ -15,6 +16,7 @@ public class StructureParseResponseVO {
     private String sqlFingerprint;
     private StructureParseIntentProfileVO intentProfile;
     private StructureParseFeatureSummaryVO featureSummary;
+    private Map<String, Object> advancedStructureProfile;
     private StructureParseResourceEstimateVO estimatedResourceCost;
     private List<StructureParseRiskVO> riskChecklist;
     private StructureParseQueryDateSummaryVO queryDateSummary;
@@ -115,6 +117,14 @@ public class StructureParseResponseVO {
 
     public void setFeatureSummary(StructureParseFeatureSummaryVO featureSummary) {
         this.featureSummary = featureSummary;
+    }
+
+    public Map<String, Object> getAdvancedStructureProfile() {
+        return advancedStructureProfile;
+    }
+
+    public void setAdvancedStructureProfile(Map<String, Object> advancedStructureProfile) {
+        this.advancedStructureProfile = advancedStructureProfile;
     }
 
     public StructureParseResourceEstimateVO getEstimatedResourceCost() {

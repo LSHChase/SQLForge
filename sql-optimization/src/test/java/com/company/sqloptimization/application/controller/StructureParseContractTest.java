@@ -18,6 +18,8 @@ import com.company.sqloptimization.domain.parse.StructureParseQueryDateStatus;
 import com.company.sqloptimization.domain.parse.StructureParseIssueSeverity;
 import com.company.sqloptimization.domain.parse.StructureParsePriorityLevel;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class StructureParseContractTest {
@@ -82,6 +84,21 @@ class StructureParseContractTest {
         featureSummary.setLargeStringAggregateCount(Integer.valueOf(1));
         featureSummary.setRepeatedSubqueryCount(Integer.valueOf(1));
         response.setFeatureSummary(featureSummary);
+        Map<String, Object> advancedStructureProfile = new LinkedHashMap<String, Object>();
+        advancedStructureProfile.put("profileStatus", "AVAILABLE");
+        advancedStructureProfile.put("tables", Collections.emptyList());
+        advancedStructureProfile.put("projections", Collections.emptyList());
+        advancedStructureProfile.put("predicates", Collections.emptyList());
+        advancedStructureProfile.put("joinGraph", Collections.emptyList());
+        advancedStructureProfile.put("aggregations", Collections.emptyList());
+        advancedStructureProfile.put("groupBy", Collections.emptyList());
+        advancedStructureProfile.put("orderBy", Collections.emptyList());
+        advancedStructureProfile.put("limit", Collections.emptyMap());
+        advancedStructureProfile.put("ctes", Collections.emptyList());
+        advancedStructureProfile.put("subqueries", Collections.emptyList());
+        advancedStructureProfile.put("timeFunctions", Collections.emptyList());
+        advancedStructureProfile.put("nonDeterministicFunctions", Collections.emptyList());
+        response.setAdvancedStructureProfile(advancedStructureProfile);
         StructureParseResourceEstimateVO resourceEstimate = new StructureParseResourceEstimateVO();
         resourceEstimate.setOverall("HIGH");
         resourceEstimate.setCpu("MEDIUM");
@@ -111,6 +128,8 @@ class StructureParseContractTest {
         assertEquals(Integer.valueOf(1), response.getFeatureSummary().getStringConcatenationCount());
         assertEquals(Integer.valueOf(1), response.getFeatureSummary().getLargeStringAggregateCount());
         assertEquals(Integer.valueOf(1), response.getFeatureSummary().getRepeatedSubqueryCount());
+        assertEquals("AVAILABLE", response.getAdvancedStructureProfile().get("profileStatus"));
+        assertEquals(Collections.emptyList(), response.getAdvancedStructureProfile().get("joinGraph"));
         assertEquals("HIGH", response.getEstimatedResourceCost().getOverall());
         assertEquals("FULL_TABLE_SCAN_RISK", response.getRiskChecklist().get(0).getRiskCode());
         assertEquals("NO_PARTITION_FILTER", response.getIssues().get(0).getIssueCode());

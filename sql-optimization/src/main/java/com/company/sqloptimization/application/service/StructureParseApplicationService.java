@@ -1632,6 +1632,7 @@ public class StructureParseApplicationService {
                 containsValue(response == null ? null : response.getRiskTags(), RISK_SQL_TOO_LONG)
             );
             enrichHeuristicQueryIntent(response, heuristicProfile);
+            response.setAdvancedStructureProfile(unavailableAdvancedStructureProfile(HEURISTIC_FALLBACK_ENGINE));
             response.setRiskChecklist(Collections.<StructureParseRiskVO>emptyList());
             return;
         }
@@ -1686,6 +1687,7 @@ public class StructureParseApplicationService {
         featureSummary.setRepeatedSubqueryCount(Integer.valueOf(profile.getRepeatedSubqueryCount()));
         featureSummary.setEvidence(buildFeatureEvidence(profile, finalTableCount));
         response.setFeatureSummary(featureSummary);
+        response.setAdvancedStructureProfile(profile.toAdvancedStructureProfile());
         response.setRiskChecklist(risks);
         response.setEstimatedResourceCost(buildResourceEstimate(profile, risks, finalTableCount));
     }
@@ -1747,7 +1749,27 @@ public class StructureParseApplicationService {
         featureSummary.setRepeatedSubqueryCount(Integer.valueOf(0));
         featureSummary.setEvidence(buildHeuristicFeatureEvidence(profile, finalTableCount));
         response.setFeatureSummary(featureSummary);
+        response.setAdvancedStructureProfile(unavailableAdvancedStructureProfile(HEURISTIC_FALLBACK_ENGINE));
         response.setEstimatedResourceCost(heuristicResourceEstimate(profile));
+    }
+
+    private Map<String, Object> unavailableAdvancedStructureProfile(String parserEngine) {
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("profileStatus", "UNAVAILABLE");
+        payload.put("parserEngine", parserEngine);
+        payload.put("tables", Collections.emptyList());
+        payload.put("projections", Collections.emptyList());
+        payload.put("predicates", Collections.emptyList());
+        payload.put("joinGraph", Collections.emptyList());
+        payload.put("aggregations", Collections.emptyList());
+        payload.put("groupBy", Collections.emptyList());
+        payload.put("orderBy", Collections.emptyList());
+        payload.put("limit", Collections.emptyMap());
+        payload.put("ctes", Collections.emptyList());
+        payload.put("subqueries", Collections.emptyList());
+        payload.put("timeFunctions", Collections.emptyList());
+        payload.put("nonDeterministicFunctions", Collections.emptyList());
+        return payload;
     }
 
     private String resolveHeuristicScanMode(HeuristicFallbackProfile profile) {

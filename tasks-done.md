@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-002: 扩展 SQL 结构画像
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-002 add advanced SQL structure profile`
+- Priority: 1
+- Depends on: AMV-001
+- Scope: 为高级 MV 推荐提供结构化 SQL 输入，扩展解析画像覆盖表、别名、投影、谓词、Join 图、聚合、分组、HAVING、ORDER/LIMIT、CTE、子查询、时间函数和非确定函数；保留现有 L1/L2 规则行为兼容；不生成 MV DDL。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-002`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 advancedStructureProfile 结构画像并接入结构解析响应、AST_PROFILE 与 SIGNAL_PROFILE；画像覆盖表/别名、投影、谓词、Join 图、聚合、分组、ORDER/LIMIT、CTE、子查询、时间函数和非确定函数；保留既有 L1/L2 推荐规则行为。
+  - Validation evidence: python3 scripts/foreman.py validate AMV-002 --include-task-audit --extra-command "mvn -pl sql-optimization -Dtest=StructureParseContractTest,StructureParseControllerTest,SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test" --extra-command "git diff --check"；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 本任务只做静态结构抽取，不生成 MV DDL/rewrite SQL，不做谓词分类、粒度/指标推导或覆盖证明；非 JSQLParser 模式的 advancedStructureProfile 仍以 PARTIAL 状态暴露，后续可按 AMV 任务继续扩展。
+  - Next step: 继续 AMV-003/AMV-004，将该结构画像用于谓词分类、粒度和指标推导。
+
 ### AMV-001: 固化高级 MV 契约与禁止 EXACT_QUERY_MV 边界
 
 - Status: done

@@ -33,6 +33,8 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(suggestion.getSummary().contains("2 张表"));
         assertEquals("AST_PROFILE", suggestion.getArtifacts().get(0).getCategory());
         assertTrue(suggestion.getArtifacts().get(0).getContent().contains("\"joinCount\":1"));
+        assertTrue(suggestion.getArtifacts().get(0).getContent().contains("\"advancedStructureProfile\""));
+        assertTrue(suggestion.getArtifacts().get(0).getContent().contains("\"joinGraph\""));
         assertEquals("SELECT_STAR", suggestion.getRisks().get(0).getCategory());
     }
 
@@ -183,8 +185,9 @@ class SqlOptimizationPipelineServiceTest {
     @Test
     void shouldMarkL2PhysicalRecommendationsAsPullOnlyCandidates() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
-            "SELECT customer_id, SUM(amount) FROM orders "
-                + "WHERE order_date >= DATE '2026-04-01' GROUP BY customer_id",
+            "SELECT o.customer_id, SUM(o.amount) FROM orders o "
+                + "JOIN customer_profile c ON o.customer_id = c.customer_id "
+                + "WHERE o.order_date >= DATE '2026-04-01' GROUP BY o.customer_id",
             DataSourceTypeEnum.HETU
         );
 
@@ -193,9 +196,11 @@ class SqlOptimizationPipelineServiceTest {
 
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
+        assertTrue(containsRule(model.getRuleChain(), "BUCKET_JOIN"));
         assertEquals("物化视图预计算", rule(model.getRuleChain(), "PRECOMPUTE_MV").get("titleZh"));
         assertEquals("仅候选，需外部协同，不自动执行", rule(model.getRuleChain(), "PRECOMPUTE_MV").get("statusZh"));
         assertTrue(containsPrecondition(model.getPreconditions(), "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED"));
+        assertTrue(containsPrecondition(model.getPreconditions(), "JOIN_KEY_DISTRIBUTION_REQUIRED"));
         assertFalse(model.isAutoApplyAllowed());
     }
 
@@ -217,8 +222,11 @@ class SqlOptimizationPipelineServiceTest {
         );
 
         String accelerationPlan = suggestion.getArtifacts().get(0).getContent();
+        String signalProfile = suggestion.getArtifacts().get(1).getContent();
         assertTrue(accelerationPlan.contains("PRECOMPUTE"));
         assertTrue(accelerationPlan.contains("PARTITION"));
+        assertTrue(signalProfile.contains("\"advancedStructureProfile\""));
+        assertTrue(signalProfile.contains("\"aggregations\""));
         assertTrue(suggestion.getArtifacts().get(3).getContent().contains("\"artifactStatus\":\"GENERATED\""));
         assertTrue(suggestion.getArtifacts().get(3).getContent().contains("CREATE MATERIALIZED VIEW mv_report_sales"));
         assertTrue(suggestion.getArtifacts().get(3).getContent().contains("SELECT * FROM mv_report_sales"));

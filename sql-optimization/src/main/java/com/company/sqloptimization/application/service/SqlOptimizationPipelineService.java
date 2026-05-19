@@ -114,6 +114,17 @@ public class SqlOptimizationPipelineService {
             "DATE_TRUNC", "CAST", "COALESCE", "IF", "NULLIF", "LOWER", "UPPER", "CONCAT", "CONCAT_WS",
             "SUBSTR", "SUBSTRING", "TRIM", "LTRIM", "RTRIM", "REPLACE", "REGEXP_REPLACE", "FORMAT"
         ));
+    private static final Set<String> TIME_FUNCTIONS =
+        new LinkedHashSet<String>(Arrays.asList(
+            "DATE_TRUNC", "TRUNC", "TO_DATE", "DATE_FORMAT", "YEAR", "MONTH", "DAY", "DAY_OF_MONTH",
+            "HOUR", "MINUTE", "SECOND", "EXTRACT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
+            "LOCALTIME", "LOCALTIMESTAMP", "NOW"
+        ));
+    private static final Set<String> NON_DETERMINISTIC_FUNCTIONS =
+        new LinkedHashSet<String>(Arrays.asList(
+            "RAND", "RANDOM", "UUID", "NOW", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
+            "LOCALTIME", "LOCALTIMESTAMP", "CURRENT_USER", "SESSION_USER"
+        ));
     private static final int PRODUCTION_TARGET_CONCURRENCY = 10000;
     private static final long PRODUCTION_TARGET_DAILY_QUERY_VOLUME = 10000000L;
     private static final long PRODUCTION_TARGET_DATASET_SIZE_BYTES = 30000000000000000L;
@@ -183,6 +194,8 @@ public class SqlOptimizationPipelineService {
         Pattern.compile("(?is)\\b(APPROX_DISTINCT|HLL|HLL_UNION|HLL_CARDINALITY)\\s*\\(");
     private static final Pattern PERCENTILE_PATTERN =
         Pattern.compile("(?is)\\b(APPROX_PERCENTILE|PERCENTILE_CONT|PERCENTILE_DISC|QUANTILE)\\s*\\(");
+    private static final Pattern SQL_LEVEL_FUNCTION_PATTERN =
+        Pattern.compile("(?is)\\b(CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP|LOCALTIME|LOCALTIMESTAMP|NOW|RAND|RANDOM|UUID)\\b\\s*(?:\\(|\\b)");
 
     @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
     private String parserStrategy = "JSQLPARSER";
@@ -288,6 +301,9 @@ public class SqlOptimizationPipelineService {
         profile.tables.addAll(deduplicate(discoveredTables));
         if (select.getWithItemsList() != null) {
             for (WithItem withItem : select.getWithItemsList()) {
+                profile.recordCte(withItem);
+            }
+            for (WithItem withItem : select.getWithItemsList()) {
                 if (withItem.getSubSelect() != null) {
                     analyzeSelectBody(withItem.getSubSelect().getSelectBody(), profile);
                 }
@@ -295,6 +311,8 @@ public class SqlOptimizationPipelineService {
         }
         analyzeSelectBody(select.getSelectBody(), profile);
         profile.rewriteOutcome = applyRewriteRules(select);
+        profile.recordSqlLevelFunctions(normalizedSql);
+        profile.markAdvancedProfileAvailable();
         finalizeWarnings(profile);
         return profile;
     }
@@ -327,7 +345,9 @@ public class SqlOptimizationPipelineService {
         }
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql);
         profile.parserEngine = "TRINO";
+        profile.markAdvancedProfilePartial();
         new TrinoProfileVisitor().process(statement, profile);
+        profile.recordSqlLevelFunctions(normalizedSql);
         finalizeWarnings(profile);
         return profile;
     }
@@ -362,7 +382,9 @@ public class SqlOptimizationPipelineService {
         }
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql);
         profile.parserEngine = "APACHE_CALCITE";
+        profile.markAdvancedProfilePartial();
         new ApacheCalciteProfileCollector().collect(statement, profile, true);
+        profile.recordSqlLevelFunctions(normalizedSql);
         finalizeWarnings(profile);
         return profile;
     }
@@ -1788,17 +1810,20 @@ public class SqlOptimizationPipelineService {
                 profile.orderByCount += setOperationList.getOrderByElements().size();
                 profile.orderByExpressionCount += setOperationList.getOrderByElements().size();
                 for (OrderByElement orderByElement : setOperationList.getOrderByElements()) {
+                    profile.recordOrderBy(orderByElement, collectColumnReferences(orderByElement == null ? null : orderByElement.getExpression()));
                     profile.recordOrderByKey(orderByElement == null ? null : orderByElement.getExpression());
                 }
             }
             if (setOperationList.getLimit() != null) {
                 profile.limitPresent = true;
+                profile.recordLimit(setOperationList.getLimit());
             }
             return;
         }
         if (selectBody instanceof WithItem) {
             WithItem withItem = (WithItem) selectBody;
             if (withItem.getSubSelect() != null) {
+                profile.recordCte(withItem);
                 analyzeSelectBody(withItem.getSubSelect().getSelectBody(), profile);
             }
         }
@@ -1811,6 +1836,7 @@ public class SqlOptimizationPipelineService {
             if (plainSelect.getSelectItems() != null) {
                 profile.projectionCount += plainSelect.getSelectItems().size();
                 for (SelectItem selectItem : plainSelect.getSelectItems()) {
+                    profile.recordProjection(selectItem, collectProjectionColumns(selectItem));
                     if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
                         profile.selectStar = true;
                         profile.recordSelectStar(selectItem);
@@ -1841,6 +1867,7 @@ public class SqlOptimizationPipelineService {
                 profile.joinCount += plainSelect.getJoins().size();
                 for (Join join : plainSelect.getJoins()) {
                     profile.joinTypes.add(join.isInner() ? "INNER" : join.toString().split("\\s+")[0].toUpperCase(Locale.ROOT));
+                    profile.recordJoin(plainSelect.getFromItem(), join);
                     recordFromItemScan(join.getRightItem(), profile);
                     analyzeFromItem(join.getRightItem(), profile);
                     if (join.getOnExpressions() != null) {
@@ -1848,6 +1875,7 @@ public class SqlOptimizationPipelineService {
                             if (onExpression == null) {
                                 continue;
                             }
+                            recordPredicates("JOIN_ON", onExpression, profile);
                             profile.predicateCount += countPredicates(onExpression);
                             profile.joinCriteriaCount += countPredicates(onExpression);
                             profile.recordExpression(onExpression);
@@ -1857,12 +1885,14 @@ public class SqlOptimizationPipelineService {
                 }
             }
             if (plainSelect.getWhere() != null) {
+                recordPredicates("WHERE", plainSelect.getWhere(), profile);
                 profile.predicateCount += countPredicates(plainSelect.getWhere());
                 profile.recordExpression(plainSelect.getWhere());
                 profile.datePredicateColumns.addAll(extractDatePredicateColumns(plainSelect.getWhere()));
                 collectExpressionSignals(plainSelect.getWhere(), null, null, profile);
             }
             if (plainSelect.getHaving() != null) {
+                recordPredicates("HAVING", plainSelect.getHaving(), profile);
                 profile.predicateCount += countPredicates(plainSelect.getHaving());
                 profile.recordExpression(plainSelect.getHaving());
                 collectExpressionSignals(plainSelect.getHaving(), null, null, profile);
@@ -1870,6 +1900,7 @@ public class SqlOptimizationPipelineService {
             if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null) {
                 profile.groupByCount += plainSelect.getGroupBy().getGroupByExpressions().size();
                 for (Expression expression : plainSelect.getGroupBy().getGroupByExpressions()) {
+                    profile.recordGroupBy(expression, collectColumnReferences(expression));
                     profile.recordGroupByKey(expression);
                     profile.recordExpression(expression);
                     collectExpressionSignals(expression, null, profile.aggregateFunctions, profile);
@@ -1879,6 +1910,7 @@ public class SqlOptimizationPipelineService {
                 profile.orderByCount += plainSelect.getOrderByElements().size();
                 profile.orderByExpressionCount += plainSelect.getOrderByElements().size();
                 for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
+                    profile.recordOrderBy(orderByElement, collectColumnReferences(orderByElement == null ? null : orderByElement.getExpression()));
                     profile.recordOrderByKey(orderByElement == null ? null : orderByElement.getExpression());
                     profile.recordExpression(orderByElement);
                     collectOrderBySignals(orderByElement, profile);
@@ -1886,6 +1918,7 @@ public class SqlOptimizationPipelineService {
             }
             if (plainSelect.getLimit() != null) {
                 profile.limitPresent = true;
+                profile.recordLimit(plainSelect.getLimit());
             }
             if (plainSelect.getDistinct() != null) {
                 profile.distinctPresent = true;
@@ -1898,8 +1931,180 @@ public class SqlOptimizationPipelineService {
 
     private void analyzeFromItem(FromItem fromItem, ParsedSqlProfile profile) {
         if (fromItem instanceof SubSelect) {
-            processSubSelect((SubSelect) fromItem, profile);
+            processSubSelect((SubSelect) fromItem, profile, "FROM", aliasName(fromItem));
         }
+    }
+
+    private List<String> collectProjectionColumns(SelectItem selectItem) {
+        if (selectItem instanceof SelectExpressionItem) {
+            return collectColumnReferences(((SelectExpressionItem) selectItem).getExpression());
+        }
+        if (selectItem instanceof AllTableColumns) {
+            AllTableColumns allTableColumns = (AllTableColumns) selectItem;
+            if (allTableColumns.getTable() != null) {
+                return Collections.singletonList(allTableColumns.getTable().getFullyQualifiedName() + ".*");
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    private void recordPredicates(String clause, Expression expression, ParsedSqlProfile profile) {
+        if (expression == null || profile == null) {
+            return;
+        }
+        List<Expression> predicates = new ArrayList<Expression>();
+        flattenPredicateExpression(expression, predicates);
+        for (Expression predicate : predicates) {
+            profile.recordPredicate(
+                clause,
+                predicate,
+                collectColumnReferences(predicate),
+                collectFunctionNames(predicate)
+            );
+        }
+    }
+
+    private void flattenPredicateExpression(Expression expression, List<Expression> collector) {
+        if (expression == null) {
+            return;
+        }
+        if (expression instanceof Parenthesis) {
+            flattenPredicateExpression(((Parenthesis) expression).getExpression(), collector);
+            return;
+        }
+        if (expression instanceof AndExpression) {
+            AndExpression andExpression = (AndExpression) expression;
+            flattenPredicateExpression(andExpression.getLeftExpression(), collector);
+            flattenPredicateExpression(andExpression.getRightExpression(), collector);
+            return;
+        }
+        if (expression instanceof OrExpression) {
+            OrExpression orExpression = (OrExpression) expression;
+            flattenPredicateExpression(orExpression.getLeftExpression(), collector);
+            flattenPredicateExpression(orExpression.getRightExpression(), collector);
+            return;
+        }
+        collector.add(expression);
+    }
+
+    private List<String> collectColumnReferences(Expression expression) {
+        LinkedHashSet<String> columns = new LinkedHashSet<String>();
+        collectColumnReferences(expression, columns);
+        return new ArrayList<String>(columns);
+    }
+
+    private void collectColumnReferences(Expression expression, Set<String> columns) {
+        if (expression == null || columns == null) {
+            return;
+        }
+        if (expression instanceof Column) {
+            String column = ((Column) expression).getFullyQualifiedName();
+            if (StringUtils.hasText(column)) {
+                columns.add(column);
+            }
+            return;
+        }
+        if (expression instanceof Function) {
+            Function function = (Function) expression;
+            if (function.getParameters() != null && function.getParameters().getExpressions() != null) {
+                for (Expression parameter : function.getParameters().getExpressions()) {
+                    collectColumnReferences(parameter, columns);
+                }
+            }
+            if (function.getAttribute() != null) {
+                collectColumnReferences(function.getAttribute(), columns);
+            }
+            return;
+        }
+        if (expression instanceof BinaryExpression) {
+            BinaryExpression binaryExpression = (BinaryExpression) expression;
+            collectColumnReferences(binaryExpression.getLeftExpression(), columns);
+            collectColumnReferences(binaryExpression.getRightExpression(), columns);
+            return;
+        }
+        if (expression instanceof Parenthesis) {
+            collectColumnReferences(((Parenthesis) expression).getExpression(), columns);
+            return;
+        }
+        if (expression instanceof NotExpression) {
+            collectColumnReferences(((NotExpression) expression).getExpression(), columns);
+            return;
+        }
+        if (expression instanceof ExistsExpression) {
+            collectColumnReferences(((ExistsExpression) expression).getRightExpression(), columns);
+            return;
+        }
+        if (expression instanceof InExpression) {
+            InExpression inExpression = (InExpression) expression;
+            collectColumnReferences(inExpression.getLeftExpression(), columns);
+            collectColumnReferences(inExpression.getRightExpression(), columns);
+            collectItemsListColumnReferences(inExpression.getRightItemsList(), columns);
+        }
+    }
+
+    private void collectItemsListColumnReferences(ItemsList itemsList, Set<String> columns) {
+        if (itemsList instanceof ExpressionList) {
+            ExpressionList expressionList = (ExpressionList) itemsList;
+            if (expressionList.getExpressions() != null) {
+                for (Expression expression : expressionList.getExpressions()) {
+                    collectColumnReferences(expression, columns);
+                }
+            }
+        }
+    }
+
+    private List<String> collectFunctionNames(Expression expression) {
+        LinkedHashSet<String> names = new LinkedHashSet<String>();
+        collectFunctionNames(expression, names);
+        return new ArrayList<String>(names);
+    }
+
+    private void collectFunctionNames(Expression expression, Set<String> names) {
+        if (expression == null || names == null) {
+            return;
+        }
+        if (expression instanceof Function) {
+            Function function = (Function) expression;
+            if (StringUtils.hasText(function.getName())) {
+                names.add(function.getName().toUpperCase(Locale.ROOT));
+            }
+            if (function.getParameters() != null && function.getParameters().getExpressions() != null) {
+                for (Expression parameter : function.getParameters().getExpressions()) {
+                    collectFunctionNames(parameter, names);
+                }
+            }
+            if (function.getAttribute() != null) {
+                collectFunctionNames(function.getAttribute(), names);
+            }
+            return;
+        }
+        if (expression instanceof BinaryExpression) {
+            BinaryExpression binaryExpression = (BinaryExpression) expression;
+            collectFunctionNames(binaryExpression.getLeftExpression(), names);
+            collectFunctionNames(binaryExpression.getRightExpression(), names);
+            return;
+        }
+        if (expression instanceof Parenthesis) {
+            collectFunctionNames(((Parenthesis) expression).getExpression(), names);
+            return;
+        }
+        if (expression instanceof NotExpression) {
+            collectFunctionNames(((NotExpression) expression).getExpression(), names);
+            return;
+        }
+        if (expression instanceof ExistsExpression) {
+            collectFunctionNames(((ExistsExpression) expression).getRightExpression(), names);
+            return;
+        }
+        if (expression instanceof InExpression) {
+            InExpression inExpression = (InExpression) expression;
+            collectFunctionNames(inExpression.getLeftExpression(), names);
+            collectFunctionNames(inExpression.getRightExpression(), names);
+        }
+    }
+
+    private String aliasName(FromItem fromItem) {
+        return fromItem == null || fromItem.getAlias() == null ? null : fromItem.getAlias().getName();
     }
 
     private Set<String> collectAliases(PlainSelect plainSelect) {
@@ -1924,6 +2129,7 @@ public class SqlOptimizationPipelineService {
         if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
             net.sf.jsqlparser.schema.Table table = (net.sf.jsqlparser.schema.Table) fromItem;
             profile.recordTableScan(table.getFullyQualifiedName());
+            profile.recordTable(table);
         }
     }
 
@@ -1935,7 +2141,7 @@ public class SqlOptimizationPipelineService {
             return;
         }
         if (expression instanceof SubSelect) {
-            processSubSelect((SubSelect) expression, profile);
+            processSubSelect((SubSelect) expression, profile, "EXPRESSION", aliasName((SubSelect) expression));
             return;
         }
         if (expression instanceof Column) {
@@ -1948,6 +2154,7 @@ public class SqlOptimizationPipelineService {
             Function function = (Function) expression;
             if (function.getName() != null) {
                 String upperName = function.getName().toUpperCase(Locale.ROOT);
+                profile.recordFunctionSignal(function, collectColumnReferences(function));
                 if (aggregateFunctions != null && AGGREGATE_FUNCTIONS.contains(upperName)) {
                     aggregateFunctions.add(upperName);
                 }
@@ -2088,7 +2295,7 @@ public class SqlOptimizationPipelineService {
                                          Set<String> aggregateFunctions,
                                          ParsedSqlProfile profile) {
         if (itemsList instanceof SubSelect) {
-            processSubSelect((SubSelect) itemsList, profile);
+            processSubSelect((SubSelect) itemsList, profile, "PREDICATE", aliasName((SubSelect) itemsList));
             return;
         }
         if (itemsList instanceof ExpressionList) {
@@ -2102,13 +2309,19 @@ public class SqlOptimizationPipelineService {
     }
 
     private void processSubSelect(SubSelect subSelect, ParsedSqlProfile profile) {
+        processSubSelect(subSelect, profile, "SUBQUERY", aliasName(subSelect));
+    }
+
+    private void processSubSelect(SubSelect subSelect, ParsedSqlProfile profile, String location, String alias) {
         if (subSelect == null) {
             return;
         }
         profile.subqueryCount++;
         profile.recordSubquery(subSelect);
         profile.updateNestedSubqueryDepth();
-        if (profile.referencesVisibleAlias(subSelect.toString())) {
+        boolean correlated = profile.referencesVisibleAlias(subSelect.toString());
+        profile.recordSubqueryNode(subSelect, location, alias, correlated);
+        if (correlated) {
             profile.correlatedSubqueryCount++;
         }
         profile.subqueryDepth++;
@@ -2116,7 +2329,8 @@ public class SqlOptimizationPipelineService {
             if (subSelect.getWithItemsList() != null) {
                 for (WithItem withItem : subSelect.getWithItemsList()) {
                     if (withItem.getSubSelect() != null) {
-                        processSubSelect(withItem.getSubSelect(), profile);
+                        profile.recordCte(withItem);
+                        processSubSelect(withItem.getSubSelect(), profile, "CTE", withItem.getName());
                     }
                 }
             }
@@ -3509,6 +3723,7 @@ public class SqlOptimizationPipelineService {
         private final LinkedHashMap<String, Integer> orderByKeyFrequency = new LinkedHashMap<String, Integer>();
         private final LinkedHashMap<String, Integer> subqueryFrequency = new LinkedHashMap<String, Integer>();
         private final Deque<Set<String>> aliasScopes = new ArrayDeque<Set<String>>();
+        private final AdvancedStructureProfile advancedStructureProfile = new AdvancedStructureProfile();
         private String parserEngine = "JSQLPARSER";
         private int projectionCount;
         private int predicateCount;
@@ -3589,6 +3804,7 @@ public class SqlOptimizationPipelineService {
             payload.put("limitPresent", Boolean.valueOf(limitPresent));
             payload.put("distinctPresent", Boolean.valueOf(distinctPresent));
             payload.put("setOperation", Boolean.valueOf(setOperation));
+            payload.put("advancedStructureProfile", toAdvancedStructureProfile());
             return payload;
         }
 
@@ -3614,7 +3830,12 @@ public class SqlOptimizationPipelineService {
             payload.put("selectStarItems", new ArrayList<String>(selectStarItems));
             payload.put("functionWrappedPredicateExpressions", new ArrayList<String>(functionWrappedPredicateExpressions));
             payload.put("warnings", warnings);
+            payload.put("advancedStructureProfile", toAdvancedStructureProfile());
             return payload;
+        }
+
+        public Map<String, Object> toAdvancedStructureProfile() {
+            return advancedStructureProfile.toMap(parserEngine);
         }
 
         public List<String> getTables() {
@@ -3794,6 +4015,61 @@ public class SqlOptimizationPipelineService {
             return new ArrayList<String>(joinTypes);
         }
 
+        private void markAdvancedProfileAvailable() {
+            advancedStructureProfile.markAvailable();
+        }
+
+        private void markAdvancedProfilePartial() {
+            advancedStructureProfile.markPartial();
+        }
+
+        private void recordCte(WithItem withItem) {
+            advancedStructureProfile.recordCte(withItem);
+        }
+
+        private void recordTable(net.sf.jsqlparser.schema.Table table) {
+            advancedStructureProfile.recordTable(table);
+        }
+
+        private void recordProjection(SelectItem selectItem, List<String> sourceColumns) {
+            advancedStructureProfile.recordProjection(selectItem, sourceColumns);
+        }
+
+        private void recordPredicate(String clause,
+                                     Expression predicate,
+                                     List<String> sourceColumns,
+                                     List<String> functionNames) {
+            advancedStructureProfile.recordPredicate(clause, predicate, sourceColumns, functionNames);
+        }
+
+        private void recordJoin(FromItem leftItem, Join join) {
+            advancedStructureProfile.recordJoin(leftItem, join);
+        }
+
+        private void recordGroupBy(Expression expression, List<String> sourceColumns) {
+            advancedStructureProfile.recordGroupBy(expression, sourceColumns);
+        }
+
+        private void recordOrderBy(OrderByElement orderByElement, List<String> sourceColumns) {
+            advancedStructureProfile.recordOrderBy(orderByElement, sourceColumns);
+        }
+
+        private void recordLimit(net.sf.jsqlparser.statement.select.Limit limit) {
+            advancedStructureProfile.recordLimit(limit);
+        }
+
+        private void recordSubqueryNode(SubSelect subSelect, String location, String alias, boolean correlated) {
+            advancedStructureProfile.recordSubquery(subSelect, location, alias, subqueryDepth + 1, correlated);
+        }
+
+        private void recordFunctionSignal(Function function, List<String> sourceColumns) {
+            advancedStructureProfile.recordFunctionSignal(function, sourceColumns);
+        }
+
+        private void recordSqlLevelFunctions(String sql) {
+            advancedStructureProfile.recordSqlLevelFunctions(sql);
+        }
+
         private void recordExpression(Object expression) {
             if (expression == null) {
                 return;
@@ -3959,6 +4235,389 @@ public class SqlOptimizationPipelineService {
 
         private void updateNestedSubqueryDepth() {
             nestedSubqueryDepth = Math.max(nestedSubqueryDepth, subqueryDepth + 1);
+        }
+    }
+
+    private static final class AdvancedStructureProfile {
+
+        private String profileStatus = "PARTIAL";
+        private final Set<String> cteNames = new LinkedHashSet<String>();
+        private final List<Map<String, Object>> tables = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> projections = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> predicates = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> joinGraph = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> aggregations = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> groupBy = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> orderBy = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> ctes = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> subqueries = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> timeFunctions = new ArrayList<Map<String, Object>>();
+        private final List<Map<String, Object>> nonDeterministicFunctions = new ArrayList<Map<String, Object>>();
+        private Map<String, Object> limit = Collections.emptyMap();
+
+        private void markAvailable() {
+            profileStatus = "AVAILABLE";
+        }
+
+        private void markPartial() {
+            profileStatus = "PARTIAL";
+        }
+
+        private void recordCte(WithItem withItem) {
+            if (withItem == null || !StringUtils.hasText(withItem.getName())) {
+                return;
+            }
+            String name = cleanIdentifier(withItem.getName());
+            cteNames.add(name.toUpperCase(Locale.ROOT));
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("name", name);
+            item.put("recursive", Boolean.valueOf(withItem.isRecursive()));
+            item.put("query", withItem.getSubSelect() == null ? "" : normalizeText(withItem.getSubSelect()));
+            item.put("columns", selectItemTexts(withItem.getWithItemList()));
+            addUnique(ctes, item);
+        }
+
+        private void recordTable(net.sf.jsqlparser.schema.Table table) {
+            if (table == null || !StringUtils.hasText(table.getFullyQualifiedName())) {
+                return;
+            }
+            String tableName = cleanIdentifier(table.getFullyQualifiedName());
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("tableName", tableName);
+            item.put("schemaName", cleanIdentifier(table.getSchemaName()));
+            item.put("alias", aliasName(table));
+            item.put("sourceType", isCteName(tableName) ? "CTE_REFERENCE" : "BASE_TABLE");
+            addUnique(tables, item);
+        }
+
+        private void recordProjection(SelectItem selectItem, List<String> sourceColumns) {
+            if (selectItem == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("expression", normalizeText(selectItem));
+            item.put("alias", projectionAlias(selectItem));
+            item.put("expressionType", projectionType(selectItem));
+            item.put("sourceColumns", safeList(sourceColumns));
+            addUnique(projections, item);
+        }
+
+        private void recordPredicate(String clause,
+                                     Expression predicate,
+                                     List<String> sourceColumns,
+                                     List<String> functionNames) {
+            if (predicate == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("clause", clause);
+            item.put("expression", normalizeText(predicate));
+            item.put("predicateType", predicateType(predicate));
+            item.put("sourceColumns", safeList(sourceColumns));
+            item.put("functionNames", safeList(functionNames));
+            addUnique(predicates, item);
+        }
+
+        private void recordJoin(FromItem leftItem, Join join) {
+            if (join == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("joinType", joinType(join));
+            item.put("left", relationName(leftItem));
+            item.put("right", relationName(join.getRightItem()));
+            item.put("rightAlias", aliasName(join.getRightItem()));
+            item.put("condition", joinCondition(join));
+            item.put("usingColumns", columnTexts(join.getUsingColumns()));
+            addUnique(joinGraph, item);
+        }
+
+        private void recordGroupBy(Expression expression, List<String> sourceColumns) {
+            if (expression == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("expression", normalizeText(expression));
+            item.put("sourceColumns", safeList(sourceColumns));
+            addUnique(groupBy, item);
+        }
+
+        private void recordOrderBy(OrderByElement orderByElement, List<String> sourceColumns) {
+            if (orderByElement == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("expression", normalizeText(orderByElement.getExpression()));
+            item.put("direction", orderByElement.isAsc() ? "ASC" : "DESC");
+            item.put("directionExplicit", Boolean.valueOf(orderByElement.isAscDescPresent()));
+            item.put("nullOrdering", orderByElement.getNullOrdering() == null ? "" : orderByElement.getNullOrdering().name());
+            item.put("sourceColumns", safeList(sourceColumns));
+            addUnique(orderBy, item);
+        }
+
+        private void recordLimit(net.sf.jsqlparser.statement.select.Limit limitClause) {
+            if (limitClause == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("present", Boolean.TRUE);
+            item.put("rowCount", limitClause.getRowCount() == null ? "" : normalizeText(limitClause.getRowCount()));
+            item.put("offset", limitClause.getOffset() == null ? "" : normalizeText(limitClause.getOffset()));
+            item.put("limitAll", Boolean.valueOf(limitClause.isLimitAll()));
+            this.limit = item;
+        }
+
+        private void recordSubquery(SubSelect subSelect,
+                                    String location,
+                                    String alias,
+                                    int nestedLevel,
+                                    boolean correlated) {
+            if (subSelect == null) {
+                return;
+            }
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("subqueryId", "SQ" + (subqueries.size() + 1));
+            item.put("location", location);
+            item.put("alias", cleanIdentifier(alias));
+            item.put("nestedLevel", Integer.valueOf(nestedLevel));
+            item.put("correlated", Boolean.valueOf(correlated));
+            item.put("query", normalizeText(subSelect));
+            addUnique(subqueries, item);
+        }
+
+        private void recordFunctionSignal(Function function, List<String> sourceColumns) {
+            if (function == null || !StringUtils.hasText(function.getName())) {
+                return;
+            }
+            String functionName = function.getName().toUpperCase(Locale.ROOT);
+            if (AGGREGATE_FUNCTIONS.contains(functionName)) {
+                LinkedHashMap<String, Object> aggregation = functionEntry(functionName, function, sourceColumns);
+                aggregation.put("distinct", Boolean.valueOf(function.isDistinct()));
+                addUnique(aggregations, aggregation);
+            }
+            if (TIME_FUNCTIONS.contains(functionName)) {
+                addUnique(timeFunctions, functionEntry(functionName, function, sourceColumns));
+            }
+            if (NON_DETERMINISTIC_FUNCTIONS.contains(functionName)) {
+                addUnique(nonDeterministicFunctions, functionEntry(functionName, function, sourceColumns));
+            }
+        }
+
+        private void recordSqlLevelFunctions(String sql) {
+            if (!StringUtils.hasText(sql)) {
+                return;
+            }
+            Matcher matcher = SQL_LEVEL_FUNCTION_PATTERN.matcher(sql);
+            while (matcher.find()) {
+                String functionName = matcher.group(1).toUpperCase(Locale.ROOT);
+                LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+                item.put("functionName", functionName);
+                item.put("expression", functionName);
+                item.put("sourceColumns", Collections.emptyList());
+                if (TIME_FUNCTIONS.contains(functionName)) {
+                    addUnique(timeFunctions, item);
+                }
+                if (NON_DETERMINISTIC_FUNCTIONS.contains(functionName)) {
+                    addUnique(nonDeterministicFunctions, item);
+                }
+            }
+        }
+
+        private Map<String, Object> toMap(String parserEngine) {
+            LinkedHashMap<String, Object> payload = new LinkedHashMap<String, Object>();
+            payload.put("profileStatus", profileStatus);
+            payload.put("parserEngine", parserEngine);
+            payload.put("tables", immutableList(tables));
+            payload.put("projections", immutableList(projections));
+            payload.put("predicates", immutableList(predicates));
+            payload.put("joinGraph", immutableList(joinGraph));
+            payload.put("aggregations", immutableList(aggregations));
+            payload.put("groupBy", immutableList(groupBy));
+            payload.put("orderBy", immutableList(orderBy));
+            payload.put("limit", limit.isEmpty() ? Collections.emptyMap() : new LinkedHashMap<String, Object>(limit));
+            payload.put("ctes", immutableList(ctes));
+            payload.put("subqueries", immutableList(subqueries));
+            payload.put("timeFunctions", immutableList(timeFunctions));
+            payload.put("nonDeterministicFunctions", immutableList(nonDeterministicFunctions));
+            return payload;
+        }
+
+        private boolean isCteName(String tableName) {
+            return StringUtils.hasText(tableName) && cteNames.contains(tableName.toUpperCase(Locale.ROOT));
+        }
+
+        private LinkedHashMap<String, Object> functionEntry(String functionName,
+                                                            Object expression,
+                                                            List<String> sourceColumns) {
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("functionName", functionName);
+            item.put("expression", normalizeText(expression));
+            item.put("sourceColumns", safeList(sourceColumns));
+            return item;
+        }
+
+        private String projectionAlias(SelectItem selectItem) {
+            if (selectItem instanceof SelectExpressionItem) {
+                SelectExpressionItem expressionItem = (SelectExpressionItem) selectItem;
+                return expressionItem.getAlias() == null ? "" : cleanIdentifier(expressionItem.getAlias().getName());
+            }
+            return "";
+        }
+
+        private String projectionType(SelectItem selectItem) {
+            if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
+                return "STAR";
+            }
+            if (selectItem instanceof SelectExpressionItem) {
+                Expression expression = ((SelectExpressionItem) selectItem).getExpression();
+                if (expression instanceof SubSelect) {
+                    return "SCALAR_SUBQUERY";
+                }
+                if (expression instanceof Function) {
+                    String functionName = ((Function) expression).getName();
+                    return functionName != null && AGGREGATE_FUNCTIONS.contains(functionName.toUpperCase(Locale.ROOT))
+                        ? "AGGREGATION"
+                        : "FUNCTION";
+                }
+                if (expression instanceof Column) {
+                    return "COLUMN";
+                }
+            }
+            return "EXPRESSION";
+        }
+
+        private String predicateType(Expression predicate) {
+            if (predicate instanceof ComparisonOperator) {
+                return "COMPARISON";
+            }
+            if (predicate instanceof InExpression) {
+                return "IN";
+            }
+            if (predicate instanceof ExistsExpression) {
+                return "EXISTS";
+            }
+            if (predicate instanceof LikeExpression) {
+                return "LIKE";
+            }
+            if (predicate instanceof Function) {
+                return "FUNCTION";
+            }
+            return "EXPRESSION";
+        }
+
+        private String relationName(FromItem fromItem) {
+            if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
+                return cleanIdentifier(((net.sf.jsqlparser.schema.Table) fromItem).getFullyQualifiedName());
+            }
+            if (fromItem instanceof SubSelect) {
+                String alias = aliasName(fromItem);
+                return StringUtils.hasText(alias) ? alias : "SUBQUERY";
+            }
+            return fromItem == null ? "UNKNOWN" : normalizeText(fromItem);
+        }
+
+        private String joinType(Join join) {
+            if (join.isCross()) {
+                return "CROSS";
+            }
+            if (join.isLeft()) {
+                return join.isOuter() ? "LEFT_OUTER" : "LEFT";
+            }
+            if (join.isRight()) {
+                return join.isOuter() ? "RIGHT_OUTER" : "RIGHT";
+            }
+            if (join.isFull()) {
+                return "FULL";
+            }
+            if (join.isInner()) {
+                return "INNER";
+            }
+            if (join.isSemi()) {
+                return "SEMI";
+            }
+            if (join.isSimple()) {
+                return "SIMPLE";
+            }
+            return "JOIN";
+        }
+
+        private String joinCondition(Join join) {
+            if (join.getOnExpressions() == null || join.getOnExpressions().isEmpty()) {
+                return "";
+            }
+            List<String> expressions = new ArrayList<String>();
+            for (Expression expression : join.getOnExpressions()) {
+                expressions.add(normalizeText(expression));
+            }
+            return String.join(" AND ", expressions);
+        }
+
+        private List<String> columnTexts(List<Column> columns) {
+            if (columns == null || columns.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<String> result = new ArrayList<String>();
+            for (Column column : columns) {
+                result.add(column.getFullyQualifiedName());
+            }
+            return result;
+        }
+
+        private List<String> selectItemTexts(List<SelectItem> selectItems) {
+            if (selectItems == null || selectItems.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<String> result = new ArrayList<String>();
+            for (SelectItem selectItem : selectItems) {
+                result.add(normalizeText(selectItem));
+            }
+            return result;
+        }
+
+        private List<String> safeList(List<String> input) {
+            if (input == null || input.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return new ArrayList<String>(input);
+        }
+
+        private String aliasName(FromItem fromItem) {
+            return fromItem == null || fromItem.getAlias() == null ? "" : cleanIdentifier(fromItem.getAlias().getName());
+        }
+
+        private String cleanIdentifier(String value) {
+            if (!StringUtils.hasText(value)) {
+                return "";
+            }
+            return value.replace("\"", "").replace("`", "").trim();
+        }
+
+        private String normalizeText(Object value) {
+            if (value == null) {
+                return "";
+            }
+            return value.toString()
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .trim()
+                .replaceAll("\\s+", " ");
+        }
+
+        private void addUnique(List<Map<String, Object>> target, Map<String, Object> item) {
+            if (target != null && item != null && !target.contains(item)) {
+                target.add(item);
+            }
+        }
+
+        private List<Map<String, Object>> immutableList(List<Map<String, Object>> source) {
+            if (source == null || source.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(source.size());
+            for (Map<String, Object> item : source) {
+                result.add(new LinkedHashMap<String, Object>(item));
+            }
+            return result;
         }
     }
 

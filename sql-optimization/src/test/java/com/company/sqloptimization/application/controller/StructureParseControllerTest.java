@@ -315,6 +315,76 @@ class StructureParseControllerTest {
     }
 
     @Test
+    void shouldExposeAdvancedStructureProfileForSingleTableAggregation() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT o.customer_id, SUM(o.amount) AS total_amount "
+                    + "FROM orders o WHERE o.dt >= DATE '2026-04-01' "
+                    + "GROUP BY o.customer_id ORDER BY total_amount DESC LIMIT 20\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.advancedStructureProfile.profileStatus").value("AVAILABLE"))
+            .andExpect(jsonPath("$.advancedStructureProfile.tables[0].tableName").value("orders"))
+            .andExpect(jsonPath("$.advancedStructureProfile.tables[0].alias").value("o"))
+            .andExpect(jsonPath("$.advancedStructureProfile.projections[1].alias").value("total_amount"))
+            .andExpect(jsonPath("$.advancedStructureProfile.predicates[0].clause").value("WHERE"))
+            .andExpect(jsonPath("$.advancedStructureProfile.predicates[0].expression").value(containsString("o.dt")))
+            .andExpect(jsonPath("$.advancedStructureProfile.aggregations[0].functionName").value("SUM"))
+            .andExpect(jsonPath("$.advancedStructureProfile.groupBy[0].expression").value("o.customer_id"))
+            .andExpect(jsonPath("$.advancedStructureProfile.orderBy[0].direction").value("DESC"))
+            .andExpect(jsonPath("$.advancedStructureProfile.limit.present").value(true))
+            .andExpect(jsonPath("$.advancedStructureProfile.limit.rowCount").value("20"));
+    }
+
+    @Test
+    void shouldExposeAdvancedStructureProfileForJoinCteSubqueryAndTimeFunction() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"WITH recent_orders AS ("
+                    + "SELECT order_id, customer_id, amount, order_date FROM orders o "
+                    + "WHERE o.order_date >= DATE '2026-04-01') "
+                    + "SELECT c.region, DATE_TRUNC('day', r.order_date) AS order_day, "
+                    + "SUM(r.amount) AS total_amount FROM recent_orders r "
+                    + "JOIN customers c ON r.customer_id = c.customer_id "
+                    + "WHERE c.status = 'ACTIVE' AND r.amount > "
+                    + "(SELECT AVG(amount) FROM orders WHERE status = 'PAID') "
+                    + "GROUP BY c.region, DATE_TRUNC('day', r.order_date) "
+                    + "ORDER BY order_day LIMIT 10\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.advancedStructureProfile.ctes[0].name").value("recent_orders"))
+            .andExpect(jsonPath("$.advancedStructureProfile.tables[*].sourceType").value(hasItem("CTE_REFERENCE")))
+            .andExpect(jsonPath("$.advancedStructureProfile.tables[*].alias").value(hasItem("c")))
+            .andExpect(jsonPath("$.advancedStructureProfile.joinGraph[0].right").value("customers"))
+            .andExpect(jsonPath("$.advancedStructureProfile.joinGraph[0].condition")
+                .value(containsString("r.customer_id = c.customer_id")))
+            .andExpect(jsonPath("$.advancedStructureProfile.subqueries[*].location").value(hasItem("EXPRESSION")))
+            .andExpect(jsonPath("$.advancedStructureProfile.aggregations[*].functionName").value(hasItem("SUM")))
+            .andExpect(jsonPath("$.advancedStructureProfile.aggregations[*].functionName").value(hasItem("AVG")))
+            .andExpect(jsonPath("$.advancedStructureProfile.timeFunctions[*].functionName").value(hasItem("DATE_TRUNC")));
+    }
+
+    @Test
+    void shouldExposeAdvancedStructureProfileForNonDeterministicFunctions() throws Exception {
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"SELECT order_id, CURRENT_TIMESTAMP AS parsed_at "
+                    + "FROM orders ORDER BY RAND() LIMIT 5\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.advancedStructureProfile.timeFunctions[*].functionName")
+                .value(hasItem("CURRENT_TIMESTAMP")))
+            .andExpect(jsonPath("$.advancedStructureProfile.nonDeterministicFunctions[*].functionName")
+                .value(hasItem("CURRENT_TIMESTAMP")))
+            .andExpect(jsonPath("$.advancedStructureProfile.nonDeterministicFunctions[*].functionName")
+                .value(hasItem("RAND")))
+            .andExpect(jsonPath("$.featureSummary.randomOrderCount").value(greaterThanOrEqualTo(1)));
+    }
+
+    @Test
     void shouldRunHetuExplainPlanWhenPlanParserModeRequested() throws Exception {
         when(hetuPlanAnalysisClient.explain(any(), any(), any())).thenReturn(
             HetuPlanAnalysisResult.success(
