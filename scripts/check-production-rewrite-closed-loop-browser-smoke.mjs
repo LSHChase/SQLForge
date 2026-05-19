@@ -321,7 +321,7 @@ const historyRow = () => ({
   queryDateStatus: 'RESOLVED',
   parameterizedSqlFlag: false,
   bindingMode: 'LITERAL',
-  rewriteApplied: true,
+  rewriteApplied: false,
   hasRewriteRecord: true,
   rewriteRecordId,
   recommendationId,
@@ -335,31 +335,31 @@ const historyDetail = () => ({
   historyType: 'QUERY_EXECUTION',
   sqlText: originalSql,
   sqlTemplate: originalSql,
-  boundSql: recommendedSql,
-  actualSql: recommendedSql,
+  boundSql: originalSql,
+  actualSql: originalSql,
   returnedRowCount: 1,
   cacheHit: false,
   accelerationApplied: false,
   executionSummary: {
-    rewriteApplied: true,
+    rewriteApplied: false,
     cacheHit: false,
     accelerationApplied: false,
     returnedRowCount: 1
   },
   rewriteAudit: {
-    rewriteApplied: true,
+    rewriteApplied: false,
     rewriteRecordId,
-    runtimeBindingId,
-    ruleVersion: 1,
-    runtimeRuleVersion,
-    runtimeRewriteStatus: rewriteRecord.publishStatus === 'PAUSED' ? 'PAUSED' : 'ACTIVE',
-    rewritePublishStatusSnapshot: rewriteRecord.publishStatus,
+    runtimeBindingId: '',
+    ruleVersion: null,
+    runtimeRuleVersion: '',
+    runtimeRewriteStatus: 'MISSING',
+    rewritePublishStatusSnapshot: 'UNPUBLISHED',
     originalSql,
-    actualSql: recommendedSql
+    actualSql: originalSql
   },
   sqlState: {
     originalSql,
-    actualSql: recommendedSql,
+    actualSql: originalSql,
     sqlFingerprint
   },
   routeDecision: { selectedEngine: 'HETU' },
@@ -368,8 +368,8 @@ const historyDetail = () => ({
     auditEventCount: 3,
     auditEvents: [
       { action: 'REWRITE_APPROVED', subjectId: rewriteRecordId },
-      { action: 'REWRITE_PUBLISHED', subjectId: runtimeBindingId },
-      { action: 'REWRITE_PAUSED', subjectId: runtimeBindingId }
+      { action: 'REWRITE_PUBLISHED', subjectId: rewriteRecordId },
+      { action: 'REWRITE_PAUSED', subjectId: rewriteRecordId }
     ]
   }
 })
@@ -467,8 +467,7 @@ const runBrowserSmoke = async baseUrl => {
         alertStatus: 'OPEN',
         traceRefs: {
           rewriteRecordId,
-          runtimeBindingId,
-          auditRefs: ['rewrite-approved', 'runtime-published']
+          auditRefs: ['rewrite-approved', 'rewrite-status-published']
         },
         alertRefs: [{ alertId: 'alert-prw-012', alertType: 'SQL_REWRITE_RESULT_DIVERGENCE' }]
       })
@@ -598,19 +597,14 @@ const runBrowserSmoke = async baseUrl => {
       rewriteRecord = {
         ...rewriteRecord,
         publishStatus: 'PUBLISHED',
-        runtimeBindingId,
-        runtimeRuleVersion,
-        runtimeBindingScope: `${tenantId}:${sqlFingerprint}`,
         runtimeBindingAt: '2026-05-12T01:12:20Z',
         runtimeBindingBy: 'operator-001',
-        publishedSqlFingerprint: sqlFingerprint,
         traceRefs: {
           ...rewriteRecord.traceRefs,
-          lastRuntimeBindingTrace: {
+          lastPublishStatusTrace: {
             action: 'PUBLISH',
             publishStatus: 'PUBLISHED',
-            runtimeBindingId,
-            runtimeRuleVersion
+            statusOnly: true
           }
         }
       }
@@ -641,11 +635,10 @@ const runBrowserSmoke = async baseUrl => {
             alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
             linkages: [{ alertId: 'alert-prw-012' }]
           },
-          lastRuntimeBindingTrace: {
+          lastPublishStatusTrace: {
             action: 'PAUSE',
             publishStatus: 'PAUSED',
-            runtimeBindingId,
-            runtimeRuleVersion
+            statusOnly: true
           }
         }
       }
@@ -752,8 +745,8 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('recommendation-rewrite-lifecycle-success').waitFor({ timeout: defaultTimeoutMs })
     lifecycleText = await page.getByTestId('recommendation-rewrite-lifecycle').textContent()
     assert(lifecycleText.includes('PUBLISHED'), 'Recommendation lifecycle must show published rewrite status.')
-    assert(lifecycleText.includes(runtimeBindingId), 'Recommendation lifecycle must expose runtime binding id.')
-    assert(lifecycleText.includes(runtimeRuleVersion), 'Recommendation lifecycle must expose runtime rule version.')
+    assert(!lifecycleText.includes(runtimeBindingId), 'Recommendation lifecycle publish must not require runtime binding id.')
+    assert(!lifecycleText.includes(runtimeRuleVersion), 'Recommendation lifecycle publish must not require runtime rule version.')
 
     await page.getByTestId('recommendation-rewrite-pause').click()
     await page.getByTestId('recommendation-rewrite-lifecycle-success').waitFor({ timeout: defaultTimeoutMs })

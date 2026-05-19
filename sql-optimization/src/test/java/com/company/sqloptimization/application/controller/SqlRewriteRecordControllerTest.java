@@ -62,20 +62,14 @@ class SqlRewriteRecordControllerTest {
         publishedRecord.setRewriteRecordId("rewrite-001");
         publishedRecord.setTenantId("tenant-a");
         publishedRecord.setPublishStatus("PUBLISHED");
-        publishedRecord.setRuntimeBindingId("rwb-001");
-        publishedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
         SqlRewriteRecordVO pausedRecord = new SqlRewriteRecordVO();
         pausedRecord.setRewriteRecordId("rewrite-001");
         pausedRecord.setTenantId("tenant-a");
         pausedRecord.setPublishStatus("PAUSED");
-        pausedRecord.setRuntimeBindingId("rwb-001");
-        pausedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
         SqlRewriteRecordVO unpublishedRecord = new SqlRewriteRecordVO();
         unpublishedRecord.setRewriteRecordId("rewrite-001");
         unpublishedRecord.setTenantId("tenant-a");
         unpublishedRecord.setPublishStatus("UNPUBLISHED");
-        unpublishedRecord.setRuntimeBindingId("rwb-001");
-        unpublishedRecord.setRuntimeRuleVersion("runtime-rewrite-v1");
         RewritePublishEligibilityReasonVO reason = new RewritePublishEligibilityReasonVO();
         reason.setCode("VALIDATION_STATUS_NOT_EQUIVALENT");
         reason.setMessage("改写记录 validationStatus 必须为 EQUIVALENT。");
@@ -158,23 +152,19 @@ class SqlRewriteRecordControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"reason\":\"release approved rewrite\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.publishStatus").value("PUBLISHED"))
-            .andExpect(jsonPath("$.runtimeBindingId").value("rwb-001"))
-            .andExpect(jsonPath("$.runtimeRuleVersion").value("runtime-rewrite-v1"));
+            .andExpect(jsonPath("$.publishStatus").value("PUBLISHED"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/pause"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"reason\":\"validation divergence\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.publishStatus").value("PAUSED"))
-            .andExpect(jsonPath("$.runtimeBindingId").value("rwb-001"));
+            .andExpect(jsonPath("$.publishStatus").value("PAUSED"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/unpublish"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"reason\":\"operator rollback\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"))
-            .andExpect(jsonPath("$.runtimeRuleVersion").value("runtime-rewrite-v1"));
+            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/validation-runs"))
                 .contentType(MediaType.APPLICATION_JSON)

@@ -1348,8 +1348,8 @@ export default {
       waitingCallback: 'Waiting for an external callback.',
       noRewriteRecord: 'This recommendation has no linked rewrite record.',
       approvedNotPublished: 'Approved, but not active in runtime yet.',
-      runtimeActive: 'Runtime rewrite is active.',
-      runtimePaused: 'Runtime binding is paused.',
+      runtimeActive: 'Rewrite record is published.',
+      runtimePaused: 'Rewrite record is paused.',
       reviewRejected: 'Rewrite review has been rejected.',
       awaitingRewriteReview: 'Waiting for rewrite review or publish.',
       reviewNoteRequired: 'A review note is required when rejecting.',
@@ -1380,7 +1380,7 @@ export default {
       semanticRisks: 'semanticRisks',
       unappliedRules: 'unappliedRules',
       alertLinkage: 'Alert linkage',
-      publishEligibility: 'Publish eligibility and refusal reasons',
+      publishEligibility: 'Publish status reference',
       validationRuns: 'Validation runs'
     },
     reviewGuard: {

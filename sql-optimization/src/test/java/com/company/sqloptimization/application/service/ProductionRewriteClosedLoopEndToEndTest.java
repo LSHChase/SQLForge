@@ -2,7 +2,7 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
@@ -82,7 +82,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
     }
 
     @Test
-    void shouldCloseProductionRewriteLoopFromRecommendationToRuntimeHistoryAndDivergencePause() {
+    void shouldCloseProductionRewriteStatusLoopWithoutRuntimeBindingFlow() {
         setRequestContext("operator-001", "request-prw-012", "trace-prw-012");
         InMemoryRuntimeRewriteBindingRepository runtimeRepository = new InMemoryRuntimeRewriteBindingRepository();
         QueryExecutionRuntimeRewriteBindingService runtimeBindingService =
@@ -142,26 +142,26 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertEquals("APPROVED", approved.getReviewStatus());
         assertEquals("EQUIVALENT", equivalentRun.getComparisonStatus());
         assertEquals("PUBLISHED", published.getPublishStatus());
-        assertNotNull(published.getRuntimeBindingId());
-        assertEquals("runtime-rewrite-v1", published.getRuntimeRuleVersion());
+        assertNull(published.getRuntimeBindingId());
+        assertNull(published.getRuntimeRuleVersion());
+        assertEquals("PUBLISH", lastPublishStatusAction(published));
+        assertEquals("PUBLISHED", lastPublishStatus(published));
         assertEquals(QueryExecutionStatus.SUCCESS, executionResponse.getStatus());
-        assertEquals(RECOMMENDED_SQL, queryAdapter.getActualSql());
-        assertTrue(executionResponse.getMetadata().isRewriteApplied());
-        assertEquals(published.getRewriteRecordId(), executionResponse.getMetadata().getRewriteRecordId());
-        assertEquals(published.getRuntimeBindingId(), executionResponse.getMetadata().getRuntimeBindingId());
-        assertEquals("PUBLISHED", executionResponse.getMetadata().getRewritePublishStatusSnapshot());
-        assertEquals(Boolean.TRUE, governanceClient.getLastHistoryRequest().getRewriteApplied());
+        assertEquals(ORIGINAL_SQL, queryAdapter.getActualSql());
+        assertFalse(executionResponse.getMetadata().isRewriteApplied());
+        assertNull(executionResponse.getMetadata().getRewriteRecordId());
+        assertNull(executionResponse.getMetadata().getRuntimeBindingId());
+        assertEquals("UNPUBLISHED", executionResponse.getMetadata().getRewritePublishStatusSnapshot());
+        assertEquals(Boolean.FALSE, governanceClient.getLastHistoryRequest().getRewriteApplied());
         assertEquals(ORIGINAL_SQL, governanceClient.getLastHistoryRequest().getSqlTemplate());
-        assertEquals(RECOMMENDED_SQL, governanceClient.getLastHistoryRequest().getBoundSql());
-        assertEquals(published.getRewriteRecordId(), governanceClient.getLastHistoryRequest().getRewriteRecordId());
-        assertTrue(governanceClient.getLastHistoryRequest().getBindingSummary().contains(published.getRuntimeBindingId()));
+        assertEquals(ORIGINAL_SQL, governanceClient.getLastHistoryRequest().getBoundSql());
+        assertNull(governanceClient.getLastHistoryRequest().getRewriteRecordId());
         assertEquals("DIVERGED", divergedRun.getComparisonStatus());
         assertEquals(Boolean.TRUE, divergedRun.getAutoApplyPaused());
         assertEquals("PAUSED", paused.getPublishStatus());
-        assertEquals("AUTO_PAUSE", lastRuntimeAction(paused));
-        assertEquals("PAUSED", lastRuntimePublishStatus(paused));
+        assertEquals("AUTO_PAUSE", lastPublishStatusAction(paused));
+        assertEquals("PAUSED", lastPublishStatus(paused));
         assertEquals("MISSING", runtimeBindingService.resolveActive(resolveRequest()).getStatus());
-        assertFalse(runtimeRepository.findByRuntimeBindingId(published.getRuntimeBindingId()).isActive());
         assertEquals(4, digestClient.getRequestCount());
     }
 
@@ -268,16 +268,16 @@ class ProductionRewriteClosedLoopEndToEndTest {
         );
     }
 
-    private String lastRuntimeAction(SqlRewriteRecordVO record) {
-        return String.valueOf(lastRuntimeBindingTrace(record).get("action"));
+    private String lastPublishStatusAction(SqlRewriteRecordVO record) {
+        return String.valueOf(lastPublishStatusTrace(record).get("action"));
     }
 
-    private String lastRuntimePublishStatus(SqlRewriteRecordVO record) {
-        return String.valueOf(lastRuntimeBindingTrace(record).get("publishStatus"));
+    private String lastPublishStatus(SqlRewriteRecordVO record) {
+        return String.valueOf(lastPublishStatusTrace(record).get("publishStatus"));
     }
 
-    private Map<?, ?> lastRuntimeBindingTrace(SqlRewriteRecordVO record) {
-        return (Map<?, ?>) record.getTraceRefs().get("lastRuntimeBindingTrace");
+    private Map<?, ?> lastPublishStatusTrace(SqlRewriteRecordVO record) {
+        return (Map<?, ?>) record.getTraceRefs().get("lastPublishStatusTrace");
     }
 
     private QueryExecutionResultDigestResponse digest(String schemaDigest,

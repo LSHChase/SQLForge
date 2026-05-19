@@ -1332,8 +1332,8 @@ export default {
       waitingCallback: '等待外部回执。',
       noRewriteRecord: '当前推荐没有关联改写记录。',
       approvedNotPublished: '审批已通过，尚未运行时生效。',
-      runtimeActive: '运行时已生效。',
-      runtimePaused: '运行时绑定已暂停。',
+      runtimeActive: '改写记录已发布。',
+      runtimePaused: '改写记录已暂停。',
       reviewRejected: '改写审批已驳回。',
       awaitingRewriteReview: '等待改写审批或发布。',
       reviewNoteRequired: '驳回必须填写审批意见。',
@@ -1364,7 +1364,7 @@ export default {
       semanticRisks: '语义风险 semanticRisks',
       unappliedRules: '未应用规则 unappliedRules',
       alertLinkage: '告警联动',
-      publishEligibility: '发布资格与拒绝原因',
+      publishEligibility: '发布状态参考',
       validationRuns: '验证运行'
     },
     reviewGuard: {

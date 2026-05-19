@@ -432,20 +432,20 @@
 | Dimension | Owner | Baseline values | Contract meaning |
 |:---|:---|:---|:---|
 | `manualReviewRequired` | `sql-optimization` recommendation / rewrite record | `true`, `false` | 风险或复核提示，只说明是否需要人工看过；不得自动代表审批通过。 |
-| `reviewStatus` | `sql-optimization` rewrite record | `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `CHANGES_REQUESTED` | 人类审批状态。只有 `APPROVED` 才允许进入发布资格判断。 |
-| `publishStatus` | `sql-optimization` rewrite record | `UNPUBLISHED`, `PUBLISHING`, `PUBLISHED`, `PAUSED`, `UNPUBLISHING`, `UNPUBLISH_FAILED`, `PUBLISH_FAILED` | 改写记录发布状态。审批通过不等于运行时已生效，只有发布成功并绑定 active 才能触发自动改写。 |
-| runtime binding status | `query-execution` runtime rewrite binding | `ACTIVE`, `PAUSED`, `UNPUBLISHED` | 运行时生效状态。`ACTIVE` 是后续 SQL 执行可以自动替换 SQL 文本的唯一状态。 |
+| `reviewStatus` | `sql-optimization` rewrite record | `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `CHANGES_REQUESTED` | 人类审批状态。只有 `APPROVED` 才允许把改写记录切换为发布状态。 |
+| `publishStatus` | `sql-optimization` rewrite record | `UNPUBLISHED`, `PUBLISHING`, `PUBLISHED`, `PAUSED`, `UNPUBLISHING`, `UNPUBLISH_FAILED`, `PUBLISH_FAILED` | 改写记录发布状态。审批、发布、暂停和撤销都只变更该状态和 trace，不直接触发 runtime binding 流程。 |
+| runtime binding status | `query-execution` runtime rewrite binding | `ACTIVE`, `PAUSED`, `UNPUBLISHED` | 独立运行时证据。`sql-optimization` 的改写记录状态按钮不直接创建、暂停或撤销该绑定。 |
 
 目标服务协作契约如下，后续 PRW-002 至 PRW-009 实现时可调整具体 Java 类名，但不得改变语义边界：
 
 | Surface | Contract owner | Required behavior |
 |:---|:---|:---|
-| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}` | `sql-optimization` | 返回 `manualReviewRequired`, `reviewStatus`, `publishStatus`, `runtimeBindingId`, `runtimeRuleVersion`, `validationStatus`, source evidence 和审计 trace refs。 |
+| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}` | `sql-optimization` | 返回 `manualReviewRequired`, `reviewStatus`, `publishStatus`, `validationStatus`, source evidence 和审计 trace refs；历史 runtime binding 字段只作为兼容追踪，不作为发布动作的必填结果。 |
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/review` | `sql-optimization` | 接收审批结论与意见，写入审批人、时间和审计 trace；非法状态迁移由后端拒绝。 |
-| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish-eligibility` | `sql-optimization` | 返回集中式发布资格判断与结构化拒绝原因；前端只能展示，不得自行实现核心门禁。 |
-| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish` | `sql-optimization` | 在审批通过、等价验证通过、租户/指纹/来源证据完整且无未关闭差异暂停时，调用 `query-execution` 创建或更新运行时改写绑定。 |
-| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 暂停已发布改写记录并同步暂停对应 runtime binding，保留告警、原因和 trace。 |
-| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish` | `sql-optimization` | 撤销运行时绑定并回写发布状态，不删除历史改写记录。 |
+| `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish-eligibility` | `sql-optimization` | 返回发布状态参考与结构化拒绝原因；前端只能展示，不得用它阻断状态按钮。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/publish` | `sql-optimization` | 审批通过后仅将改写记录 `publishStatus` 改为 `PUBLISHED`，写入操作人、时间、原因和 `lastPublishStatusTrace`；不调用 `query-execution`。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 仅将已发布改写记录 `publishStatus` 改为 `PAUSED`，保留原因和 `lastPublishStatusTrace`；不调用 runtime binding 流程。 |
+| `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/unpublish` | `sql-optimization` | 仅将 `PUBLISHED` 或 `PAUSED` 改写记录 `publishStatus` 改为 `UNPUBLISHED`，不删除历史改写记录，不调用 runtime binding 流程。 |
 | `POST /api/query-execution/internal/rewrite-bindings/publish` | `query-execution` | 创建生产 runtime rewrite binding，返回 `runtimeBindingId` 与 `runtimeRuleVersion`；同租户同 SQL 指纹最多只能存在一个 `ACTIVE` binding。 |
 | `POST /api/query-execution/internal/rewrite-bindings/resolve-active` | `query-execution` | 以 tenant + SQL fingerprint 查询 `ACTIVE` runtime rewrite binding；可用 datasource evidence 收窄匹配。 |
 | `POST /api/query-execution/internal/rewrite-bindings/pause` | `query-execution` | 将 runtime rewrite binding 置为 `PAUSED`，保留原因、操作人、时间和版本追踪。 |
@@ -453,12 +453,12 @@
 
 运行时执行契约如下：
 
-- `query-execution` 的 `runtime_rewrite_binding` 持久化表是生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口，不能替代主闭环。
+- `query-execution` 的 `runtime_rewrite_binding` 持久化表是独立生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口。
 - 只有同租户、同 SQL 指纹且 runtime binding status 为 `ACTIVE` 时，查询执行入口才能把原 SQL 替换为已批准推荐 SQL。
 - `PRW-013` 后 JDBC Agent Redis 兼容出口使用 tenant-scoped key：`<namespace>:tenant:<tenantId>:rewrite:<sqlFingerprint>` 保存推荐 SQL，`<namespace>:tenant:<tenantId>:meta:<sqlFingerprint>` 保存 `runtimeBindingId`、`ruleVersion`、`runtimeRuleVersion`、`datasourceCode`、`status`、`updatedAt`、可选 `expiresAt` 与 `syncStatus`；旧 `<namespace>:rewrite:<sqlFingerprint>` 只允许作为显式开启的兼容 fallback。
 - 发布、暂停或撤销 runtime binding 时，Redis 同步失败必须返回或记录 `syncStatus=FAILED`、`retryable=true`、`alertRequired=true` 证据，但不得回滚或篡改 `query-execution` 主绑定状态。
 - 执行历史必须记录原始 SQL、实际执行 SQL、是否改写、改写记录 ID、runtime binding ID、规则版本和发布状态快照，前端不得自行推断 `rewriteApplied`。
-- 周期比对发现结果不等价或超过容忍阈值时，必须暂停或撤销 runtime binding 并更新 `publishStatus`，不能只写告警展示。
+- 周期比对发现结果不等价或超过容忍阈值时，必须更新 `publishStatus=PAUSED` 并写入告警和 trace；不得在改写记录状态动作中直接调用 runtime binding 流程。
 
 ## 3.3 Benchmark Engine Task Contract Baseline
 

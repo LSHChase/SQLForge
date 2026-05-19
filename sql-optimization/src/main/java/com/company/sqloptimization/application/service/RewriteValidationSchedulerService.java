@@ -276,10 +276,10 @@ public class RewriteValidationSchedulerService {
         if (latest != null && "PAUSED".equals(latest.getPublishStatus().name())) {
             return "SUCCESS";
         }
-        Map<String, Object> runtimeTrace = latest == null
+        Map<String, Object> publishStatusTrace = latest == null
             ? null
-            : asMap(latest.getTraceRefs().get("lastRuntimeBindingTrace"));
-        if (runtimeTrace != null && runtimeTrace.get("errorType") != null) {
+            : asMap(latest.getTraceRefs().get("lastPublishStatusTrace"));
+        if (publishStatusTrace != null && publishStatusTrace.get("errorType") != null) {
             return "FAILED";
         }
         return "UNKNOWN";
@@ -312,7 +312,7 @@ public class RewriteValidationSchedulerService {
         payload.put("alertStatus", latest.getAlertStatus().name());
         payload.put("autoApplyAllowed", Boolean.valueOf(latest.isAutoApplyAllowed()));
         payload.put("runtimeBindingIdAfter", latest.getRuntimeBindingId());
-        payload.put("lastRuntimeBindingTrace", latest.getTraceRefs().get("lastRuntimeBindingTrace"));
+        payload.put("lastPublishStatusTrace", latest.getTraceRefs().get("lastPublishStatusTrace"));
         payload.put("divergenceAlert", latest.getTraceRefs().get("divergenceAlert"));
         return payload;
     }

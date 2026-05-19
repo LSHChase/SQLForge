@@ -85,12 +85,11 @@ class RewriteValidationSchedulerServiceTest {
         assertEquals(RewritePublishStatus.PAUSED, updated.getPublishStatus());
         assertFalse(updated.isAutoApplyAllowed());
         assertEquals(RewriteAlertStatus.OPEN, updated.getAlertStatus());
-        assertEquals(1, runtimeClient.pauseCount);
-        assertEquals("rwb-rewrite-001", runtimeClient.lastPauseRequest.getRuntimeBindingId());
-        assertEquals("定时校验发现差异：VALUE_DIFF", runtimeClient.lastPauseRequest.getReason());
-        Map<String, Object> runtimeTrace = castMap(updated.getTraceRefs().get("lastRuntimeBindingTrace"));
-        assertEquals("AUTO_PAUSE", runtimeTrace.get("action"));
-        assertEquals("PAUSED", runtimeTrace.get("publishStatus"));
+        assertEquals(0, runtimeClient.pauseCount);
+        Map<String, Object> publishStatusTrace = castMap(updated.getTraceRefs().get("lastPublishStatusTrace"));
+        assertEquals("AUTO_PAUSE", publishStatusTrace.get("action"));
+        assertEquals("PAUSED", publishStatusTrace.get("publishStatus"));
+        assertEquals(Boolean.TRUE, publishStatusTrace.get("statusOnly"));
         Map<String, Object> divergenceAlert = castMap(updated.getTraceRefs().get("divergenceAlert"));
         assertEquals("EMITTED_OR_DEDUPED", divergenceAlert.get("emissionStatus"));
         assertEquals("SQL_REWRITE_RESULT_DIVERGENCE", divergenceAlert.get("alertType"));
@@ -112,7 +111,7 @@ class RewriteValidationSchedulerServiceTest {
     }
 
     @Test
-    void shouldRetainFailureTraceAndAlertWhenRuntimePauseFails() {
+    void shouldAutoPauseByStatusWhenRuntimePauseClientFails() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         repository.saveRecord(rewriteRecord("rewrite-001", "SELECT original", "SELECT recommended"));
         FakeRuntimeRewriteBindingClient runtimeClient = new FakeRuntimeRewriteBindingClient();
@@ -132,15 +131,15 @@ class RewriteValidationSchedulerServiceTest {
         assertEquals(1, result.getAuditWriteCount());
         assertEquals(RewriteRecordStatus.PAUSED, updated.getStatus());
         assertEquals(RewriteValidationStatus.DIVERGED, updated.getValidationStatus());
-        assertEquals(RewritePublishStatus.PUBLISHED, updated.getPublishStatus());
+        assertEquals(RewritePublishStatus.PAUSED, updated.getPublishStatus());
         assertFalse(updated.isAutoApplyAllowed());
-        Map<String, Object> runtimeTrace = castMap(updated.getTraceRefs().get("lastRuntimeBindingTrace"));
-        assertEquals("AUTO_PAUSE", runtimeTrace.get("action"));
-        assertEquals("PUBLISHED", runtimeTrace.get("publishStatus"));
-        assertEquals("IllegalStateException", runtimeTrace.get("errorType"));
+        assertEquals(0, runtimeClient.pauseCount);
+        Map<String, Object> publishStatusTrace = castMap(updated.getTraceRefs().get("lastPublishStatusTrace"));
+        assertEquals("AUTO_PAUSE", publishStatusTrace.get("action"));
+        assertEquals("PAUSED", publishStatusTrace.get("publishStatus"));
         Map<String, Object> divergenceAudit = castMap(updated.getTraceRefs().get("divergencePauseAudit"));
         assertEquals("WRITTEN", divergenceAudit.get("auditWriteStatus"));
-        assertEquals("FAILED", divergenceAudit.get("resultStatus"));
+        assertEquals("SUCCESS", divergenceAudit.get("resultStatus"));
     }
 
     @Test

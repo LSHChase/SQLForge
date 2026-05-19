@@ -95,7 +95,7 @@ SQL 改写能力应拆成三个功能面：
 - 验证区：验证方法、结果摘要、digest、差异样本、验证 run。
 - 动作区：生成推荐、创建改写记录、重新验证、跳转推荐详情。
 
-单条验证不应直接提供“生产生效”按钮。生产生效必须走 `改写记录` 的审批、发布和运行时绑定门禁。
+单条验证不应直接提供“生产生效”按钮。发布只能走 `改写记录` 的审批与发布状态接口。
 
 ### Batch SQL Design
 
@@ -122,7 +122,7 @@ SQL 改写能力应拆成三个功能面：
 
 - 标记 `rewriteApplied=true`。
 - 修改执行历史。
-- 绕过改写记录审批直接发布 runtime binding。
+- 绕过改写记录审批直接改发布状态。
 - 把静态解析证据显示成真实扫描量、真实耗时或真实收益。
 - 在前端自行判定 SQL 语义等价。
 
@@ -136,7 +136,7 @@ SQL 改写能力应拆成三个功能面：
 - 推荐来自解析、执行历史、慢 SQL、人工输入还是批量来源。
 - 推荐是否已经被采纳为改写记录。
 - 改写记录当前处于什么审批、发布、验证和暂停状态。
-- 是否具备发布资格，拒绝原因是什么。
+- 发布状态参考和拒绝原因是什么。
 
 该功能面可以在导航中拆成 `推荐结果` 和 `改写记录` 两个入口，但产品语义属于同一治理域。
 
@@ -199,7 +199,7 @@ SQL 改写能力应拆成三个功能面：
 - 原 SQL / 推荐 SQL / 最近执行 SQL。
 - SQL diff。
 - review 状态、审批人、审批时间、审批意见。
-- publish 状态、runtime binding、规则版本、生效范围。
+- publish 状态、状态 trace、历史 runtime binding / 规则版本追踪字段。
 - validation run 列表。
 - 周期比对状态。
 - 暂停、撤销、告警和 trace 证据。
@@ -211,10 +211,10 @@ SQL 改写能力应拆成三个功能面：
 1. 解析、执行历史、慢 SQL 或人工输入生成 recommendation。
 2. 用户或策略把 recommendation 转换成 `sql_rewrite_record`。
 3. 改写记录进入待复核或待审批。
-4. 审批通过后进入发布资格判断。
-5. 验证通过、无未关闭差异告警、自动应用允许时，才能发布 runtime binding。
-6. 发布成功后，改写记录持有 runtime binding 追踪字段。
-7. 周期比对失败时，改写记录进入 paused / diverged / review required 状态。
+4. 审批、驳回、发布、暂停和撤销均只改变改写记录状态，不触发额外发布流程。
+5. 发布动作把 `publishStatus` 置为 `PUBLISHED`；暂停动作把 `publishStatus` 置为 `PAUSED`。
+6. 发布资格、验证结果和告警只作为状态参考展示，不阻断状态按钮本身。
+7. 周期比对失败时，改写记录通过状态变更进入 paused / diverged / review required 状态。
 
 `manualReviewRequired=true` 只表示需要人工查看，不表示审批通过。
 
@@ -225,7 +225,7 @@ SQL 改写能力应拆成三个功能面：
 - 展示推荐、diff、风险、收益和来源证据。
 - 创建和查看改写记录。
 - 承载审批、发布、暂停、撤销动作。
-- 展示发布资格和拒绝原因。
+- 展示发布状态参考和拒绝原因。
 - 展示 validation runs 和告警引用。
 - 跳转 SQL 解析记录和 SQL 历史。
 
@@ -233,7 +233,7 @@ SQL 改写能力应拆成三个功能面：
 
 - 把推荐状态写成生产执行事实。
 - 把审批通过写成运行时已生效。
-- 绕过后端发布资格策略。
+- 绕过后端状态接口。
 - 把 `APPLIED` 展示为默认自动改写已生效。
 - 直接修改 `query_history` 的真实执行结果。
 
@@ -246,7 +246,7 @@ SQL 改写能力应拆成三个功能面：
 - 哪次 SQL 执行真实发生了自动改写。
 - 原始 SQL 是什么。
 - 实际执行 SQL 是什么。
-- 命中了哪个 `rewriteRecordId`、`runtimeBindingId` 和规则版本。
+- 命中了哪个 `rewriteRecordId`，以及生产执行链路写入的 runtime binding / 规则版本证据。
 - 当时的发布状态、验证状态和告警状态是什么。
 - 这次执行是否与后续差异比对或暂停动作有关。
 
@@ -339,11 +339,11 @@ SQL 解析记录对应的改写必须按以下规则归属：
 3. 试算结果写入 `推荐结果`。
 4. 用户采纳推荐并创建 `改写记录`。
 5. 审核人员在 `改写记录` 中完成 review。
-6. 系统执行发布资格判断。
-7. 验证通过且资格满足后发布 runtime binding。
-8. 后续生产 SQL 执行命中 binding，执行历史写入真实改写证据。
+6. 审批通过后，用户在 `改写记录` 中把 `publishStatus` 改为 `PUBLISHED`。
+7. 发布、暂停、撤销均只变更改写记录状态并写入 trace。
+8. 后续生产 SQL 执行是否真实改写，只能由执行链路自己的证据写入。
 9. `真实 SQL 改写历史` 展示生产事实，并反链到推荐和改写记录。
-10. 周期比对发现差异时，暂停 runtime binding，写入 validation run 和告警。
+10. 周期比对发现差异时，把改写记录状态改为 paused / diverged，写入 validation run 和告警。
 
 ## Page Interaction Model
 
@@ -386,11 +386,11 @@ SQL 解析记录对应的改写必须按以下规则归属：
 | 可改写 | recommendation 存在，且有 ruleChain / recommendedSql | 只是建议 |
 | 已验证 | validation run 通过 | 证明某次验证通过，不代表已发布 |
 | 待审批 | `reviewStatus=PENDING_REVIEW` | 等待人工处理 |
-| 已审批 | `reviewStatus=APPROVED` | 可进入发布资格判断 |
+| 已审批 | `reviewStatus=APPROVED` | 可点击发布状态按钮 |
 | 未发布 | `publishStatus=UNPUBLISHED` | 不会被生产运行时使用 |
-| 已发布 | `publishStatus=PUBLISHED` 且 runtime binding active | 后续同租户同指纹 SQL 可能自动改写 |
+| 已发布 | `publishStatus=PUBLISHED` | 仅表示改写记录状态已发布，不自动证明运行时生效 |
 | 本次已自动改写 | 执行历史 `rewriteApplied=true` 且有 binding 证据 | 生产事实 |
-| 已暂停 | `publishStatus=PAUSED` 或 runtime binding paused | 后续不应继续自动改写 |
+| 已暂停 | `publishStatus=PAUSED` | 改写记录状态暂停 |
 | 差异待复核 | validation run `DIVERGED` 或差异告警未关闭 | 需要人工处理 |
 
 ## API and Data Ownership
@@ -435,7 +435,7 @@ SQL 解析记录对应的改写必须按以下规则归属：
 2. v1 可复用现有 `推荐结果` 与 `SQL 历史查询` route，通过 query/tab 深链呈现 `改写记录` 和 `改写历史`。
 3. 除非人工确认，不新增独立 `改写历史` 后端 API；优先复用 `query-history/{historyId}/rewrite-records` 和执行历史详情。
 4. 若要新增 `SQL 改写验证` 独立页面，应先确认它不会替代 `SQL 解析`、`推荐结果` 或 `改写记录`。
-5. 任何生产生效动作都必须在 `改写记录` 生命周期内完成，并经过后端发布资格策略。
+5. 任何改写记录发布、暂停或撤销动作都必须在 `改写记录` 生命周期内完成，并通过后端状态接口记录 trace。
 
 ## Acceptance Criteria
 

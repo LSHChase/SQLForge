@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-LIFECYCLE-STATUS-ONLY-20260519: 改写复核发布状态化
+
+- Status: done
+- Completed at: 2026-05-18
+- Commit subject: `USER-CN-REWRITE-LIFECYCLE-STATUS-ONLY-20260519 make rewrite lifecycle status-only`
+- Priority: 1
+- Depends on: PRW-010
+- Scope: 将 sql_rewrite_record 的审批、驳回、发布、暂停、撤销收敛为纯状态变更；前端仍在改写复核与发布 Tab 操作，后端不调用 runtime binding 发布/暂停/撤销流程，不以发布资格流程阻断状态切换。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-LIFECYCLE-STATUS-ONLY-20260519`
+- Progress log:
+  - 2026-05-18: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 将改写记录 review/publish/pause/unpublish 生命周期收敛为状态变更：审批和驳回只写 reviewStatus；发布、暂停、撤销只写 publishStatus 与 lastPublishStatusTrace；周期差异自动暂停也只改状态；推荐详情发布按钮不再依赖发布资格或 runtime binding。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-LIFECYCLE-STATUS-ONLY-20260519 --include-task-audit 已通过，并额外覆盖 Java rewrite lifecycle 测试、生产改写 browser smoke、推荐页契约和 git diff --check。
+  - Residual risk: query-execution runtime binding 能力仍作为独立执行出口保留；本任务明确不再由改写记录发布/暂停/撤销按钮触发该流程。
+  - Next step: 人工在推荐详情的改写复核与发布 Tab 中审批后点击发布即可把改写记录状态置为 PUBLISHED；暂停或撤销同样只通过状态按钮控制。
+
 ### USER-CN-RECOMMENDATION-CREATE-REWRITE-RECORD-20260519: 推荐详情创建改写记录入口
 
 - Status: done

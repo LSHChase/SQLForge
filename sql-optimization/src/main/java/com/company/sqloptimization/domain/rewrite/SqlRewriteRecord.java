@@ -317,6 +317,17 @@ public class SqlRewriteRecord {
             .build();
     }
 
+    public SqlRewriteRecord withPublishStatusOnly(RewritePublishStatus nextPublishStatus,
+                                                  String operator,
+                                                  Instant updatedAt,
+                                                  Map<String, Object> nextTraceRefs) {
+        return copyBuilder(updatedAt, nextTraceRefs)
+            .publishStatus(nextPublishStatus)
+            .runtimeBindingAt(updatedAt)
+            .runtimeBindingBy(operator)
+            .build();
+    }
+
     private Builder copyBuilder(Instant nextUpdatedAt, Map<String, Object> nextTraceRefs) {
         return SqlRewriteRecord.builder()
             .rewriteRecordId(rewriteRecordId)

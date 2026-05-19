@@ -267,7 +267,7 @@ const rewriteLifecycleState = computed(() => {
       label: t('recommendationCenter.states.noRewriteRecord')
     }
   }
-  if (selectedPublishStatus.value === 'PUBLISHED' && selectedRewriteRecord.value.runtimeBindingId) {
+  if (selectedPublishStatus.value === 'PUBLISHED') {
     return {
       type: 'success',
       label: t('recommendationCenter.states.runtimeActive')
@@ -526,8 +526,8 @@ const canRejectRewrite = computed(() => selectedReviewStatus.value === 'PENDING_
 
 const canPublishRewrite = computed(
   () =>
-    rewritePublishEligibility.value?.eligible === true &&
-    ['UNPUBLISHED', 'PUBLISH_FAILED'].includes(selectedPublishStatus.value)
+    selectedReviewStatus.value === 'APPROVED' &&
+    ['UNPUBLISHED', 'PUBLISH_FAILED', 'PAUSED'].includes(selectedPublishStatus.value)
 )
 
 const canPauseRewrite = computed(() => selectedPublishStatus.value === 'PUBLISHED')

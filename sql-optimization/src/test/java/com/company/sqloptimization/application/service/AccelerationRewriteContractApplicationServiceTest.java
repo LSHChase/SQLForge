@@ -400,7 +400,7 @@ class AccelerationRewriteContractApplicationServiceTest {
     }
 
     @Test
-    void shouldPublishApprovedEquivalentRewriteRecordToRuntimeBinding() {
+    void shouldPublishApprovedRewriteRecordAsStatusOnlyWithoutRuntimeFlow() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
@@ -418,23 +418,19 @@ class AccelerationRewriteContractApplicationServiceTest {
         );
 
         assertEquals("PUBLISHED", published.getPublishStatus());
-        assertEquals("rwb-001", published.getRuntimeBindingId());
-        assertEquals("runtime-rewrite-v1", published.getRuntimeRuleVersion());
-        assertEquals("tenant-a:fp-publish", published.getRuntimeBindingScope());
-        assertEquals("fp-publish", published.getPublishedSqlFingerprint());
-        assertEquals(1, runtimeClient.publishCount);
-        assertEquals("tenant-a", runtimeClient.lastPublishRequest.getTenantId());
-        assertEquals(ready.getRewriteRecordId(), runtimeClient.lastPublishRequest.getRewriteRecordId());
-        assertEquals("fp-publish", runtimeClient.lastPublishRequest.getSqlFingerprint());
-        assertEquals("fp-publish", runtimeClient.lastPublishRequest.getOriginalSqlDigest());
-        assertEquals("SELECT id FROM orders", runtimeClient.lastPublishRequest.getRecommendedSqlText());
-        assertEquals("hetu_main", runtimeClient.lastPublishRequest.getDatasourceCode());
-        assertEquals("operator-001", runtimeClient.lastPublishRequest.getPublishedBy());
-        assertEquals("PUBLISH", ((Map<?, ?>) published.getTraceRefs().get("lastRuntimeBindingTrace")).get("action"));
+        assertNull(published.getRuntimeBindingId());
+        assertNull(published.getRuntimeRuleVersion());
+        assertNull(published.getRuntimeBindingScope());
+        assertNull(published.getPublishedSqlFingerprint());
+        assertEquals(0, runtimeClient.publishCount);
+        Map<?, ?> publishTrace = (Map<?, ?>) published.getTraceRefs().get("lastPublishStatusTrace");
+        assertEquals("PUBLISH", publishTrace.get("action"));
+        assertEquals("PUBLISHED", publishTrace.get("publishStatus"));
+        assertEquals(Boolean.TRUE, publishTrace.get("statusOnly"));
     }
 
     @Test
-    void shouldRejectPublishWhenCentralEligibilityFailsWithoutRuntimeCall() {
+    void shouldRejectPublishWhenReviewIsNotApprovedWithoutRuntimeCall() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
@@ -457,7 +453,7 @@ class AccelerationRewriteContractApplicationServiceTest {
     }
 
     @Test
-    void shouldMarkPublishFailedWhenRuntimeBindingPublishFails() {
+    void shouldIgnoreRuntimePublishClientFailureBecausePublishIsStatusOnly() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
         runtimeClient.failPublish = true;
@@ -470,20 +466,17 @@ class AccelerationRewriteContractApplicationServiceTest {
         setTenant("tenant-a");
         SqlRewriteRecordVO ready = createPublishableRewriteRecord(service, "history-publish-fail", "fp-publish-fail");
 
-        BizException ex = assertThrows(
-            BizException.class,
-            () -> service.publishRewriteRecord(ready.getRewriteRecordId(), publishActionRequest("runtime outage"))
+        SqlRewriteRecordVO published = service.publishRewriteRecord(
+            ready.getRewriteRecordId(),
+            publishActionRequest("runtime outage ignored by status-only publish")
         );
-        SqlRewriteRecordVO failed = service.getRewriteRecord(ready.getRewriteRecordId());
 
-        assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE, ex.getCode());
-        assertEquals("PUBLISH_FAILED", failed.getPublishStatus());
-        assertEquals("PUBLISH", ((Map<?, ?>) failed.getTraceRefs().get("lastRuntimeBindingTrace")).get("action"));
-        assertEquals(Boolean.TRUE, ((Map<?, ?>) failed.getTraceRefs().get("lastRuntimeBindingTrace")).get("retryable"));
+        assertEquals("PUBLISHED", published.getPublishStatus());
+        assertEquals(0, runtimeClient.publishCount);
     }
 
     @Test
-    void shouldPauseAndUnpublishRuntimeBindingThroughQueryExecutionClient() {
+    void shouldPauseRepublishAndUnpublishByStatusOnly() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
@@ -503,17 +496,22 @@ class AccelerationRewriteContractApplicationServiceTest {
             published.getRewriteRecordId(),
             publishActionRequest("scheduled validation divergence")
         );
-        SqlRewriteRecordVO unpublished = service.unpublishRewriteRecord(
+        SqlRewriteRecordVO republished = service.publishRewriteRecord(
             paused.getRewriteRecordId(),
+            publishActionRequest("resume")
+        );
+        SqlRewriteRecordVO unpublished = service.unpublishRewriteRecord(
+            republished.getRewriteRecordId(),
             publishActionRequest("operator rollback")
         );
 
         assertEquals("PAUSED", paused.getPublishStatus());
+        assertEquals("PUBLISHED", republished.getPublishStatus());
         assertEquals("UNPUBLISHED", unpublished.getPublishStatus());
-        assertEquals("rwb-001", runtimeClient.lastPauseRequest.getRuntimeBindingId());
-        assertEquals("scheduled validation divergence", runtimeClient.lastPauseRequest.getReason());
-        assertEquals("rwb-001", runtimeClient.lastUnpublishRequest.getRuntimeBindingId());
-        assertEquals("operator-001", runtimeClient.lastUnpublishRequest.getOperatorId());
+        assertEquals(0, runtimeClient.publishCount);
+        assertNull(runtimeClient.lastPauseRequest);
+        assertNull(runtimeClient.lastUnpublishRequest);
+        assertEquals("UNPUBLISH", ((Map<?, ?>) unpublished.getTraceRefs().get("lastPublishStatusTrace")).get("action"));
     }
 
     @Test
