@@ -252,7 +252,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 
 | Rule | Trigger | Output | Boundary |
 |:---|:---|:---|:---|
-| `PRECOMPUTE_MV` | 高频聚合、报表复用 | 物化视图建议、DDL、刷新 SQL、验证 SQL、回滚 SQL、MV 查询 SQL | PULL_ONLY，SQLForge 只生成方案不执行生产 DDL |
+| `PRECOMPUTE_MV` | 高频聚合、报表复用 | 高级物化视图建议、MV 类型、粒度、维度、指标、谓词分类、覆盖证明、DDL、刷新 SQL、验证 SQL、回滚 SQL、MV rewrite SQL | PULL_ONLY，SQLForge 只生成方案不执行生产 DDL |
 | `PARTITION_PRUNING` | 时间/业务键过滤高频 | 分区键建议、分区过滤改写 | PULL_ONLY |
 | `BUCKET_JOIN` | 大表 join 且 join key 稳定 | 分桶建议、join key 证据 | PULL_ONLY |
 | `SPLIT_SQL` | 大 SQL 可拆为独立子任务 | 拆分 SQL、聚合方式、并发边界 | 需验证 |
@@ -276,7 +276,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `unappliedRules[]`
 - `preconditions[]`
 - `semanticRisks[]`
-- `accelerationArtifact`（仅 `PRECOMPUTE_MV` 命中时可出现；包含 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`、`blockingReasons`，不代表已执行或已发布绑定）
+- `accelerationArtifact`（仅 `PRECOMPUTE_MV` 命中时可出现；结构见下文高级 MV 产物契约，不代表已执行、已验证或已发布 runtime binding）
 - `expectedBenefit`
 - `estimatedCost`
 - `confidence`
@@ -284,6 +284,82 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `validationStatus`
 - `autoApplyAllowed`
 - `manualReviewRequired`
+
+### Advanced MV Artifact Contract
+
+`PRECOMPUTE_MV` 是 L2 物化视图推荐总规则；高级类型必须通过 `accelerationArtifact.mvType` 细分。允许的 `mvType` 只包括：
+
+- `PARAMETERIZED_AGG_MV`：参数外提后的聚合复用 MV。
+- `PREJOIN_MV`：稳定 join 图预连接 MV。
+- `STAR_AGG_MV`：星型模型维表展开后的聚合 MV。
+- `ROLLUP_MV`：可上卷复用的多粒度聚合 MV。
+- `COMMON_SUBGRAPH_MV`：多个查询共享子图的复用 MV。
+
+`EXACT_QUERY_MV` 非法。产品、接口、页面和任务文档不得把“一条原 SQL 原样包进 `CREATE MATERIALIZED VIEW ... AS <原 SQL>`”描述为兜底、默认或低阶推荐能力。
+
+高级 MV 的 `accelerationArtifact` 至少包含：
+
+- `rule=PRECOMPUTE_MV`
+- `mvType`
+- `artifactStatus`: `GENERATED`,`BLOCKED`,`REVIEW_REQUIRED`
+- `mvName`
+- `targetEngine`
+- `targetDatasource`
+- `dialect`
+- `grain[]`
+- `dimensions[]`
+- `measures[]`
+- `joinGraph[]`
+- `externalizedPredicates[]`
+- `retainedPredicates[]`
+- `securityPredicates[]`
+- `blockedPredicates[]`
+- `coverage`: `coversProjection`,`coversFilters`,`coversGrouping`,`coversMeasures`,`coversSecurity`
+- `blockingReasons[]`
+- `reviewWarnings[]`
+- `ddlSql`
+- `refreshSql`
+- `validationSql`
+- `rollbackSql`
+- `rewriteSql`
+- `runtimeRewriteBinding=NOT_CREATED`
+- `governanceBoundary=PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE`
+
+状态语义：
+
+- `GENERATED` 必须同时具备 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql` 和查询 MV 的 `rewriteSql`。
+- `BLOCKED` 必须给出 `blockingReasons`，不得生成可发布 runtime binding 草案。
+- `REVIEW_REQUIRED` 必须给出 `reviewWarnings`，只能进入人工复核，不能自动发布。
+- `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
+- `manualReviewRequired` 只表示风险需要人工看，不等于审批通过。
+
+当前仓库 V1 `PRECOMPUTE_MV` 产物仍存在 exact-query-like 草案行为：可能把 source SQL 包进 MV DDL，并生成 `SELECT * FROM mv...` 级别 rewrite SQL。AMV-001 只把高级 MV 契约固化为长期边界，不声明系统层面已经消除该行为；代码侧修正由后续 `AMV-002`、`AMV-005`、`AMV-011`、`AMV-012`、`AMV-016` 等实现任务负责。
+
+### Advanced MV Runtime Path
+
+L2 `accelerationArtifact` 不是运行时生效证明。若外部已经完成建 MV、刷新和验证，正常 SQL 要无感命中 MV 必须走以下路径：
+
+1. 外部执行 `ddlSql`。
+2. 外部执行 `refreshSql`。
+3. 外部执行 `validationSql` 或等价验证，并保留验证证据。
+4. 创建 SQL 改写记录，且 `recommendedSqlText` 必须来自 `accelerationArtifact.rewriteSql`。
+5. 通过改写记录审批。
+6. 发布改写记录。
+7. query-execution 返回 runtime binding `ACTIVE`。
+8. 后续同租户、同 SQL 指纹、同数据源证据的正常 SQL 执行命中 binding，并由 SQL 历史记录 `rewriteApplied=true`、实际执行 SQL 和 runtime binding 追踪字段证明。
+
+### Advanced MV Page Contract
+
+推荐中心和加速治理工作台展示高级 MV 时，主区必须优先解释结构化证据，而不是只展示工程码和 SQL 块：
+
+- MV 类型中文名与 `mvType`。
+- `artifactStatus`、阻断原因和人工复核原因。
+- 粒度、维度、指标与指标可合并性。
+- 外提谓词、保留谓词、安全谓词、阻断谓词。
+- Join 图摘要。
+- 原 SQL 到 MV rewrite SQL 的覆盖证明。
+- DDL、刷新、验证、回滚和 rewrite SQL。
+- `rewriteSql` 可作为 SQL 改写记录 `recommendedSqlText` 来源，但页面必须同时提示 SQLForge 不执行 DDL，runtime 生效还需要审批发布和 runtime binding `ACTIVE`。
 
 ## SQL Difference View
 

@@ -773,13 +773,35 @@ repo-side 基线：
 - `unappliedRules[]`
 - `preconditions[]`
 - `semanticRisks[]`
-- `accelerationArtifact`：仅 L2 `PRECOMPUTE_MV` 命中且可生成或可解释阻断时返回；字段包括 `artifactStatus`、`mvName`、`ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`、`blockingReasons` 和 `governanceBoundary=PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE`。
+- `accelerationArtifact`：仅 L2 `PRECOMPUTE_MV` 命中且可生成或可解释阻断时返回；`PRECOMPUTE_MV` 是物化视图推荐总规则，高级类型由 `mvType` 细分，结构见下文高级 MV 接口契约。
 - `diffSummary`
 - `validationMethod`
 - `validationStatus`
 - `autoApplyAllowed`
 - `manualReviewRequired`
 - `manualReviewRequired`
+
+高级 MV 接口契约：
+
+- `mvType` 必填，允许值仅为 `PARAMETERIZED_AGG_MV`、`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV`、`COMMON_SUBGRAPH_MV`。
+- `mvType=EXACT_QUERY_MV` 非法，接口不得返回该值，也不得把原 SQL 原样物化描述为默认、兜底或低阶推荐。
+- `artifactStatus` 允许 `GENERATED`、`BLOCKED`、`REVIEW_REQUIRED`。
+- `GENERATED` 必须返回 `mvName`、`targetEngine`、`targetDatasource`、`dialect`、`grain[]`、`dimensions[]`、`measures[]`、`coverage`、`ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql` 和 `governanceBoundary=PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE`。
+- `BLOCKED` 必须返回 `blockingReasons[]`，不得生成可发布 runtime binding 草案。
+- `REVIEW_REQUIRED` 必须返回 `reviewWarnings[]`，只能进入人工复核，不能自动发布。
+- 高级证据字段包括 `joinGraph[]`、`externalizedPredicates[]`、`retainedPredicates[]`、`securityPredicates[]`、`blockedPredicates[]`；`coverage` 至少覆盖 `coversProjection`、`coversFilters`、`coversGrouping`、`coversMeasures`、`coversSecurity`。
+- `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
+- `runtimeRewriteBinding` 在 L2 产物中默认为 `NOT_CREATED`；L2 产物本身不表示已建 MV、已刷新、已验证、已审批或 runtime 已生效。
+
+高级 MV runtime 生效接口路径：
+
+1. 外部完成 `ddlSql`、`refreshSql` 和 `validationSql` 或等价验证。
+2. 创建 SQL 改写记录时，`recommendedSqlText` 必须来自 `accelerationArtifact.rewriteSql`，`traceRefs` 应包含 `mvType`、`mvName` 与 `accelerationArtifact` 摘要。
+3. 改写记录经过 review / publish 状态机。
+4. query-execution runtime binding 返回 `ACTIVE` 后，页面和历史才能展示运行时已生效。
+5. 后续执行是否真正改写，只能由执行历史中的 `rewriteApplied`、实际执行 SQL、改写记录和 runtime binding 追踪字段证明。
+
+当前仓库 V1 `PRECOMPUTE_MV` 产物仍存在 exact-query-like 草案行为，可能由 source SQL 生成 MV DDL 并返回 `SELECT * FROM mv...` 级别 rewrite SQL。本文档把高级 MV 契约固化为后续 AMV 实现的接口目标，不声明现有代码已经完成该禁止项；代码修正属于后续 AMV 实现任务。
 
 推荐 SQL diff 契约必须提供文本 diff、规则级 diff 与 AST 摘要差异。`HARN-132` 落地后，
 `GET /api/sql-optimization/recommendations/{recommendationId}/diff` 返回只读展示证据：

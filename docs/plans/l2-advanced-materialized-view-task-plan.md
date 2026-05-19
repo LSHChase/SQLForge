@@ -39,6 +39,7 @@
 - 当前 `PRECOMPUTE_MV` 主要由聚合函数或 `GROUP BY` 触发。
 - 当前物化视图产物生成依赖明确目标引擎，支持 `HETU`、`HIVE`、`SPARK`，缺失或为 `AUTO` 时会返回 `TARGET_ENGINE_REQUIRED`。
 - 当前产物包含 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`，但 `rewriteSql` 只是 `SELECT * FROM mv_xxx` 级别草案。
+- 当前 V1 代码和测试仍可能保留 exact-query-like MV 草案行为：`CREATE MATERIALIZED VIEW ... AS <sourceSql>` 加 `SELECT * FROM mv...` 只能作为待修正缺口记录，不能被 AMV-001 写成高级 MV 已完成事实。
 - 当前推荐中心/加速治理页面能展示 `accelerationArtifact`，但不会自动把 `accelerationArtifact.rewriteSql` 发布为运行时改写绑定。
 - 当前 runtime 自动生效路径属于 SQL 改写记录的审批、发布和 runtime binding，不属于 L2 加速产物展示本身。
 
@@ -393,8 +394,10 @@ MV 粒度必须由以下字段组成：
 **验收**：
 
 - 文档中不存在把原 SQL 原样物化作为兜底推荐的描述。
+- 文档必须显式说明当前 V1 exact-query-like MV 草案行为是后续 AMV 实现任务待修正缺口，不是高级 MV 已完成事实。
 - 文档明确 `recommendedSqlText` 若要生效必须取自 `accelerationArtifact.rewriteSql` 并经过审批发布。
-- 执行 `node scripts/lint-repository-knowledge.js`、`git diff --check`、`python3 scripts/foreman.py validate <TASK_ID>`。
+- 执行 `node scripts/lint-repository-knowledge.js`、`git diff --check`、`python3 scripts/task_audit.py --check --phase pre-closeout`、`python3 scripts/foreman.py validate <TASK_ID>`。
+- closeout 后继续执行 `python3 scripts/task_audit.py --check --phase post-closeout`。
 
 ### AMV-002：扩展 SQL 结构画像
 

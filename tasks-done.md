@@ -4,6 +4,28 @@
 
 ## Done
 
+### AMV-001: 固化高级 MV 契约与禁止 EXACT_QUERY_MV 边界
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-001 document advanced MV contract`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把高级 MV 推荐的产品边界、产物契约、禁止项和治理路径写入长期文档；更新产品/架构/接口/前端契约真值入口；明确 EXACT_QUERY_MV 非法、L2 产物不直接生效且 runtime 生效必须走 SQL 改写记录审批发布与 query-execution runtime binding；不修改业务代码。
+- Validation:
+  - `node scripts/lint-repository-knowledge.js`
+  - `git diff --check`
+  - `python3 scripts/task_audit.py --check --phase pre-closeout`
+  - `python3 scripts/foreman.py validate AMV-001`
+  - `python3 scripts/task_audit.py --check --phase post-closeout`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 固化高级 MV 推荐的产品、接口和页面契约：PRECOMPUTE_MV 作为总规则，mvType 细分高级类型，EXACT_QUERY_MV 非法；补齐 accelerationArtifact 字段、状态语义、runtime 生效链路和当前 V1 exact-query-like 行为的 pending gap；不修改业务代码。
+  - Validation evidence: node scripts/lint-repository-knowledge.js；git diff --check；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/foreman.py validate AMV-001。
+  - Residual risk: 当前 V1 PRECOMPUTE_MV 代码仍可能生成 exact-query-like MV 草案，本任务只完成长期文档契约固化；代码修复留给后续 AMV 实现任务。
+  - Next step: 继续 materialize AMV-002/AMV-005/AMV-011/AMV-012/AMV-016，逐步实现 SQL 结构画像、MV 类型分类、rewrite 覆盖证明、API 字段扩展和 EXACT_QUERY_MV 防回归。
+
 ### USER-CN-L2-MV-ADVANCED-PLAN-20260519: 高级物化视图推荐任务包设计
 
 - Status: done
