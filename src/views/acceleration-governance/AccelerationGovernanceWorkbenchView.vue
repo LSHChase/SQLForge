@@ -160,6 +160,31 @@ const canCreateRewriteRecord = computed(() => hasValue(diffResponse.value?.origi
 const canApplyPlan = computed(() => ['APPROVED', 'APPLY_FAILED'].includes(selectedPlanStatus.value))
 const canVerifyPlan = computed(() => ['APPLIED', 'VERIFY_FAILED', 'VERIFIED'].includes(selectedPlanStatus.value))
 const canRollbackPlan = computed(() => ['APPLIED', 'VERIFY_FAILED', 'VERIFIED', 'ROLLBACK_FAILED'].includes(selectedPlanStatus.value))
+const diffAccelerationArtifact = computed(() => diffResponse.value?.accelerationArtifact || null)
+const diffAccelerationArtifactCards = computed(() => {
+  const artifact = diffAccelerationArtifact.value
+  if (!artifact) {
+    return []
+  }
+  return [
+    field('artifactStatus', t('recommendationCenter.fields.artifactStatus'), artifact.artifactStatus),
+    field('mvName', t('recommendationCenter.fields.mvName'), artifact.mvName),
+    field('targetEngine', t('accelerationGovernanceWorkbench.fields.datasourceType'), artifact.targetEngine),
+    field('dialect', t('recommendationCenter.fields.dialect'), artifact.dialect),
+    field('refreshStrategy', t('recommendationCenter.fields.refreshStrategy'), artifact.refreshStrategy),
+    field('runtimeRewriteBinding', t('recommendationCenter.fields.runtimeRewriteBinding'), artifact.runtimeRewriteBinding)
+  ]
+})
+const diffAccelerationArtifactSqlBlocks = computed(() => {
+  const artifact = diffAccelerationArtifact.value || {}
+  return [
+    field('ddlSql', t('recommendationCenter.fields.ddlSql'), artifact.ddlSql),
+    field('refreshSql', t('recommendationCenter.fields.refreshSql'), artifact.refreshSql),
+    field('validationSql', t('recommendationCenter.fields.validationSql'), artifact.validationSql),
+    field('rollbackSql', t('recommendationCenter.fields.rollbackSql'), artifact.rollbackSql),
+    field('rewriteSql', t('recommendationCenter.fields.rewriteSql'), artifact.rewriteSql)
+  ].filter(item => hasValue(item.value) && item.value !== '-')
+})
 
 const sourceSummaryText = computed(() =>
   t('accelerationGovernanceWorkbench.states.sourceSummary', {
@@ -1147,6 +1172,30 @@ function queryAccelerationApplied(result) {
                   compact
                 />
               </div>
+              <section v-if="diffAccelerationArtifact" class="evidence-table" data-testid="acceleration-workbench-acceleration-artifact">
+                <div class="evidence-heading">
+                  <h3>{{ t('recommendationCenter.sections.accelerationArtifact') }}</h3>
+                  <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.accelerationArtifact'), diffAccelerationArtifact)">
+                    {{ t('common.actions.viewRawEvidence') }}
+                  </el-button>
+                </div>
+                <dl class="summary-grid">
+                  <div v-for="item in diffAccelerationArtifactCards" :key="item.key" class="summary-cell">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ displayValue(item.value) }}</strong>
+                  </div>
+                </dl>
+                <div v-if="diffAccelerationArtifactSqlBlocks.length" class="sql-diff-grid">
+                  <SqlCodeBlock
+                    v-for="item in diffAccelerationArtifactSqlBlocks"
+                    :key="item.key"
+                    :value="item.value"
+                    :label="item.label"
+                    :copy-label="t('common.actions.copy')"
+                    compact
+                  />
+                </div>
+              </section>
             </template>
 
             <template v-else-if="tabItem.name === 'approval'">

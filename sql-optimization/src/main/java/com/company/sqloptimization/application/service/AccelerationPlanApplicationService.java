@@ -90,6 +90,7 @@ public class AccelerationPlanApplicationService {
                 request.getSelectedSuggestionTypes(),
                 recommendedPlan
             );
+            Map<String, Object> accelerationArtifact = extractAccelerationArtifact(sourceTask);
             AccelerationPlan plan = AccelerationPlan.submit(
                 planId,
                 request.getTenantId(),
@@ -100,7 +101,7 @@ public class AccelerationPlanApplicationService {
                 selectedTypes,
                 sourceTask.getSuggestion().getSummary(),
                 sourceTask.getSuggestion().getPrimaryRecommendation(),
-                JsonUtils.toJson(filterPlanPayload(recommendedPlan, selectedTypes)),
+                JsonUtils.toJson(buildPlanPayload(recommendedPlan, selectedTypes, accelerationArtifact)),
                 sourceTask.getSuggestion().getBenefits(),
                 sourceTask.getSuggestion().getCosts(),
                 sourceTask.getSuggestion().getRisks(),
@@ -409,6 +410,16 @@ public class AccelerationPlanApplicationService {
         );
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractAccelerationArtifact(OptimizationTask sourceTask) {
+        for (OptimizationTaskArtifact artifact : sourceTask.getSuggestion().getArtifacts()) {
+            if ("ACCELERATION_ARTIFACT".equals(artifact.getCategory())) {
+                return JsonUtils.fromJson(artifact.getContent(), LinkedHashMap.class);
+            }
+        }
+        return Collections.emptyMap();
+    }
+
     private List<AccelerationSuggestionType> resolveSelectedTypes(List<AccelerationSuggestionType> requestedTypes,
                                                                   LinkedHashMap<String, String> recommendedPlan) {
         List<AccelerationSuggestionType> availableTypes = new ArrayList<AccelerationSuggestionType>();
@@ -437,6 +448,19 @@ public class AccelerationPlanApplicationService {
             filtered.put(type.name(), recommendedPlan.get(type.name()));
         }
         return filtered;
+    }
+
+    private Map<String, Object> buildPlanPayload(LinkedHashMap<String, String> recommendedPlan,
+                                                 List<AccelerationSuggestionType> selectedTypes,
+                                                 Map<String, Object> accelerationArtifact) {
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("recommendedTypes", filterPlanPayload(recommendedPlan, selectedTypes));
+        if (selectedTypes.contains(AccelerationSuggestionType.PRECOMPUTE)
+            && accelerationArtifact != null
+            && !accelerationArtifact.isEmpty()) {
+            payload.put("accelerationArtifact", accelerationArtifact);
+        }
+        return payload;
     }
 
     private GovernanceAccelerationPlanTraceResponse syncTrace(AccelerationPlan plan) {

@@ -1320,7 +1320,19 @@ export default {
       refusalMessage: '拒绝原因',
       refusalField: '字段',
       evidenceRef: '证据引用',
-      blocking: '阻断'
+      blocking: '阻断',
+      artifactStatus: '产物状态',
+      mvName: '物化视图名',
+      dialect: '方言',
+      refreshStrategy: '刷新策略',
+      runtimeRewriteBinding: '运行时绑定',
+      ddlSql: '建表 SQL',
+      refreshSql: '刷新 SQL',
+      validationSql: '验证 SQL',
+      rollbackSql: '回滚 SQL',
+      rewriteSql: 'MV 查询 SQL',
+      trigger: '触发原因',
+      recommendedAction: '推荐动作'
     },
     states: {
       selectRecommendation: '选择一个 recommendation 查看详情。',
@@ -1363,6 +1375,7 @@ export default {
       preconditions: '前置条件 preconditions',
       semanticRisks: '语义风险 semanticRisks',
       unappliedRules: '未应用规则 unappliedRules',
+      accelerationArtifact: 'L2 加速产物',
       alertLinkage: '告警联动',
       publishEligibility: '发布状态参考',
       validationRuns: '验证运行'

@@ -485,6 +485,15 @@ public class SqlOptimizationPipelineService {
 
     public OptimizationTaskSuggestion buildAccelerationSuggestion(ParsedSqlProfile profile,
                                                                  List<AccelerationSuggestionType> requestedTypes) {
+        return buildAccelerationSuggestion(profile, requestedTypes, null, null, null, null);
+    }
+
+    public OptimizationTaskSuggestion buildAccelerationSuggestion(ParsedSqlProfile profile,
+                                                                 List<AccelerationSuggestionType> requestedTypes,
+                                                                 DataSourceTypeEnum targetEngine,
+                                                                 String targetDatasource,
+                                                                 String sqlFingerprint,
+                                                                 String reportCode) {
         LinkedHashMap<AccelerationSuggestionType, String> reasons = deriveAccelerationReasons(profile);
         LinkedHashMap<AccelerationSuggestionType, String> filteredReasons = filterRequestedTypes(reasons, requestedTypes);
         if (filteredReasons.isEmpty()) {
@@ -493,11 +502,31 @@ public class SqlOptimizationPipelineService {
                 "未检测到强物理设计信号，安全默认方案是用已治理服务视图替换宽原始查询。"
             );
         }
-        List<OptimizationTaskArtifact> artifacts = Arrays.asList(
-            new OptimizationTaskArtifact("ACCELERATION_PLAN", "recommendedTypes", JsonUtils.toJson(filteredReasons)),
-            new OptimizationTaskArtifact("SIGNAL_PROFILE", "signalProfile", JsonUtils.toJson(profile.toAccelerationSignalProfile())),
-            new OptimizationTaskArtifact("TABLE_LINEAGE", "tables", JsonUtils.toJson(profile.tables))
-        );
+        List<OptimizationTaskArtifact> artifacts = new ArrayList<OptimizationTaskArtifact>();
+        artifacts.add(new OptimizationTaskArtifact("ACCELERATION_PLAN", "recommendedTypes", JsonUtils.toJson(filteredReasons)));
+        artifacts.add(new OptimizationTaskArtifact("SIGNAL_PROFILE", "signalProfile", JsonUtils.toJson(profile.toAccelerationSignalProfile())));
+        artifacts.add(new OptimizationTaskArtifact("TABLE_LINEAGE", "tables", JsonUtils.toJson(profile.tables)));
+        if (filteredReasons.containsKey(AccelerationSuggestionType.PRECOMPUTE)) {
+            Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+                new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                    profile.getNormalizedSql(),
+                    targetEngine == null ? null : targetEngine.name(),
+                    targetDatasource,
+                    sqlFingerprint,
+                    reportCode,
+                    null,
+                    null
+                ),
+                profile
+            );
+            if (accelerationArtifact != null) {
+                artifacts.add(new OptimizationTaskArtifact(
+                    "ACCELERATION_ARTIFACT",
+                    "accelerationArtifact",
+                    JsonUtils.toJson(accelerationArtifact)
+                ));
+            }
+        }
         List<OptimizationTaskBenefit> benefits = Arrays.asList(
             new OptimizationTaskBenefit(
                 "LATENCY",
@@ -1574,8 +1603,10 @@ public class SqlOptimizationPipelineService {
         unapplied.put("level", level);
         unapplied.put("rule", rule);
         unapplied.put("status", "NOT_APPLIED");
+        unapplied.put("statusZh", RecommendationRuleExplanationService.statusZh("NOT_APPLIED"));
         unapplied.put("reason", missingEvidence);
         unapplied.put("manualReviewRequired", Boolean.TRUE);
+        RecommendationRuleExplanationService.enrich(unapplied, rule);
         if (evidence != null && !evidence.isEmpty()) {
             unapplied.put("evidence", evidence);
         }
@@ -1623,6 +1654,8 @@ public class SqlOptimizationPipelineService {
         entry.put("evidenceLevel", evidenceLevel);
         entry.put("autoApplyEligibleAfterValidation", autoApplyEligibleAfterValidation);
         entry.put("description", description);
+        RecommendationRuleExplanationService.enrich(entry, rule);
+        entry.put("statusZh", RecommendationRuleExplanationService.statusZh(status));
         if (!Boolean.TRUE.equals(autoApplyEligibleAfterValidation)) {
             entry.put("manualReviewRequired", Boolean.TRUE);
         }
@@ -1634,6 +1667,7 @@ public class SqlOptimizationPipelineService {
         entry.put("rule", rule);
         entry.put("code", code);
         entry.put("description", description);
+        RecommendationRuleExplanationService.enrich(entry, rule);
         return entry;
     }
 
@@ -1643,6 +1677,7 @@ public class SqlOptimizationPipelineService {
         entry.put("category", category);
         entry.put("severity", severity);
         entry.put("description", description);
+        RecommendationRuleExplanationService.enrich(entry, rule);
         return entry;
     }
 

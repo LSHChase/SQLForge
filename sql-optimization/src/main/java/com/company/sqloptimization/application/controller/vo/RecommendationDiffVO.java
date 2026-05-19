@@ -16,6 +16,7 @@ public class RecommendationDiffVO {
     private String recommendedSql;
     private List<Map<String, Object>> textDiff;
     private List<Map<String, Object>> ruleDiff;
+    private Map<String, Object> accelerationArtifact;
     private Map<String, Object> astSummaryDiff;
     private Map<String, Object> diffSummary;
     private String diffStatus;
@@ -44,6 +45,8 @@ public class RecommendationDiffVO {
     public void setTextDiff(List<Map<String, Object>> textDiff) { this.textDiff = textDiff; }
     public List<Map<String, Object>> getRuleDiff() { return ruleDiff; }
     public void setRuleDiff(List<Map<String, Object>> ruleDiff) { this.ruleDiff = ruleDiff; }
+    public Map<String, Object> getAccelerationArtifact() { return accelerationArtifact; }
+    public void setAccelerationArtifact(Map<String, Object> accelerationArtifact) { this.accelerationArtifact = accelerationArtifact; }
     public Map<String, Object> getAstSummaryDiff() { return astSummaryDiff; }
     public void setAstSummaryDiff(Map<String, Object> astSummaryDiff) { this.astSummaryDiff = astSummaryDiff; }
     public Map<String, Object> getDiffSummary() { return diffSummary; }

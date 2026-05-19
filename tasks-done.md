@@ -4,6 +4,24 @@
 
 ## Done
 
+### HARN-L2-MV-ARTIFACT-20260519: L2 materialized-view acceleration artifact generation and rule explanations
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `HARN-L2-MV-ARTIFACT-20260519 add L2 MV artifacts`
+- Priority: 1
+- Depends on: N/A
+- Scope: Implement the approved V1 plan for PRECOMPUTE_MV acceleration artifact generation without executing production DDL: generate MV DDL, refresh, validation, rollback and rewrite SQL when evidence is sufficient; expose blocking reasons when evidence is missing; enrich rule diff/rule chain output with Chinese rule explanations; update recommendation/workbench display and tests while preserving PULL_ONLY governance boundaries.
+- Validation:
+  - `python3 scripts/foreman.py validate HARN-L2-MV-ARTIFACT-20260519`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented PRECOMPUTE_MV L2 acceleration artifact generation for supported engines, exposed generated or blocked MV DDL/refresh/validation/rollback/rewrite SQL, enriched rule outputs with Chinese explanations, and updated recommendation/workbench display plus contracts and tests while preserving PULL_ONLY execution boundaries.
+  - Validation evidence: python3 scripts/foreman.py validate HARN-L2-MV-ARTIFACT-20260519 with sql-optimization tests, npm build, frontend contract checks, lint, i18n copy checks, task audit pre-closeout, repository knowledge lint, and compile-governance check all passing after governance regeneration.
+  - Residual risk: Generated MV SQL remains a reviewable PULL_ONLY artifact and still requires target metadata, refresh policy, permissions, result equivalence validation, and external runtime rewrite binding before production use.
+  - Next step: Use the generated artifact as demo and approval input; production execution/binding stays outside SQLForge until the required evidence is supplied.
+
 ### USER-CN-FLOW-AUTH-RUNTIME-CLEANUP-20260519: 清理流程与权限冗余链路
 
 - Status: done

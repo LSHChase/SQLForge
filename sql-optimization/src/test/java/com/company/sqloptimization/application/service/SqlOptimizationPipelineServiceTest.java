@@ -193,6 +193,8 @@ class SqlOptimizationPipelineServiceTest {
 
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
+        assertEquals("物化视图预计算", rule(model.getRuleChain(), "PRECOMPUTE_MV").get("titleZh"));
+        assertEquals("仅候选，需外部协同，不自动执行", rule(model.getRuleChain(), "PRECOMPUTE_MV").get("statusZh"));
         assertTrue(containsPrecondition(model.getPreconditions(), "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED"));
         assertFalse(model.isAutoApplyAllowed());
     }
@@ -207,12 +209,19 @@ class SqlOptimizationPipelineServiceTest {
 
         OptimizationTaskSuggestion suggestion = service.buildAccelerationSuggestion(
             profile,
-            Arrays.asList(AccelerationSuggestionType.PRECOMPUTE, AccelerationSuggestionType.PARTITION)
+            Arrays.asList(AccelerationSuggestionType.PRECOMPUTE, AccelerationSuggestionType.PARTITION),
+            DataSourceTypeEnum.HETU,
+            "datasource-a",
+            "fingerprint-001",
+            "report-sales"
         );
 
         String accelerationPlan = suggestion.getArtifacts().get(0).getContent();
         assertTrue(accelerationPlan.contains("PRECOMPUTE"));
         assertTrue(accelerationPlan.contains("PARTITION"));
+        assertTrue(suggestion.getArtifacts().get(3).getContent().contains("\"artifactStatus\":\"GENERATED\""));
+        assertTrue(suggestion.getArtifacts().get(3).getContent().contains("CREATE MATERIALIZED VIEW mv_report_sales"));
+        assertTrue(suggestion.getArtifacts().get(3).getContent().contains("SELECT * FROM mv_report_sales"));
         assertTrue(suggestion.getSummary().contains("加速推荐"));
     }
 
@@ -514,6 +523,15 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private Map<String, Object> rule(List<Map<String, Object>> entries, String rule) {
+        for (Map<String, Object> entry : entries) {
+            if (rule.equals(entry.get("rule"))) {
+                return entry;
+            }
+        }
+        throw new AssertionError("Missing rule " + rule);
     }
 
     private Set<String> allRuleNames(SqlOptimizationPipelineService.RecommendationRuleOutputModel model) {

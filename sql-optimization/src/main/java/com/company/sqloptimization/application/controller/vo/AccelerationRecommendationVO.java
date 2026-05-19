@@ -39,6 +39,7 @@ public class AccelerationRecommendationVO {
     private List<Map<String, Object>> unappliedRules;
     private List<Map<String, Object>> preconditions;
     private List<Map<String, Object>> semanticRisks;
+    private Map<String, Object> accelerationArtifact;
     private Map<String, Object> expectedBenefit;
     private Map<String, Object> estimatedCost;
     private Integer confidence;
@@ -118,6 +119,8 @@ public class AccelerationRecommendationVO {
     public void setPreconditions(List<Map<String, Object>> preconditions) { this.preconditions = preconditions; }
     public List<Map<String, Object>> getSemanticRisks() { return semanticRisks; }
     public void setSemanticRisks(List<Map<String, Object>> semanticRisks) { this.semanticRisks = semanticRisks; }
+    public Map<String, Object> getAccelerationArtifact() { return accelerationArtifact; }
+    public void setAccelerationArtifact(Map<String, Object> accelerationArtifact) { this.accelerationArtifact = accelerationArtifact; }
     public Map<String, Object> getExpectedBenefit() { return expectedBenefit; }
     public void setExpectedBenefit(Map<String, Object> expectedBenefit) { this.expectedBenefit = expectedBenefit; }
     public Map<String, Object> getEstimatedCost() { return estimatedCost; }

@@ -35,12 +35,24 @@ public class AccelerationRecommendationApplicationService {
 
     private final AccelerationRecommendationRepository recommendationRepository;
     private final SqlDiffApplicationService sqlDiffApplicationService;
+    private final L2AccelerationArtifactApplicationService accelerationArtifactApplicationService;
 
     @Autowired
     public AccelerationRecommendationApplicationService(AccelerationRecommendationRepository recommendationRepository,
-                                                        SqlDiffApplicationService sqlDiffApplicationService) {
+                                                        SqlDiffApplicationService sqlDiffApplicationService,
+                                                        L2AccelerationArtifactApplicationService accelerationArtifactApplicationService) {
         this.recommendationRepository = recommendationRepository;
         this.sqlDiffApplicationService = sqlDiffApplicationService;
+        this.accelerationArtifactApplicationService = accelerationArtifactApplicationService;
+    }
+
+    public AccelerationRecommendationApplicationService(AccelerationRecommendationRepository recommendationRepository,
+                                                        SqlDiffApplicationService sqlDiffApplicationService) {
+        this(
+            recommendationRepository,
+            sqlDiffApplicationService,
+            new L2AccelerationArtifactApplicationService(new SqlOptimizationPipelineService())
+        );
     }
 
     public AccelerationRecommendationApplicationService(AccelerationRecommendationRepository recommendationRepository) {
@@ -278,6 +290,7 @@ public class AccelerationRecommendationApplicationService {
         vo.setUnappliedRules(recommendation.getUnappliedRules());
         vo.setPreconditions(recommendation.getPreconditions());
         vo.setSemanticRisks(recommendation.getSemanticRisks());
+        vo.setAccelerationArtifact(accelerationArtifactApplicationService.buildForRecommendation(recommendation));
         vo.setExpectedBenefit(recommendation.getExpectedBenefit());
         vo.setEstimatedCost(recommendation.getEstimatedCost());
         vo.setConfidence(recommendation.getConfidence());

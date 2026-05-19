@@ -773,6 +773,7 @@ repo-side 基线：
 - `unappliedRules[]`
 - `preconditions[]`
 - `semanticRisks[]`
+- `accelerationArtifact`：仅 L2 `PRECOMPUTE_MV` 命中且可生成或可解释阻断时返回；字段包括 `artifactStatus`、`mvName`、`ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`、`blockingReasons` 和 `governanceBoundary=PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE`。
 - `diffSummary`
 - `validationMethod`
 - `validationStatus`
@@ -783,7 +784,8 @@ repo-side 基线：
 推荐 SQL diff 契约必须提供文本 diff、规则级 diff 与 AST 摘要差异。`HARN-132` 落地后，
 `GET /api/sql-optimization/recommendations/{recommendationId}/diff` 返回只读展示证据：
 `textDiff` 承载确定性文本 hunk，`ruleDiff` 承载 ruleChain / unappliedRules / semanticRisks
-的规则级证据，`astSummaryDiff` 承载原 SQL 与推荐 SQL 的解析摘要变化；该接口不改写 SQL、
+的规则级证据，并在可识别规则上补充 `titleZh`、`triggerZh`、`actionZh`、`riskZh`、`whyNotAutoApplyZh`；
+`astSummaryDiff` 承载原 SQL 与推荐 SQL 的解析摘要变化；该接口不改写 SQL、
 不写回推荐主体、不替代后续结果等价验证。SQL 历史详情不得只依赖 `recommendationRefs`
 弱引用展示改写记录，应通过 `query-history/{historyId}/rewrite-records` 聚合同租户可见的
 改写记录、验证状态和告警引用。

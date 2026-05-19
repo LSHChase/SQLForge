@@ -22,7 +22,7 @@
       "path": "docs/README.md",
       "title": "SQLForge Docs",
       "excerpt": "\u672c\u76ee\u5f55\u662f SQLForge \u7684\u552f\u4e00\u957f\u671f\u77e5\u8bc6\u5165\u53e3\uff0c\u9075\u5faa Harness Engineering \u4e0e `R-006` \u7684\u6587\u6863\u4f18\u5148\u987a\u5e8f\u3002",
-      "sha256": "025b31b821bebd24faea2b2d5d903a27b29058409e302958c7e05432f5e972b8"
+      "sha256": "b7aea0274e3adf3e3de4d7bb3af0efe5c7e5b6472fd177bf4f6430e8d80af6de"
     },
     {
       "path": "docs/plans/document-truth-baseline.md",
@@ -34,7 +34,7 @@
       "path": "docs/architecture/init.md",
       "title": "SQL\u751f\u547d\u5468\u671f\u6cbb\u7406\u5e73\u53f0 \u2014 \u67b6\u6784\u521d\u59cb\u5316\u603b\u6587\u6863",
       "excerpt": "\u57fa\u4e8e\u5168\u90e8\u5386\u53f2\u786e\u8ba4\u3001\u8865\u5145\u89c4\u5219\u53ca\u4fee\u590d\u9879\uff0c\u73b0\u8f93\u51fa\u5b8c\u6574\u7248\u300a\u9879\u76ee\u67b6\u6784\u521d\u59cb\u5316\u6587\u6863\u300b\u3002",
-      "sha256": "ae5e2581c8ffd22d414854b131e99bcafa07ce9f166d73a52d74fad24a6f76c2"
+      "sha256": "651f8baee8972a468a16492127cdea1ed09962e394e5dc35fc590eded2a89659"
     },
     {
       "path": "docs/rules/codex-rules.md",

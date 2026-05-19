@@ -169,7 +169,11 @@ public class OptimizationTaskWorker {
         OptimizationTaskSuggestion accelerationSuggestion =
             sqlOptimizationPipelineService.buildAccelerationSuggestion(
                 parsedSqlProfile,
-                task.getRequestedSuggestionTypes()
+                task.getRequestedSuggestionTypes(),
+                task.getDatasourceType(),
+                task.getSourceContext() == null ? null : task.getSourceContext().getDatasourceCode(),
+                task.getSqlFingerprint(),
+                task.getSourceContext() == null ? null : task.getSourceContext().getReportCode()
             );
         delay();
         task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "WORKER_ACCELERATION_ARTIFACTS_READY");

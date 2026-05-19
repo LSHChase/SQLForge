@@ -252,7 +252,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 
 | Rule | Trigger | Output | Boundary |
 |:---|:---|:---|:---|
-| `PRECOMPUTE_MV` | 高频聚合、报表复用 | 物化视图建议、刷新策略、预热 SQL | PULL_ONLY |
+| `PRECOMPUTE_MV` | 高频聚合、报表复用 | 物化视图建议、DDL、刷新 SQL、验证 SQL、回滚 SQL、MV 查询 SQL | PULL_ONLY，SQLForge 只生成方案不执行生产 DDL |
 | `PARTITION_PRUNING` | 时间/业务键过滤高频 | 分区键建议、分区过滤改写 | PULL_ONLY |
 | `BUCKET_JOIN` | 大表 join 且 join key 稳定 | 分桶建议、join key 证据 | PULL_ONLY |
 | `SPLIT_SQL` | 大 SQL 可拆为独立子任务 | 拆分 SQL、聚合方式、并发边界 | 需验证 |
@@ -276,6 +276,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `unappliedRules[]`
 - `preconditions[]`
 - `semanticRisks[]`
+- `accelerationArtifact`（仅 `PRECOMPUTE_MV` 命中时可出现；包含 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`、`blockingReasons`，不代表已执行或已发布绑定）
 - `expectedBenefit`
 - `estimatedCost`
 - `confidence`
@@ -293,6 +294,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - 左右对比：原 SQL / 推荐 SQL。
 - 统一 diff：新增、删除、移动、替换高亮。
 - 规则级 diff：点击 `ruleChain` 中某条规则，只高亮该规则带来的变化。
+- 规则解释：规则级 diff 和规则链应展示 `titleZh`、`triggerZh`、`actionZh`、`riskZh`、`whyNotAutoApplyZh`，避免只暴露工程码。
 - AST 摘要差异：
   - 投影列变化
   - 表与别名变化

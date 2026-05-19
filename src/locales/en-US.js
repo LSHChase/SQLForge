@@ -1336,7 +1336,19 @@ export default {
       refusalMessage: 'Refusal reason',
       refusalField: 'Field',
       evidenceRef: 'Evidence ref',
-      blocking: 'Blocking'
+      blocking: 'Blocking',
+      artifactStatus: 'Artifact status',
+      mvName: 'Materialized view name',
+      dialect: 'Dialect',
+      refreshStrategy: 'Refresh strategy',
+      runtimeRewriteBinding: 'Runtime binding',
+      ddlSql: 'DDL SQL',
+      refreshSql: 'Refresh SQL',
+      validationSql: 'Validation SQL',
+      rollbackSql: 'Rollback SQL',
+      rewriteSql: 'MV query SQL',
+      trigger: 'Trigger',
+      recommendedAction: 'Recommended action'
     },
     states: {
       selectRecommendation: 'Select a recommendation to inspect its detail.',
@@ -1379,6 +1391,7 @@ export default {
       preconditions: 'preconditions',
       semanticRisks: 'semanticRisks',
       unappliedRules: 'unappliedRules',
+      accelerationArtifact: 'L2 acceleration artifact',
       alertLinkage: 'Alert linkage',
       publishEligibility: 'Publish status reference',
       validationRuns: 'Validation runs'

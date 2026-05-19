@@ -381,6 +381,36 @@ const reviewGuardCards = computed(() => {
 const textDiffRows = computed(() => normalizeArray(recommendationDiff.value?.textDiff))
 const ruleDiffRows = computed(() => normalizeArray(recommendationDiff.value?.ruleDiff))
 const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value?.ruleChain))
+const accelerationArtifact = computed(() =>
+  recommendationDiff.value?.accelerationArtifact || selectedRecommendation.value?.accelerationArtifact || null
+)
+const accelerationArtifactCards = computed(() => {
+  const artifact = accelerationArtifact.value
+  if (!artifact) {
+    return []
+  }
+  return [
+    field('artifactStatus', t('recommendationCenter.fields.artifactStatus'), artifact.artifactStatus),
+    field('mvName', t('recommendationCenter.fields.mvName'), artifact.mvName),
+    field('targetEngine', t('inline.viewsRecommendationCenterRecommendationCenterView.text006'), artifact.targetEngine),
+    field('targetDatasource', t('inline.viewsRecommendationCenterRecommendationCenterView.text007'), artifact.targetDatasource),
+    field('dialect', t('recommendationCenter.fields.dialect'), artifact.dialect),
+    field('refreshStrategy', t('recommendationCenter.fields.refreshStrategy'), artifact.refreshStrategy),
+    field('runtimeRewriteBinding', t('recommendationCenter.fields.runtimeRewriteBinding'), artifact.runtimeRewriteBinding),
+    field('governanceBoundary', t('recommendationCenter.fields.evidenceBoundary'), artifact.governanceBoundary)
+  ]
+})
+const accelerationArtifactBlockingRows = computed(() => normalizeArray(accelerationArtifact.value?.blockingReasons))
+const accelerationArtifactSqlBlocks = computed(() => {
+  const artifact = accelerationArtifact.value || {}
+  return [
+    field('ddlSql', t('recommendationCenter.fields.ddlSql'), artifact.ddlSql),
+    field('refreshSql', t('recommendationCenter.fields.refreshSql'), artifact.refreshSql),
+    field('validationSql', t('recommendationCenter.fields.validationSql'), artifact.validationSql),
+    field('rollbackSql', t('recommendationCenter.fields.rollbackSql'), artifact.rollbackSql),
+    field('rewriteSql', t('recommendationCenter.fields.rewriteSql'), artifact.rewriteSql)
+  ].filter(item => hasDisplayValue(item.value) && item.value !== '-')
+})
 const sourceProblemRows = computed(() => normalizeArray(selectedRecommendation.value?.sourceProblems))
 const issueRuleLinkRows = computed(() => normalizeArray(selectedRecommendation.value?.issueRuleLinks))
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
@@ -1341,14 +1371,19 @@ const summarizeEvidenceItem = item => {
   if (typeof item !== 'object' || Array.isArray(item)) {
     return displayValue(item)
   }
-  const primary = firstDisplayValue(item.rule, item.ruleCode, item.code, item.name, item.diffId, item.id, item.type)
+  const primary = firstDisplayValue(item.titleZh, item.rule, item.ruleCode, item.code, item.name, item.diffId, item.id, item.type)
   const passed = item.passed === true || item.passed === false ? `passed=${boolText(item.passed)}` : ''
   const secondary = [
+    item.rule,
     item.status,
+    item.statusZh,
     item.action,
     item.severity,
     item.level,
     passed,
+    item.triggerZh,
+    item.actionZh,
+    item.riskZh,
     item.reason,
     item.summary,
     item.description,
@@ -1692,6 +1727,39 @@ watch(
                     data-testid="recommendation-sql-compare"
                   />
                 </section>
+                <section v-if="accelerationArtifact" class="evidence-table" data-testid="recommendation-acceleration-artifact">
+                  <div class="evidence-heading">
+                    <h3>{{ t('recommendationCenter.sections.accelerationArtifact') }}</h3>
+                    <el-button @click="openEvidenceDrawer(t('recommendationCenter.sections.accelerationArtifact'), accelerationArtifact)">
+                      {{ t('common.actions.viewRawEvidence') }}
+                    </el-button>
+                  </div>
+                  <dl class="description-grid">
+                    <div v-for="item in accelerationArtifactCards" :key="item.key" class="description-item">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ displayValue(item.value) }}</dd>
+                    </div>
+                  </dl>
+                  <el-table
+                    v-if="accelerationArtifactBlockingRows.length"
+                    :data="accelerationArtifactBlockingRows"
+                    border
+                    data-testid="recommendation-acceleration-artifact-blocking"
+                  >
+                    <el-table-column prop="code" :label="t('recommendationCenter.fields.refusalCode')" min-width="190" />
+                    <el-table-column prop="description" :label="t('recommendationCenter.fields.refusalMessage')" min-width="280" show-overflow-tooltip />
+                  </el-table>
+                  <div v-if="accelerationArtifactSqlBlocks.length" class="sql-grid sql-grid-wide">
+                    <SqlCodeBlock
+                      v-for="item in accelerationArtifactSqlBlocks"
+                      :key="item.key"
+                      :value="item.value"
+                      :label="item.label"
+                      :copy-label="t('common.actions.copy')"
+                      compact
+                    />
+                  </div>
+                </section>
                 <section v-if="recommendationDiff" class="evidence-table" data-testid="recommendation-ast-summary-diff">
                   <div class="evidence-heading">
                     <h3>{{ t('recommendationCenter.sections.astSummary') }}</h3>
@@ -1725,8 +1793,14 @@ watch(
                 </div>
                 <p v-if="!ruleDiffRows.length" class="muted-copy">{{ t('recommendationCenter.states.noRuleEvidence') }}</p>
                 <el-table v-else :data="ruleDiffRows" row-key="diffId" @row-click="row => (selectedRuleDiffId = row.diffId)">
-                  <el-table-column prop="rule" :label="t('recommendationCenter.sections.ruleDiff')" min-width="180" />
-                  <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130" />
+                  <el-table-column :label="t('recommendationCenter.sections.ruleDiff')" min-width="190">
+                    <template #default="{ row }">{{ displayValue(row.titleZh || row.rule) }}</template>
+                  </el-table-column>
+                  <el-table-column :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="160">
+                    <template #default="{ row }">{{ displayValue(row.statusZh || row.status) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="triggerZh" :label="t('recommendationCenter.fields.trigger')" min-width="220" show-overflow-tooltip />
+                  <el-table-column prop="actionZh" :label="t('recommendationCenter.fields.recommendedAction')" min-width="240" show-overflow-tooltip />
                   <el-table-column prop="level" :label="t('recommendationCenter.fields.evidenceLevel')" min-width="120" />
                   <el-table-column prop="manualReviewRequired" :label="t('recommendationCenter.fields.manualReviewRequired')" min-width="180">
                     <template #default="{ row }">{{ boolText(row.manualReviewRequired) }}</template>
@@ -2292,6 +2366,10 @@ watch(
 
 .sql-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sql-grid-wide {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .description-item {

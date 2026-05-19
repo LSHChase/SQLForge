@@ -46,6 +46,39 @@ class SqlDiffApplicationServiceTest {
     }
 
     @Test
+    void shouldExposePrecomputeMvArtifactAndChineseRuleExplanation() {
+        AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
+            .recommendationId("recommendation-mv")
+            .tenantId("tenant-a")
+            .recommendationType(RecommendationType.ACCELERATION)
+            .sourceType(GovernanceSourceType.QUERY)
+            .sourceKind(GovernanceSourceKind.QUERY_HISTORY)
+            .sourceId("history-001")
+            .evidenceLevel(EvidenceLevel.RUNTIME_HISTORY)
+            .sqlFingerprint("fingerprint-001")
+            .sourceSqlText("SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id")
+            .recommendedSqlText("SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id")
+            .targetEngine("HETU")
+            .targetDatasource("datasource-a")
+            .reportCode("sales-daily")
+            .ruleChain(Collections.singletonList(rule("PRECOMPUTE_MV", "L2", "PULL_ONLY_CANDIDATE")))
+            .manualReviewRequired(Boolean.TRUE)
+            .autoApplyAllowed(false)
+            .createdBy("operator-001")
+            .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
+            .build();
+
+        RecommendationDiffVO diff = service.buildRecommendationDiff(recommendation);
+
+        assertEquals("物化视图预计算", diff.getRuleDiff().get(0).get("titleZh"));
+        assertEquals("仅候选，需外部协同，不自动执行", diff.getRuleDiff().get(0).get("statusZh"));
+        assertEquals("GENERATED", diff.getAccelerationArtifact().get("artifactStatus"));
+        assertTrue(String.valueOf(diff.getAccelerationArtifact().get("ddlSql")).contains("CREATE MATERIALIZED VIEW mv_sales_daily"));
+        assertTrue(String.valueOf(diff.getAccelerationArtifact().get("rewriteSql")).contains("SELECT * FROM mv_sales_daily"));
+        assertEquals("GENERATED", diff.getDiffSummary().get("accelerationArtifactStatus"));
+    }
+
+    @Test
     void shouldExposeAstSummaryChangesForGroupAndOrderRewrite() {
         AccelerationRecommendation recommendation = recommendation(
             "SELECT status, COUNT(*) FROM orders GROUP BY status, status ORDER BY status, status",

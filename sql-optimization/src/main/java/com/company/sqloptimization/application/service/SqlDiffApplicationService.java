@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -21,9 +22,17 @@ public class SqlDiffApplicationService {
     private static final int TOKEN_DIFF_LIMIT = 500;
 
     private final SqlOptimizationPipelineService pipelineService;
+    private final L2AccelerationArtifactApplicationService accelerationArtifactApplicationService;
+
+    @Autowired
+    public SqlDiffApplicationService(SqlOptimizationPipelineService pipelineService,
+                                     L2AccelerationArtifactApplicationService accelerationArtifactApplicationService) {
+        this.pipelineService = pipelineService;
+        this.accelerationArtifactApplicationService = accelerationArtifactApplicationService;
+    }
 
     public SqlDiffApplicationService(SqlOptimizationPipelineService pipelineService) {
-        this.pipelineService = pipelineService;
+        this(pipelineService, new L2AccelerationArtifactApplicationService(pipelineService));
     }
 
     public RecommendationDiffVO buildRecommendationDiff(AccelerationRecommendation recommendation) {
@@ -32,7 +41,12 @@ public class SqlDiffApplicationService {
         List<Map<String, Object>> textDiff = buildTextDiff(originalSql, recommendedSql);
         AstDiffResult astDiff = buildAstSummaryDiff(originalSql, recommendedSql);
         List<Map<String, Object>> ruleDiff = buildRuleDiff(recommendation, textDiff);
+        Map<String, Object> accelerationArtifact =
+            accelerationArtifactApplicationService.buildForRecommendation(recommendation);
         Map<String, Object> summary = buildDiffSummary(recommendation, textDiff, ruleDiff, astDiff);
+        if (accelerationArtifact != null && !accelerationArtifact.isEmpty()) {
+            summary.put("accelerationArtifactStatus", accelerationArtifact.get("artifactStatus"));
+        }
 
         RecommendationDiffVO vo = new RecommendationDiffVO();
         vo.setRecommendationId(recommendation.getRecommendationId());
@@ -46,6 +60,7 @@ public class SqlDiffApplicationService {
         vo.setRecommendedSql(recommendation.getRecommendedSqlText());
         vo.setTextDiff(textDiff);
         vo.setRuleDiff(ruleDiff);
+        vo.setAccelerationArtifact(accelerationArtifact);
         vo.setAstSummaryDiff(astDiff.payload);
         vo.setDiffSummary(summary);
         vo.setDiffStatus(String.valueOf(summary.get("diffStatus")));
@@ -351,9 +366,11 @@ public class SqlDiffApplicationService {
             entry.put("rule", valueOrNull(item, "rule"));
             entry.put("level", valueOrNull(item, "level"));
             entry.put("status", resolveRuleStatus(item, sourceType));
+            entry.put("statusZh", RecommendationRuleExplanationService.statusZh(String.valueOf(entry.get("status"))));
             entry.put("manualReviewRequired", Boolean.valueOf(isManualReviewRequired(item, sourceType)));
             entry.put("highlightStatus", textDiff.isEmpty() ? "SUMMARY_ONLY" : "HUNK_REFERENCED");
             entry.put("textHunkIds", hunkIds(textDiff));
+            RecommendationRuleExplanationService.enrich(entry, String.valueOf(entry.get("rule")));
             entry.put("evidence", item);
             result.add(entry);
             index++;

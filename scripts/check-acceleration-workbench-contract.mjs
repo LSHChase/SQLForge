@@ -115,6 +115,8 @@ const requiredTokens = [
   '<el-pagination',
   'acceleration-workbench-create-candidate',
   'acceleration-workbench-load-diff',
+  'acceleration-workbench-acceleration-artifact',
+  'diffAccelerationArtifact',
   'acceleration-workbench-submit-plan',
   'acceleration-workbench-approve-plan',
   'acceleration-workbench-apply-plan',
