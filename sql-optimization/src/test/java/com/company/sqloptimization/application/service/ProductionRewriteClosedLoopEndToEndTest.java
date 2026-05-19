@@ -73,6 +73,10 @@ class ProductionRewriteClosedLoopEndToEndTest {
     private static final String RECOMMENDED_SQL =
         "SELECT id FROM orders WHERE query_date = '2026-05-12'";
     private static final String SQL_FINGERPRINT = SqlFingerprintUtils.fingerprint(ORIGINAL_SQL);
+    private static final String MV_ORIGINAL_SQL =
+        "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id";
+    private static final String MV_REWRITE_SQL = "SELECT * FROM mv_sales_daily";
+    private static final String MV_SQL_FINGERPRINT = SqlFingerprintUtils.fingerprint(MV_ORIGINAL_SQL);
 
     @AfterEach
     void tearDown() {
@@ -164,6 +168,75 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertEquals(4, digestClient.getRequestCount());
     }
 
+    @Test
+    void shouldCloseMaterializedViewRuntimeRewriteLoopThroughArtifactRewriteSql() {
+        setRequestContext("operator-001", "request-mv-runtime", "trace-mv-runtime");
+        InMemoryRuntimeRewriteBindingRepository runtimeRepository = new InMemoryRuntimeRewriteBindingRepository();
+        QueryExecutionRuntimeRewriteBindingService runtimeBindingService =
+            new QueryExecutionRuntimeRewriteBindingService(runtimeRepository);
+        RuntimeBindingClientBridge runtimeClient = new RuntimeBindingClientBridge(runtimeBindingService);
+        SequencedResultDigestClient digestClient = new SequencedResultDigestClient(
+            digest("schema-mv", Long.valueOf(1L), "checksum-equivalent", row("customer_id", "1"), 120L, 1200L),
+            digest("schema-mv", Long.valueOf(1L), "checksum-equivalent", row("customer_id", "1"), 50L, 200L)
+        );
+        SqlRewriteRecordApplicationService rewriteRecordService =
+            new SqlRewriteRecordApplicationService(
+                new InMemorySqlRewriteRecordRepository(),
+                digestClient,
+                new ResultDigestComparisonEngine(),
+                runtimeClient
+            );
+        AccelerationRecommendationApplicationService recommendationService =
+            new AccelerationRecommendationApplicationService(new InMemoryAccelerationRecommendationRepository());
+
+        AccelerationRecommendationVO recommendation =
+            recommendationService.createRecommendation(mvRecommendationRequest());
+        SqlRewriteRecordVO rewriteRecord =
+            rewriteRecordService.createRewriteRecord(mvRewriteRecordRequest(recommendation));
+        SqlRewriteRecordVO approved = rewriteRecordService.reviewRewriteRecord(
+            rewriteRecord.getRewriteRecordId(),
+            reviewRequest(RewriteReviewStatus.APPROVED, "external MV DDL, refresh, and validation evidence approved")
+        );
+        RewriteValidationRunVO equivalentRun =
+            rewriteRecordService.createValidationRun(approved.getRewriteRecordId(), validationRequest());
+        SqlRewriteRecordVO published = rewriteRecordService.publishRewriteRecord(
+            approved.getRewriteRecordId(),
+            publishRequest("release MV runtime rewrite binding")
+        );
+
+        CapturingGovernanceCapabilityClient governanceClient =
+            new CapturingGovernanceCapabilityClient(MV_SQL_FINGERPRINT);
+        RecordingQueryExecutionAdapter queryAdapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService queryExecutionService = new QueryExecutionApplicationService(
+            queryAdapter,
+            governanceClient,
+            new QueryExecutionMetricsRecorder(new SimpleMeterRegistry()),
+            new QueryExecutionAccelerationRuntimeService(),
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            runtimeBindingService
+        );
+        QueryExecuteResponse executionResponse =
+            queryExecutionService.executeSynchronously(queryRequest(MV_ORIGINAL_SQL));
+        RuntimeRewriteBindingResponse activeBinding =
+            runtimeBindingService.resolveActive(resolveRequest(MV_SQL_FINGERPRINT));
+
+        assertEquals(MV_REWRITE_SQL, rewriteRecord.getRecommendedSqlText());
+        assertEquals("APPROVED", approved.getReviewStatus());
+        assertEquals(Boolean.TRUE, approved.getAutoApplyAllowed());
+        assertEquals("EQUIVALENT", equivalentRun.getComparisonStatus());
+        assertEquals("PUBLISHED", published.getPublishStatus());
+        assertNotNull(published.getRuntimeBindingId());
+        assertEquals("ACTIVE", activeBinding.getStatus());
+        assertEquals(published.getRuntimeBindingId(), activeBinding.getRuntimeBindingId());
+        assertEquals(QueryExecutionStatus.SUCCESS, executionResponse.getStatus());
+        assertEquals(MV_REWRITE_SQL, queryAdapter.getActualSql());
+        assertTrue(executionResponse.getMetadata().isRewriteApplied());
+        assertEquals(Boolean.TRUE, governanceClient.getLastHistoryRequest().getRewriteApplied());
+        assertEquals(MV_ORIGINAL_SQL, governanceClient.getLastHistoryRequest().getSqlTemplate());
+        assertEquals(MV_REWRITE_SQL, governanceClient.getLastHistoryRequest().getBoundSql());
+        assertEquals(published.getRuntimeBindingId(), governanceClient.getLastHistoryRequest().getRuntimeBindingId());
+    }
+
     private AccelerationRecommendationCreateRequest recommendationRequest() {
         AccelerationRecommendationCreateRequest request = new AccelerationRecommendationCreateRequest();
         request.setTenantId(TENANT_ID);
@@ -217,6 +290,69 @@ class ProductionRewriteClosedLoopEndToEndTest {
         return request;
     }
 
+    private AccelerationRecommendationCreateRequest mvRecommendationRequest() {
+        AccelerationRecommendationCreateRequest request = recommendationRequest();
+        request.setRecommendationType(RecommendationType.ACCELERATION);
+        request.setHistoryId("history-mv-runtime");
+        request.setSourceId("history-mv-runtime");
+        request.setSqlFingerprint(MV_SQL_FINGERPRINT);
+        request.setSourceSqlText(MV_ORIGINAL_SQL);
+        request.setRecommendedSqlText(MV_ORIGINAL_SQL);
+        request.setReportCode("sales-daily");
+        request.setSummary("MV precompute candidate");
+        request.setReason("materialized view precompute");
+        request.setLogicalObjectKey("sales-daily");
+        request.setRuleChain(Collections.singletonList(rule("PRECOMPUTE_MV")));
+        request.setAutoApplyAllowed(Boolean.FALSE);
+        return request;
+    }
+
+    private SqlRewriteRecordCreateRequest mvRewriteRecordRequest(AccelerationRecommendationVO recommendation) {
+        SqlRewriteRecordCreateRequest request = new SqlRewriteRecordCreateRequest();
+        request.setTenantId(TENANT_ID);
+        request.setRecommendationId(recommendation.getRecommendationId());
+        request.setSourceType(GovernanceSourceType.QUERY);
+        request.setSourceKind(GovernanceSourceKind.QUERY_HISTORY);
+        request.setSourceId("history-mv-runtime");
+        request.setEvidenceLevel(EvidenceLevel.RUNTIME_HISTORY);
+        request.setHistoryId("history-mv-runtime");
+        request.setSqlFingerprint(MV_SQL_FINGERPRINT);
+        request.setDatasourceCode("hetu_main");
+        request.setStatus(RewriteRecordStatus.APPLIED);
+        request.setValidationStatus(RewriteValidationStatus.NOT_VALIDATED);
+        request.setPublishStatus(RewritePublishStatus.UNPUBLISHED);
+        request.setAutoApplyAllowed(Boolean.FALSE);
+        request.setManualReviewRequired(Boolean.TRUE);
+        request.setValidationPolicyId("MV_RUNTIME_READONLY_DIGEST_POLICY");
+        request.setOriginalSqlText(MV_ORIGINAL_SQL);
+        request.setRecommendedSqlText(MV_REWRITE_SQL);
+        request.setTraceRefs(Collections.<String, Object>singletonMap("accelerationArtifact", generatedMvArtifact()));
+        return request;
+    }
+
+    private Map<String, Object> generatedMvArtifact() {
+        Map<String, Object> artifact = new LinkedHashMap<String, Object>();
+        artifact.put("rule", "PRECOMPUTE_MV");
+        artifact.put("artifactStatus", "GENERATED");
+        artifact.put("mvName", "mv_sales_daily");
+        artifact.put("targetDatasource", "hetu_main");
+        artifact.put("ddlSql", "CREATE MATERIALIZED VIEW mv_sales_daily AS\n" + MV_ORIGINAL_SQL);
+        artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_sales_daily");
+        artifact.put("validationSql", "SELECT COUNT(*) FROM mv_sales_daily");
+        artifact.put("rewriteSql", MV_REWRITE_SQL);
+        artifact.put("blockingReasons", Collections.emptyList());
+        artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
+        return artifact;
+    }
+
+    private Map<String, Object> rule(String ruleCode) {
+        Map<String, Object> rule = new LinkedHashMap<String, Object>();
+        rule.put("ruleCode", ruleCode);
+        rule.put("rule", ruleCode);
+        rule.put("status", "PULL_ONLY_CANDIDATE");
+        return rule;
+    }
+
     private SqlRewriteRecordReviewRequest reviewRequest(RewriteReviewStatus status, String note) {
         SqlRewriteRecordReviewRequest request = new SqlRewriteRecordReviewRequest();
         request.setTenantId(TENANT_ID);
@@ -240,17 +376,25 @@ class ProductionRewriteClosedLoopEndToEndTest {
     }
 
     private QueryExecuteRequest queryRequest() {
+        return queryRequest(ORIGINAL_SQL);
+    }
+
+    private QueryExecuteRequest queryRequest(String sqlText) {
         QueryExecuteRequest request = new QueryExecuteRequest();
         request.setTenantId(TENANT_ID);
         request.setDatasourceType(DataSourceTypeEnum.HETU);
-        request.setSqlText(ORIGINAL_SQL);
+        request.setSqlText(sqlText);
         return request;
     }
 
     private RuntimeRewriteBindingResolveRequest resolveRequest() {
+        return resolveRequest(SQL_FINGERPRINT);
+    }
+
+    private RuntimeRewriteBindingResolveRequest resolveRequest(String sqlFingerprint) {
         RuntimeRewriteBindingResolveRequest request = new RuntimeRewriteBindingResolveRequest();
         request.setTenantId(TENANT_ID);
-        request.setSqlFingerprint(SQL_FINGERPRINT);
+        request.setSqlFingerprint(sqlFingerprint);
         return request;
     }
 
@@ -364,7 +508,16 @@ class ProductionRewriteClosedLoopEndToEndTest {
 
     private static final class CapturingGovernanceCapabilityClient implements GovernanceCapabilityClient {
 
+        private final String expectedSqlFingerprint;
         private GovernanceQueryExecutionHistoryWriteRequest lastHistoryRequest;
+
+        private CapturingGovernanceCapabilityClient() {
+            this(SQL_FINGERPRINT);
+        }
+
+        private CapturingGovernanceCapabilityClient(String expectedSqlFingerprint) {
+            this.expectedSqlFingerprint = expectedSqlFingerprint;
+        }
 
         @Override
         public void assertAuthorization(String tenantId,
@@ -374,7 +527,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
                                         String operationCode) {
             assertEquals(TENANT_ID, tenantId);
             assertEquals(DataSourceTypeEnum.HETU, datasourceType);
-            assertEquals(SQL_FINGERPRINT, resourceId);
+            assertEquals(expectedSqlFingerprint, resourceId);
         }
 
         @Override

@@ -174,7 +174,7 @@ public class SqlRewriteRecord {
             .datasourceCode(datasourceCode)
             .status(status)
             .validationStatus(validationStatus)
-            .autoApplyAllowed(autoApplyAllowed)
+            .autoApplyAllowed(nextReviewStatus == RewriteReviewStatus.APPROVED)
             .manualReviewRequired(manualReviewRequired)
             .reviewStatus(nextReviewStatus)
             .reviewNote(nextReviewNote)

@@ -25,6 +25,7 @@ import {
   verifyAccelerationPlan
 } from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
+import { buildRuntimeRewriteTraceRefs, resolveRuntimeRewriteSql } from '../common/runtimeRewriteSql.mjs'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
@@ -50,7 +51,7 @@ const sourceModeConfig = {
 const datasourceTypeOptions = ['HETU', 'HIVE', 'SPARK', 'CLICKHOUSE', 'GAUSSDB', 'AUTO']
 const suggestionTypeOptions = ['PRECOMPUTE', 'PARTITION', 'BUCKET', 'SPLIT', 'REPLACE']
 
-// Static contract tokens: ENTRY_EVIDENCE, CANDIDATE_SUGGESTION, SQL_DIFF, PLAN_APPROVAL, APPLY_VALIDATION, MONITORING_ALERT, ROLLBACK_DISCARD.
+// Static contract tokens: ENTRY_EVIDENCE, CANDIDATE_SUGGESTION, SQL_DIFF, PLAN_APPROVAL, APPLY_VALIDATION, MONITORING_ALERT, ROLLBACK_DISCARD, runtimeRewriteSqlSource, ACCELERATION_ARTIFACT_REWRITE_SQL.
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -156,11 +157,19 @@ const canSubmitSource = computed(() => hasValue(form.tenantId) && hasValue(resol
 const canSubmitSuggestion = computed(() => hasValue(form.sqlText) || hasValue(form.sqlFingerprint))
 const canSubmitPlan = computed(() => hasValue(form.tenantId) && hasValue(selectedSourceTaskId.value))
 const canLoadDiff = computed(() => hasValue(form.recommendationId))
-const canCreateRewriteRecord = computed(() => hasValue(diffResponse.value?.originalSql) && hasValue(diffResponse.value?.recommendedSql))
 const canApplyPlan = computed(() => ['APPROVED', 'APPLY_FAILED'].includes(selectedPlanStatus.value))
 const canVerifyPlan = computed(() => ['APPLIED', 'VERIFY_FAILED', 'VERIFIED'].includes(selectedPlanStatus.value))
 const canRollbackPlan = computed(() => ['APPLIED', 'VERIFY_FAILED', 'VERIFIED', 'ROLLBACK_FAILED'].includes(selectedPlanStatus.value))
 const diffAccelerationArtifact = computed(() => diffResponse.value?.accelerationArtifact || null)
+const runtimeRewriteSqlSelection = computed(() =>
+  resolveRuntimeRewriteSql({
+    artifact: diffAccelerationArtifact.value,
+    diffRecommendedSql: diffResponse.value?.recommendedSql
+  })
+)
+const canCreateRewriteRecord = computed(() =>
+  hasValue(diffResponse.value?.originalSql) && hasValue(runtimeRewriteSqlSelection.value.sqlText)
+)
 const diffAccelerationArtifactCards = computed(() => {
   const artifact = diffAccelerationArtifact.value
   if (!artifact) {
@@ -794,6 +803,7 @@ function buildPlanSubmitRequest() {
 
 function buildRewriteRecordRequest() {
   const sourceSnapshot = buildSourceSnapshot()
+  const runtimeRewriteSelection = runtimeRewriteSqlSelection.value
   return compactObject({
     tenantId: form.tenantId,
     recommendationId: form.recommendationId || diffResponse.value?.recommendationId,
@@ -805,21 +815,27 @@ function buildRewriteRecordRequest() {
     historyId: form.historyId,
     parseHistoryId: form.parseHistoryId,
     sqlFingerprint: form.sqlFingerprint || diffResponse.value?.sqlFingerprint,
-    datasourceCode: form.datasourceCode,
+    datasourceCode: runtimeRewriteSelection.accelerationArtifact?.targetDatasource || form.datasourceCode,
     status: 'DRAFT',
     validationStatus: 'NOT_VALIDATED',
     autoApplyAllowed: false,
     manualReviewRequired: true,
     alertStatus: 'NONE',
     originalSqlText: diffResponse.value?.originalSql,
-    recommendedSqlText: diffResponse.value?.recommendedSql,
+    recommendedSqlText: runtimeRewriteSelection.sqlText,
     ruleChain: diffResponse.value?.ruleDiff || [],
-    diffSummary: diffResponse.value?.diffSummary || {},
+    diffSummary: compactObject({
+      ...(diffResponse.value?.diffSummary || {}),
+      runtimeRewriteSqlSource: runtimeRewriteSelection.source
+    }),
     risk: {
       sourceEvidenceLevel: form.evidenceLevel,
       manualReviewRequired: true
     },
-    traceRefs: sourceSnapshot
+    traceRefs: compactObject({
+      ...sourceSnapshot,
+      ...buildRuntimeRewriteTraceRefs(runtimeRewriteSelection)
+    })
   })
 }
 

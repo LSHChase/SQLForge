@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-MV-RUNTIME-REWRITE-BINDING-20260519: 让 MV rewriteSql 通过运行时 SQL 改写绑定无感生效
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `USER-CN-MV-RUNTIME-REWRITE-BINDING-20260519 bind MV rewrite SQL at runtime`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把 PRECOMPUTE_MV 产物的 rewriteSql 写入改写记录 recommendedSqlText，并通过审批、发布、query-execution ACTIVE runtime binding 与执行历史 rewriteApplied 形成端到端闭环。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-MV-RUNTIME-REWRITE-BINDING-20260519`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: PRECOMPUTE_MV GENERATED artifact 的 rewriteSql 会写入改写记录 recommendedSqlText；审批授予 autoApplyAllowed；发布前校验 MV rewriteSql 与推荐 SQL 一致；推荐中心和加速治理创建改写记录时优先使用 artifact.rewriteSql；端到端测试覆盖 publishStatus=PUBLISHED、runtimeBindingId、ACTIVE binding 与 rewriteApplied=true。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-MV-RUNTIME-REWRITE-BINDING-20260519；mvn -pl sql-optimization,query-execution -am -Dtest=AccelerationRewriteContractApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl query-execution -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionRuntimeRewriteBindingServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；node scripts/check-recommendation-page-contract.mjs；node scripts/check-acceleration-workbench-contract.mjs；npm run lint；npm run build；npm run smoke:production-rewrite-closed-loop；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未在真实外部目标引擎执行 ddlSql/refreshSql/validationSql；本次仓库侧闭环以应用服务、runtime binding 与浏览器 smoke 证据覆盖。
+  - Next step: 在外部环境完成 MV DDL/refresh/validation 后，用同租户、同数据源证据、同 SQL 指纹的原 SQL 做联调验收。
+
 ### HARN-SQL-REWRITE-HISTORY-ROUTE-20260519: Fix SQL rewrite history query unavailable route
 
 - Status: done

@@ -28,6 +28,7 @@ import {
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlCompareBlock from '../common/SqlCompareBlock.vue'
+import { buildRuntimeRewriteTraceRefs, resolveRuntimeRewriteSql } from '../common/runtimeRewriteSql.mjs'
 import { buildRecommendedSqlDisplay } from '../common/sqlCompare.mjs'
 
 const { t } = useI18n()
@@ -128,7 +129,7 @@ const dispatchEventPager = reactive({
   size: 6
 })
 
-// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, SqlCompareBlock.
+// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, SqlCompareBlock, runtimeRewriteSqlSource, ACCELERATION_ARTIFACT_REWRITE_SQL.
 
 const recommendationTypeOptions = ['REWRITE', 'ACCELERATION', 'CREATE_TABLE', 'PREWARM', 'MAINTENANCE']
 const recommendationStatusOptions = ['RECOMMENDED', 'REVIEWING', 'DISPATCH_READY', 'CANCELLED']
@@ -419,10 +420,17 @@ const unappliedRuleRows = computed(() => normalizeArray(selectedRecommendation.v
 const frontendCompareOriginalSql = computed(() =>
   firstDisplayValue(selectedRecommendation.value?.sourceSqlText, recommendationDiff.value?.originalSql) || ''
 )
+const runtimeRewriteSqlSelection = computed(() =>
+  resolveRuntimeRewriteSql({
+    artifact: accelerationArtifact.value,
+    recommendedSqlText: selectedRecommendation.value?.recommendedSqlText,
+    diffRecommendedSql: recommendationDiff.value?.recommendedSql
+  })
+)
 const frontendCompareRecommendedSql = computed(() =>
   buildRecommendedSqlDisplay(
     frontendCompareOriginalSql.value,
-    firstDisplayValue(selectedRecommendation.value?.recommendedSqlText, recommendationDiff.value?.recommendedSql) || ''
+    runtimeRewriteSqlSelection.value.sqlText || ''
   )
 )
 const hasFrontendCompareSql = computed(
@@ -444,7 +452,7 @@ const canCreateRewriteRecordFromRecommendation = computed(() => {
     return false
   }
   const originalSql = firstDisplayValue(recommendation.sourceSqlText, recommendationDiff.value?.originalSql)
-  const recommendedSql = firstDisplayValue(recommendation.recommendedSqlText, recommendationDiff.value?.recommendedSql)
+  const recommendedSql = runtimeRewriteSqlSelection.value.sqlText
   return hasDisplayValue(originalSql) && hasDisplayValue(recommendedSql)
 })
 
@@ -1178,7 +1186,8 @@ const buildRewriteRecordCreatePayload = () => {
     recommendation.recommendationId
   )
   const originalSql = firstDisplayValue(recommendation.sourceSqlText, diff.originalSql)
-  const recommendedSql = firstDisplayValue(recommendation.recommendedSqlText, diff.recommendedSql)
+  const runtimeRewriteSelection = runtimeRewriteSqlSelection.value
+  const recommendedSql = runtimeRewriteSelection.sqlText
   const evidenceLevel = normalizeEnumValue(
     firstDisplayValue(recommendation.evidenceLevel, diff.evidenceLevel),
     rewriteRecordEvidenceLevelOptions,
@@ -1201,7 +1210,7 @@ const buildRewriteRecordCreatePayload = () => {
     historyId,
     parseHistoryId: sourceType === 'PARSE' ? historyId : '',
     sqlFingerprint: firstDisplayValue(recommendation.sqlFingerprint, diff.sqlFingerprint, trace.sqlFingerprint),
-    datasourceCode: recommendation.targetDatasource,
+    datasourceCode: firstDisplayValue(runtimeRewriteSelection.accelerationArtifact?.targetDatasource, recommendation.targetDatasource),
     status: 'DRAFT',
     validationStatus,
     publishStatus: 'UNPUBLISHED',
@@ -1220,7 +1229,8 @@ const buildRewriteRecordCreatePayload = () => {
       ruleDiffCount: diffSummary.ruleDiffCount,
       manualReviewRequired: firstDefined(recommendation.manualReviewRequired, diffSummary.manualReviewRequired),
       autoApplyAllowed: firstDefined(recommendation.autoApplyAllowed, diffSummary.autoApplyAllowed),
-      evidenceBoundary: diffSummary.evidenceBoundary
+      evidenceBoundary: diffSummary.evidenceBoundary,
+      runtimeRewriteSqlSource: runtimeRewriteSelection.source
     }),
     risk: compactObject({
       riskLevel: recommendation.riskLevel,
@@ -1242,7 +1252,8 @@ const buildRewriteRecordCreatePayload = () => {
       alertId: firstDisplayValue(recommendation.alertId, trace.alertId),
       routeDecisionId: firstDisplayValue(recommendation.routeDecisionId, trace.routeDecisionId),
       sqlFingerprint: firstDisplayValue(recommendation.sqlFingerprint, diff.sqlFingerprint, trace.sqlFingerprint),
-      createdFrom: 'RECOMMENDATION_CENTER'
+      createdFrom: 'RECOMMENDATION_CENTER',
+      ...buildRuntimeRewriteTraceRefs(runtimeRewriteSelection)
     })
   })
 }

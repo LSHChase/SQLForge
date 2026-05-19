@@ -214,6 +214,7 @@ public class SqlRewriteRecordApplicationService {
             .risk(request.getRisk())
             .traceRefs(enrichRewriteTrialTraceRefs(request.getTraceRefs(), request.getSourceProblems(), request.getIssueRuleLinks()))
             .build();
+        requireMvRuntimeRewriteSqlAligned(rewriteRecord);
         assertRewriteAuthorization(rewriteRecord, CREATE_OPERATION);
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(rewriteRecord));
     }
@@ -288,6 +289,7 @@ public class SqlRewriteRecordApplicationService {
                 rewriteRecord.requirePublishableRuntimeState();
             }
         });
+        requireMvRuntimeRewriteSqlAligned(rewriteRecord);
         requireEligibleForRuntimePublish(evaluatePublishEligibility(rewriteRecord));
         String operator = requireContextUser();
         String reason = actionReason(request);
@@ -899,6 +901,65 @@ public class SqlRewriteRecordApplicationService {
 
     private String actionReason(SqlRewriteRecordPublishActionRequest request) {
         return request == null ? null : trimToNull(request.getReason());
+    }
+
+    private void requireMvRuntimeRewriteSqlAligned(SqlRewriteRecord rewriteRecord) {
+        String artifactRewriteSql = generatedMvArtifactRewriteSql(rewriteRecord.getTraceRefs());
+        if (!StringUtils.hasText(artifactRewriteSql)) {
+            return;
+        }
+        if (normalizeRuntimeSql(artifactRewriteSql).equals(normalizeRuntimeSql(rewriteRecord.getRecommendedSqlText()))) {
+            return;
+        }
+        throw invalidArgument(
+            "recommendedSqlText",
+            "PRECOMPUTE_MV 产物必须把 accelerationArtifact.rewriteSql 写入改写记录 recommendedSqlText"
+        );
+    }
+
+    private String generatedMvArtifactRewriteSql(Map<String, Object> traceRefs) {
+        Map<String, Object> artifact = asMap(traceRefs == null ? null : traceRefs.get("accelerationArtifact"));
+        if (artifact == null) {
+            Map<String, Object> runtimeRewrite = asMap(traceRefs == null ? null : traceRefs.get("runtimeRewriteEvidence"));
+            artifact = asMap(runtimeRewrite == null ? null : runtimeRewrite.get("accelerationArtifact"));
+        }
+        if (artifact == null || !isGeneratedMvArtifact(artifact)) {
+            return null;
+        }
+        if (hasBlockingReasons(artifact.get("blockingReasons"))) {
+            return null;
+        }
+        return textValue(artifact.get("rewriteSql"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        return value instanceof Map ? (Map<String, Object>) value : null;
+    }
+
+    private boolean isGeneratedMvArtifact(Map<String, Object> artifact) {
+        return "PRECOMPUTE_MV".equals(String.valueOf(artifact.get("rule")))
+            && "GENERATED".equals(String.valueOf(artifact.get("artifactStatus")))
+            && StringUtils.hasText(textValue(artifact.get("rewriteSql")));
+    }
+
+    private boolean hasBlockingReasons(Object value) {
+        if (value instanceof List) {
+            return !((List<?>) value).isEmpty();
+        }
+        return value != null && StringUtils.hasText(String.valueOf(value));
+    }
+
+    private String textValue(Object value) {
+        return value == null ? null : trimToNull(String.valueOf(value));
+    }
+
+    private String normalizeRuntimeSql(String sql) {
+        String normalized = sql == null ? "" : sql.trim();
+        while (normalized.endsWith(";")) {
+            normalized = normalized.substring(0, normalized.length() - 1).trim();
+        }
+        return normalized;
     }
 
     private void validateReviewTransition(SqlRewriteRecord rewriteRecord,

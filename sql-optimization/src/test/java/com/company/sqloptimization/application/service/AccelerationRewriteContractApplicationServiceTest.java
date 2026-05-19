@@ -36,6 +36,7 @@ import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
+import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionRuntimeRewriteBindingClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryAccelerationCandidateRepository;
@@ -359,6 +360,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("APPROVED", approved.getReviewStatus());
         assertEquals("operator-001", approved.getReviewedBy());
         assertNotNull(approved.getReviewedAt());
+        assertEquals(Boolean.TRUE, approved.getAutoApplyAllowed());
         assertEquals(Boolean.TRUE, approved.getManualReviewRequired());
         assertEquals("UNPUBLISHED", approved.getPublishStatus());
         assertEquals("binding-should-stay", approved.getRuntimeBindingId());
@@ -590,6 +592,72 @@ class AccelerationRewriteContractApplicationServiceTest {
     }
 
     @Test
+    void shouldRejectGeneratedMvArtifactCreateWhenRecommendedSqlDoesNotUseRewriteSql() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
+        setTenant("tenant-a");
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-mv-create");
+        request.setSqlFingerprint("fp-mv-create");
+        request.setDatasourceCode("hetu_main");
+        request.setRecommendedSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id");
+        request.setTraceRefs(Collections.<String, Object>singletonMap(
+            "accelerationArtifact",
+            generatedMvArtifact("SELECT * FROM mv_sales_daily;")
+        ));
+
+        BizException exception = assertThrows(BizException.class, () -> service.createRewriteRecord(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectGeneratedMvArtifactPublishWhenStoredRecommendedSqlDriftedFromRewriteSql() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
+            repository,
+            null,
+            new ResultDigestComparisonEngine(),
+            runtimeClient
+        );
+        setTenant("tenant-a");
+        repository.saveRecord(SqlRewriteRecord.builder()
+            .rewriteRecordId("rewrite-mv-drift")
+            .tenantId("tenant-a")
+            .sourceType(GovernanceSourceType.QUERY)
+            .sourceKind(GovernanceSourceKind.QUERY_HISTORY)
+            .sourceId("history-mv-drift")
+            .evidenceLevel(EvidenceLevel.RUNTIME_HISTORY)
+            .historyId("history-mv-drift")
+            .sqlFingerprint("fp-mv-drift")
+            .datasourceCode("hetu_main")
+            .status(RewriteRecordStatus.APPLIED)
+            .validationStatus(RewriteValidationStatus.EQUIVALENT)
+            .autoApplyAllowed(true)
+            .manualReviewRequired(true)
+            .reviewStatus(RewriteReviewStatus.APPROVED)
+            .publishStatus(RewritePublishStatus.UNPUBLISHED)
+            .originalSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
+            .recommendedSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
+            .createdBy("operator-001")
+            .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
+            .traceRefs(Collections.<String, Object>singletonMap(
+                "accelerationArtifact",
+                generatedMvArtifact("SELECT * FROM mv_sales_daily;")
+            ))
+            .build());
+
+        BizException exception = assertThrows(
+            BizException.class,
+            () -> service.publishRewriteRecord("rewrite-mv-drift", publishActionRequest("release mv rewrite"))
+        );
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(0, runtimeClient.publishCount);
+    }
+
+    @Test
     void shouldRejectReviewWhenContextTenantOrRequestTenantMismatch() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(repository);
@@ -660,6 +728,21 @@ class AccelerationRewriteContractApplicationServiceTest {
         Map<String, Object> evidence = new LinkedHashMap<String, Object>();
         evidence.put("runtimeDelta", runtimeDelta);
         return evidence;
+    }
+
+    private Map<String, Object> generatedMvArtifact(String rewriteSql) {
+        Map<String, Object> artifact = new LinkedHashMap<String, Object>();
+        artifact.put("rule", "PRECOMPUTE_MV");
+        artifact.put("artifactStatus", "GENERATED");
+        artifact.put("mvName", "mv_sales_daily");
+        artifact.put("targetDatasource", "hetu_main");
+        artifact.put("ddlSql", "CREATE MATERIALIZED VIEW mv_sales_daily AS SELECT 1");
+        artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_sales_daily");
+        artifact.put("validationSql", "SELECT COUNT(*) FROM mv_sales_daily");
+        artifact.put("rewriteSql", rewriteSql);
+        artifact.put("blockingReasons", Collections.emptyList());
+        artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
+        return artifact;
     }
 
     private SqlRewriteRecordPublishActionRequest publishActionRequest(String reason) {
