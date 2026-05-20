@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.util.StringUtils;
 
 final class L2AccelerationArtifactBuilder {
@@ -128,6 +130,47 @@ final class L2AccelerationArtifactBuilder {
                 blockingReasons.addAll(candidateSql.getBlockingReasons());
             }
         }
+        L2MaterializedViewRewriteCoverageValidator.ValidationResult rewriteValidation = null;
+        String validatedRewriteSql = null;
+        if (blockingReasons.isEmpty()) {
+            rewriteValidation = L2MaterializedViewRewriteCoverageValidator.validate(
+                new L2MaterializedViewRewriteCoverageValidator.ValidationInput(
+                    sourceSql,
+                    grainMeasureDerivation.getMvType(),
+                    mvName,
+                    candidateRewriteSql(
+                        candidateSql,
+                        prejoinCandidateSql,
+                        starAggCandidateSql,
+                        rollupCandidateSql,
+                        commonSubgraphCandidateSql
+                    ),
+                    advancedStructureProfile,
+                    predicateClassification,
+                    grainMeasureDerivation.getMeasures(),
+                    mvFieldNames(
+                        grainMeasureDerivation,
+                        prejoinCandidateSql,
+                        starAggCandidateSql,
+                        rollupCandidateSql,
+                        commonSubgraphCandidateSql
+                    ),
+                    additionalCoverageReferences(
+                        grainMeasureDerivation,
+                        rollupCandidateSql,
+                        commonSubgraphCandidateSql
+                    )
+                )
+            );
+            if (rewriteValidation.isGenerated()) {
+                validatedRewriteSql = rewriteValidation.getRewriteSql();
+            } else {
+                blockingReasons.addAll(rewriteValidation.getBlockingReasons());
+            }
+        }
+        Map<String, Object> coverage = rewriteValidation == null
+            ? grainMeasureDerivation.getCoverage()
+            : rewriteValidation.getCoverage();
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
         artifact.put("mvType", grainMeasureDerivation.getMvType());
@@ -145,7 +188,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("retainedPredicates", predicateClassification.getRetainedPredicates());
         artifact.put("securityPredicates", predicateClassification.getSecurityPredicates());
         artifact.put("blockedPredicates", predicateClassification.getBlockedPredicates());
-        artifact.put("coverage", grainMeasureDerivation.getCoverage());
+        artifact.put("coverage", coverage);
         artifact.put("blockingReasons", blockingReasons);
         artifact.put("reviewWarnings", grainMeasureDerivation.getReviewWarnings());
         if (prejoinCandidateSql != null) {
@@ -182,34 +225,125 @@ final class L2AccelerationArtifactBuilder {
                 artifact.put("refreshSql", commonSubgraphCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", commonSubgraphCandidateSql.getRollbackSql());
                 artifact.put("validationSql", commonSubgraphCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", commonSubgraphCandidateSql.getRewriteSql());
+                artifact.put("rewriteSql", firstText(validatedRewriteSql, commonSubgraphCandidateSql.getRewriteSql()));
             } else if (starAggCandidateSql != null) {
                 artifact.put("ddlSql", starAggCandidateSql.getDdlSql());
                 artifact.put("refreshSql", starAggCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", starAggCandidateSql.getRollbackSql());
                 artifact.put("validationSql", starAggCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", starAggCandidateSql.getRewriteSql());
+                artifact.put("rewriteSql", firstText(validatedRewriteSql, starAggCandidateSql.getRewriteSql()));
             } else if (prejoinCandidateSql != null) {
                 artifact.put("ddlSql", prejoinCandidateSql.getDdlSql());
                 artifact.put("refreshSql", prejoinCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", prejoinCandidateSql.getRollbackSql());
                 artifact.put("validationSql", prejoinCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", prejoinCandidateSql.getRewriteSql());
+                artifact.put("rewriteSql", firstText(validatedRewriteSql, prejoinCandidateSql.getRewriteSql()));
             } else if (rollupCandidateSql != null) {
                 artifact.put("ddlSql", rollupCandidateSql.getDdlSql());
                 artifact.put("refreshSql", rollupCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", rollupCandidateSql.getRollbackSql());
                 artifact.put("validationSql", rollupCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", rollupCandidateSql.getRewriteSql());
+                artifact.put("rewriteSql", firstText(validatedRewriteSql, rollupCandidateSql.getRewriteSql()));
             } else {
                 artifact.put("ddlSql", candidateSql.getDdlSql());
                 artifact.put("refreshSql", candidateSql.getRefreshSql());
                 artifact.put("rollbackSql", candidateSql.getRollbackSql());
                 artifact.put("validationSql", candidateSql.getValidationSql());
-                artifact.put("rewriteSql", candidateSql.getRewriteSql());
+                artifact.put("rewriteSql", firstText(validatedRewriteSql, candidateSql.getRewriteSql()));
             }
         }
         return artifact;
+    }
+
+    private static String candidateRewriteSql(L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql,
+                                              L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql,
+                                              L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql,
+                                              L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql,
+                                              L2CommonSubgraphMvCandidateGenerator.CandidateSql
+                                                  commonSubgraphCandidateSql) {
+        if (commonSubgraphCandidateSql != null) {
+            return commonSubgraphCandidateSql.getRewriteSql();
+        }
+        if (starAggCandidateSql != null) {
+            return starAggCandidateSql.getRewriteSql();
+        }
+        if (prejoinCandidateSql != null) {
+            return prejoinCandidateSql.getRewriteSql();
+        }
+        if (rollupCandidateSql != null) {
+            return rollupCandidateSql.getRewriteSql();
+        }
+        return candidateSql == null ? null : candidateSql.getRewriteSql();
+    }
+
+    private static List<String> mvFieldNames(L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
+                                             L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql,
+                                             L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql,
+                                             L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql,
+                                             L2CommonSubgraphMvCandidateGenerator.CandidateSql
+                                                 commonSubgraphCandidateSql) {
+        LinkedHashSet<String> fields = new LinkedHashSet<String>();
+        if (grainMeasureDerivation != null) {
+            fields.addAll(grainMeasureDerivation.getDimensions());
+            addMeasureFields(fields, grainMeasureDerivation.getMeasures());
+        }
+        if (prejoinCandidateSql != null) {
+            for (Map<String, Object> mapping : prejoinCandidateSql.getFieldMappings()) {
+                addIfText(fields, text(mapping.get("mvColumn")));
+            }
+        }
+        if (starAggCandidateSql != null) {
+            for (Map<String, Object> dimensionSource : starAggCandidateSql.getDimensionSources()) {
+                addIfText(fields, text(dimensionSource.get("mvColumn")));
+            }
+        }
+        if (rollupCandidateSql != null) {
+            addIfText(fields, text(mapValue(rollupCandidateSql.getTimeRollupEvidence(), "mvTimeColumn")));
+        }
+        if (commonSubgraphCandidateSql != null) {
+            Map<String, Object> evidence = commonSubgraphCandidateSql.getCommonSubgraphEvidence();
+            for (String outputColumn : stringList(evidence == null ? null : evidence.get("outputColumns"))) {
+                addIfText(fields, outputColumn);
+            }
+        }
+        return new ArrayList<String>(fields);
+    }
+
+    private static List<String> additionalCoverageReferences(
+        L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
+        L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql,
+        L2CommonSubgraphMvCandidateGenerator.CandidateSql commonSubgraphCandidateSql) {
+        LinkedHashSet<String> references = new LinkedHashSet<String>();
+        if (grainMeasureDerivation != null) {
+            references.addAll(grainMeasureDerivation.getGrain());
+            references.addAll(grainMeasureDerivation.getDimensions());
+        }
+        if (rollupCandidateSql != null) {
+            Map<String, Object> evidence = rollupCandidateSql.getTimeRollupEvidence();
+            addIfText(references, text(evidence.get("timeSourceColumn")));
+            addIfText(references, text(evidence.get("queryTimeExpression")));
+            addIfText(references, text(evidence.get("rewriteRollupExpression")));
+            addIfText(references, text(evidence.get("mvTimeColumn")));
+        }
+        if (commonSubgraphCandidateSql != null) {
+            Map<String, Object> evidence = commonSubgraphCandidateSql.getCommonSubgraphEvidence();
+            Map<String, Object> rewriteCoverage = mapValue(evidence, "rewriteCoverage") instanceof Map<?, ?>
+                ? copyMap((Map<?, ?>) mapValue(evidence, "rewriteCoverage"))
+                : Collections.<String, Object>emptyMap();
+            for (String requiredColumn : stringList(rewriteCoverage.get("requiredColumns"))) {
+                addIfText(references, requiredColumn);
+            }
+        }
+        return new ArrayList<String>(references);
+    }
+
+    private static void addMeasureFields(Set<String> fields, List<Map<String, Object>> measures) {
+        for (Map<String, Object> measure : measures) {
+            addIfText(fields, text(measure.get("name")));
+            for (Map<String, Object> component : mapList(measure.get("components"))) {
+                addIfText(fields, text(component.get("name")));
+            }
+        }
     }
 
     private static List<Map<String, Object>> blockingReasons(String sourceSql,
@@ -336,6 +470,36 @@ final class L2AccelerationArtifactBuilder {
         return StringUtils.hasText(targetEngine) ? targetEngine.trim().toUpperCase(Locale.ROOT) : null;
     }
 
+    private static Object mapValue(Object value, String key) {
+        if (!(value instanceof Map<?, ?>)) {
+            return null;
+        }
+        return ((Map<?, ?>) value).get(key);
+    }
+
+    private static void addIfText(Set<String> values, String value) {
+        if (values != null && StringUtils.hasText(value)) {
+            values.add(value.trim());
+        }
+    }
+
+    private static String text(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private static List<String> stringList(Object value) {
+        if (!(value instanceof Iterable<?>)) {
+            return Collections.emptyList();
+        }
+        List<String> result = new ArrayList<String>();
+        for (Object item : (Iterable<?>) value) {
+            if (item != null && StringUtils.hasText(String.valueOf(item))) {
+                result.add(String.valueOf(item).trim());
+            }
+        }
+        return result;
+    }
+
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> mapList(Object value) {
         if (!(value instanceof List<?>)) {
@@ -348,6 +512,16 @@ final class L2AccelerationArtifactBuilder {
             }
         }
         return result;
+    }
+
+    private static Map<String, Object> copyMap(Map<?, ?> source) {
+        LinkedHashMap<String, Object> target = new LinkedHashMap<String, Object>();
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            if (entry.getKey() != null) {
+                target.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        return target;
     }
 
     static final class AccelerationRecommendationInput {

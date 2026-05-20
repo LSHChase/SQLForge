@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-011: 实现 rewrite SQL 生成与静态覆盖校验
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-011 add MV rewrite coverage validator`
+- Priority: 1
+- Depends on: AMV-010
+- Scope: 为高级物化视图 rewriteSql 增加统一静态覆盖校验和只读校验；覆盖投影、过滤、分组、指标、安全谓词；覆盖缺失或 rewrite 未引用 MV/仍访问原基表时结构化阻断且不输出可发布 SQL。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-011`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增统一 L2MaterializedViewRewriteCoverageValidator，并在高级 MV artifact builder 中作为 GENERATED 前最后门禁；rewriteSql 需通过只读单语句校验、引用 MV、避开原基表，并证明投影、过滤、分组、指标和安全谓词覆盖，否则结构化阻断且不输出 ddlSql/rewriteSql。
+  - Validation evidence: 已通过 JDK 8u112 下 mvn -pl sql-optimization -Dtest=L2MaterializedViewRewriteCoverageValidatorTest,L2ParameterizedAggMvCandidateGeneratorTest,L2PrejoinMvCandidateGeneratorTest,L2StarAggMvCandidateGeneratorTest,L2RollupMvCandidateGeneratorTest,L2CommonSubgraphMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization test；git diff --check；node scripts/lint-repository-knowledge.js；node scripts/check-developer-copy-language.mjs --changed；python3 scripts/foreman.py validate AMV-011；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 静态覆盖校验仍基于解析画像、MV 字段名和 SQL 关系扫描，不声明真实引擎执行等价、成本收益或 runtime binding 生效；外部建表、刷新、审批和生产验证仍按既有治理链路执行。
+  - Next step: 后续 AMV-012/AMV-013 可复用 coverage、blockingReasons 与 rewriteSqlReadonly/rewriteSqlReferencesMv/rewriteSqlAvoidsOriginalSources 字段扩展 API 与前端展示。
+
 ### AMV-010: 实现方言渲染与命名规范
 
 - Status: done
