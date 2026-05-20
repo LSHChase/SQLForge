@@ -47,6 +47,9 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         String reviewPublishMigration = readRepositoryFile(
             "sql/migrations/V20260511_001__sql_rewrite_record_review_publish_runtime_fields.sql"
         );
+        String legacyPublishMigration = readRepositoryFile(
+            "sql/migrations/V20260520_002__sql_rewrite_record_legacy_publish_activation_compat.sql"
+        );
 
         assertContains(migration, "CREATE TABLE IF NOT EXISTS acceleration_candidate");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS sql_rewrite_record");
@@ -59,6 +62,11 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(reviewPublishMigration, "ADD COLUMN activation_status VARCHAR(32) NOT NULL DEFAULT 'INACTIVE'");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL");
+        assertContains(legacyPublishMigration, "COLUMN_NAME = 'publish_status'");
+        assertContains(legacyPublishMigration, "ADD COLUMN activation_status VARCHAR(32) NOT NULL DEFAULT ''INACTIVE''");
+        assertContains(legacyPublishMigration, "WHEN ''PUBLISHED'' THEN ''ACTIVE''");
+        assertContains(legacyPublishMigration, "COLUMN_NAME = 'published_sql_fingerprint'");
+        assertContains(legacyPublishMigration, "ADD COLUMN activated_sql_fingerprint VARCHAR(128) DEFAULT NULL");
         String trialMigration = readRepositoryFile(
             "sql/migrations/V20260518_001__rewrite_trial_issue_driven_persistence.sql"
         );
@@ -68,6 +76,10 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertFalse(
             reviewPublishMigration.toUpperCase().contains("FOREIGN KEY"),
             "review/activation migration 不得新增物理外键约束"
+        );
+        assertFalse(
+            legacyPublishMigration.toUpperCase().contains("FOREIGN KEY"),
+            "legacy publish/activation migration 不得新增物理外键约束"
         );
         assertFalse(
             trialMigration.toUpperCase().contains("FOREIGN KEY"),

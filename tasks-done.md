@@ -4,6 +4,26 @@
 
 ## Done
 
+### USER-CN-BACKEND-BUILD-REPAIR-20260520: 修复后端 Maven 构建失败
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `fix(sql-optimization): repair rewrite record schema drift`
+- Priority: 1
+- Depends on: N/A
+- Scope: 复现并修复当前后端 Maven build/compile 失败问题，保持 JDK 8u112 基线，不改动无关功能边界。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BACKEND-BUILD-REPAIR-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-20: reproduced rewrite-record creation failure as a legacy schema drift: local `sql_rewrite_record` had old `publish_status` / `published_sql_fingerprint` columns while the mapper writes `activation_status` / `activated_sql_fingerprint`.
+  - 2026-05-20: added idempotent legacy publish-to-activation compatibility migration and schema mapping coverage; verified local MySQL migration, mapper-shaped insert, targeted Maven tests, full compile, and foreman validate.
+- Context closeout:
+  - Completed scope: 修复创建改写记录时旧库 publish 字段与当前 activation mapper 字段不一致导致的 [10000] 内部错误；新增旧 schema 兼容 migration 与 schema mapping 覆盖。
+  - Validation evidence: 本地 MySQL 执行 V20260520_002 migration 成功；mapper-shaped insert/select/delete 成功；mvn -pl sql-optimization -am -Dtest=AccelerationRewriteGovernancePersistenceSchemaMappingTest,AccelerationRewriteContractApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test 通过；mvn -DskipTests compile 通过；python3 scripts/foreman.py validate USER-CN-BACKEND-BUILD-REPAIR-20260520 通过；python3 scripts/task_audit.py --check --phase pre-closeout 通过。
+  - Residual risk: 未启动完整四服务运行时做浏览器端联调；本次根因已在数据库 schema 和 mapper 字段层面复现并验证。
+  - Next step: 在受影响环境执行 sql/migrations/V20260520_002__sql_rewrite_record_legacy_publish_activation_compat.sql 后重试创建改写记录。
+
 ### USER-CN-OPS-SURFACE-CLEANUP-FOLLOWUP-20260520: 收口运维治理面残留文档与文案
 
 - Status: done
