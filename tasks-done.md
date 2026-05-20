@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260520: 按最新页面刷新 dist-portable
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `build(frontend): refresh portable dist`
+- Priority: 1
+- Depends on: N/A
+- Scope: 使用现有 portable 构建入口按当前最新前端页面重新生成 dist-portable 产物；不修改业务源码、接口语义或页面功能。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 按当前最新前端页面重新生成 dist-portable 离线产物，更新 index.html 与 hashed assets；未修改业务源码、接口语义或页面功能。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260520 --include-task-audit 通过；npm run build:portable 通过；npm run smoke:portable-frontend 通过；git diff --check 通过。
+  - Residual risk: 无仓库内残余风险；本次仅刷新 portable 静态产物。
+  - Next step: 无。
+
 ### USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520: 推荐改写加速前端可用性验证与补链
 
 - Status: done

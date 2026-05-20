@@ -4981,3 +4981,14 @@
 2026-05-20T00:02:52-05:00 | USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-acceleration-workbench-contract.mjs (projected-precommit)`
 2026-05-20T00:02:52-05:00 | USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run test:frontend-page-governance (projected-precommit)`
 2026-05-20T00:02:52-05:00 | USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-20T00:11:31-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-20T00:11:31-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-20T00:11:31-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-20T00:11:36-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-20T00:11:40-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-20T00:11:40-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 closeout commit | `R-168` | projected | `git commit -m 'build(frontend): refresh portable dist' (projected-precommit)`
+2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
+2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
