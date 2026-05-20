@@ -108,7 +108,7 @@
   - `governance` 的 header-based stateless auth `LOGIN` / `LOGOUT` 事件
 - 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载在 artifact 已具备治理追溯元数据时，会把 `config_snapshot_id/result_id/history_id/export_id` 一并写入对应 `audit_log`。
 - 当前 `benchmark-engine` 的报告查询、导出查询与 raw-data 下载还会把 artifact recovery status、storage recovery source、storage read status 与 provider/external recovery 留痕写入 `audit_log.response_summary`，供 governance history query/detail 直接复用。
-- 当前 `benchmark-engine` 新增的内部 artifact operation 会继续把 cleanup/recovery operation surface 写入 `audit_log.response_summary.artifactOperationSurface`，并复用既有 `artifactStorageEvidence`/trace keys，而不是另起不可追溯的旁路表；当前该结构还会显式下沉 `orchestrationType/batchId/batchIndex/batchSize/errorCode/errorMessage`，用于 governance batch retention / recovery orchestration 的逐项追溯。
+- 当前 `benchmark-engine` 保留后端内部 artifact cleanup/recovery evidence，会继续把 operation surface 写入 `audit_log.response_summary.artifactOperationSurface`，并复用既有 `artifactStorageEvidence`/trace keys，而不是另起不可追溯的旁路表；该结构不再作为治理产品公开恢复演练或 artifact 操作入口暴露。
 - 当前 audit 真写链会在入库前统一处理 `request_params` 与 `response_summary`：
   - `request_params` 仅保留脱敏 JSON
   - `response_summary` 仅保留脱敏文本

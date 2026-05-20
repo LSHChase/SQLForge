@@ -152,7 +152,7 @@
 - `POST /api/governance/internal/acceleration-plan/trace/write` 的真实落库基线，支持把 acceleration plan 生命周期回写到 `config_snapshot/execution_result/query_history`
 - header-based stateless auth 的 `LOGIN` / `LOGOUT` 审计落库基线
 - 共享 AES-256 敏感字段保护基线，以及 `GovernanceProtectedPersistenceService` 对 config/result/history/export/audit/system-config 的受保护写入入口
-- governance history summaries/lookups/detail：可把 cache governance surface（含 eviction/capacity evidence）、compensation-replay evidence、artifact storage contract、artifact recovery surface 与 artifact operation surface 作为显式结构字段提供给治理检索、恢复判断与受控 cleanup/recovery 触发链路
+- SQL 执行历史与内部 trace evidence：可把 cache governance surface（含 eviction/capacity evidence）、compensation-replay evidence、artifact storage contract、artifact recovery surface 与 artifact operation surface 作为显式结构字段沉淀到后端 evidence；不再提供公开 trace lookup、恢复演练页或治理侧 artifact operation 产品入口
 - MyBatis XML 与多环境配置基础
 
 当前还未完整承载：

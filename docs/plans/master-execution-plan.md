@@ -809,17 +809,17 @@ Tasks:
 | `E-TASK-027` | 落地压测任务、模板、测试集与报告页 | 任务列表、模板详情、测试集、报告对比和回归结果页 | `E-TASK-026`,`F-TASK-042` | `npm run lint`、`npm run build`、benchmark page contract 测试 |
 | `E-TASK-028` | 落地开放接入页与 JDBC Agent / SDK 展示 | API、JDBC Agent、SDK、接入策略和接入审计展示页 | `E-TASK-027`,`D-TASK-068` | `npm run lint`、`npm run build`、access page contract 测试 |
 
-##### Story `E-STORY-012` Dashboard 与告警中心
+##### Story `E-STORY-012` Dashboard 与差异事件摘要
 
-- 目标：交付多角色总览驾驶舱与告警中心前端。
-- 验证：总览 KPI、待办与告警中心可消费治理契约。
+- 目标：交付多角色总览驾驶舱；`USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 之后不再交付告警中心产品入口。
+- 验证：总览 KPI、待办与差异暂停 evidence 可在核心主链路消费。
 
 Tasks:
 
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
 | `E-TASK-029` | 落地 Dashboard KPI、分布与待办区块 | 核心 KPI、问题分布、接入分布与待处理清单卡片 | `E-TASK-028`,`F-TASK-037` | `npm run lint`、`npm run build`、dashboard contract 测试 |
-| `E-TASK-030` | 落地告警中心与通知状态视图 | 告警列表、详情、ACK、notify simulated 状态展示 | `E-TASK-029`,`F-TASK-037` | `npm run lint`、`npm run build`、alert page contract 测试 |
+| `E-TASK-030` | 历史任务：告警中心与通知状态视图 | 已被 `USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 废止为产品入口；差异暂停 evidence 收敛到推荐 / 改写 / SQL 历史主链路 | `E-TASK-029`,`F-TASK-037` | 当前不再执行 alert page contract |
 
 ##### Story `E-STORY-013` 系统管理与数据源治理页
 
@@ -838,7 +838,7 @@ Tasks:
 - 目标：在不更换 Vue SFC + Element Plus + 自研组件栈、不改变路由/API/SQL/payload/审计语义的前提下，把当前已落地的长页面与重复页面模式收敛为可维护的页面壳层、共享布局、业务 composable、i18n 与治理脚本基线。
 - 扫描结论：
   - 超长高风险页优先拆分：`ParseRecordView` 当前约 3417 行、`ParseBatchCenterView` 当前约 3139 行、`AccelerationView` 当前约 3121 行。
-  - 大型业务页需要收敛布局、状态和重复取证模式：`SystemView` 约 1419 行、`SqlHistoryView` 约 1268 行、`DashboardView` 约 1097 行，`AuditForensicsView` / `AuditTroubleshootingView` / `RepairEvidenceView` 均超过 1000 行。
+  - 大型业务页需要收敛布局、状态和重复详情模式：`SystemView`、`SqlHistoryView`、`DashboardView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView` 与 `AssetCatalogView` 仍是当前前端治理对象；`AuditForensicsView` / `AuditTroubleshootingView` / `RepairEvidenceView` 已从产品入口移除。
   - 多数页面仍大量使用 `isChinese ? ...` 本地三元文案；后续重构应逐步迁入现有 i18n 文件，不新增平行国际化体系。
   - SQL 输入输出组件已存在，后续任务必须保留 `SqlEditorField` / `SqlCodeBlock` 契约，不改变 SQL payload、历史和审计语义。
 - 执行边界：`HARN-106` 只落账和固化治理基线，不改页面实现；后续任务按下表逐个执行，普通任务保持单任务单 commit。原规划中的 `HARN-097` 至 `HARN-107` 为占位 ID；因当前仓库已完成 `HARN-097` 至 `HARN-105`，正式落账改用 `HARN-106` 至 `HARN-116`。
@@ -850,13 +850,13 @@ Tasks:
 | `HARN-106` | 全量前端页面重构任务落账与治理基线固化 | 写入页面扫描结论、后续小任务、执行顺序、验证门禁和非实现边界；本任务只落账，不改页面 | `HARN-096` | `python3 scripts/task_audit.py --check --phase pre-closeout`、`node scripts/lint-repository-knowledge.js` |
 | `HARN-107` | 抽离 App 壳层导航与路由元数据 | 重构 `App.vue`、`router/index.js`、`routePaths.mjs` 的导航树、active key、breadcrumb、workspace header 与 delivery-progress 可见性逻辑，保持 path、legacy redirect、菜单可达性不变 | `HARN-106` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`npm run smoke:frontend-dev` |
 | `HARN-108` | 建立前端共享页面布局组件与样式契约 | 抽取 `PageHero`、`SectionHeader`、`EvidencePanel`、`MetricCard`、toolbar/filter shell 等布局层，覆盖 `DashboardView`、静态运维页、common 组件，不引入新 UI 框架 | `HARN-107` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance` |
-| `HARN-109` | 重构 Dashboard、Delivery、Runtime、Recovery 概览类页面 | 覆盖 `DashboardView`、`DeliveryProgressView`、`RuntimeGatesView`、`RecoveryDrillView`，统一 KPI、风险、活动流、静态证据区布局，保留 sample/window/session/PULL_ONLY 边界 | `HARN-108` | `npm run lint`、`npm run build`、`npm run smoke:frontend-dev` |
+| `HARN-109` | 重构 Dashboard 与 Delivery 概览类页面 | 覆盖 `DashboardView`、`DeliveryProgressView`，统一 KPI、风险、活动流、静态证据区布局，保留 sample/window/session/PULL_ONLY 边界；`RuntimeGatesView` 与 `RecoveryDrillView` 已从产品入口移除 | `HARN-108` | `npm run lint`、`npm run build`、`npm run smoke:frontend-dev` |
 | `HARN-110` | 重构 SQL 查询与 SQL 历史页面结构 | 覆盖 `SqlQueryView`、`SqlHistoryView`、`useSqlHistoryList.js`，拆分查询三栏、结果 tabs、历史筛选、详情抽屉和 SQL 三态展示，保留 SQL UI 与历史查询契约 | `HARN-108` | `npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
 | `HARN-111` | 拆分解析工作台与解析统计页面 | 覆盖 `AccelerationView`、`ParseStatisticsCenterView`，拆分单条 SQL 输入、结构解析、access parse、结论、统计入口、字段 help 和详情弹层，不改变 parser/API/payload | `HARN-110`,`HARN-116` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
 | `HARN-112` | 拆分批量解析中心页面 | 覆盖 `ParseBatchCenterView`，拆分普通批量、报表导入、统计标签、详情弹窗、失败详情和 SQL 展示，保留 summary-first、有限明细预览、失败详情和大批量渲染约束 | `HARN-111` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
 | `HARN-113` | 拆分解析历史查询与报表详情页面 | 覆盖 `ParseRecordView`，拆分筛选、SQL 解析记录、批量/报表历史、详情弹层、报表统计、issue-scene detail 和原始 SQL 展示，保留默认空筛选与 raw SQL 不自动格式化契约 | `HARN-112` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
 | `HARN-114` | 重构资产、路由、推荐、压测、接入页面 | 覆盖 `AssetCatalogView`、`RoutingGovernanceView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView`，统一列表/详情/证据/placeholder 语义，保留只读证据边界和缺失写 API 的显式边界 | `HARN-108`,`HARN-116` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:sql-ui-contract`、`npm run test:frontend-page-governance` |
-| `HARN-115` | 重构告警、取证、修复、故障处置与系统管理页面 | 覆盖 `AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`、`SystemView`，收敛 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界 | `HARN-108`,`HARN-116` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:frontend-page-governance` |
+| `HARN-115` | 重构系统管理页面与保留运维证据模式 | 覆盖 `SystemView`，收敛 timeline、queue、retry、datasource/config 表格与详情模式，保留权限和后端权威边界；`AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView` 和 `RepairEvidenceView` 已从产品入口移除 | `HARN-108`,`HARN-116` | before/after 截图自检、`npm run lint`、`npm run build`、`npm run test:form-governance`、`npm run test:frontend-page-governance` |
 | `HARN-116` | 加固前端页面治理脚本与设计文档 | 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新设计系统与前端治理文档，防止重构后回退 | `HARN-109`,`HARN-110` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js` |
 | `HARN-120` | 补齐前端截图自检机器门禁 | 补齐 HARN-116 后复核发现的执行缺口：默认运行页面治理自测、把 R-186 纳入 validation-rules、通过 task_audit closeout gate 检查 before/after 截图和 Codex 读图修复结论，并修正 HARN-111 以后页面任务依赖 | `HARN-116` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/foreman.py validate HARN-120` |
 
@@ -864,7 +864,7 @@ Tasks:
 
 - 目标：在不把推荐误写成真实装数、不把静态解析误写成真实执行指标的前提下，补齐推荐 SQL 深化、SQL diff、SQL 历史改写记录、周期比对和差异告警闭环。
 - 设计权威：当前以 `docs/product/sql-rewrite-function-boundary-design.md`、`docs/plans/production-rewrite-auto-apply-task-plan.md` 和各核心页面契约脚本为准；旧统一流程参考页已从当前产品页面、路由和验证入口中移除。
-- 执行边界：`HARN-127` / `HARN-143` / `HARN-144` 保留为历史复核记录；当前实现与验证不得恢复旧参考页，核心改写闭环继续由推荐中心、SQL 历史、告警中心和生产改写 smoke 覆盖。
+- 执行边界：`HARN-127` / `HARN-143` / `HARN-144` 保留为历史复核记录；当前实现与验证不得恢复旧参考页或告警中心入口，核心改写闭环继续由推荐中心、SQL 历史和生产改写 smoke 覆盖。
 
 Tasks:
 
@@ -973,10 +973,10 @@ Tasks:
 | `F-TASK-018` | 扩展 `system` 治理管理页 browser runtime gate | tenant-config、message stats、retry failed messages | `F-TASK-017` | browser runtime smoke 与治理修复动作通过 |
 | `F-TASK-019` | 加固前端补偿信号稳定性 | pending/total 双信号、收口残余验证日志 | `F-TASK-018` | lint/build/browser smoke 通过 |
 | `F-TASK-020` | 扩展治理历史页 browser runtime gate | `/parse-record` 真实历史诊断页 | `F-TASK-019` | governance history runtime smoke 通过 |
-| `F-TASK-021` | 扩展治理历史修复追溯页 browser runtime gate | `/repair-evidence` 取证与补偿证据 | `F-TASK-020` | repair evidence runtime smoke 通过 |
-| `F-TASK-022` | 升级治理长期历史反查与分页追溯 | indexed history lookup、分页与旧数据追溯 | `F-TASK-021` | governance history test + frontend runtime smoke 通过 |
-| `F-TASK-023` | 扩展历史诊断与审计取证分页链路 | `/audit-forensics` 与 parse record drill-through | `F-TASK-022` | governance history test + frontend runtime smoke 通过 |
-| `F-TASK-024` | 新增审计故障处置与修复决策页 | `/audit-troubleshooting` remediation decision page | `F-TASK-023` | remediation runtime chain 通过 |
+| `F-TASK-021` | 历史任务：治理历史修复追溯页 browser runtime gate | `/repair-evidence` 产品入口已由 `USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 移除；保留后端最小执行 evidence | `F-TASK-020` | 历史验证记录保留，不再作为当前产品入口验证 |
+| `F-TASK-022` | 历史任务：治理长期历史反查与分页追溯 | 公开 trace lookup 已移除；SQL 执行历史和真实改写历史保留各自主链路分页 | `F-TASK-021` | 历史验证记录保留，当前以 SQL 历史 contract 为准 |
+| `F-TASK-023` | 历史任务：历史诊断与审计取证分页链路 | `/audit-forensics` 产品入口已移除；不再恢复跨页 forensic drill-through | `F-TASK-022` | 历史验证记录保留，R-191 contract 禁止恢复产品入口 |
+| `F-TASK-024` | 历史任务：审计故障处置与修复决策页 | `/audit-troubleshooting` 产品入口已移除；修复动作保留在系统管理或后端内部 evidence | `F-TASK-023` | 历史验证记录保留，不再作为当前产品入口验证 |
 | `F-TASK-025` | 补齐治理归档历史窗口与深分页链路 | archival-window query、深分页和 drill-through | `F-TASK-024` | governance history API + runtime smoke 通过 |
 | `F-TASK-026` | 接入真实 Kafka 运行验证与环境安全参数门禁 | bootstrap/security 校验、成功/恢复 smoke | `F-TASK-025` | real Kafka runtime gate 通过 |
 | `F-TASK-027` | 收口 Phase-F 退出门禁缺口 | DB script、coverage、Sonar、R-118 证据 | `F-TASK-026` | phase gate / DB / compliance baseline 通过 |
@@ -997,10 +997,10 @@ Tasks:
 | `F-TASK-032` | 去除 Sonar fallback 的隐性自动恢复接线，并分离 provisioning / enable 语义 | 修正 release workflow 的默认 environment 绑定与主 CI 的 Sonar 自动触发条件，明确“环境已 provision”不等于“治理已启用强制 Sonar”，同步 runbook、INBOX 与部署基线 | `F-TASK-031` | release/CI workflow 默认不因已有 Sonar 环境自动升级为阻断；文档、INBOX、workflow 对 provisioning 与 enable 语义一致 |
 | `F-TASK-033` | 补齐测试环境最小 smoke 门禁 | 提供环境无关的最小 smoke 入口给外部测试环境 CI/CD 调用，覆盖四个后端 health、前端可达性、query/sql-optimization/benchmark 到 governance 的最小业务链路，以及受保护请求头有效性验证；保持本地 runtime smoke 不变 | `F-TASK-032` | 环境无关 smoke 脚本、帮助/参数校验、最小本地验证、repo-closed 与 test-environment smoke 文档语义一致 |
 
-##### Story `F-STORY-010` 告警中心与模拟邮件
+##### Story `F-STORY-010` 历史告警事件与模拟邮件
 
-- 目标：补齐 SQL 治理产品线的关键事件判定、告警去重、ACK 与模拟邮件日志。
-- 验证：告警类型、等级、查询、ACK 与模拟通知链可测。
+- 目标：该 story 的产品化告警中心部分已由 `USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 废止；内部告警事件、差异暂停 evidence 与模拟邮件历史记录可作为后端 evidence 保留。
+- 验证：不再提供告警查询 / ACK 产品面；当前验证以推荐 / 改写 / SQL 历史主链路和 R-191 contract 为准。
 
 Tasks:
 
@@ -1009,7 +1009,7 @@ Tasks:
 | `F-TASK-034` | 固化告警事件类型与等级模型 | 定义 alert type、level、dedup key、notify status 和规则基线 | `F-TASK-033`,`D-TASK-062` | domain/model 测试 |
 | `F-TASK-035` | 落地关键事件告警判定 | mass failure、service unavailable、report resolve failure、Redis unavailable、dispatch failure 等告警判定 | `F-TASK-034` | alert rule 测试 |
 | `F-TASK-036` | 落地告警去重与模拟邮件日志 | dedupe、notify simulated、日志模板与审计留痕 | `F-TASK-035` | notification/dedup 测试 |
-| `F-TASK-037` | 落地告警查询与 ACK 接口 | alert list/detail/ack API 与治理查询面 | `F-TASK-036` | governance alert API 测试 |
+| `F-TASK-037` | 历史任务：告警查询与 ACK 接口 | alert list/detail/ack 产品 API 已从当前边界移除；内部 emit 事件仅服务差异暂停 evidence | `F-TASK-036` | 当前不再执行 governance alert API 产品面测试 |
 
 ##### Story `F-STORY-011` 压测模板、测试集与解析联动
 

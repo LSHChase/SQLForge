@@ -1008,7 +1008,6 @@ export default {
       openRouting: 'Open routing governance',
       openParse: 'Open SQL Parse',
       openHistory: 'Open SQL history search',
-      openAlertCenter: 'Open alert center',
       refreshRewriteRecords: 'Refresh rewrite records',
       refreshValidationRuns: 'Refresh validation runs',
       createRewriteRecordAndReview: 'Create rewrite record',

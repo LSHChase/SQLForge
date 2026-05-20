@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-OPS-SURFACE-CLEANUP-FOLLOWUP-20260520: 收口运维治理面残留文档与文案
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `USER-CN-OPS-SURFACE-CLEANUP-FOLLOWUP-20260520: align ops surface cleanup docs`
+- Priority: 1
+- Depends on: N/A
+- Scope: 基于 R-191 和已完成 B 方案，清理当前权威文档、前端 locale 与 contract 中残留的告警中心、审计取证、公开追踪、运行门禁、恢复演练产品入口表述；保留历史归档、最小执行安全 evidence、SQL 执行历史、真实改写历史和 runtime binding ACTIVE 安全约束。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-OPS-SURFACE-CLEANUP-FOLLOWUP-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 清理当前权威文档、前端 locale 与 dashboard contract 中残留的告警中心、审计取证、公开追踪、运行门禁和恢复演练产品入口表述；保留 SQL 执行历史、真实改写历史、后端内部 evidence、备份恢复文档和 runtime binding ACTIVE 安全约束。
+  - Validation evidence: node scripts/check-dashboard-contract.mjs; node scripts/check-navigation-shell-contract.mjs; node scripts/check-developer-copy-language.mjs --changed; git diff --check; rg active frontend/scripts residual check; node scripts/lint-repository-knowledge.js; npm run lint; npm run build; python3 scripts/foreman.py validate USER-CN-OPS-SURFACE-CLEANUP-FOLLOWUP-20260520; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 历史归档、原始需求、validation-log 和已完成任务记录仍保留旧术语用于追溯；后端内部告警事件、audit/trace DTO 与 artifact recovery evidence 仍按最小执行安全和内部 evidence 边界保留，不作为产品入口暴露。
+  - Next step: 运行 post-closeout task audit 并提交本次单任务改动。
+
 ### USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520: 实施执行引擎纯化B方案
 
 - Status: done

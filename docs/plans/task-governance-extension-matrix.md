@@ -190,7 +190,7 @@
 | `E-TASK-027` | 若压测中心页会把模板/测试集能力写成已默认启用的真实运行时基线、或混淆回归与对比模式，需人工确认 | benchmark 页面、模板/TestSet UI 与报告对比面 | 恢复模板/测试集/报告分区，保留模式差异与未实现能力标识 |
 | `E-TASK-028` | 若开放接入页会把 JDBC Agent 全模式、SDK 或真实接口联通写成既有事实，需人工确认 | 开放接入页、接入策略和文案 | 恢复到契约/规划态展示，明确当前落地阶段 |
 | `E-TASK-029` | 若 Dashboard KPI 与待办会聚合不存在的数据、放大 environment-backed 指标权重或引入未审计来源，需人工确认 | Dashboard 聚合指标、卡片与待办清单 | 恢复基于治理查询面的 KPI，移除无证据来源聚合 |
-| `E-TASK-030` | 若告警中心页会把模拟邮件写成真实通知成功、或隐藏 dedupe / ACK 语义，需人工确认 | 告警列表、详情、ACK 和通知状态展示 | 恢复 simulated 状态文案与完整事件状态链 |
+| `E-TASK-030` | 若后续任务尝试恢复告警中心产品入口、公开 ACK / policy API 或把内部差异事件重新包装成告警中心，需人工确认 | 告警产品入口、公开 API、差异暂停 evidence | 保持 R-191 当前边界：差异暂停 evidence 收敛到推荐 / 改写 / SQL 历史主链路 |
 | `E-TASK-031` | 若系统管理数据源/报表接口页会暴露敏感连接信息、误导用户认为真实外部接口已默认联通，需人工确认 | 系统管理中的 datasource、health-check、report-interface 展示面 | 恢复脱敏与 mock/config 标识，关闭高风险编辑入口 |
 | `E-TASK-032` | 若 Redis 规则源、装数协同与系统参数页会把 environment-backed 配置写成默认已启用事实，需人工确认 | rule-source、dispatch policy、system-param/permission 展示面 | 恢复到查询/模拟状态展示，保留 simulated 或未联通提示 |
 | `U-TASK-004` | 若实现会移除既有承诺路由、把样本化 KPI 写成全租户事实，或把无写 API 的治理页改成伪可写能力，需人工确认。 | 前端导航、解析工作区入口、Dashboard 指标表达、规格补充文档与验证脚本；不改写后端业务数据或外部系统状态。 | 回退到当前导航与 Dashboard 表达，保留 read-only、sampled、simulated 等边界文案，不新增对外部环境的强依赖。 |
@@ -225,7 +225,7 @@
 | `HARN-138` | 若真实接口按钮会绕过人工确认、自动应用生产配置、或把 mock 响应伪装成真实接口成功，需人工确认。 | 工作台 tabs、接口调用、状态映射和响应证据。 | 停用高风险按钮，恢复只读证据展示和跳转。 |
 | `HARN-139` | 若推荐中心 diff 展示会隐藏语义风险、误导用户自动采纳高风险 SQL，需人工确认。 | 推荐详情 diff、规则详情和风险展示。 | 回退 diff 展示或强制展示人工复核标识。 |
 | `HARN-140` | 若 SQL 历史新增筛选或 tab 会破坏分页、默认筛选、脱敏或原始 SQL 展示契约，需人工确认。 | SQL 历史列表/详情 UI 与改写记录查询状态。 | 回退新增筛选/tab，恢复既有 SQL 历史视图。 |
-| `HARN-141` | 若监控告警联动会把模拟邮件写成真实通知、隐藏自动暂停证据或扩大告警可见范围，需人工确认。 | 工作台、推荐中心、SQL 历史和告警中心联动展示。 | 回退告警入口或恢复 simulated/paused evidence 显式展示。 |
+| `HARN-141` | 若监控告警联动会把模拟邮件写成真实通知、隐藏自动暂停证据、扩大告警可见范围，或恢复告警中心产品入口，需人工确认。 | 推荐中心、SQL 历史、内部差异事件与差异暂停 evidence。 | 不恢复告警中心入口；保留 simulated/paused evidence 显式展示。 |
 | `HARN-142` | 若端到端 smoke 要求真实 Hetu/MRS 环境作为 repo-closed 阻断、跳过 HARN-016/INBOX-002 外部证据边界，需人工确认。 | smoke 脚本、runbook、契约检查和文档收口。 | 保持 repo-closed smoke 与 environment-backed 验证分层，回退外部环境强依赖。 |
 | `PRW-001` | 若实现需要绕过人工确认、等价验证、租户隔离、审计留痕、激活资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。 | 仅影响文档、主计划、接口契约说明和任务治理记录；不修改运行时数据、数据库 schema 或接口实现。 | 回退本任务文档增量并保留后续任务不执行；若状态命名不合适，用追加文档修正替代覆盖历史。 |
 | `PRW-002` | 若实现需要绕过人工确认、等价验证、租户隔离、审计留痕、激活资格策略，或把投产前核验闭环混入生产闭环验收，必须暂停并回到人工确认。 | 新增兼容性数据库字段、映射和 DTO 字段；旧数据必须有保守默认状态，不迁移为已复核或已激活。 | 通过兼容 DDL 或停用新增读写路径回退；保留旧改写记录查询能力，不删除历史记录。 |
@@ -268,7 +268,7 @@
 | `F-TASK-020` | 若治理历史页再次退回 placeholder 页面需人工确认 | 历史诊断展示与运行时 smoke | 恢复 live history page 与 smoke |
 | `F-TASK-021` | 若修复追溯页删减取证/补偿证据需人工确认 | repair evidence 展示与 drill-through | 恢复取证链路与兼容入口 |
 | `F-TASK-022` | 若长期历史查询再次退回 recent-scan 语义需人工确认 | governance history 索引、分页与旧数据窗口 | 恢复 indexed lookup 并补兼容脚本 |
-| `F-TASK-023` | 若审计取证分页与跨页 drill-through 被删减需人工确认 | forensic lookup、分页与前端路径 | 恢复跨页诊断链 |
+| `F-TASK-023` | 若后续任务尝试恢复审计取证产品页、公开 trace lookup 或跨页 forensic drill-through，需人工确认 | forensic lookup、分页与前端路径 | 保持 R-191 当前边界：不恢复审计取证产品入口 |
 | `F-TASK-024` | 若 remediation decision page 删除真实修复动作需人工确认 | 治理故障处置页面与修复调用 | 恢复 decision/remediation chain |
 | `F-TASK-025` | 若 archival window / deep pagination 能力被削弱需人工确认 | governance history lookup 索引和查询窗口 | 恢复 long-window/deep-pagination 基线 |
 | `F-TASK-026` | 若真实 Kafka gate 被降回文档占位或安全参数校验被弱化需人工确认 | Kafka runtime gate、配置与恢复证据 | 恢复 dedicated Kafka gate 与安全校验 |

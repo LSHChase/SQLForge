@@ -64,7 +64,7 @@
 
 ## HARN-FE-001A Display IA Supersession
 
-U-TASK-004 的结论仍用于说明当时的 repo-closed 修复结果，但 HARN-FE-001 / HARN-FE-001A 已把后续前端展示目标调整为“核心 SQL 工作流优先”。后续导航、首页和页面标题改造以 `docs/plans/frontend-core-workflow-refocus-task-pack.md` 为展示层权威：`SQL 查询分析`、`SQL 历史查询`、`SQL 解析`、`解析历史`、`推荐结果`、`改写记录` 和 `改写历史` 构成核心路径，审计、追踪、告警、运行门禁和恢复演练作为辅助治理证据后置。
+U-TASK-004 的结论仍用于说明当时的 repo-closed 修复结果，但 HARN-FE-001 / HARN-FE-001A 已把后续前端展示目标调整为“核心 SQL 工作流优先”。后续导航、首页和页面标题改造以 `docs/plans/frontend-core-workflow-refocus-task-pack.md` 为展示层权威：`SQL 查询分析`、`SQL 历史查询`、`SQL 解析`、`解析历史`、`推荐结果`、`改写记录` 和 `改写历史` 构成核心路径；`USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 之后，审计取证、公开追踪、告警中心、运行门禁页和恢复演练页不再作为产品入口暴露。
 
 该 supersession 只覆盖前端信息架构和视觉权重，不改变已有后端接口、数据模型、推荐/改写状态语义或 `PULL_ONLY` 边界。当前前端导航不得恢复旧工作台作为正式菜单项；推荐、改写、历史与告警能力由各自核心页面承接。
 
@@ -72,7 +72,7 @@ U-TASK-004 的结论仍用于说明当时的 repo-closed 修复结果，但 HARN
 
 以下缺口在当前仓库内不能仅靠前端闭环，必须继续保持显式边界：
 
-- `路由治理`、`开放接入`、`告警中心` 仍缺真实写 API，相关 create/edit 行为继续保留 placeholder 或 simulated 语义。
+- `路由治理` 与 `开放接入` 仍缺真实写 API，相关 create/edit 行为继续保留 placeholder 或 simulated 语义；告警中心产品入口已移除，差异暂停证据收敛到推荐 / 改写 / SQL 历史主链路。
 - Dashboard 仍没有 repo-side 全局 benchmark task list，因此只能保留 benchmark workbench 入口与边界说明，不能声称真实全局通过率。
 - recommendation adoption rate 仍缺专用后端聚合接口，首页只能展示当前 recommendation 样本量与 dispatch-ready 状态。
 - `GET /api/governance/access-audit` 独立前端控制器尚不存在，开放接入页继续使用 query-history 的 `accessChannel` 过滤面渲染审计样例。

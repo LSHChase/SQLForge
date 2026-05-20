@@ -518,14 +518,14 @@
 ### 13.1 Priority Surfaces
 
 - 第一优先级拆分超长页面：`src/views/parse-record/ParseRecordView.vue`、`src/views/parse-batch/ParseBatchCenterView.vue`、`src/views/optimization/AccelerationView.vue`。
-- 第二优先级收敛大型业务页：`SystemView`、`SqlHistoryView`、`DashboardView`、`AuditForensicsView`、`AuditTroubleshootingView`、`RepairEvidenceView`。
+- 第二优先级收敛大型业务页：`SystemView`、`SqlHistoryView`、`DashboardView`、`RecommendationCenterView`、`BenchmarkView`、`AccessCenterView`、`AssetCatalogView`。
 - `App.vue`、`src/router/index.js` 与 `src/config/routePaths.mjs` 是壳层与路由元数据优先治理点；重构必须保持 path、legacy redirect、菜单可达性和生产隐藏 `delivery-progress` 语义不变。
 
 ### 13.2 Required Shared Shapes
 
 - 页面 hero、section header、evidence panel、metric card、toolbar/filter shell 优先抽到共享组件或同等本地模式，避免每个页面重复复制样式和状态拼装。
 - 业务页面状态必须拆分为筛选、分页排序、表格/列表数据、详情/弹层数据、loading/error/empty/success，不得继续把主流程状态全部堆在单个 SFC 顶层。
-- 重复 trace lookup、timeline、queue、retry、datasource/config 表格与详情模式应收敛为 composable 或共享组件；抽象必须服务真实重复复杂度，不能引入跨业务的杂项组件。
+- 重复 timeline、queue、retry、datasource/config 表格与详情模式应收敛为 composable 或共享组件；抽象必须服务真实重复复杂度，不能重新引入公开 trace lookup 或跨业务杂项组件。
 
 ### 13.2.1 HARN-108 Shared Layout Contract
 
@@ -535,7 +535,7 @@
 - `EvidencePanel.vue` 承载只读证据、风险说明、详情面板与静态运维信息；它可以设置 `tone`，但不得嵌套 `<el-card>` 或包装完整主流程。
 - `MetricCard.vue` 只用于 KPI、样本计数、比例和状态摘要；指标值必须来自页面已有后端证据、窗口样本或明确的静态治理事实，不得在组件内推导全局事实。
 - `ToolbarShell.vue` 承载筛选、刷新、批量动作和工具条；搜索动作、分页重置、loading/error/success 状态仍由页面或 composable 显式管理。
-- HARN-108 首批接入 `DashboardView`、`RuntimeGatesView`、`RecoveryDrillView` 与 `RoutePlaceholder`，后续 `HARN-109` 至 `HARN-115` 应复用这些组件逐页替换本地重复布局，而不是一次性重写全部业务页面。
+- HARN-108 首批接入 `DashboardView`、旧静态运维页与 `RoutePlaceholder`；`USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 之后，`RuntimeGatesView`、`RecoveryDrillView`、`AlertCenterView`、`AuditForensicsView`、`AuditTroubleshootingView` 和 `RepairEvidenceView` 不再作为后续重构目标，后续页面治理应聚焦当前仍暴露的核心业务页。
 
 ### 13.3 Non-Implementation Boundaries
 

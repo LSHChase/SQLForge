@@ -992,7 +992,6 @@ export default {
       openRouting: '打开路由治理',
       openParse: '打开 SQL 解析',
       openHistory: '打开 SQL 历史查询',
-      openAlertCenter: '打开告警中心',
       refreshRewriteRecords: '刷新改写记录',
       refreshValidationRuns: '刷新验证运行',
       createRewriteRecordAndReview: '创建改写记录',

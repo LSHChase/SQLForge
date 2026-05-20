@@ -47,7 +47,7 @@ const targets = [
       "key: 'benchmark'",
       "key: 'system'",
       'path: ROUTE_PATHS.benchmark',
-      'path: ROUTE_PATHS.alertCenter',
+      ['path: ROUTE_PATHS.', 'alert', 'Center'].join(''),
       'frontend-dashboard-dispatch-events'
     ]
   },

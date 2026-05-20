@@ -101,7 +101,7 @@
   - `benchmark-engine` 当前会优先经 `query-execution` 内部受保护入口抓取 workload snapshot；若目标引擎路径不可用，则显式回退为 synthetic backfill evidence；当同批次存在 live snapshot 时，会进一步把失败快照收口为 `COMPENSATED_REPLAY`，并把 `workloadSource/backfillApplied/queryExecution[...]`、cache governance、eviction/capacity 与 compensation 证据写入 benchmark execution summary 与 governance trace payload
   - `ENVIRONMENT_OBJECT_STORAGE` adapter 已形成显式配置能力：默认主路径仍是 `LOCAL_FILE`；environment-backed 模式除保留 object URI、repo-local mirror 和 live-evidence manifest 外，还支持显式配置 primary/recovery provider endpoint、bucket、credentials、provider contract、cleanup scope 与 provider timeout，在有 provider endpoint 时执行真实 provider-backed write/readback recovery verification，并可与 external write dir 验证叠加沉淀到 artifact storage evidence / governance export trace，但不把该路径误写成仓库默认事实
   - environment-backed artifact 当前已补齐 provider-specific / multi-provider contract、cleanup/recovery order 与 failure-replay 留痕；当 repo-local mirror 缺失时，读取路径会按 evidence 声明在 primary provider、recovery provider、external write 与 report snapshot replay 之间恢复，并把实际 recovery source/read status 回写到 benchmark audit summary 与 governance trace 查询面
-  - governance-triggered artifact operation 当前已形成 `cleanup/recover + batch retention/recovery orchestration` 基线：`governance` 侧开放单条与 batch 受保护入口，batch 编排复用 benchmark-engine 单条内部路由，按 target 去重并保留 `orchestrationType/batchId/batchIndex/batchSize/errorCode/errorMessage`
+  - artifact cleanup/recovery 当前仅作为后端内部 evidence 和报告读取韧性保留：`benchmark-engine` 内部路由可保留 operation surface 与 batch 元数据，但不再作为治理产品公开恢复演练或 artifact 操作入口暴露
   - provider-authenticated object-storage cleanup 当前已纳入受治理能力面：environment-backed cleanup scope 已显式收口为 `MIRROR_ONLY`、`MIRROR_LIVE_EVIDENCE`、`MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE`、`MIRROR_LIVE_EVIDENCE_EXTERNAL_WRITE_PROVIDER`，其中 provider delete 要求显式 credentials，并把 primary/recovery provider delete status 与 batch 编排元数据写入治理审计追溯链
   - 引擎指标快照、阈值判定结果、趋势图表、建议输出和报告实体
   - 基础模型测试、应用服务测试与控制器测试
@@ -126,8 +126,9 @@
   - 仓库已新增 `scripts/run-env-smoke.sh`，用于外部测试环境 CI/CD 在部署后执行环境无关的最小 smoke；该入口覆盖 4 个后端 health、前端可达性、3 条最小业务链路与受保护请求头有效性验证，但仍属于 `environment-backed` 部署后验证层
   - 测试环境虽已有独立 CI/CD，但只有在外部环境 owner 实际调用 `scripts/run-env-smoke.sh` 并保留证据后，才具备最小 smoke 闭环；在此之前仍不能替代仓库 `repo-closed` 主路径
 - 当前前端业务页已消费多服务治理能力：
-  - `src/services/runtimeGateApi.js` 已统一承接 `query-execution` 查询执行、`sql-optimization` 任务提交/轮询、`benchmark-engine` 任务与报告查询、`governance` 的 tenant-config、message stats/retry、history summaries/lookups/detail 等 HTTP 入口
-  - `SqlQueryView`、`AccelerationView`、`BenchmarkView`、`SystemView`、`ParseRecordView`、`RepairEvidenceView`、`AuditForensicsView`、`AuditTroubleshootingView` 已直接消费上述已交付后端能力，而不再停留在纯展示壳层
+  - `src/services/runtimeGateApi.js` 已统一承接 `query-execution` 查询执行、`sql-optimization` 任务提交/轮询、`benchmark-engine` 任务与报告查询、`governance` 的 tenant-config、message stats/retry、SQL 执行历史、解析历史、推荐、改写记录与元数据 HTTP 入口
+  - `SqlQueryView`、`AccelerationView`、`BenchmarkView`、`SystemView`、`ParseRecordView`、`SqlHistoryView`、`RecommendationCenterView`、`AccessCenterView` 和 `AssetCatalogView` 已直接消费上述已交付后端能力，而不再停留在纯展示壳层
+  - `USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 之后，审计取证、公开追踪查询、告警中心、运行门禁页和恢复演练页已从默认产品导航、路由和前端公开契约中移除；SQL 执行历史、真实改写历史和 runtime binding `ACTIVE` 安全约束保留。
 - 当前前端设计系统 token 与主题实现已落地到源码：
   - `src/styles/element-plus-theme.css` 已固化 `sqlforge-*` 颜色、字体、间距、圆角、状态与 Element Plus 主题变量
   - `useGlobalConfigStore` 与 `App.vue` 已接入 `dark/light` 主题切换，且默认运行态仍以 dark-mode-native 为主
