@@ -203,7 +203,7 @@ class BenchmarkTaskWorkerTest {
         linkage.setAlertStatus("OPEN");
         linkage.setNotifyStatus("SIMULATED_NOTIFIED");
         linkage.setSummary("Regression guard hit 1 threshold(s): failed=1, warning=0.");
-        linkage.setDetailPath("/api/governance/alerts/alert-benchmark-regression-001");
+        linkage.setDetailPath("");
         linkage.setLinkageMode("EMITTED");
         alertResponse.setAlertTriggered(Boolean.TRUE);
         alertResponse.setAlertLinkages(Collections.singletonList(linkage));

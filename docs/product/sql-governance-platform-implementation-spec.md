@@ -104,7 +104,7 @@
 8. `系统管理`
 9. `开放接入`
 
-HARN-FE-001 / HARN-FE-001A 之后，前端展示层菜单以 `docs/plans/frontend-core-workflow-refocus-task-pack.md` 为当前聚焦改造权威：它可以把上述能力域重新组织为 `SQL 查询分析`、`SQL 历史查询`、`SQL 解析`、`解析历史`、`推荐结果`、`改写治理`、`辅助治理` 等用户路径。该展示层重组只改变导航命名、排序和首屏权重，不改变后端 API、数据库 schema、推荐/改写状态机、复核激活语义或 `PULL_ONLY` 装数协同边界。
+HARN-FE-001 / HARN-FE-001A 之后，前端展示层菜单以 `docs/plans/frontend-core-workflow-refocus-task-pack.md` 为当前聚焦改造权威；`USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 进一步删除产品化辅助治理面，当前用户路径收敛为 `SQL 查询分析`、`SQL 历史查询`、`SQL 解析`、`解析历史`、`推荐结果`、`改写治理`、`数据资产`、`压测中心`、`系统管理`、`开放接入` 和参考页面。该展示层重组不改变推荐/改写激活语义、SQL 执行历史、真实改写历史、runtime binding `ACTIVE` 安全约束或 `PULL_ONLY` 装数协同边界；公开追踪 / 告警 / 运行门禁 / 恢复演练产品入口已移除。
 
 SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-rewrite-function-boundary-design.md) 为补充权威：`SQL 改写验证` 负责单条 / 批量试算与验证，`推荐结果 / 改写记录` 负责推荐和治理生命周期，`真实 SQL 改写历史` 只展示生产执行链路真实发生的自动改写。解析记录对应的改写建议归入推荐结果，解析记录对应的已采纳治理对象归入改写记录；解析历史只提供来源证据和关联入口，不写成真实改写历史。
 

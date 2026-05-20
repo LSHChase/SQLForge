@@ -47,7 +47,6 @@ cd "${REPO_ROOT}"
 run_step "closeout 契约" node scripts/check-rewrite-governance-closeout.mjs
 run_step "推荐页面契约" node scripts/check-recommendation-page-contract.mjs
 run_step "历史页面契约" node scripts/check-history-page-contract.mjs
-run_step "告警页面契约" node scripts/check-alert-page-contract.mjs
 run_step "前端页面治理" npm run test:frontend-page-governance
 
 if [[ "${RUN_BROWSER_SMOKE}" == "true" ]]; then

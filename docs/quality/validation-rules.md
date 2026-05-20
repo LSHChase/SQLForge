@@ -1,6 +1,6 @@
 # Validation Rules
 
-本文件独立收录 `R-116` 至 `R-190` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证、MCP 治理验证、JDK 运行时验证、前端视觉自检验证与开发者可读文本中文化验证。
+本文件独立收录 `R-116` 至 `R-191` 的验证规则，并补充 `R-168` 的执行型验证衔接，用于快速查阅阶段门禁、任务验证、回归验证、环境验证、规则自维护、自动触发验证规则、harness 任务治理验证、MCP 治理验证、JDK 运行时验证、前端视觉自检验证、开发者可读文本中文化验证与执行引擎产品边界验证。
 
 ## 索引
 
@@ -57,6 +57,7 @@
 - `R-188` 标识符与协议值保留验证
 - `R-189` 技术术语与例外 allowlist 验证
 - `R-190` 中文化自动门禁验证
+- `R-191` 执行引擎产品边界验证
 
 ## 阶段质量门禁（Phase Gate）
 
@@ -522,6 +523,20 @@
 - 通过标准：`python3 scripts/foreman.py validate <TASK_ID>` 自动执行适用门禁；`node scripts/lint-repository-knowledge.js` 通过。
 - 失败处置：补齐脚本、接线、文档索引或矩阵映射后重新验证。
 - 关联规则：`R-131`, `R-133`, `R-156`, `R-160`, `R-187`, `R-188`, `R-189`, `R-190`
+
+## 执行引擎产品边界验证（R-191）
+
+### R-191 执行引擎产品边界验证
+
+- 触发时机：修改前端导航、路由、公开 API contract、告警 / 追踪 / runtime gate / recovery drill / artifact operation 文档或相关脚本时。
+- 检查清单：
+  1. 默认导航、路由、locale 和 frontend contract 不再暴露审计取证、公开追踪查询、告警中心、运行门禁页或恢复演练页。
+  2. 公开接口文档不再列出 `/api/governance/alerts*`、`/api/governance/history/traces*`、`/api/governance/history/lookups*` 或 governance-triggered artifact operation 产品 API。
+  3. SQL 执行历史、真实改写历史和 runtime binding `ACTIVE` 安全约束仍有代码、脚本或测试 evidence 覆盖。
+  4. 若任务重新引入上述产品面或公开 API，必须有 `INBOX.md` 人工确认和新的验证规则 / contract 覆盖。
+- 通过标准：静态搜索、前端 contract、后端测试和 `foreman validate` 均与最小执行引擎产品边界一致。
+- 失败处置：删除或重新收口产品入口 / 公开 contract，或先升级为人工确认事项后再实现。
+- 关联规则：`R-111`, `R-115`, `R-121`, `R-133`, `R-184`, `R-191`
 
 ## Harness 任务治理验证（R-156 至 R-161）
 

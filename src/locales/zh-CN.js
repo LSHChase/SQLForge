@@ -434,10 +434,7 @@ export default {
     summary: '查询执行历史、筛选历史 SQL，查看执行摘要、原 SQL、模板 SQL、绑定后 SQL 以及解析、推荐和改写关联。',
     actions: {
       refresh: '查询/刷新',
-      lookup: '精确反查',
       clear: '清空条件',
-      openRepairEvidence: '打开修复证据',
-      openAuditForensics: '打开审计取证',
       exportEvidence: '导出取证',
       viewRawEvidence: '查看原始证据',
       openParseHistory: '打开解析历史',
@@ -482,12 +479,9 @@ export default {
       parameterizedSql: '参数化 SQL',
       sortBy: '排序字段',
       sortOrder: '排序方向',
-      traceIdPlaceholder: '输入 Trace ID',
-      taskIdPlaceholder: '输入 Task ID',
-      reportIdPlaceholder: '输入 Report ID',
       selectPlaceholder: '请选择',
       eyebrow: '历史筛选',
-      title: '历史筛选与精确反查',
+      title: '历史筛选',
       summary: '筛选项全部映射到 query-history 已有查询参数；默认空筛选不改变历史查询契约。'
     },
     metrics: {
@@ -534,9 +528,7 @@ export default {
       noRewriteRecords: '当前 SQL 历史没有匹配的改写记录。'
     },
     messages: {
-      lookupRequired: '至少输入 traceId、taskId、reportId 中的一项。',
-      lookupEmpty: '没有命中记录。',
-      lookupWithoutExecution: '命中了 trace，但没有 QUERY_EXECUTION 执行历史。'
+      traceLookupRemoved: '独立追踪反查入口已移除，请通过 historyId 打开 SQL 执行历史详情。'
     },
     detail: {
       title: '执行详情',
@@ -712,251 +704,6 @@ export default {
         issueScenes: '问题场景',
         location: '定位'
       }
-    }
-  },
-  governanceTrace: {
-    tenantContext: '租户上下文',
-    businessTenant: '业务租户',
-    governanceTenant: '治理租户',
-    lookupLimit: '返回数量',
-    traceId: 'Trace ID',
-    taskId: 'Task ID',
-    reportId: 'Report ID',
-    windowStart: '窗口开始',
-    windowEnd: '窗口结束',
-    clearCriteria: '清空条件',
-    loadOlderEvidence: '加载更早证据',
-    refreshQueueImpact: '刷新队列影响',
-    matchedTraces: '命中 trace',
-    compensationTraces: '补偿 trace',
-    repairSignalChains: '修复信号链',
-    reportLinkedTraces: '报告回写链',
-    nonSuccessChains: '异常/修复链',
-    olderEvidenceAvailable: '仍有更早证据链',
-    olderRemediationAvailable: '仍有更早处置链',
-    olderTracesAvailable: '仍有更早 trace',
-    serviceCode: '服务编码',
-    resourceType: '资源类型',
-    resourceId: '资源标识',
-    lastSeenAt: '最后发生时间',
-    lookupMode: '命中维度',
-    repairSignal: '修复信号',
-    compensationTrace: '补偿链路',
-    auditEvents: '审计事件',
-    sqlFingerprint: 'SQL 指纹',
-    errorCode: '错误码',
-    targetEngine: '目标引擎',
-    degraded: '降级',
-    requestChain: '请求链路',
-    task: '任务',
-    report: '报告',
-    fingerprint: '指纹',
-    error: '错误',
-    engine: '引擎',
-    degradedRecovery: '降级恢复',
-    queueImpact: '队列影响',
-    queueTotal: '消息总数',
-    queuePending: '待补偿',
-    queueFailed: '失败消息',
-    queueConsumed: '已消费',
-    retryStatus: '重试状态',
-    retriedCount: '重试数量',
-    failedDelta: 'failed 降幅',
-    repairOutcome: '修复结果',
-    criteria: {
-      traceId: 'Trace 反查',
-      taskId: 'Task 反查',
-      reportId: 'Report 反查',
-      windowStart: '窗口开始',
-      windowEnd: '窗口结束'
-    }
-  },
-  repairEvidence: {
-    title: '修复证据',
-    summary: '按 trace、task、report 反查治理链路，确认补偿与修复结果。',
-    refactorNote: '该页复用统一 trace lookup、命中列表与审计时间线组件，保留补偿、降级恢复和报告回写证据可见性。',
-    lookupTitle: '追溯条件与命中结果',
-    lookupSummary: '输入 trace、task 或 report 后查询治理追溯链，窗口字段会原样传给后端反查接口。',
-    detailTitle: '补偿与修复证据明细',
-    actions: {
-      runLookup: '执行反查',
-      openTroubleshooting: '打开处置决策'
-    },
-    messages: {
-      requiredLookup: '至少输入 traceId、taskId、reportId 中的一项后再执行反查。',
-      emptyCriteria: '输入 trace / task / report 后执行反查。',
-      noMatches: '命中结果会展示对应 trace 列表，并允许继续下钻审计/修复时间线。',
-      emptyDetail: '选择左侧命中 trace 后，这里会显示命中维度、修复信号和审计时间线。'
-    }
-  },
-  auditForensics: {
-    title: '审计取证',
-    summary: '串联补偿、修复、回写与历史事件，形成可分页的取证链路。',
-    refactorNote: '该页把失败链、补偿链、报告回写和审计事件收敛到同一套取证组件，并保留跨页 pivot。',
-    lookupTitle: '取证条件与证据链命中',
-    lookupSummary: 'trace、task、report 任一维度都可作为取证入口，分页 cursor 继续来自后端。',
-    detailTitle: '审计取证详情与跨页 pivot',
-    actions: {
-      runLookup: '执行取证反查',
-      openParseRecord: '跳回历史诊断',
-      openRepairEvidence: '打开修复证据',
-      openTroubleshooting: '打开处置决策'
-    },
-    messages: {
-      requiredLookup: '至少输入 traceId、taskId、reportId 中的一项后再执行取证反查。',
-      emptyCriteria: '输入 trace / task / report 后执行取证反查。',
-      noMatches: '命中结果会展示失败链、补偿链与报告回写证据。',
-      emptyDetail: '选择左侧命中 trace 后，这里会显示取证信号、历史事件和跨页跳转动作。'
-    }
-  },
-  auditTroubleshooting: {
-    title: '故障处置',
-    summary: '汇总失败类型、补偿状态、回写状态与队列影响，并给出处置动作与验收信号。',
-    refactorNote: '该页把 trace 取证与治理消息队列影响合并到统一处置视图，retry 仍调用后端权威入口。',
-    lookupTitle: '故障范围、队列影响与决策输入',
-    lookupSummary: '业务租户用于 trace 反查，治理租户用于消息统计与 retry，不混写两个权限边界。',
-    detailTitle: '处置动作与验收信号',
-    actions: {
-      runLookup: '执行处置反查',
-      retryFailedMessages: '重试失败消息',
-      openSystem: '打开治理 backlog',
-      openRepairEvidence: '打开修复证据',
-      openParseRecord: '回到历史诊断'
-    },
-    decision: {
-      failureType: '失败类型',
-      compensationState: '补偿状态',
-      writeBackState: '回写状态',
-      queueImpact: '队列影响',
-      acceptanceState: '验收信号'
-    },
-    messages: {
-      requiredLookup: '至少输入 traceId、taskId、reportId 中的一项后再执行处置决策反查。',
-      emptyCriteria: '输入 trace / task / report 后执行处置决策反查。',
-      noMatches: '命中结果会展示故障链与队列影响，并提供处置入口。',
-      emptyDetail: '选择左侧命中 trace 后，这里会显示失败类型、补偿状态、回写状态和验收信号。'
-    }
-  },
-  runtimeGates: {
-    title: '运行时门禁',
-    summary: '汇总阶段入口、交付、合规门禁证据以及当前仍未闭口的退出阻塞项。',
-    heroEyebrow: 'Phase-F 运行门禁',
-    heroTitle: '运行时门禁与退出阻断基线',
-    heroSummary: '这里收口入口、交付与合规三层门禁，避免 Phase-F 的构建、运行时、恢复和合规证据继续散在脚本与文档里。',
-    heroNote: '当前重点不是再加展示页，而是明确哪些脚本已经成为阻断门禁、哪些仍是残余风险。',
-    evidenceEyebrow: '证据地图',
-    evidenceTitle: '脚本与 workflow 入口',
-    evidenceSummary: '仅列出仓库内脚本和 workflow 入口，不代表外部环境已经执行。',
-    kpiTitle: '门禁 KPI 与证据边界',
-    kpiSummary: '指标只统计本页列出的脚本、workflow 和残余阻塞，不外推运行时全局健康。',
-    activityEyebrow: '门禁活动',
-    activityTitle: '门禁活动流',
-    activitySummary: '按入口、交付、合规顺序展示阻断检查和脚本入口。',
-    blockersEyebrow: '剩余阻塞',
-    blockersTitle: '仍需继续推进的阻塞项',
-    blockersSummary: '这些仍是退出前要继续跟踪的风险项，不能写成已闭环事实。',
-    gates: {
-      entry: {
-        title: '入口门禁',
-        summary: '台账、治理编译物和仓库知识 lint 必须先对齐。'
-      },
-      delivery: {
-        title: '交付门禁',
-        summary: '数据库脚本、构建、覆盖率和 Sonar 统一收口到阶段交付门禁。'
-      },
-      compliance: {
-        title: '合规门禁',
-        summary: '恢复基线、可观测基线、Kafka gate 与敏感数据边界纳入 R-118 复验。'
-      }
-    },
-    blockers: {
-      coverage: '覆盖率阈值已由阶段门禁执行，但当前仓库全量覆盖率仍需继续抬升到 Phase-1+ 85%。',
-      sonar: 'Sonar 在交付/完整门禁下已被强制要求，缺少 secrets 时会直接阻断。',
-      workflowDispatch: 'Phase Gate workflow 仍然是显式 workflow_dispatch，不会自动绑定发布动作。'
-    },
-    evidenceRows: {
-      defaultCi: 'CI 默认门禁',
-      kafka: '真实 Kafka 门禁',
-      phaseGate: 'Phase Gate 入口',
-      phaseScript: '阶段脚本'
-    },
-    metrics: {
-      gates: {
-        label: '门禁层级',
-        detail: '只统计当前页面明确列出的入口、交付与合规门禁。'
-      },
-      checks: {
-        label: '阻断检查',
-        trend: '脚本入口',
-        detail: '来自门禁活动流的命令清单，不推导外部环境状态。'
-      },
-      workflows: {
-        label: 'workflow 入口',
-        detail: '仅显示仓库内 workflow 文件引用，执行结果仍以验证日志为准。'
-      },
-      blockers: {
-        label: '残余阻塞',
-        trend: '需继续跟踪',
-        detail: '这些项保留为风险队列，不能标记为已关闭事实。'
-      }
-    }
-  },
-  recoveryDrill: {
-    title: '恢复演练',
-    summary: '沉淀备份范围、恢复目标、责任边界与恢复后必过验收检查。',
-    heroEyebrow: '恢复演练基线',
-    heroTitle: '备份恢复与恢复后验收基线',
-    heroSummary: '这一页把 F-TASK-008/009 形成的备份对象、恢复目标、责任边界和恢复后检查统一收在治理运维路径里。',
-    heroNote: '恢复完成的定义不是库导回来了，而是健康探针、审计补偿、队列 backlog、导出/脱敏和敏感泄漏检查都通过。',
-    objectivesEyebrow: 'RPO / RTO',
-    objectivesTitle: '恢复目标与责任人',
-    objectivesSummary: '静态表格记录数据域、RPO/RTO 和责任人边界。',
-    checklistEyebrow: '验收清单',
-    checklistTitle: '恢复后必须复验的清单',
-    checklistSummary: '恢复完成后必须复验的高风险证据，不以数据库导回作为唯一完成定义。',
-    kpiTitle: '恢复演练 KPI 与验收边界',
-    kpiSummary: '仅展示基线对象、RPO/RTO 目标和恢复后检查项，不把演练结果写成已生产验证事实。',
-    activityEyebrow: '恢复流程',
-    activityTitle: '恢复对象活动流',
-    activitySummary: '按恢复批次关注对象展示顺序和验收语义。',
-    sameBackupBatch: '与备份批次同步',
-    inventory: {
-      core: '主库、核心追溯链、schema 版本与 migration 清单必须成批恢复。',
-      audit: '审计留痕必须连续，`LOGIN/LOGOUT` 与 `audit/write` 抽样恢复后仍可落库。',
-      export: '导出元数据和脱敏归档索引要能互相核对。',
-      queue: '数据库兜底或 fallback backlog 恢复后必须还能继续补偿。',
-      keys: '只恢复密文、不回流明文，`encryption_key_id` 必须与批次对应。'
-    },
-    checklist: {
-      health: '4 个后端 `/actuator/health` 和治理 `/api/governance/health` 全部返回 `UP`。',
-      audit: '恢复后复跑 `audit/write` 抽样、`LOGIN/LOGOUT` 审计样本。',
-      backlog: '检查 `kafka_message_queue` backlog 或明确记录为何不适用。',
-      export: '抽样 `export_record` 与 `history_id/result_id` 追溯键，确认脱敏地址未泄漏。',
-      leak: '抽检日志平台和 `system_config`，确认没有密码、Token、密钥明文泄漏。'
-    },
-    metrics: {
-      inventory: {
-        label: '恢复对象',
-        trend: '基线清单',
-        detail: '只统计当前基线明确列出的恢复对象。'
-      },
-      rpo: {
-        label: 'RPO 目标',
-        detail: '治理元数据、审计、导出和队列域共同遵守的恢复点目标。'
-      },
-      rto: {
-        label: 'RTO 目标',
-        detail: '恢复后仍需通过健康、审计、队列和脱敏验收。'
-      },
-      checklist: {
-        label: '复验检查',
-        trend: '恢复后',
-        detail: '恢复完成后必须逐项复验，不以单点成功替代闭环。'
-      }
-    },
-    table: {
-      domain: '数据域',
-      owner: '责任人'
     }
   },
   benchmark: {
@@ -1463,76 +1210,6 @@ export default {
     rawDrawerTitle: '接入原始证据',
     policy: {
       dialogTitle: '接入边界说明'
-    }
-  },
-  alertCenter: {
-    title: '告警中心',
-    summary: '查看后端告警、ACK 状态与通知模拟结果。',
-    pageTitle: '告警中心与通知状态',
-    refactorSummary: '当前页面消费后端读接口 {readPath}，ACK 走治理服务接口；通知链路仍显示 SIMULATED / DEDUPE 状态，不写成真实邮件成功。',
-    controlsTitle: '告警查询与治理动作',
-    controlsSummary: '按租户、告警状态、告警类型和通知状态查询；新增规则和通知策略仍展示为缺失写接口的能力边界。',
-    listTitle: '告警列表',
-    detailTitle: '详情、ACK、notify 与暂停证据',
-    options: {
-      all: '全部'
-    },
-    metrics: {
-      total: '总告警',
-      open: '未 ACK',
-      high: '高优先级',
-      simulated: '通知模拟'
-    },
-    fields: {
-      alertId: '告警 ID',
-      alertType: '告警类型',
-      alertLevel: '告警级别',
-      alertStatus: '告警状态',
-      notifyStatus: '通知状态',
-      notifyBoundary: '通知边界',
-      sourceService: '来源服务',
-      policyId: '策略 ID',
-      dedupeKey: '去重键',
-      recommendationId: '推荐 ID',
-      historyId: '历史 ID',
-      rewriteRecordId: '改写记录 ID',
-      validationRunId: '验证 Run ID',
-      sqlFingerprint: 'SQL 指纹',
-      autoApplyPaused: '自动应用暂停',
-      notifiedAt: '通知时间',
-      ackedBy: 'ACK 人',
-      ackedAt: 'ACK 时间'
-    },
-    actions: {
-      refresh: '刷新告警',
-      createRule: '新增告警规则',
-      editNotify: '修改通知策略',
-      ack: 'ACK 告警',
-      clearAck: '撤销模拟 ACK'
-    },
-    sections: {
-      notificationLogs: '通知日志',
-      evidence: '告警证据'
-    },
-    derived: {
-      backlogTitle: '治理补偿 backlog 告警',
-      backlogSummary: '当前 failed={failed}，pending={pending}。',
-      dispatchTitle: '装数协同事件待处理',
-      parseTitle: '解析优先级告警'
-    },
-    placeholder: {
-      createTitle: '新增告警规则暂不可写',
-      createCapability: '新增告警规则',
-      createReason: '当前仓库没有独立的告警规则写接口，这一页仍然基于 backlog、dispatch 和重要/紧急 SQL 派生证据。',
-      createNextStep: '后续若补告警配置后端，再把新增表单接到这里。',
-      editTitle: '修改通知策略暂不可写',
-      editCapability: '修改通知策略',
-      editReason: '当前页面的 ACK / 通知明确是模拟状态，不应伪装成已经接通的真实通知控制面。',
-      editNextStep: '需要真实通知接口和审计链后，再接入编辑动作。'
-    },
-    messages: {
-      noAlert: '当前没有可展示的告警。',
-      noNotificationLog: '当前没有通知日志。'
     }
   },
   acceleration: {
@@ -2809,31 +2486,6 @@ export default {
       text011: '审计边界',
       text012: '剩余责任方'
     },
-    viewsRoutingGovernanceRoutingGovernanceView: {
-      text001: '声明允许模式',
-      text002: '实时校验',
-      text003: '实现阶段',
-      text004: '通过注释表达目标引擎偏好；真正采用哪个引擎仍以后端 routeDecision 为准。',
-      text005: '治理优先级进入上下文，但不会替代路由证据。',
-      text006: '当前页只读展示 calibration 快照和历史 routeDecision，不提供前端改写规则入口。',
-      text007: '选择引擎',
-      text008: '规则标识',
-      text009: '校验状态',
-      text010: '回退说明',
-      text011: '执行模式',
-      text012: '尝试模式',
-      text013: '注释上下文',
-      text014: '执行摘要',
-      text015: '查询上下文',
-      text016: '新增规则暂不可写',
-      text017: '新增路由规则',
-      text018: '当前仓库仅开放 route-calibration 与 query-history.routeDecision 的只读证据查看，尚未提供路由规则写接口。',
-      text019: '需要后端新增规则写接口后，再把表单接入该证据页。',
-      text020: '修改规则暂不可写',
-      text021: '修改路由规则',
-      text022: '当前页的职责是执行证据展示，不是前端配置中心；仓库真值也没有提供规则更新接口。',
-      text023: '若后续开放写接口，应先补契约和审计链，再接入编辑动作。'
-    },
     viewsSystemSystemView: {
       text001: '系统管理',
       text002: '数据源、接口与运行治理',
@@ -2956,27 +2608,20 @@ export default {
       parseHistory: '解析历史',
       recommendations: '推荐结果',
       rewriteGovernance: '改写治理',
-      auxiliaryGovernance: '辅助治理',
       referencePages: '参考页面',
-      routing: '路由治理',
       assets: '数据资产',
       benchmark: '压测中心',
       system: '系统管理',
       access: '开放接入'
     },
     sections: {
-      datasourcesInterfaces: '数据源与接口',
-      auditTrace: '审计与追踪',
-      alertsRemediation: '告警与处置',
-      runtimeGovernance: '运行治理'
+      datasourcesInterfaces: '数据源与接口'
     },
     items: {
       dashboardHome: '核心链路总览',
       deliveryWorkbench: 'AI 交付工作台',
       sqlWorkbench: 'SQL 查询分析',
       historyList: 'SQL 历史查询',
-      repairEvidence: '修复证据',
-      auditForensics: '审计取证',
       sqlParse: '单条 SQL 解析',
       parseStatistics: '解析统计',
       batchParseCenter: '批量解析中心',
@@ -2985,14 +2630,9 @@ export default {
       rewriteValidation: 'SQL 改写验证',
       rewriteRecords: '改写记录',
       rewriteHistory: '改写历史',
-      routingEvidence: '追踪查询',
       assetCatalog: '资产目录',
       benchmarkWorkbench: '压测工作台',
       systemManagement: '系统管理',
-      alertCenter: '告警中心',
-      troubleshooting: '故障处置',
-      runtimeGates: '运行时门禁',
-      recoveryDrill: '恢复演练',
       openAccess: '开放接入'
     },
     badges: {

@@ -61,7 +61,7 @@ class BenchmarkRegressionAlertServiceTest {
         linkage.setAlertStatus("OPEN");
         linkage.setNotifyStatus("SIMULATED_NOTIFIED");
         linkage.setSummary("Regression guard hit 1 threshold(s): failed=1, warning=0.");
-        linkage.setDetailPath("/api/governance/alerts/alert-001");
+        linkage.setDetailPath("");
         linkage.setLinkageMode("EMITTED");
         GovernanceBenchmarkRegressionAlertResponse alertResponse = new GovernanceBenchmarkRegressionAlertResponse();
         alertResponse.setAlertTriggered(Boolean.TRUE);

@@ -14,9 +14,9 @@
 
 ### INBOX-007: 是否删除审计取证追踪告警运行门禁恢复演练
 
-- Status: open
-- Needed decision: 人类需要在 `docs/plans/simplify-engine-remove-ops-surfaces-impact-analysis-2026-05-20.md` 的 A/B/C 中选择后续方向：A）仅删除前端辅助治理入口；B）删除产品化辅助治理面和公开追踪 / 告警 API，但保留最小执行安全内核；C）彻底删除相关后端、数据、规则与验证，并接受等保、历史、自动改写安全语义降级。同时需确认是否继续要求 `R-111` 至 `R-115`、是否保留 SQL 执行历史和真实改写历史、是否保留 runtime binding `ACTIVE` 后才允许自动改写 / 加速命中的安全约束、历史审计 / 告警 / trace 数据如何处理，以及 benchmark artifact recovery / cleanup 是否也移出项目边界。
-- Task refs: USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520
+- Status: resolved
+- Needed decision: 人类已选择 B）删除产品化辅助治理面和公开追踪 / 告警 API，但保留最小执行安全内核；同时确认废止 `R-111` 与 `R-115` 作为产品化页面 / 公开操作面的要求，保留 SQL 执行历史、真实改写历史和 runtime binding `ACTIVE` 后才允许自动改写 / 加速命中的安全约束，允许历史 `audit_log` / `alert_event` / trace 数据 drop，并确认 benchmark artifact recovery / cleanup 移出项目产品边界。
+- Task refs: USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520, USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520
 - Plan refs: docs/plans/simplify-engine-remove-ops-surfaces-impact-analysis-2026-05-20.md
 
 ### INBOX-006: 激活/暂停折叠方案核心语义待确认

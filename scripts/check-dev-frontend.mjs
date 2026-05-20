@@ -1132,20 +1132,6 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('sql-history-detail-drawer').waitFor({ timeout: defaultTimeoutMs })
     await expectTextInLocator(page.getByTestId('sql-history-rewrite-record-table'), 'rewrite-dev-1')
 
-    await page.goto(`${baseUrl}${ROUTE_PATHS.runtimeGates}`, { waitUntil: 'domcontentloaded' })
-    await page.getByTestId('runtime-gates-page').waitFor({ timeout: defaultTimeoutMs })
-    assert(
-      page.url().includes(ROUTE_PATHS.runtimeGates) && !page.url().includes('#'),
-      `Expected history-mode runtime-gates route, got ${page.url()}`
-    )
-
-    await page.goto(`${baseUrl}${ROUTE_PATHS.recoveryDrill}`, { waitUntil: 'domcontentloaded' })
-    await page.getByTestId('recovery-drill-page').waitFor({ timeout: defaultTimeoutMs })
-    assert(
-      page.url().includes(ROUTE_PATHS.recoveryDrill) && !page.url().includes('#'),
-      `Expected history-mode recovery-drill route, got ${page.url()}`
-    )
-
     await page.goto(`${baseUrl}${ROUTE_PATHS.sqlQuery}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('query-flow-page').waitFor({ timeout: defaultTimeoutMs })
 

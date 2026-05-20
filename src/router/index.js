@@ -7,7 +7,7 @@ import {
   ROOT_ROUTE_DEFINITION
 } from '../config/routePaths.mjs'
 
-// 静态路由契约标记：name: 'RoutingGovernance', name: 'RecommendationCenter', name: 'AccessCenter'。
+// 静态路由契约标记：name: 'RecommendationCenter', name: 'AccessCenter'。
 
 const DashboardView = () => import('../views/dashboard/DashboardView.vue')
 const SqlQueryView = () => import('../views/query/SqlQueryView.vue')
@@ -15,18 +15,11 @@ const SqlHistoryView = () => import('../views/sql-history/SqlHistoryView.vue')
 const ParseRecordView = () => import('../views/parse-record/ParseRecordView.vue')
 const ParseBatchCenterView = () => import('../views/parse-batch/ParseBatchCenterView.vue')
 const AssetCatalogView = () => import('../views/asset-catalog/AssetCatalogView.vue')
-const RepairEvidenceView = () => import('../views/repair-evidence/RepairEvidenceView.vue')
-const AuditForensicsView = () => import('../views/audit-forensics/AuditForensicsView.vue')
-const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/AuditTroubleshootingView.vue')
-const RuntimeGatesView = () => import('../views/runtime-gates/RuntimeGatesView.vue')
-const RecoveryDrillView = () => import('../views/recovery-drill/RecoveryDrillView.vue')
 const AccelerationView = () => import('../views/optimization/AccelerationView.vue')
 const ParseStatisticsCenterView = () => import('../views/parse-statistics/ParseStatisticsCenterView.vue')
 const BenchmarkView = () => import('../views/benchmark/BenchmarkView.vue')
-const RoutingGovernanceView = () => import('../views/routing-governance/RoutingGovernanceView.vue')
 const RecommendationCenterView = () => import('../views/recommendation-center/RecommendationCenterView.vue')
 const AccessCenterView = () => import('../views/access-center/AccessCenterView.vue')
-const AlertCenterView = () => import('../views/alert-center/AlertCenterView.vue')
 const SystemView = () => import('../views/system/SystemView.vue')
 
 const routeComponents = {
@@ -36,18 +29,11 @@ const routeComponents = {
   ParseRecordView,
   ParseBatchCenterView,
   AssetCatalogView,
-  RepairEvidenceView,
-  AuditForensicsView,
-  AuditTroubleshootingView,
-  RuntimeGatesView,
-  RecoveryDrillView,
   AccelerationView,
   ParseStatisticsCenterView,
   BenchmarkView,
-  RoutingGovernanceView,
   RecommendationCenterView,
   AccessCenterView,
-  AlertCenterView,
   SystemView
 }
 

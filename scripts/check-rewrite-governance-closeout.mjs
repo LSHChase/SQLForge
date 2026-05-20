@@ -49,7 +49,6 @@ const requiredSmokeTokens = [
   'check-rewrite-governance-closeout.mjs',
   'check-recommendation-page-contract.mjs',
   'check-history-page-contract.mjs',
-  'check-alert-page-contract.mjs',
   'npm run test:frontend-page-governance',
   'npm run smoke:production-rewrite-closed-loop',
   '--skip-browser'
@@ -70,7 +69,6 @@ const requiredRunbookTokens = [
   'PRW-012',
   'node scripts/check-recommendation-page-contract.mjs',
   'node scripts/check-history-page-contract.mjs',
-  'node scripts/check-alert-page-contract.mjs',
   'not a default blocker'
 ]
 

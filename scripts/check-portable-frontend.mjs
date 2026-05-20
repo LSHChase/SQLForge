@@ -525,19 +525,6 @@ const runBrowserSmoke = async baseUrl => {
       `Portable frontend requested fabricated parse history detail ${mockState.fabricatedHistoryDetailCalls} time(s)`
     )
 
-    await page.goto(`${baseUrl}/#/governance/ops/runtime-gates`, { waitUntil: 'networkidle' })
-    await page.getByTestId('runtime-gates-page').waitFor({ timeout: defaultTimeoutMs })
-    assert(
-      page.url().includes('#/governance/ops/runtime-gates'),
-      `Expected portable runtime-gates hash route, got ${page.url()}`
-    )
-
-    await page.goto(`${baseUrl}/#/governance/ops/recovery-drill`, { waitUntil: 'networkidle' })
-    await page.getByTestId('recovery-drill-page').waitFor({ timeout: defaultTimeoutMs })
-    assert(
-      page.url().includes('#/governance/ops/recovery-drill'),
-      `Expected portable recovery-drill hash route, got ${page.url()}`
-    )
   } finally {
     await page.close()
     await browser.close()

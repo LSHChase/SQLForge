@@ -103,31 +103,6 @@ const buildRewriteRecordsQuery = filters => {
   return query ? `?${query}` : ''
 }
 
-const buildGovernanceAlertsQuery = (tenantId, filters = {}) => {
-  const params = new URLSearchParams()
-  const normalizedTenantId = normalizeTenantId(tenantId)
-  if (normalizedTenantId) {
-    params.set('tenantId', normalizedTenantId)
-  }
-  const enumFilterKeys = ['alertStatus', 'alertType', 'notifyStatus']
-  enumFilterKeys.forEach(key => {
-    const value = String(filters?.[key] || '').trim()
-    if (value) {
-      params.set(key, value)
-    }
-  })
-  const pageNo = Number(filters?.pageNo)
-  const pageSize = Number(filters?.pageSize)
-  if (Number.isFinite(pageNo) && pageNo > 0) {
-    params.set('pageNo', String(pageNo))
-  }
-  if (Number.isFinite(pageSize) && pageSize > 0) {
-    params.set('pageSize', String(pageSize))
-  }
-  const query = params.toString()
-  return query ? `?${query}` : ''
-}
-
 const devProxyHeaders = (tenantId, options = {}) => {
   const {
     requestPrefix = 'frontend-runtime',
@@ -342,39 +317,6 @@ export const getGovernanceMessageStats = (tenantId, requestOptions = {}) =>
     }
   })
 
-export const getGovernanceAlerts = (tenantId, filters = {}, requestOptions = {}) =>
-  request({
-    method: 'get',
-    url: `/api/governance/alerts${buildGovernanceAlertsQuery(tenantId, filters)}`,
-    tenantId: normalizeTenantId(tenantId),
-    requestOptions: {
-      requestPrefix: 'frontend-governance-alerts',
-      ...requestOptions
-    }
-  })
-
-export const getGovernanceAlertDetail = (tenantId, alertId, requestOptions = {}) =>
-  request({
-    method: 'get',
-    url: `/api/governance/alerts/${encodeURIComponent(alertId)}${buildTenantQuerySuffix(tenantId)}`,
-    tenantId: normalizeTenantId(tenantId),
-    requestOptions: {
-      requestPrefix: 'frontend-governance-alert-detail',
-      ...requestOptions
-    }
-  })
-
-export const ackGovernanceAlert = (tenantId, alertId, requestOptions = {}) =>
-  request({
-    method: 'post',
-    url: `/api/governance/alerts/${encodeURIComponent(alertId)}/ack${buildTenantQuerySuffix(tenantId)}`,
-    tenantId: normalizeTenantId(tenantId),
-    requestOptions: {
-      requestPrefix: 'frontend-governance-alert-ack',
-      ...requestOptions
-    }
-  })
-
 export const retryGovernanceFailedMessages = (tenantId, requestOptions = {}) =>
   request({
     method: 'post',
@@ -393,63 +335,6 @@ export const getGovernanceTenantConfig = (tenantId, requestOptions = {}) =>
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-governance-tenant-config',
-      ...requestOptions
-    }
-  })
-
-export const getGovernanceTraceSummaries = (tenantId, limit = 12, requestOptions = {}) =>
-  request({
-    method: 'get',
-    url: `/api/governance/history/traces?tenantId=${encodeURIComponent(tenantId)}&limit=${encodeURIComponent(limit)}`,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-governance-trace-summaries',
-      ...requestOptions
-    }
-  })
-
-export const lookupGovernanceTraces = (tenantId, filters = {}, limit = 12, requestOptions = {}) => {
-  const params = new URLSearchParams()
-  params.set('tenantId', tenantId)
-  params.set('limit', String(limit))
-
-  ;['traceId', 'taskId', 'reportId'].forEach(key => {
-    const value = String(filters?.[key] || '').trim()
-    if (value) {
-      params.set(key, value)
-    }
-  })
-  ;['windowStart', 'windowEnd'].forEach(key => {
-    const value = String(filters?.[key] || '').trim()
-    if (value) {
-      params.set(key, value)
-    }
-  })
-  const cursor = String(filters?.cursor || '').trim()
-  if (cursor) {
-    params.set('cursor', cursor)
-  }
-
-  return request({
-    method: 'get',
-    url: `/api/governance/history/lookups?${params.toString()}`,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-governance-trace-lookups',
-      ...requestOptions
-    }
-  })
-}
-
-export const getGovernanceTraceDetail = (tenantId, traceId, limit = 20, requestOptions = {}) =>
-  request({
-    method: 'get',
-    url:
-        `/api/governance/history/traces/${encodeURIComponent(traceId)}` +
-      `?tenantId=${encodeURIComponent(tenantId)}&limit=${encodeURIComponent(limit)}`,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-governance-trace-detail',
       ...requestOptions
     }
   })

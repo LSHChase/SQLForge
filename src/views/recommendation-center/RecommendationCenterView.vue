@@ -472,20 +472,6 @@ const traceabilityCards = computed(() => {
   ].filter(item => displayValue(item.value) !== '-')
 })
 
-const alertLinkageCards = computed(() => {
-  const trace = recommendationTrace.value || {}
-  const recommendation = selectedRecommendation.value || {}
-  const alertRefs = normalizeArray(trace.alertRefs || trace.traceRefs?.alertRefs)
-  return [
-    field('alertId', 'alertId', trace.alertId),
-    field('alertStatus', t('recommendationCenter.fields.alertStatus'), firstDefined(recommendation.alertStatus, trace.alertStatus)),
-    field('validationStatus', t('recommendationCenter.fields.validationStatus'), recommendation.validationStatus),
-    field('manualReviewRequired', t('recommendationCenter.fields.manualReviewRequired'), boolText(recommendation.manualReviewRequired)),
-    field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(recommendation.autoApplyAllowed)),
-    field('alertRefs', t('recommendationCenter.fields.alertRefs'), alertRefs.length)
-  ]
-})
-
 const contractCards = computed(() => {
   const contract = dispatchContract.value
   if (!contract) {
@@ -1244,26 +1230,6 @@ const openParseRecord = () => {
   })
 }
 
-const openAlertCenter = () => {
-  router.push({
-    path: ROUTE_PATHS.alertCenter,
-    query: {
-      tenantId: form.tenantId,
-      alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
-      alertId: recommendationTrace.value?.alertId || '',
-      recommendationId: selectedRecommendationId.value,
-      historyId: recommendationTrace.value?.historyId || '',
-      sqlFingerprint: recommendationTrace.value?.sqlFingerprint || ''
-    }
-  })
-}
-
-const openRoutingGovernance = () => {
-  router.push({
-    path: ROUTE_PATHS.routingGovernance
-  })
-}
-
 const openAccelerationWorkbench = () => {
   router.push({
     path: ROUTE_PATHS.acceleration
@@ -1459,9 +1425,6 @@ watch(
           </el-button>
           <el-button data-testid="recommendation-reset-filters" @click="resetRecommendationFilters">
             {{ t('common.actions.reset') }}
-          </el-button>
-          <el-button @click="openRoutingGovernance">
-            {{ t('recommendationCenter.actions.openRouting') }}
           </el-button>
           <el-button @click="openAccelerationWorkbench">
             {{ t('recommendationCenter.actions.openParse') }}
@@ -2124,9 +2087,6 @@ watch(
                   <el-button :disabled="!recommendationTrace?.reportCode" @click="openParseRecord">
                     {{ t('recommendationCenter.actions.openHistory') }}
                   </el-button>
-                  <el-button data-testid="recommendation-open-alert-center" @click="openAlertCenter">
-                    {{ t('recommendationCenter.actions.openAlertCenter') }}
-                  </el-button>
                   <el-button @click="openEvidenceDrawer(t('recommendationCenter.tabs.traceability'), recommendationTrace?.traceRefs || {})">
                     {{ t('common.actions.viewRawEvidence') }}
                   </el-button>
@@ -2137,18 +2097,6 @@ watch(
                     <dd>{{ displayValue(item.value) }}</dd>
                   </div>
                 </dl>
-                <section class="evidence-table" data-testid="recommendation-alert-linkage">
-                  <div class="evidence-heading">
-                    <h3>{{ t('recommendationCenter.sections.alertLinkage') }}</h3>
-                    <el-tag type="warning">SQL_REWRITE_RESULT_DIVERGENCE</el-tag>
-                  </div>
-                  <dl class="description-grid">
-                    <div v-for="item in alertLinkageCards" :key="item.key" class="description-item">
-                      <dt>{{ item.label }}</dt>
-                      <dd>{{ displayValue(item.value) }}</dd>
-                    </div>
-                  </dl>
-                </section>
               </div>
             </el-tab-pane>
 

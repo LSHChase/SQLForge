@@ -36,9 +36,7 @@ const {
   loading,
   logicalObjectHits,
   normalizeArray,
-  openAuditForensics,
   openExportDialog,
-  openRepairEvidence,
   openRecommendationCenterFromDetail,
   openSqlHistoryFromDetail,
   primaryRecommendationRef,
@@ -73,8 +71,6 @@ const auditEventPagination = {
           <span :class="statusClass(selectedHistoryDetail.resultStatus)">{{ selectedHistoryDetail.resultStatus || '-' }}</span>
         </div>
         <div class="dialog-actions">
-          <el-button type="primary" @click="openRepairEvidence">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text001') }}</el-button>
-          <el-button @click="openAuditForensics">{{ t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text002') }}</el-button>
           <el-button :disabled="!hasSqlHistoryLink" data-testid="parse-record-open-sql-history" @click="openSqlHistoryFromDetail">
             {{ t('parseRecord.actions.openSqlHistory') }}
           </el-button>

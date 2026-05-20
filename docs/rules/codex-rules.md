@@ -996,9 +996,19 @@ messaging:
 - 规则、文档、检查器自身、foreman 接线、资源 / mapper 扫描范围或脚本英文存量基线变更时，必须至少执行 `node scripts/check-developer-copy-language.mjs --all`、`node scripts/lint-repository-knowledge.js` 和任务标准验证。
 - 中文化检查失败必须阻断 closeout；不得通过跳过检查、改名规避扫描或删除可读文本来规避治理。
 
+## 执行引擎最小产品面规则（R-191）
+
+### R-191 纯执行引擎产品边界
+
+- SQLForge 当前产品面以 SQL 执行、SQL 历史、解析、推荐、改写记录、真实改写历史、数据资产、压测、系统管理和开放接入为主；审计取证、公开追踪查询、告警中心、运行门禁页和恢复演练页不得重新作为默认产品入口暴露。
+- `R-111` 与 `R-115` 的初始化合规语义不再被解释为必须提供产品化页面、公开追踪 / 告警 API 或恢复演练操作面；身份上下文、租户边界、最小执行历史、备份恢复文档和仓库治理门禁仍按当前权威文档保留。
+- SQL 执行历史、真实改写历史、runtime binding `ACTIVE` 后才允许自动改写 / 加速命中的 no-fail-open 安全约束必须保留；不得用删除页面、隐藏按钮或删除告警中心来削弱执行链路安全判断。
+- benchmark artifact recovery / cleanup 不再属于 SQLForge 产品公开操作面；artifact storage 读取韧性和 provider evidence 可以作为后端内部能力或报告 evidence 保留，但不得通过治理产品页重新包装成恢复演练入口。
+- 任何重新引入上述辅助治理产品面、公开 trace lookup、公开 alert ACK / policy API 或 governance-triggered artifact operation API 的任务，必须先进入 `INBOX.md` 人工确认并追加新的接口 / 验证规则。
+
 ## Current Consumption Note (2026-04-20)
 
 - `R-001` 至 `R-115` 仍是初始化基线，语义来源保持 `docs/architecture/init.md` 不变。
-- `R-116` 至 `R-190` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则、JDK 8u112 运行时强制基线、前端截图自检门禁与开发者可读文本中文化治理。
+- `R-116` 至 `R-191` 是初始化后追加的验证、Java 规范、harness 治理、MCP 治理、前端页面工程规则、JDK 8u112 运行时强制基线、前端截图自检门禁、开发者可读文本中文化治理与执行引擎最小产品面治理。
 - 当前仓库执行时，若初始化文档中的目标落点路径与真实文档路径不一致，统一按 `docs/plans/document-truth-baseline.md` 中的漂移映射消费。
 - 本说明不新增规则编号，不改变既有规则语义，只补充当前仓库的实际消费顺序。

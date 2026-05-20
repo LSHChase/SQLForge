@@ -109,7 +109,6 @@ const requiredTokens = [
 const requiredSqlHistoryTokens = [
   'data-testid="sql-history-page"',
   'data-testid="sql-history-refresh"',
-  'data-testid="sql-history-run-lookup"',
   'data-testid="sql-history-query-history-table"',
   'data-testid="sql-history-pagination"',
   'data-testid="sql-history-datasource-options-fallback"',
@@ -134,7 +133,6 @@ const requiredSqlHistoryTokens = [
   'data-testid="sql-history-rewrite-record-original-sql"',
   'data-testid="sql-history-rewrite-record-detail-link"',
   'data-testid="sql-history-rewrite-record-parse-history-link"',
-  'data-testid="sql-history-rewrite-record-alert-link"',
   'data-testid="sql-history-rewrite-record-auto-apply-paused"',
   'data-testid="sql-history-rewrite-record-alert-refs"',
   'data-testid="sql-history-detail-service-code"',
@@ -172,7 +170,6 @@ const requiredSqlHistoryTokens = [
   'rewriteRecordAutoApplyPaused',
   'rewriteRecordAlertRefs',
   'openParseRecordForContext',
-  'openAlertCenterForRewriteRecord',
   'openRecommendationCenter(firstRecommendationRef)',
   "historyWorkbenchTab: 'sqlHistory'",
   'frontend-sql-history-page',

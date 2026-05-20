@@ -265,7 +265,7 @@ class RewriteValidationSchedulerServiceTest {
         linkage.setAlertLevel("HIGH");
         linkage.setAlertStatus("OPEN");
         linkage.setNotifyStatus("SIMULATED_NOTIFIED");
-        linkage.setDetailPath("/api/governance/alerts/alert-rewrite-001");
+        linkage.setDetailPath("");
         linkage.setLinkageMode("EMITTED");
         linkage.setNotificationLogId("alert-notify-001");
         GovernanceSqlRewriteDivergenceAlertResponse response = new GovernanceSqlRewriteDivergenceAlertResponse();

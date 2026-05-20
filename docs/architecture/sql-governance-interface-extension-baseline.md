@@ -930,21 +930,18 @@ repo-side 基线：
 - `fallbackStrategy`
 - `historyReportEnabled`
 
-## 12. Alert Contracts
+## 12. Alert Boundary
 
-- `GET /api/governance/alerts`
-- `GET /api/governance/alerts/{alertId}`
-- `POST /api/governance/alerts/{alertId}/ack`
-- `POST /api/governance/alerts/policies`
+`USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 之后，治理告警不再作为产品化公开查询 / ACK / 策略配置 API 暴露；以下历史告警语义只能作为内部事件、执行状态或报告 evidence 被消费，不再提供 `/api/governance/alerts*` 产品面。
 
-`HARN-143` / `HARN-144` 之后，改写与加速治理相关告警类型至少包括：
+历史改写与加速治理相关告警类型包括：
 
 - `SQL_REWRITE_RESULT_DIVERGENCE`
 - `SQL_REWRITE_VALIDATION_FAILED`
 - `ACCELERATION_PLAN_REGRESSED`
 - `ACCELERATION_ARTIFACT_INVALIDATED`
 
-告警 payload 至少保留以下可检索或可下钻字段：
+内部 evidence payload 至少保留以下可定位字段：
 
 - `tenantId`
 - `sourceType`

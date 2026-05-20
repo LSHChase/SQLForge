@@ -37,10 +37,7 @@ const DEFAULT_SEARCH_FORM = Object.freeze({
   accelerationApplied: '',
   parameterizedSql: '',
   sortBy: '',
-  sortOrder: '',
-  traceId: '',
-  taskId: '',
-  reportId: ''
+  sortOrder: ''
 })
 
 const normalizeQueryValue = value => (Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim())
@@ -109,14 +106,6 @@ export const useSqlHistoryList = ({ routeTenantId, historyType }) => {
     }
     return { current: pageInfo.currentPage, total: pageInfo.pageCount }
   })
-
-  const hasLookupCriteria = computed(() =>
-    Boolean(
-      normalizeQueryValue(searchForm.traceId) ||
-        normalizeQueryValue(searchForm.taskId) ||
-        normalizeQueryValue(searchForm.reportId)
-    )
-  )
 
   const applyPageInfo = payload => {
     const nextPageSize = normalizePositiveInteger(payload?.pageSize, pageInfo.pageSize || DEFAULT_PAGE_SIZE)
@@ -238,7 +227,6 @@ export const useSqlHistoryList = ({ routeTenantId, historyType }) => {
     listStatus,
     lastQueryAt,
     requestTenantId,
-    hasLookupCriteria,
     pageWindow,
     currentTenantOptions,
     currentDatasourceOptions,

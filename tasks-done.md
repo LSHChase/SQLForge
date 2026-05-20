@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520: 实施执行引擎纯化B方案
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520: remove ops product surfaces`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按人类确认的B方案删除产品化辅助治理面和公开追踪/告警API，保留SQL执行历史、真实改写历史和runtime binding ACTIVE安全约束；废止R-111与R-115产品要求，允许历史audit_log/alert_event/trace数据drop，并将benchmark artifact recovery/cleanup移出项目边界；同步改造文档、规则、前端、后端契约、SQL、脚本与验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented Option B engine simplification by removing productized auxiliary governance pages/routes, public trace and alert controllers/contracts, alert/detail links, obsolete smoke contracts, and refreshed portable frontend assets while preserving SQL execution history, real rewrite history, internal alert emission, and runtime binding ACTIVE safety checks.
+  - Validation evidence: java -version confirmed 1.8.0_112; mvn -q -pl governance,benchmark-engine,sql-optimization -am test; mvn -q test; npm run lint; npm run build; npm run build:portable; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; npm run smoke:rewrite-governance; npm run smoke:frontend-dev; npm run smoke:portable-frontend; node scripts/check-dashboard-contract.mjs; node scripts/check-navigation-shell-contract.mjs; node scripts/check-recommendation-page-contract.mjs; node scripts/check-history-page-contract.mjs; node scripts/check-rewrite-governance-closeout.mjs; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed; git diff --check; python3 scripts/foreman.py validate USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Public ops product surfaces are removed repo-side; internal alert emission and benchmark artifact storage resilience remain as protected/internal evidence paths. Historical docs and validation logs retain old references by design.
+  - Next step: Commit this closeout, run post-closeout task audit, and keep external production-scale benchmark evidence and Hetu/MRS environment validation under their existing blocked tasks.
+
 ### USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520: 分析去除审计取证追踪告警门禁恢复演练
 
 - Status: done

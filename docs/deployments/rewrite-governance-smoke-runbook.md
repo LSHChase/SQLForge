@@ -1,6 +1,6 @@
 # Rewrite Governance Smoke Runbook
 
-本文是改写治理 repo-closed smoke 的当前入口。它保留推荐中心 SQL diff / 改写审批发布、SQL 历史改写记录追溯和告警联动的仓库内可复跑验证；旧工作台参考页、专属 contract 和 browser smoke 已移除。
+本文是改写治理 repo-closed smoke 的当前入口。它保留推荐中心 SQL diff / 改写激活暂停、SQL 历史改写记录追溯和自动暂停证据的仓库内可复跑验证；旧工作台参考页、告警中心专属 contract 和 browser smoke 已移除。
 
 ## Scope
 
@@ -8,7 +8,7 @@
 - 等价 shell 入口：`bash scripts/run-rewrite-governance-smoke.sh`
 - 静态快速入口：`bash scripts/run-rewrite-governance-smoke.sh --skip-browser`
 - 本 runbook 只证明 repo-closed 前端契约、页面治理和 mocked API browser smoke 闭环。
-- `PRW-012` 覆盖推荐中心 SQL 改写审批、发布、暂停、SQL 历史追溯与 runtime binding 证据；后端生产闭环仍由 Maven 测试验证。
+- `PRW-012` 覆盖推荐中心 SQL 改写激活、暂停、SQL 历史追溯与 runtime binding 证据；后端生产闭环仍由 Maven 测试验证。
 - 真实 Hetu / MRS EXPLAIN、扫描量、P99、物化视图收益和外部装数证据仍归 `HARN-016` / `INBOX-002`，属于 environment-backed evidence and not a default blocker。
 
 ## What The Smoke Runs
@@ -18,18 +18,16 @@
 - `node scripts/check-rewrite-governance-closeout.mjs`
 - `node scripts/check-recommendation-page-contract.mjs`
 - `node scripts/check-history-page-contract.mjs`
-- `node scripts/check-alert-page-contract.mjs`
 - `npm run test:frontend-page-governance`
 - `npm run smoke:production-rewrite-closed-loop`
 
-浏览器 smoke 会临时启动 Vite dev server，并在 Playwright 中 mock `/api/*`。它覆盖推荐中心 SQL 改写审批、发布、暂停、SQL 历史改写记录回跳、runtime binding 版本证据、validation run 和 `SQL_REWRITE_RESULT_DIVERGENCE` 自动暂停证据。
+浏览器 smoke 会临时启动 Vite dev server，并在 Playwright 中 mock `/api/*`。它覆盖推荐中心 SQL 改写激活、暂停、SQL 历史改写记录回跳、runtime binding 版本证据、validation run 和 `SQL_REWRITE_RESULT_DIVERGENCE` 自动暂停证据。
 
 ## Expected Evidence
 
 - 命令输出包含 `改写治理 closeout 检查通过`
 - 命令输出包含 `recommendation page contract ok`
 - 命令输出包含 `history page contract ok`
-- 命令输出包含 `alert page contract ok`
 - 命令输出包含 `Production rewrite closed-loop browser smoke passed`
 - `python3 scripts/foreman.py validate <TASK_ID>` 会把验证记录写入 `docs/quality/validation-log.md`
 

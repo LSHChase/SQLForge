@@ -7,9 +7,7 @@ import {
   exportGovernanceQueryHistory,
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
-  getQueryHistoryRewriteRecords,
-  getGovernanceTraceDetail,
-  lookupGovernanceTraces
+  getQueryHistoryRewriteRecords
 } from '../../services/runtimeGateApi'
 import { engineOptions } from '../common/formComponentGovernance'
 import MetricCard from '../common/MetricCard.vue'
@@ -91,7 +89,6 @@ const normalizeDetailTab = value => {
 
 const loading = reactive({
   detail: false,
-  lookup: false,
   export: false,
   rewriteRecords: false
 })
@@ -130,7 +127,6 @@ const {
   listStatus,
   lastQueryAt,
   requestTenantId,
-  hasLookupCriteria,
   currentTenantOptions,
   currentDatasourceOptions,
   datasourceOptionsLoadFailed,
@@ -372,27 +368,6 @@ const searchFields = computed(() => [
     type: 'select',
     label: t('sqlHistory.filters.sortOrder'),
     options: sortOrderOptions.value
-  },
-  {
-    key: 'traceId',
-    type: 'input',
-    label: 'Trace ID',
-    placeholder: t('sqlHistory.filters.traceIdPlaceholder'),
-    testId: 'sql-history-trace-id'
-  },
-  {
-    key: 'taskId',
-    type: 'input',
-    label: 'Task ID',
-    placeholder: t('sqlHistory.filters.taskIdPlaceholder'),
-    testId: 'sql-history-task-id'
-  },
-  {
-    key: 'reportId',
-    type: 'input',
-    label: 'Report ID',
-    placeholder: t('sqlHistory.filters.reportIdPlaceholder'),
-    testId: 'sql-history-report-id'
   }
 ])
 
@@ -1001,111 +976,15 @@ const openRecommendationCenter = recommendationOrRecord => {
   })
 }
 
-const openAlertCenterForRewriteRecord = record => {
-  if (!record) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.alertCenter,
-    query: {
-      tenantId: requestTenantId.value,
-      alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
-      alertStatus: record.alertStatus === 'NONE' ? '' : record.alertStatus,
-      recommendationId: record.recommendationId || '',
-      historyId: record.historyId || selectedHistoryDetail.value?.historyId || '',
-      rewriteRecordId: record.rewriteRecordId || '',
-      validationRunId: record.lastValidationRunId || '',
-      sqlFingerprint: record.sqlFingerprint || ''
-    }
-  })
-}
-
-const runIndexedLookup = async () => {
-  if (!hasLookupCriteria.value) {
-    workflowErrorMessage.value = t('sqlHistory.messages.lookupRequired')
-    return
-  }
-  loading.lookup = true
-  workflowErrorMessage.value = ''
-  try {
-    const lookupPage = await lookupGovernanceTraces(
-      requestTenantId.value,
-      {
-        traceId: searchForm.traceId,
-        taskId: searchForm.taskId,
-        reportId: searchForm.reportId
-      },
-      5,
-      {
-        requestPrefix: 'frontend-sql-history-lookup'
-      }
-    )
-    const firstTraceId = lookupPage?.items?.[0]?.traceId
-    if (!firstTraceId) {
-      workflowErrorMessage.value = t('sqlHistory.messages.lookupEmpty')
-      return
-    }
-    const traceDetail = await getGovernanceTraceDetail(requestTenantId.value, firstTraceId, 20, {
-      requestPrefix: 'frontend-sql-history-trace-detail'
-    })
-    const executionHistory = (traceDetail?.queryHistories || []).find(
-      item => item.historyType === SQL_EXECUTION_HISTORY_TYPE
-    )
-    if (!executionHistory?.historyId) {
-      workflowErrorMessage.value = t('sqlHistory.messages.lookupWithoutExecution')
-      return
-    }
-    await openHistoryDetail(executionHistory.historyId)
-    if (selectedHistoryDetail.value && !selectedHistoryDetail.value.traceDetail) {
-      selectedHistoryDetail.value.traceDetail = traceDetail
-    }
-  } catch (error) {
-    workflowErrorMessage.value = formatRuntimeError(error)
-  } finally {
-    loading.lookup = false
-  }
-}
-
 const openRouteDeepLink = async () => {
   const historyId = normalizeQueryValue(route.query.historyId)
   if (historyId) {
     await openHistoryDetail(historyId)
     return
   }
-  searchForm.traceId = normalizeQueryValue(route.query.traceId)
-  searchForm.taskId = normalizeQueryValue(route.query.taskId)
-  searchForm.reportId = normalizeQueryValue(route.query.reportId)
-  if (hasLookupCriteria.value) {
-    await runIndexedLookup()
+  if (normalizeQueryValue(route.query.traceId) || normalizeQueryValue(route.query.taskId) || normalizeQueryValue(route.query.reportId)) {
+    workflowErrorMessage.value = t('sqlHistory.messages.traceLookupRemoved')
   }
-}
-
-const openRepairEvidence = () => {
-  if (!selectedHistoryDetail.value) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.repairEvidence,
-    query: {
-      tenantId: requestTenantId.value,
-      traceId: selectedHistoryDetail.value.traceId || '',
-      reportId: selectedHistoryDetail.value.reportId || ''
-    }
-  })
-}
-
-const openAuditForensics = () => {
-  if (!selectedHistoryDetail.value) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.auditForensics,
-    query: {
-      tenantId: requestTenantId.value,
-      traceId: selectedHistoryDetail.value.traceId || '',
-      reportId: selectedHistoryDetail.value.reportId || ''
-    }
-  })
 }
 
 const openExportDialog = () => {
@@ -1303,9 +1182,6 @@ watch(
               <el-button type="primary" :loading="loadingList" data-testid="sql-history-refresh" @click="search">
                 {{ t('sqlHistory.actions.refresh') }}
               </el-button>
-              <el-button :loading="loading.lookup" data-testid="sql-history-run-lookup" @click="runIndexedLookup">
-                {{ t('sqlHistory.actions.lookup') }}
-              </el-button>
               <el-button @click="clearFilters">{{ t('sqlHistory.actions.clear') }}</el-button>
             </div>
           </template>
@@ -1477,10 +1353,6 @@ watch(
             </span>
           </div>
           <div class="action-row">
-            <el-button type="primary" @click="openRepairEvidence">
-              {{ t('sqlHistory.actions.openRepairEvidence') }}
-            </el-button>
-            <el-button @click="openAuditForensics">{{ t('sqlHistory.actions.openAuditForensics') }}</el-button>
             <el-button :loading="loading.export" data-testid="sql-history-export" @click="openExportDialog">
               {{ t('sqlHistory.actions.exportEvidence') }}
             </el-button>
@@ -1654,16 +1526,7 @@ watch(
                 </el-table-column>
                 <el-table-column :label="t('sqlHistory.rewriteRecords.alertStatus')" min-width="150">
                   <template #default="{ row }">
-                    <button
-                      v-if="row.alertStatus && row.alertStatus !== 'NONE'"
-                      type="button"
-                      class="table-link"
-                      data-testid="sql-history-rewrite-record-alert-link"
-                      @click="openAlertCenterForRewriteRecord(row)"
-                    >
-                      {{ row.alertStatus }}
-                    </button>
-                    <span v-else>{{ displayValue(row.alertStatus) }}</span>
+                    {{ displayValue(row.alertStatus) }}
                   </template>
                 </el-table-column>
                 <el-table-column :label="t('sqlHistory.rewriteRecords.autoApplyPaused')" min-width="160">

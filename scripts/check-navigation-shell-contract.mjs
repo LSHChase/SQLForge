@@ -5,7 +5,6 @@ import {
   LEGACY_ROUTE_DEFINITIONS,
   LEGACY_ROUTE_REDIRECTS,
   ROUTE_PATHS,
-  buildNavigationBreadcrumb,
   buildNavigationKey,
   createNavigationTree,
   findActiveNavigationItem,
@@ -31,21 +30,14 @@ const expectedRoutePaths = {
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
   benchmark: '/benchmark',
-  routingGovernance: '/governance/routing',
   recommendationCenter: '/governance/recommendations',
   accessCenter: '/governance/access',
-  alertCenter: '/governance/alerts',
   parseBatchCenter: '/governance/parse/batches',
   parseStatisticsCenter: '/governance/parse/statistics',
   assetCatalog: '/governance/assets/catalog',
   system: '/system',
   sqlHistory: '/governance/history/sql-history',
   parseRecord: '/governance/history/parse-record',
-  repairEvidence: '/governance/history/repair-evidence',
-  auditForensics: '/governance/history/audit-forensics',
-  auditTroubleshooting: '/governance/ops/remediation',
-  runtimeGates: '/governance/ops/runtime-gates',
-  recoveryDrill: '/governance/ops/recovery-drill',
   deliveryProgress: '/delivery-progress'
 }
 
@@ -53,14 +45,9 @@ const expectedLegacyRedirects = {
   parseRecord: '/parse-record',
   parseBatchCenter: '/parse-batches',
   parseStatisticsCenter: '/parse-statistics',
-  routingGovernance: '/routing-governance',
   recommendationCenter: '/recommendations',
   accessCenter: '/open-access',
-  alertCenter: '/alerts',
-  assetCatalog: '/asset-catalog',
-  repairEvidence: '/repair-evidence',
-  auditForensics: '/audit-forensics',
-  auditTroubleshooting: '/audit-troubleshooting'
+  assetCatalog: '/asset-catalog'
 }
 
 for (const [key, value] of Object.entries(expectedRoutePaths)) {
@@ -116,7 +103,6 @@ const expectedDefaultModuleKeys = [
   'parse-history',
   'recommendations',
   'rewrite-governance',
-  'auxiliary-governance',
   'assets',
   'benchmark',
   'system',
@@ -134,7 +120,6 @@ const parseModule = fullTree.find(item => item.key === 'parse-acceleration')
 const parseHistoryModule = fullTree.find(item => item.key === 'parse-history')
 const recommendationModule = fullTree.find(item => item.key === 'recommendations')
 const rewriteGovernanceModule = fullTree.find(item => item.key === 'rewrite-governance')
-const auxiliaryModule = fullTree.find(item => item.key === 'auxiliary-governance')
 const referenceModule = fullTree.find(item => item.key === 'reference-pages')
 check(sqlHistoryModule?.directItem?.routeKey === 'sqlHistory', 'SQL history must be a core direct menu entry.')
 check(Array.isArray(parseModule?.items) && !parseModule.sections, 'SQL parse must flatten directly to module items.')
@@ -153,7 +138,7 @@ check(
     ]),
   '改写治理正式导航入口必须指向 SQL 改写验证、推荐改写生命周期与 SQL 改写历史深链。'
 )
-check(Array.isArray(auxiliaryModule?.sections), 'Auxiliary governance must group audit, trace, alert and runtime evidence.')
+check(!fullTree.some(item => item.key === 'auxiliary-governance'), 'Auxiliary governance must not be exposed after Option B engine simplification.')
 check(
   Array.isArray(referenceModule?.items) &&
     referenceModule.items.some(item => item.routeKey === 'deliveryProgress'),
@@ -170,13 +155,6 @@ const requiredDefaultNavTargets = [
   ROUTE_PATHS.parseBatchCenter,
   ROUTE_PATHS.parseRecord,
   ROUTE_PATHS.recommendationCenter,
-  ROUTE_PATHS.auditForensics,
-  ROUTE_PATHS.repairEvidence,
-  ROUTE_PATHS.routingGovernance,
-  ROUTE_PATHS.alertCenter,
-  ROUTE_PATHS.auditTroubleshooting,
-  ROUTE_PATHS.runtimeGates,
-  ROUTE_PATHS.recoveryDrill,
   ROUTE_PATHS.assetCatalog,
   ROUTE_PATHS.benchmark,
   ROUTE_PATHS.system,
@@ -188,14 +166,6 @@ for (const path of requiredDefaultNavTargets) {
 }
 check(!defaultNavItems.some(item => item.path === ROUTE_PATHS.deliveryProgress), 'AI delivery must not appear in default formal navigation.')
 check(fullNavItems.some(item => item.path === ROUTE_PATHS.deliveryProgress), 'Full navigation tree is missing AI delivery reference page.')
-
-const runtimeItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATHS.runtimeGates, query: {} })
-check(runtimeItem?.moduleKey === 'auxiliary-governance', 'Runtime gates active item must stay under auxiliary governance.')
-check(runtimeItem?.sectionKey === 'runtime', 'Runtime gates active item must stay under the runtime section.')
-check(
-  JSON.stringify(runtimeItem?.defaultOpeneds) === JSON.stringify(['auxiliary-governance', 'auxiliary-governance:runtime']),
-  'Runtime gates default open menu state drifted.'
-)
 
 const parseRecordItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATHS.parseRecord, query: {} })
 check(parseRecordItem?.moduleKey === 'parse-history', 'Parse record active item must stay under parse history.')
@@ -219,20 +189,6 @@ check(rewriteHistoryItem?.moduleKey === 'rewrite-governance', '改写历史深�
 
 const unknownMenuKey = buildNavigationKey('/unknown', { z: 'last', a: 'first', empty: '' })
 check(unknownMenuKey === '/unknown?a=first&z=last', `Navigation key normalization drifted: ${unknownMenuKey}`)
-
-const runtimeBreadcrumb = buildNavigationBreadcrumb(
-  runtimeItem,
-  value => value,
-  item => item.menuLabel
-)
-check(
-  JSON.stringify(runtimeBreadcrumb) === JSON.stringify([
-    'navigation.modules.auxiliaryGovernance',
-    'navigation.sections.runtimeGovernance',
-    'navigation.items.runtimeGates'
-  ]),
-  'Workspace breadcrumb metadata drifted for runtime gates.'
-)
 
 const requiredRouteTargets = [
   ...requiredDefaultNavTargets,

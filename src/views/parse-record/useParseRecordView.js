@@ -900,34 +900,6 @@ const runExport = async () => {
   }
 }
 
-const openRepairEvidence = () => {
-  if (!selectedHistoryDetail.value) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.repairEvidence,
-    query: {
-      tenantId: requestTenantId.value,
-      traceId: selectedHistoryDetail.value.traceId || '',
-      reportId: selectedHistoryDetail.value.reportId || ''
-    }
-  })
-}
-
-const openAuditForensics = () => {
-  if (!selectedHistoryDetail.value) {
-    return
-  }
-  router.push({
-    path: ROUTE_PATHS.auditForensics,
-    query: {
-      tenantId: requestTenantId.value,
-      traceId: selectedHistoryDetail.value.traceId || '',
-      reportId: selectedHistoryDetail.value.reportId || ''
-    }
-  })
-}
-
 const openSqlHistoryFromDetail = () => {
   if (!hasSqlHistoryLink.value) {
     return
@@ -1951,11 +1923,9 @@ watch(reportBatchDetailDrawerVisible, visible => {
     normalizePagedList,
     normalizeQueryValue,
     objectValue,
-    openAuditForensics,
     openExportDialog,
     openHistoryDetail,
     openParseBatchCenter,
-    openRepairEvidence,
     openRecommendationCenterFromDetail,
     openReportBatchCenter,
     openReportBatchDetail,

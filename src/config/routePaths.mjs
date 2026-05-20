@@ -3,21 +3,14 @@ export const ROUTE_PATHS = {
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
   benchmark: '/benchmark',
-  routingGovernance: '/governance/routing',
   recommendationCenter: '/governance/recommendations',
   accessCenter: '/governance/access',
-  alertCenter: '/governance/alerts',
   parseBatchCenter: '/governance/parse/batches',
   parseStatisticsCenter: '/governance/parse/statistics',
   assetCatalog: '/governance/assets/catalog',
   system: '/system',
   sqlHistory: '/governance/history/sql-history',
   parseRecord: '/governance/history/parse-record',
-  repairEvidence: '/governance/history/repair-evidence',
-  auditForensics: '/governance/history/audit-forensics',
-  auditTroubleshooting: '/governance/ops/remediation',
-  runtimeGates: '/governance/ops/runtime-gates',
-  recoveryDrill: '/governance/ops/recovery-drill',
   deliveryProgress: '/delivery-progress'
 }
 
@@ -25,14 +18,9 @@ export const LEGACY_ROUTE_REDIRECTS = {
   parseRecord: '/parse-record',
   parseBatchCenter: '/parse-batches',
   parseStatisticsCenter: '/parse-statistics',
-  routingGovernance: '/routing-governance',
   recommendationCenter: '/recommendations',
   accessCenter: '/open-access',
-  alertCenter: '/alerts',
-  assetCatalog: '/asset-catalog',
-  repairEvidence: '/repair-evidence',
-  auditForensics: '/audit-forensics',
-  auditTroubleshooting: '/audit-troubleshooting'
+  assetCatalog: '/asset-catalog'
 }
 
 export const ROOT_ROUTE_DEFINITION = {
@@ -116,18 +104,6 @@ export const APP_ROUTE_DEFINITIONS = [
     })
   ),
   componentRoute(
-    'routingGovernance',
-    'RoutingGovernance',
-    'RoutingGovernanceView',
-    routeMeta({
-      module: 'routing',
-      submodule: 'routing-policy',
-      pageKind: 'governance',
-      titleKey: 'routingGovernance.title',
-      descriptionKey: 'routingGovernance.summary'
-    })
-  ),
-  componentRoute(
     'recommendationCenter',
     'RecommendationCenter',
     'RecommendationCenterView',
@@ -149,18 +125,6 @@ export const APP_ROUTE_DEFINITIONS = [
       pageKind: 'governance',
       titleKey: 'accessCenter.title',
       descriptionKey: 'accessCenter.summary'
-    })
-  ),
-  componentRoute(
-    'alertCenter',
-    'AlertCenter',
-    'AlertCenterView',
-    routeMeta({
-      module: 'system',
-      submodule: 'alerts',
-      pageKind: 'operations',
-      titleKey: 'alertCenter.title',
-      descriptionKey: 'alertCenter.summary'
     })
   ),
   componentRoute(
@@ -239,71 +203,6 @@ export const APP_ROUTE_DEFINITIONS = [
         historyWorkbenchTab: 'sqlHistory'
       }
     })
-  ),
-  componentRoute(
-    'repairEvidence',
-    'RepairEvidence',
-    'RepairEvidenceView',
-    routeMeta({
-      navGroup: 'governanceHistory',
-      module: 'sql-history',
-      submodule: 'forensics',
-      pageKind: 'repair',
-      titleKey: 'repairEvidence.title',
-      descriptionKey: 'repairEvidence.summary'
-    })
-  ),
-  componentRoute(
-    'auditForensics',
-    'AuditForensics',
-    'AuditForensicsView',
-    routeMeta({
-      navGroup: 'governanceHistory',
-      module: 'sql-history',
-      submodule: 'forensics',
-      pageKind: 'forensics',
-      titleKey: 'auditForensics.title',
-      descriptionKey: 'auditForensics.summary'
-    })
-  ),
-  componentRoute(
-    'auditTroubleshooting',
-    'AuditTroubleshooting',
-    'AuditTroubleshootingView',
-    routeMeta({
-      navGroup: 'governanceOps',
-      module: 'system',
-      submodule: 'alerts',
-      pageKind: 'remediation',
-      titleKey: 'auditTroubleshooting.title',
-      descriptionKey: 'auditTroubleshooting.summary'
-    })
-  ),
-  componentRoute(
-    'runtimeGates',
-    'RuntimeGates',
-    'RuntimeGatesView',
-    routeMeta({
-      navGroup: 'governanceOps',
-      module: 'system',
-      submodule: 'runtime',
-      pageKind: 'gates',
-      titleKey: 'runtimeGates.title',
-      descriptionKey: 'runtimeGates.summary'
-    })
-  ),
-  componentRoute(
-    'recoveryDrill',
-    'RecoveryDrill',
-    'RecoveryDrillView',
-    routeMeta({
-      navGroup: 'governanceOps',
-      module: 'system',
-      submodule: 'runtime',
-      pageKind: 'drill',
-      titleKey: 'recoveryDrill.title',
-      descriptionKey: 'recoveryDrill.summary'
-    })
   )
 ]
 
@@ -327,20 +226,12 @@ export const DELIVERY_PROGRESS_ROUTE_DEFINITION = componentRoute(
 
 export const LEGACY_ROUTE_DEFINITIONS = [
   {
-    path: LEGACY_ROUTE_REDIRECTS.routingGovernance,
-    redirect: ROUTE_PATHS.routingGovernance
-  },
-  {
     path: LEGACY_ROUTE_REDIRECTS.recommendationCenter,
     redirect: ROUTE_PATHS.recommendationCenter
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.accessCenter,
     redirect: ROUTE_PATHS.accessCenter
-  },
-  {
-    path: LEGACY_ROUTE_REDIRECTS.alertCenter,
-    redirect: ROUTE_PATHS.alertCenter
   },
   {
     path: LEGACY_ROUTE_REDIRECTS.parseBatchCenter,
@@ -369,18 +260,6 @@ export const LEGACY_ROUTE_DEFINITIONS = [
   {
     path: LEGACY_ROUTE_REDIRECTS.parseRecord,
     redirect: ROUTE_PATHS.parseRecord
-  },
-  {
-    path: LEGACY_ROUTE_REDIRECTS.repairEvidence,
-    redirect: ROUTE_PATHS.repairEvidence
-  },
-  {
-    path: LEGACY_ROUTE_REDIRECTS.auditForensics,
-    redirect: ROUTE_PATHS.auditForensics
-  },
-  {
-    path: LEGACY_ROUTE_REDIRECTS.auditTroubleshooting,
-    redirect: ROUTE_PATHS.auditTroubleshooting
   }
 ]
 
@@ -467,37 +346,6 @@ export const NAVIGATION_TREE = [
           detailTab: 'rewriteRecords'
         }
       })
-    ]
-  },
-  {
-    key: 'auxiliary-governance',
-    label: 'navigation.modules.auxiliaryGovernance',
-    sections: [
-      {
-        key: 'audit-trace',
-        label: 'navigation.sections.auditTrace',
-        items: [
-          navItem('auditForensics', 'auditForensics.title', 'navigation.items.auditForensics'),
-          navItem('repairEvidence', 'repairEvidence.title', 'navigation.items.repairEvidence'),
-          navItem('routingGovernance', 'routingGovernance.title', 'navigation.items.routingEvidence')
-        ]
-      },
-      {
-        key: 'alerts',
-        label: 'navigation.sections.alertsRemediation',
-        items: [
-          navItem('alertCenter', 'alertCenter.title', 'navigation.items.alertCenter'),
-          navItem('auditTroubleshooting', 'auditTroubleshooting.title', 'navigation.items.troubleshooting')
-        ]
-      },
-      {
-        key: 'runtime',
-        label: 'navigation.sections.runtimeGovernance',
-        items: [
-          navItem('runtimeGates', 'runtimeGates.title', 'navigation.items.runtimeGates'),
-          navItem('recoveryDrill', 'recoveryDrill.title', 'navigation.items.recoveryDrill')
-        ]
-      }
     ]
   },
   {

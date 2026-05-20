@@ -450,10 +450,7 @@ export default {
     summary: 'Search execution history, filter historical SQL, and inspect execution summaries, original SQL, template SQL, bound SQL, parse links, recommendations, and rewrite records.',
     actions: {
       refresh: 'Search / refresh',
-      lookup: 'Indexed lookup',
       clear: 'Clear filters',
-      openRepairEvidence: 'Open repair evidence',
-      openAuditForensics: 'Open audit forensics',
       exportEvidence: 'Export evidence',
       viewRawEvidence: 'View raw evidence',
       openParseHistory: 'Open parse history',
@@ -498,12 +495,9 @@ export default {
       parameterizedSql: 'Parameterized SQL',
       sortBy: 'Sort by',
       sortOrder: 'Sort order',
-      traceIdPlaceholder: 'Enter Trace ID',
-      taskIdPlaceholder: 'Enter Task ID',
-      reportIdPlaceholder: 'Enter Report ID',
       selectPlaceholder: 'Select',
       eyebrow: 'history filters',
-      title: 'History filters and indexed lookup',
+      title: 'History filters',
       summary: 'Every filter maps to an existing query-history parameter; empty defaults preserve the history query contract.'
     },
     metrics: {
@@ -550,9 +544,7 @@ export default {
       noRewriteRecords: 'No rewrite records match this SQL history.'
     },
     messages: {
-      lookupRequired: 'Enter at least one of traceId, taskId, or reportId.',
-      lookupEmpty: 'No history matched the lookup criteria.',
-      lookupWithoutExecution: 'A trace was found but no QUERY_EXECUTION history is available.'
+      traceLookupRemoved: 'Standalone trace lookup has been removed. Open SQL execution history by historyId instead.'
     },
     detail: {
       title: 'Execution detail',
@@ -728,251 +720,6 @@ export default {
         issueScenes: 'Issue scenes',
         location: 'Location'
       }
-    }
-  },
-  governanceTrace: {
-    tenantContext: 'Tenant context',
-    businessTenant: 'Business tenant',
-    governanceTenant: 'Governance tenant',
-    lookupLimit: 'Lookup limit',
-    traceId: 'Trace ID',
-    taskId: 'Task ID',
-    reportId: 'Report ID',
-    windowStart: 'Window start',
-    windowEnd: 'Window end',
-    clearCriteria: 'Clear criteria',
-    loadOlderEvidence: 'Load older evidence',
-    refreshQueueImpact: 'Refresh queue impact',
-    matchedTraces: 'Matched traces',
-    compensationTraces: 'Compensation traces',
-    repairSignalChains: 'Repair signal chains',
-    reportLinkedTraces: 'Report-linked traces',
-    nonSuccessChains: 'Non-success chains',
-    olderEvidenceAvailable: 'Older evidence chains available',
-    olderRemediationAvailable: 'Older remediation chains available',
-    olderTracesAvailable: 'Older traces available',
-    serviceCode: 'Service code',
-    resourceType: 'Resource type',
-    resourceId: 'Resource id',
-    lastSeenAt: 'Last seen at',
-    lookupMode: 'Lookup match',
-    repairSignal: 'Repair signal',
-    compensationTrace: 'Compensation trace',
-    auditEvents: 'Audit events',
-    sqlFingerprint: 'SQL fingerprint',
-    errorCode: 'Error code',
-    targetEngine: 'Target engine',
-    degraded: 'Degraded',
-    requestChain: 'Request chain',
-    task: 'Task',
-    report: 'Report',
-    fingerprint: 'Fingerprint',
-    error: 'Error',
-    engine: 'Engine',
-    degradedRecovery: 'Degraded recovery',
-    queueImpact: 'Queue impact',
-    queueTotal: 'Total messages',
-    queuePending: 'Pending backlog',
-    queueFailed: 'Failed messages',
-    queueConsumed: 'Consumed',
-    retryStatus: 'Retry status',
-    retriedCount: 'Retried count',
-    failedDelta: 'Failed delta',
-    repairOutcome: 'Repair outcome',
-    criteria: {
-      traceId: 'Trace lookup',
-      taskId: 'Task lookup',
-      reportId: 'Report lookup',
-      windowStart: 'Window start',
-      windowEnd: 'Window end'
-    }
-  },
-  repairEvidence: {
-    title: 'Repair Evidence',
-    summary: 'Reverse lookup trace, task and report evidence to confirm compensation and repair outcomes.',
-    refactorNote: 'This page reuses the shared trace lookup, result list, and audit timeline components while keeping compensation, degraded recovery, and report write-back evidence visible.',
-    lookupTitle: 'Lookup criteria and matched traces',
-    lookupSummary: 'Enter a trace, task, or report id to query the governance trace chain; window fields are passed through to the backend lookup contract.',
-    detailTitle: 'Compensation and repair detail',
-    actions: {
-      runLookup: 'Run reverse lookup',
-      openTroubleshooting: 'Open remediation decision'
-    },
-    messages: {
-      requiredLookup: 'Enter at least one of traceId, taskId, or reportId before running the lookup.',
-      emptyCriteria: 'Enter a trace, task, or report id and then run the lookup.',
-      noMatches: 'Matched traces render here so you can keep drilling into the linked audit and repair timeline.',
-      emptyDetail: 'After you select a matched trace, the lookup mode, repair signals, and audit timeline render here.'
-    }
-  },
-  auditForensics: {
-    title: 'Audit Forensics',
-    summary: 'Stitch compensation, repair, write-back and history events into a paged forensic chain.',
-    refactorNote: 'This page consolidates failure chains, compensation traces, report write-back, and audit events into shared forensic components while preserving cross-page pivots.',
-    lookupTitle: 'Forensic criteria and matched evidence chains',
-    lookupSummary: 'Trace, task, or report can start the forensic lookup, and pagination cursor still comes from the backend.',
-    detailTitle: 'Forensic detail and cross-page pivots',
-    actions: {
-      runLookup: 'Run forensic lookup',
-      openParseRecord: 'Open parse record',
-      openRepairEvidence: 'Open repair evidence',
-      openTroubleshooting: 'Open remediation decision'
-    },
-    messages: {
-      requiredLookup: 'Enter at least one of traceId, taskId, or reportId before running the forensic lookup.',
-      emptyCriteria: 'Enter a trace, task, or report id and then run the forensic lookup.',
-      noMatches: 'Matched chains render here with failure, compensation, and report write-back evidence.',
-      emptyDetail: 'After you select a matched trace, the forensic signals, linked history events, and cross-page actions render here.'
-    }
-  },
-  auditTroubleshooting: {
-    title: 'Audit Troubleshooting',
-    summary: 'Summarize failure type, compensation state, write-back state and queue impact, then expose remediation actions and acceptance signals.',
-    refactorNote: 'This page merges trace forensics with governance queue impact in one remediation view, while retry still calls the backend authority.',
-    lookupTitle: 'Failure scope, queue impact and decision inputs',
-    lookupSummary: 'Business tenant drives trace lookup, while governance tenant drives message stats and retry so permission boundaries stay separate.',
-    detailTitle: 'Remediation actions and acceptance signals',
-    actions: {
-      runLookup: 'Run remediation lookup',
-      retryFailedMessages: 'Retry failed messages',
-      openSystem: 'Open governance backlog',
-      openRepairEvidence: 'Open repair evidence',
-      openParseRecord: 'Back to parse record'
-    },
-    decision: {
-      failureType: 'Failure type',
-      compensationState: 'Compensation state',
-      writeBackState: 'Write-back state',
-      queueImpact: 'Queue impact',
-      acceptanceState: 'Acceptance state'
-    },
-    messages: {
-      requiredLookup: 'Enter at least one of traceId, taskId, or reportId before running the remediation lookup.',
-      emptyCriteria: 'Enter a trace, task, or report id and then run the remediation lookup.',
-      noMatches: 'Matched chains render here with queue impact and remediation actions.',
-      emptyDetail: 'After you select a matched trace, the failure type, compensation state, write-back state, and acceptance signals render here.'
-    }
-  },
-  runtimeGates: {
-    title: 'Runtime Gates',
-    summary: 'Consolidate phase entry, delivery, and compliance runtime-gate evidence plus the remaining exit blockers.',
-    heroEyebrow: 'phase-f runtime gates',
-    heroTitle: 'Runtime Gates And Exit Blocking Baseline',
-    heroSummary: 'This page consolidates the Entry, Delivery, and Compliance gates so Phase-F build, runtime, recovery, and compliance evidence no longer drift across scripts and docs.',
-    heroNote: 'The point is not more display pages, but a clear line between blocking gates and residual risks.',
-    evidenceEyebrow: 'evidence map',
-    evidenceTitle: 'Scripts And Workflow Entry Points',
-    evidenceSummary: 'Lists repository scripts and workflow entry points only; it does not claim an external environment has already executed them.',
-    kpiTitle: 'Gate KPIs And Evidence Boundaries',
-    kpiSummary: 'Metrics count only the scripts, workflows and residual blockers listed on this page, without extrapolating global runtime health.',
-    activityEyebrow: 'gate activity',
-    activityTitle: 'Gate Activity Stream',
-    activitySummary: 'Shows blocking checks and script entry points in Entry, Delivery and Compliance order.',
-    blockersEyebrow: 'residual blockers',
-    blockersTitle: 'Residual Blockers Still Open',
-    blockersSummary: 'These remain risks to track before exit and must not be presented as already closed facts.',
-    gates: {
-      entry: {
-        title: 'Entry Gate',
-        summary: 'Task ledger, compiled governance policy, and repository knowledge lint must pass first.'
-      },
-      delivery: {
-        title: 'Delivery Gate',
-        summary: 'Database scripts, build, coverage, and Sonar are wired into the delivery gate.'
-      },
-      compliance: {
-        title: 'Compliance Gate',
-        summary: 'Recovery baseline, observability baseline, Kafka gate, and sensitive-data controls now feed R-118 rechecks.'
-      }
-    },
-    blockers: {
-      coverage: 'The phase gate now enforces coverage thresholds, but the repository still needs higher overall line coverage to reach the Phase-1+ 85% bar.',
-      sonar: 'Sonar is now mandatory in delivery/full gates and will block when secrets are missing.',
-      workflowDispatch: 'The Phase Gate workflow remains an explicit workflow_dispatch gate instead of an automatically bound release action.'
-    },
-    evidenceRows: {
-      defaultCi: 'Default CI gate',
-      kafka: 'Real Kafka gate',
-      phaseGate: 'Phase Gate entrypoint',
-      phaseScript: 'Phase script'
-    },
-    metrics: {
-      gates: {
-        label: 'Gate layers',
-        detail: 'Counts only the Entry, Delivery and Compliance gates explicitly listed here.'
-      },
-      checks: {
-        label: 'Blocking checks',
-        trend: 'Script entrypoints',
-        detail: 'Derived from the command list in the gate activity stream, not from external environment state.'
-      },
-      workflows: {
-        label: 'Workflow entries',
-        detail: 'Shows repository workflow file references only; execution results remain tied to validation logs.'
-      },
-      blockers: {
-        label: 'Residual blockers',
-        trend: 'Track further',
-        detail: 'These items stay in the risk queue and must not be marked as closed facts.'
-      }
-    }
-  },
-  recoveryDrill: {
-    title: 'Recovery Drill',
-    summary: 'Track backup scope, restore objectives, ownership boundaries, and mandatory post-restore acceptance checks.',
-    heroEyebrow: 'recovery drill baseline',
-    heroTitle: 'Backup Recovery And Post-Restore Acceptance Baseline',
-    heroSummary: 'This page gathers the backup inventory, recovery objectives, ownership boundaries, and post-restore checks established by F-TASK-008/009.',
-    heroNote: 'Restore completion means more than database replay: health probes, audit compensation, queue backlog, export/desensitization, and leak checks must all pass.',
-    objectivesEyebrow: 'rpo / rto',
-    objectivesTitle: 'Recovery Objectives And Owners',
-    objectivesSummary: 'This static table records data domains, RPO/RTO targets, and owner boundaries.',
-    checklistEyebrow: 'acceptance checklist',
-    checklistTitle: 'Mandatory Post-Restore Checklist',
-    checklistSummary: 'High-risk evidence must be rechecked after restore; replaying the database is not the only completion signal.',
-    kpiTitle: 'Recovery Drill KPIs And Acceptance Boundaries',
-    kpiSummary: 'Shows only baseline objects, RPO/RTO targets and post-restore checks, without presenting drill results as production-verified facts.',
-    activityEyebrow: 'recovery flow',
-    activityTitle: 'Recovery Object Activity Stream',
-    activitySummary: 'Shows the recovery batch focus objects in order with their acceptance semantics.',
-    sameBackupBatch: 'Same batch as backup',
-    inventory: {
-      core: 'Primary metadata tables, schema version, and migration inventory must recover as one batch.',
-      audit: 'Audit evidence must remain continuous and still accept `LOGIN/LOGOUT` and `audit/write` samples after restore.',
-      export: 'Export metadata and sanitized archive pointers must reconcile with each other.',
-      queue: 'Database fallback backlog must remain replayable after recovery.',
-      keys: 'Restore ciphertext only, never plaintext, and keep `encryption_key_id` aligned with the backup batch.'
-    },
-    checklist: {
-      health: 'All backend `/actuator/health` probes and governance `/api/governance/health` return `UP`.',
-      audit: 'Replay `audit/write` and `LOGIN/LOGOUT` audit samples after restore.',
-      backlog: 'Check `kafka_message_queue` backlog or explicitly record why it is not applicable.',
-      export: 'Sample `export_record` against `history_id/result_id` and confirm storage pointers remain sanitized.',
-      leak: 'Sample log platforms and `system_config` to confirm no password, token, or key leaks.'
-    },
-    metrics: {
-      inventory: {
-        label: 'Recovery objects',
-        trend: 'Baseline inventory',
-        detail: 'Counts only the recovery objects explicitly listed in the current baseline.'
-      },
-      rpo: {
-        label: 'RPO target',
-        detail: 'Recovery point target shared by governance metadata, audit, export and queue domains.'
-      },
-      rto: {
-        label: 'RTO target',
-        detail: 'Post-restore health, audit, queue and desensitization checks still have to pass.'
-      },
-      checklist: {
-        label: 'Recheck items',
-        trend: 'post-restore',
-        detail: 'Every item must be rechecked after restore; a single success signal does not close the loop.'
-      }
-    },
-    table: {
-      domain: 'Domain',
-      owner: 'Owner'
     }
   },
   benchmark: {
@@ -1479,76 +1226,6 @@ export default {
     rawDrawerTitle: 'Raw access evidence',
     policy: {
       dialogTitle: 'Access boundary guide'
-    }
-  },
-  alertCenter: {
-    title: 'Alert Center',
-    summary: 'Review backend alerts, ACK state, and notify-simulated outcomes.',
-    pageTitle: 'Alert center and notification state',
-    refactorSummary: 'This page consumes the backend read path {readPath}, and ACK uses the governance service. Notification delivery still displays SIMULATED / DEDUPE states and must not be described as real email success.',
-    controlsTitle: 'Alert query and governance actions',
-    controlsSummary: 'Query by tenant, alert status, alert type, and notify status; create-rule and notification-policy actions still expose the missing write-interface boundary.',
-    listTitle: 'Alert list',
-    detailTitle: 'Detail, ACK, notify, and pause evidence',
-    options: {
-      all: 'All'
-    },
-    metrics: {
-      total: 'Total alerts',
-      open: 'Open',
-      high: 'High severity',
-      simulated: 'Notify simulated'
-    },
-    fields: {
-      alertId: 'Alert ID',
-      alertType: 'Alert type',
-      alertLevel: 'Alert level',
-      alertStatus: 'Alert status',
-      notifyStatus: 'Notify status',
-      notifyBoundary: 'Notify boundary',
-      sourceService: 'Source service',
-      policyId: 'Policy ID',
-      dedupeKey: 'Dedupe key',
-      recommendationId: 'Recommendation ID',
-      historyId: 'History ID',
-      rewriteRecordId: 'Rewrite record ID',
-      validationRunId: 'Validation run ID',
-      sqlFingerprint: 'SQL fingerprint',
-      autoApplyPaused: 'Auto apply paused',
-      notifiedAt: 'Notified at',
-      ackedBy: 'ACKed by',
-      ackedAt: 'ACKed at'
-    },
-    actions: {
-      refresh: 'Refresh alerts',
-      createRule: 'Create alert rule',
-      editNotify: 'Edit notify strategy',
-      ack: 'ACK alert',
-      clearAck: 'Clear simulated ACK'
-    },
-    sections: {
-      notificationLogs: 'Notification logs',
-      evidence: 'Alert evidence'
-    },
-    derived: {
-      backlogTitle: 'Governance backlog alert',
-      backlogSummary: 'Current failed={failed}, pending={pending}.',
-      dispatchTitle: 'Dispatch event requires attention',
-      parseTitle: 'Parse-priority alert'
-    },
-    placeholder: {
-      createTitle: 'Create alert rule is not writable yet',
-      createCapability: 'Create alert rule',
-      createReason: 'The repository does not expose a dedicated alert-rule write API, and this page still derives evidence from backlog, dispatch, and important-or-urgent SQL.',
-      createNextStep: 'If alert-configuration APIs are added later, connect the create form here.',
-      editTitle: 'Edit notification strategy is not writable yet',
-      editCapability: 'Edit notification strategy',
-      editReason: 'ACK and notify are explicitly simulated on this page and should not pretend to be a live notification control plane.',
-      editNextStep: 'Introduce real notification APIs and audit coverage before wiring editing actions.'
-    },
-    messages: {
-      noAlert: 'No alert is available to display.',
-      noNotificationLog: 'No notification log is available.'
     }
   },
   acceleration: {
@@ -2825,31 +2502,6 @@ export default {
       text011: 'Audit boundary',
       text012: 'Residual owner'
     },
-    viewsRoutingGovernanceRoutingGovernanceView: {
-      text001: 'Declared modes',
-      text002: 'Live verification',
-      text003: 'Implementation stage',
-      text004: 'Use a comment to express the preferred engine, while the backend routeDecision remains authoritative.',
-      text005: 'Priority flows into context without replacing routing evidence.',
-      text006: 'This page is read-only and exposes calibration snapshots plus historical routeDecision evidence rather than rule editing.',
-      text007: 'Selected engine',
-      text008: 'Rule id',
-      text009: 'Verification',
-      text010: 'Fallback note',
-      text011: 'Execution mode',
-      text012: 'Attempted modes',
-      text013: 'Comment context',
-      text014: 'Execution summary',
-      text015: 'Query context',
-      text016: 'Create-rule action is not writable yet',
-      text017: 'Create routing rule',
-      text018: 'The current repository only exposes read-only route-calibration and query-history.routeDecision evidence. No writable routing-rule API is available yet.',
-      text019: 'Add a backend routing-rule write API before connecting a form here.',
-      text020: 'Edit-rule action is not writable yet',
-      text021: 'Edit routing rule',
-      text022: 'This page is an execution-evidence surface rather than a frontend control plane, and the repository truth does not expose a rule-update API.',
-      text023: 'If a writable API is introduced later, wire contract and audit coverage before adding edit actions.'
-    },
     viewsSystemSystemView: {
       text001: 'System management',
       text002: 'Datasources, interfaces, and runtime governance',
@@ -2972,27 +2624,20 @@ export default {
       parseHistory: 'Parse History',
       recommendations: 'Recommendation Results',
       rewriteGovernance: 'Rewrite Governance',
-      auxiliaryGovernance: 'Auxiliary Governance',
       referencePages: 'Reference Pages',
-      routing: 'Routing Governance',
       assets: 'Data Assets',
       benchmark: 'Benchmark Center',
       system: 'System Management',
       access: 'Open Access'
     },
     sections: {
-      datasourcesInterfaces: 'Datasources and interfaces',
-      auditTrace: 'Audit and trace',
-      alertsRemediation: 'Alerts and remediation',
-      runtimeGovernance: 'Runtime governance'
+      datasourcesInterfaces: 'Datasources and interfaces'
     },
     items: {
       dashboardHome: 'Core workflow overview',
       deliveryWorkbench: 'AI delivery workbench',
       sqlWorkbench: 'SQL query analysis',
       historyList: 'SQL history search',
-      repairEvidence: 'Repair evidence',
-      auditForensics: 'Audit forensics',
       sqlParse: 'Single SQL parse',
       parseStatistics: 'Parse statistics',
       batchParseCenter: 'Batch parse center',
@@ -3001,14 +2646,9 @@ export default {
       rewriteValidation: 'SQL rewrite validation',
       rewriteRecords: 'Rewrite records',
       rewriteHistory: 'Rewrite history',
-      routingEvidence: 'Trace search',
       assetCatalog: 'Asset catalog',
       benchmarkWorkbench: 'Benchmark workbench',
       systemManagement: 'System management',
-      alertCenter: 'Alert center',
-      troubleshooting: 'Troubleshooting',
-      runtimeGates: 'Runtime gates',
-      recoveryDrill: 'Recovery drill',
       openAccess: 'Open access'
     },
     badges: {

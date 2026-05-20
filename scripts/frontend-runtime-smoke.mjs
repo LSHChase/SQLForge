@@ -371,147 +371,11 @@ const runParseRecordFlow = async (page, runtimeEvidence) => {
   await page.getByTestId('parse-record-load-more').click()
   await expectNumberAtLeast(page, 'parse-record-display-count', 2)
 
-  await page.getByTestId('parse-record-open-audit-forensics').click()
-
   return {
     queryTraceId,
     lookupWindowStart,
     lookupWindowEnd
   }
-}
-
-const runAuditForensicsFlow = async (page, runtimeEvidence) => {
-  await page.getByTestId('audit-forensics-page').waitFor({ timeout: defaultTimeoutMs })
-
-  await expectInputValue(page, 'audit-forensics-task-id', runtimeEvidence.optimizationTaskId)
-  await expectUrlQueryParam(page, 'windowStart', runtimeEvidence.lookupWindowStart)
-  await expectUrlQueryParam(page, 'windowEnd', runtimeEvidence.lookupWindowEnd)
-  await expectNumberAtLeast(page, 'audit-forensics-match-count', 1)
-  await page.getByTestId('audit-forensics-has-more').waitFor({ timeout: defaultTimeoutMs })
-  await expectText(page, 'audit-forensics-detail-service-code', 'SQL_OPTIMIZATION')
-  await expectText(page, 'audit-forensics-detail-status', 'FAILED')
-  await expectText(page, 'audit-forensics-detail-lookup-mode', 'TASK')
-  await expectText(page, 'audit-forensics-detail-repair-signal', 'COMPENSATION_TRACE')
-  await page.getByTestId('audit-forensics-load-more').click()
-  await expectNumberAtLeast(page, 'audit-forensics-match-count', 2)
-  await expectNumberAtLeast(page, 'audit-forensics-compensation-count', 1)
-  await page.getByTestId('audit-forensics-compensation-pill').first().waitFor({ timeout: defaultTimeoutMs })
-}
-
-const runAuditTroubleshootingFlow = async (page, runtimeEvidence) => {
-  const { seededId } = seedFailedGovernanceMessage()
-
-  try {
-    await page.getByTestId('audit-forensics-open-troubleshooting').click()
-    await page.getByTestId('audit-troubleshooting-page').waitFor({ timeout: defaultTimeoutMs })
-
-    await expectInputValue(page, 'audit-troubleshooting-task-id', runtimeEvidence.optimizationTaskId)
-    await expectInputValue(page, 'audit-troubleshooting-remediation-tenant-id', 'system')
-    await expectUrlQueryParam(page, 'windowStart', runtimeEvidence.lookupWindowStart)
-    await expectUrlQueryParam(page, 'windowEnd', runtimeEvidence.lookupWindowEnd)
-    await expectNumberAtLeast(page, 'audit-troubleshooting-match-count', 1)
-    await page.getByTestId('audit-troubleshooting-has-more').waitFor({ timeout: defaultTimeoutMs })
-    await expectText(page, 'audit-troubleshooting-detail-service-code', 'SQL_OPTIMIZATION')
-    await expectText(page, 'audit-troubleshooting-failure-type', 'OPTIMIZATION_FAILURE')
-    await expectNumberAtLeast(page, 'audit-troubleshooting-compensation-count', 1)
-    await expectNumberAtLeast(page, 'audit-troubleshooting-queue-failed', 1)
-    await expectText(page, 'audit-troubleshooting-queue-impact', 'FAILED_BACKLOG')
-
-    await page.getByTestId('audit-troubleshooting-load-more').click()
-    await expectNumberAtLeast(page, 'audit-troubleshooting-match-count', 2)
-
-    const retryResponsePromise = waitForPost(page, '/api/governance/admin/messages/retry')
-    await page.getByTestId('audit-troubleshooting-retry').click()
-    const retryResponse = await retryResponsePromise
-    const retryPayload = await retryResponse.json()
-
-    assert(retryResponse.status() === 200, `Troubleshooting retry returned HTTP ${retryResponse.status()}`)
-    assert(retryPayload.status === 'ACCEPTED', `Troubleshooting retry returned unexpected status ${retryPayload.status}`)
-    assert(retryPayload.retriedCount >= 1, `Expected retry count >= 1, got ${retryPayload.retriedCount}`)
-
-    await expectText(page, 'audit-troubleshooting-retry-status', 'ACCEPTED')
-    await expectNumberAtLeast(page, 'audit-troubleshooting-retry-count', 1)
-    await expectNumberAtLeast(page, 'audit-troubleshooting-failed-delta', 1)
-    await expectText(page, 'audit-troubleshooting-repair-outcome', 'REPAIRED')
-    await expectText(page, 'audit-troubleshooting-acceptance-state', 'REPAIRED')
-
-    await page.getByTestId('audit-troubleshooting-open-repair-evidence').click()
-    await page.getByTestId('repair-evidence-page').waitFor({ timeout: defaultTimeoutMs })
-    await expectInputValue(page, 'repair-evidence-task-id', runtimeEvidence.optimizationTaskId)
-    await expectUrlQueryParam(page, 'windowStart', runtimeEvidence.lookupWindowStart)
-    await expectUrlQueryParam(page, 'windowEnd', runtimeEvidence.lookupWindowEnd)
-    await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
-    await expectText(page, 'repair-evidence-detail-service-code', 'SQL_OPTIMIZATION')
-    await expectText(page, 'repair-evidence-detail-status', 'FAILED')
-
-    await page.getByTestId('repair-evidence-open-troubleshooting').click()
-    await page.getByTestId('audit-troubleshooting-page').waitFor({ timeout: defaultTimeoutMs })
-    await expectInputValue(page, 'audit-troubleshooting-task-id', runtimeEvidence.optimizationTaskId)
-
-    await page.getByTestId('audit-troubleshooting-open-system').click()
-    await page.getByTestId('system-flow-page').waitFor({ timeout: defaultTimeoutMs })
-    await expectText(page, 'system-flow-tenant-config-status', 'system')
-  } finally {
-    cleanupGovernanceMessage(seededId)
-  }
-}
-
-const runRepairEvidenceFlow = async (page, runtimeEvidence, options = {}) => {
-  if (!options.alreadyOnPage) {
-    await page.goto(`${frontendBaseUrl}${ROUTE_PATHS.repairEvidence}`, { waitUntil: 'networkidle' })
-  }
-  await page.getByTestId('repair-evidence-page').waitFor({ timeout: defaultTimeoutMs })
-
-  if (options.alreadyOnPage) {
-    await expectInputValue(page, 'repair-evidence-task-id', runtimeEvidence.optimizationTaskId)
-    await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
-    await expectText(page, 'repair-evidence-detail-service-code', 'SQL_OPTIMIZATION')
-    await expectText(page, 'repair-evidence-detail-status', 'FAILED')
-    await expectText(page, 'repair-evidence-detail-task-id', runtimeEvidence.optimizationTaskId)
-  }
-
-  await page.getByTestId('repair-evidence-trace-id').fill(runtimeEvidence.queryTraceId)
-  await page.getByTestId('repair-evidence-task-id').fill('')
-  await page.getByTestId('repair-evidence-report-id').fill('')
-  await page.getByTestId('repair-evidence-run-lookup').click()
-
-  await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
-  await expectText(page, 'repair-evidence-detail-service-code', 'QUERY_EXECUTION')
-  await expectText(page, 'repair-evidence-detail-status', 'PARTIAL')
-  await expectText(page, 'repair-evidence-detail-lookup-mode', 'TRACE')
-  await expectText(page, 'repair-evidence-detail-repair-signal', 'DEGRADED_RECOVERY')
-  await expectNonEmptyText(page, 'repair-evidence-detail-sql-fingerprint')
-
-  await page.getByTestId('repair-evidence-limit').fill('1')
-  await page.getByTestId('repair-evidence-trace-id').fill('')
-  await page.getByTestId('repair-evidence-task-id').fill(runtimeEvidence.optimizationTaskId)
-  await page.getByTestId('repair-evidence-report-id').fill('')
-  await page.getByTestId('repair-evidence-run-lookup').click()
-
-  await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
-  await page.getByTestId('repair-evidence-has-more').waitFor({ timeout: defaultTimeoutMs })
-  await expectText(page, 'repair-evidence-detail-service-code', 'SQL_OPTIMIZATION')
-  await expectText(page, 'repair-evidence-detail-status', 'FAILED')
-  await expectText(page, 'repair-evidence-detail-lookup-mode', 'TASK')
-  await expectText(page, 'repair-evidence-detail-task-id', runtimeEvidence.optimizationTaskId)
-  await page.getByTestId('repair-evidence-load-more').click()
-  await expectNumberAtLeast(page, 'repair-evidence-match-count', 2)
-  await expectNumberAtLeast(page, 'repair-evidence-compensation-count', 1)
-  await page.getByTestId('repair-evidence-compensation-pill').first().waitFor({ timeout: defaultTimeoutMs })
-
-  await page.getByTestId('repair-evidence-limit').fill('12')
-  await page.getByTestId('repair-evidence-trace-id').fill('')
-  await page.getByTestId('repair-evidence-task-id').fill('')
-  await page.getByTestId('repair-evidence-report-id').fill(runtimeEvidence.benchmarkReportId)
-  await page.getByTestId('repair-evidence-run-lookup').click()
-
-  await expectNumberAtLeast(page, 'repair-evidence-match-count', 1)
-  await expectNumberAtLeast(page, 'repair-evidence-report-count', 1)
-  await expectText(page, 'repair-evidence-detail-service-code', 'BENCHMARK_ENGINE')
-  await expectText(page, 'repair-evidence-detail-status', 'SUCCESS')
-  await expectText(page, 'repair-evidence-detail-lookup-mode', 'REPORT')
-  await expectText(page, 'repair-evidence-detail-report-id', runtimeEvidence.benchmarkReportId)
-  await page.getByTestId('repair-evidence-audit-event').first().waitFor({ timeout: defaultTimeoutMs })
 }
 
 const main = async () => {
@@ -536,27 +400,7 @@ const main = async () => {
       optimizationTaskId: optimizationEvidence.failedTaskId,
       benchmarkReportId: benchmarkEvidence.reportId
     }
-    const parseRecordEvidence = await runParseRecordFlow(page, runtimeEvidence)
-    await runAuditForensicsFlow(page, {
-      ...runtimeEvidence,
-      queryTraceId: parseRecordEvidence.queryTraceId,
-      lookupWindowStart: parseRecordEvidence.lookupWindowStart,
-      lookupWindowEnd: parseRecordEvidence.lookupWindowEnd
-    })
-    await runAuditTroubleshootingFlow(page, {
-      queryTraceId: parseRecordEvidence.queryTraceId,
-      optimizationTaskId: optimizationEvidence.failedTaskId,
-      benchmarkReportId: benchmarkEvidence.reportId,
-      lookupWindowStart: parseRecordEvidence.lookupWindowStart,
-      lookupWindowEnd: parseRecordEvidence.lookupWindowEnd
-    })
-    await runRepairEvidenceFlow(page, {
-      queryTraceId: parseRecordEvidence.queryTraceId,
-      optimizationTaskId: optimizationEvidence.failedTaskId,
-      benchmarkReportId: benchmarkEvidence.reportId,
-      lookupWindowStart: parseRecordEvidence.lookupWindowStart,
-      lookupWindowEnd: parseRecordEvidence.lookupWindowEnd
-    })
+    await runParseRecordFlow(page, runtimeEvidence)
   } finally {
     await browser.close()
   }

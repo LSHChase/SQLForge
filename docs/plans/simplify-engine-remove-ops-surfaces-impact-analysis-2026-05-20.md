@@ -19,7 +19,18 @@
 - `PREFER_ACCELERATED` / runtime rewrite 的 no-fail-open 安全约束。
 - 仓库自身 `foreman` / `task_audit` / phase gate 审计链。
 
-推荐方案是 **B：删除产品化辅助治理面，保留最小执行安全内核**。也就是去掉这些“中心 / 页面 / 查询面 / 运维演练产品功能”，但保留执行引擎必须有的请求上下文、租户授权、最小执行历史、traceId/requestId 日志关联、runtime binding 生效校验和工程交付门禁。
+推荐方案是 **B：删除产品化辅助治理面，保留最小执行安全内核**。人类已确认采用该方案：去掉这些“中心 / 页面 / 查询面 / 运维演练产品功能”，但保留执行引擎必须有的请求上下文、租户授权、SQL 执行历史、真实改写历史、traceId/requestId 日志关联、runtime binding `ACTIVE` 生效校验和工程交付门禁。
+
+## 人类决策
+
+当前实现任务 `USER-CN-IMPLEMENT-ENGINE-OPTION-B-20260520` 按以下确认执行：
+
+- 删除产品化辅助治理面和公开追踪 / 告警 API。
+- 废止 `R-111` 与 `R-115` 作为产品化页面 / 公开操作面的要求，不废止仓库治理和后端最小安全边界。
+- 保留 SQL 执行历史和真实改写历史。
+- 保留 runtime binding `ACTIVE` 后才允许自动改写 / 加速命中的 no-fail-open 安全约束。
+- 历史 `audit_log` / `alert_event` / trace 数据允许 drop。
+- benchmark artifact recovery / cleanup 移出项目产品边界。
 
 ## 盘点依据
 
@@ -178,18 +189,12 @@
 5. 脚本验证重写：把 smoke 从“治理证据链”改为“执行引擎主链路 + activation check + 最小历史”。
 6. 文档真值回写：统一 README、产品规格、接口契约、持久化、部署、验证和任务矩阵。
 
-## 需要人类决定
+## 已关闭的人类决策项
 
-请明确选择：
+人类已选择 `B`，并确认：
 
-- `A`：仅删除前端辅助治理入口。
-- `B`：删除产品化辅助治理面，保留最小执行安全内核。
-- `C`：彻底删除相关后端、数据、规则与验证，并接受等保 / 历史 / 自动改写安全语义降级。
-
-同时需要确认：
-
-1. 是否继续要求等保三级相关 `R-111` 至 `R-115`。
-2. 是否保留 SQL 执行历史和真实改写历史。
-3. 是否保留 runtime binding `ACTIVE` 后才允许自动改写 / 加速命中的安全约束。
-4. 历史 `audit_log` / `alert_event` / trace 数据是保留只读、迁移归档还是允许 drop。
-5. benchmark artifact recovery / cleanup 是否也从项目边界移除。
+1. `R-111` 与 `R-115` 不再作为产品化页面 / 公开操作面要求。
+2. 保留 SQL 执行历史和真实改写历史。
+3. 保留 runtime binding `ACTIVE` 后才允许自动改写 / 加速命中的安全约束。
+4. 历史 `audit_log` / `alert_event` / trace 数据允许 drop。
+5. benchmark artifact recovery / cleanup 从项目产品边界移除。

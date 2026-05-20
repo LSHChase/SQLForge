@@ -104,7 +104,7 @@ public class GovernanceSqlRewriteDivergenceAlertApplicationService {
             linkage.setAlertStatus(alert.getAlertStatus().name());
             linkage.setNotifyStatus(alert.getNotifyStatus().name());
             linkage.setSummary(alert.getSummary());
-            linkage.setDetailPath("/api/governance/alerts/" + alert.getAlertId());
+            linkage.setDetailPath("");
             linkage.setLinkageMode("EMITTED");
             linkages.put(alert.getAlertId(), linkage);
         }
@@ -126,7 +126,7 @@ public class GovernanceSqlRewriteDivergenceAlertApplicationService {
             linkage.setAlertStatus(source.getAlertStatus());
             linkage.setNotifyStatus(source.getNotifyStatus());
             linkage.setSummary(source.getSummary());
-            linkage.setDetailPath("/api/governance/alerts/" + source.getAlertId());
+            linkage.setDetailPath("");
             linkage.setLinkageMode("DEDUPED_TO_EXISTING");
             linkage.setNotificationLogId(log.getNotificationLogId());
             linkages.put(source.getAlertId(), linkage);

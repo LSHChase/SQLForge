@@ -31,7 +31,7 @@
   - 该入口用于本地 `repo-closed` 前端基线回归，不替代 `npm run smoke:frontend-runtime` 的多服务真实业务 smoke
   - 该入口不得被提升为默认 CI、`run-runtime-smoke.sh`、`run-phase-gates.sh` 或 release gate 的 browser runtime gate；它只服务于本地开发时的快速回归
 - 改写治理 smoke：`npm run smoke:rewrite-governance`
-  - 该入口串联推荐/历史/告警页面契约、前端页面治理和 `PRW-012` 生产改写闭环 browser smoke
+  - 该入口串联推荐/历史页面契约、前端页面治理和 `PRW-012` 生产改写闭环 browser smoke
   - 该入口属于本地 `repo-closed` 任务级验证，不替代 full-stack runtime smoke，也不消费真实 Hetu / MRS environment-backed 证据
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - 运行时 smoke 编排：`bash scripts/run-runtime-smoke.sh`
@@ -56,11 +56,11 @@
 - 前端构建：`npm run build`
 - 前端 lint：`npm run lint`
 - 前端轻量 dev browser smoke：`npm run smoke:frontend-dev`
-  - 自动拉起本地 Vite dev server，通过浏览器拦截 mock `/api/*`，检查 `dashboard`、`sql-query`、`runtime-gates`、`recovery-drill` 的 dev 路由与请求头语义
+  - 自动拉起本地 Vite dev server，通过浏览器拦截 mock `/api/*`，检查 `dashboard`、`sql-query`、`sql-history`、`parse-record` 的 dev 路由与请求头语义
   - 用于快速确认当前 Vue SFC + Vite history 路由基线，不替代 full-stack runtime smoke
   - 当前只作为本地 `repo-closed` 开发验证基线，不计入默认 CI 或 phase/release runtime gate
 - 改写治理 smoke：`npm run smoke:rewrite-governance`
-  - 覆盖 repo-closed closeout 契约、`PRW-012` 推荐中心审批发布到 SQL 历史追溯 mocked API browser smoke 与推荐中心 / SQL 历史 / 告警联动静态契约
+  - 覆盖 repo-closed closeout 契约、`PRW-012` 推荐中心激活暂停到 SQL 历史追溯 mocked API browser smoke 与推荐中心 / SQL 历史静态契约
   - 真实 Hetu / MRS EXPLAIN、扫描量、P99、物化视图收益和外部装数证据仍归 `HARN-016` / `INBOX-002` environment-backed 链路
 - 前端真实业务 smoke：`npm run smoke:frontend-runtime`
 - Compose 语法检查：`docker compose config`
