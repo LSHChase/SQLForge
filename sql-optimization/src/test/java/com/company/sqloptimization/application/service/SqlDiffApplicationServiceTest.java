@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
@@ -84,6 +85,45 @@ class SqlDiffApplicationServiceTest {
         assertTrue(rewriteSql.contains("SUM(total_amount) AS total_amount"));
         assertFalse(rewriteSql.contains("SELECT * FROM " + mvName));
         assertEquals("GENERATED", diff.getDiffSummary().get("accelerationArtifactStatus"));
+    }
+
+    @Test
+    void shouldPreferPersistedArtifactSnapshotAndRejectExactQueryMv() {
+        Map<String, Object> snapshot = new LinkedHashMap<String, Object>();
+        snapshot.put("rule", "PRECOMPUTE_MV");
+        snapshot.put("mvType", "ROLLUP_MV");
+        snapshot.put("artifactStatus", "BLOCKED");
+        snapshot.put("mvName", "persisted_mv_snapshot");
+        snapshot.put("grain", Collections.singletonList("dt"));
+        snapshot.put("dimensions", Collections.singletonList("dt"));
+        snapshot.put("measures", Collections.<Map<String, Object>>emptyList());
+        snapshot.put("joinGraph", Collections.<Map<String, Object>>emptyList());
+        snapshot.put("coverage", map("coversProjection", Boolean.TRUE));
+        snapshot.put("blockingReasons", Collections.singletonList(map("code", "PERSISTED_ONLY")));
+        AccelerationRecommendation persisted = mvRecommendation().toBuilder()
+            .accelerationArtifact(snapshot)
+            .build();
+
+        RecommendationDiffVO diff = service.buildRecommendationDiff(persisted);
+
+        assertEquals("persisted_mv_snapshot", diff.getAccelerationArtifact().get("mvName"));
+        assertEquals("ROLLUP_MV", diff.getAccelerationArtifact().get("mvType"));
+        assertEquals("BLOCKED", diff.getDiffSummary().get("accelerationArtifactStatus"));
+
+        Map<String, Object> exactQuery = new LinkedHashMap<String, Object>();
+        exactQuery.put("mvType", "EXACT_QUERY_MV");
+        exactQuery.put("artifactStatus", "GENERATED");
+        exactQuery.put("ddlSql", "CREATE MATERIALIZED VIEW mv_exact AS SELECT * FROM orders");
+        exactQuery.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_exact");
+        exactQuery.put("validationSql", "SELECT 1");
+        exactQuery.put("rollbackSql", "DROP MATERIALIZED VIEW mv_exact");
+        exactQuery.put("rewriteSql", "SELECT * FROM mv_exact");
+        RecommendationDiffVO exactDiff = service.buildRecommendationDiff(
+            mvRecommendation().toBuilder().accelerationArtifact(exactQuery).build()
+        );
+
+        assertNull(exactDiff.getAccelerationArtifact());
+        assertFalse(exactDiff.getDiffSummary().containsKey("accelerationArtifactStatus"));
     }
 
     @Test
@@ -175,11 +215,40 @@ class SqlDiffApplicationServiceTest {
             .build();
     }
 
+    private AccelerationRecommendation mvRecommendation() {
+        return AccelerationRecommendation.builder()
+            .recommendationId("recommendation-mv")
+            .tenantId("tenant-a")
+            .recommendationType(RecommendationType.ACCELERATION)
+            .sourceType(GovernanceSourceType.QUERY)
+            .sourceKind(GovernanceSourceKind.QUERY_HISTORY)
+            .sourceId("history-001")
+            .evidenceLevel(EvidenceLevel.RUNTIME_HISTORY)
+            .sqlFingerprint("fingerprint-001")
+            .sourceSqlText("SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id")
+            .recommendedSqlText("SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id")
+            .targetEngine("HETU")
+            .targetDatasource("datasource-a")
+            .reportCode("sales-daily")
+            .ruleChain(Collections.singletonList(rule("PRECOMPUTE_MV", "L2", "PULL_ONLY_CANDIDATE")))
+            .manualReviewRequired(Boolean.TRUE)
+            .autoApplyAllowed(false)
+            .createdBy("operator-001")
+            .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
+            .build();
+    }
+
     private Map<String, Object> rule(String rule, String level, String status) {
         Map<String, Object> entry = new LinkedHashMap<String, Object>();
         entry.put("rule", rule);
         entry.put("level", level);
         entry.put("status", status);
+        return entry;
+    }
+
+    private Map<String, Object> map(String key, Object value) {
+        Map<String, Object> entry = new LinkedHashMap<String, Object>();
+        entry.put(key, value);
         return entry;
     }
 

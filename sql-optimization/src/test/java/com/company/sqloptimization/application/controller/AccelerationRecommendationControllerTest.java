@@ -50,6 +50,7 @@ class AccelerationRecommendationControllerTest {
         recommendation.setAutoApplyAllowed(Boolean.FALSE);
         recommendation.setManualReviewRequired(Boolean.TRUE);
         recommendation.setRuleChain(Collections.singletonList(rule("COUNT_ONE_TO_COUNT_STAR")));
+        recommendation.setAccelerationArtifact(artifact());
         RecommendationDiffVO diff = new RecommendationDiffVO();
         diff.setRecommendationId("rec-001");
         diff.setTenantId("tenant-a");
@@ -58,6 +59,7 @@ class AccelerationRecommendationControllerTest {
         diff.setSourceId("history-001");
         diff.setEvidenceLevel("RUNTIME_HISTORY");
         diff.setTextDiff(Collections.singletonList(textHunk("REPLACE")));
+        diff.setAccelerationArtifact(artifact());
         diff.setDiffStatus("READY");
         diff.setImplementationStage("HARN_132_SQL_DIFF_SERVICE");
         when(recommendationApplicationService.listRecommendations())
@@ -76,6 +78,17 @@ class AccelerationRecommendationControllerTest {
             .andExpect(jsonPath("$.recommendationId").value("rec-001"))
             .andExpect(jsonPath("$.requiresDispatch").value(true))
             .andExpect(jsonPath("$.ruleChain[0].rule").value("COUNT_ONE_TO_COUNT_STAR"))
+            .andExpect(jsonPath("$.accelerationArtifact.mvType").value("PARAMETERIZED_AGG_MV"))
+            .andExpect(jsonPath("$.accelerationArtifact.grain[0]").value("customer_id"))
+            .andExpect(jsonPath("$.accelerationArtifact.dimensions[0]").value("customer_id"))
+            .andExpect(jsonPath("$.accelerationArtifact.measures[0].name").value("sum_amount"))
+            .andExpect(jsonPath("$.accelerationArtifact.coverage.coversProjection").value(true))
+            .andExpect(jsonPath("$.accelerationArtifact.joinGraph").isArray())
+            .andExpect(jsonPath("$.accelerationArtifact.ddlSql").value("CREATE MATERIALIZED VIEW mv_orders_customer AS SELECT customer_id, SUM(amount) AS sum_amount FROM orders GROUP BY customer_id"))
+            .andExpect(jsonPath("$.accelerationArtifact.refreshSql").value("REFRESH MATERIALIZED VIEW mv_orders_customer"))
+            .andExpect(jsonPath("$.accelerationArtifact.validationSql").value("SELECT COUNT(*) FROM mv_orders_customer"))
+            .andExpect(jsonPath("$.accelerationArtifact.rollbackSql").value("DROP MATERIALIZED VIEW mv_orders_customer"))
+            .andExpect(jsonPath("$.accelerationArtifact.rewriteSql").value("SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv_orders_customer GROUP BY customer_id"))
             .andExpect(jsonPath("$.manualReviewRequired").value(true))
             .andExpect(jsonPath("$.autoApplyAllowed").value(false));
 
@@ -83,6 +96,9 @@ class AccelerationRecommendationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sourceKind").value("QUERY_HISTORY"))
             .andExpect(jsonPath("$.evidenceLevel").value("RUNTIME_HISTORY"))
+            .andExpect(jsonPath("$.accelerationArtifact.mvType").value("PARAMETERIZED_AGG_MV"))
+            .andExpect(jsonPath("$.accelerationArtifact.coverage.coversProjection").value(true))
+            .andExpect(jsonPath("$.accelerationArtifact.rewriteSql").value("SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv_orders_customer GROUP BY customer_id"))
             .andExpect(jsonPath("$.diffStatus").value("READY"))
             .andExpect(jsonPath("$.textDiff[0].type").value("REPLACE"));
     }
@@ -179,5 +195,51 @@ class AccelerationRecommendationControllerTest {
         entry.put("hunkId", "hunk-1");
         entry.put("type", type);
         return entry;
+    }
+
+    private Map<String, Object> artifact() {
+        Map<String, Object> artifact = new LinkedHashMap<String, Object>();
+        artifact.put("mvType", "PARAMETERIZED_AGG_MV");
+        artifact.put("artifactStatus", "GENERATED");
+        artifact.put("grain", Collections.singletonList("customer_id"));
+        artifact.put("dimensions", Collections.singletonList("customer_id"));
+        artifact.put("measures", Collections.singletonList(measure()));
+        artifact.put("externalizedPredicates", Collections.emptyList());
+        artifact.put("retainedPredicates", Collections.emptyList());
+        artifact.put("securityPredicates", Collections.emptyList());
+        artifact.put("blockedPredicates", Collections.emptyList());
+        artifact.put("coverage", coverage());
+        artifact.put("joinGraph", Collections.emptyList());
+        artifact.put(
+            "ddlSql",
+            "CREATE MATERIALIZED VIEW mv_orders_customer AS SELECT customer_id, SUM(amount) AS sum_amount FROM orders GROUP BY customer_id"
+        );
+        artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_orders_customer");
+        artifact.put("validationSql", "SELECT COUNT(*) FROM mv_orders_customer");
+        artifact.put("rollbackSql", "DROP MATERIALIZED VIEW mv_orders_customer");
+        artifact.put(
+            "rewriteSql",
+            "SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv_orders_customer GROUP BY customer_id"
+        );
+        return artifact;
+    }
+
+    private Map<String, Object> measure() {
+        Map<String, Object> measure = new LinkedHashMap<String, Object>();
+        measure.put("name", "sum_amount");
+        measure.put("sourceExpression", "SUM(amount)");
+        measure.put("rewriteExpression", "SUM(sum_amount)");
+        measure.put("mergeable", Boolean.TRUE);
+        return measure;
+    }
+
+    private Map<String, Object> coverage() {
+        Map<String, Object> coverage = new LinkedHashMap<String, Object>();
+        coverage.put("coversProjection", Boolean.TRUE);
+        coverage.put("coversFilters", Boolean.TRUE);
+        coverage.put("coversGrouping", Boolean.TRUE);
+        coverage.put("coversMeasures", Boolean.TRUE);
+        coverage.put("coversSecurity", Boolean.TRUE);
+        return coverage;
     }
 }

@@ -22,17 +22,20 @@ public class SqlDiffApplicationService {
     private static final int TOKEN_DIFF_LIMIT = 500;
 
     private final SqlOptimizationPipelineService pipelineService;
-    private final L2AccelerationArtifactApplicationService accelerationArtifactApplicationService;
+    private final AccelerationArtifactSnapshotService accelerationArtifactSnapshotService;
 
     @Autowired
     public SqlDiffApplicationService(SqlOptimizationPipelineService pipelineService,
-                                     L2AccelerationArtifactApplicationService accelerationArtifactApplicationService) {
+                                     AccelerationArtifactSnapshotService accelerationArtifactSnapshotService) {
         this.pipelineService = pipelineService;
-        this.accelerationArtifactApplicationService = accelerationArtifactApplicationService;
+        this.accelerationArtifactSnapshotService = accelerationArtifactSnapshotService;
     }
 
     public SqlDiffApplicationService(SqlOptimizationPipelineService pipelineService) {
-        this(pipelineService, new L2AccelerationArtifactApplicationService(pipelineService));
+        this(
+            pipelineService,
+            new AccelerationArtifactSnapshotService(new L2AccelerationArtifactApplicationService(pipelineService))
+        );
     }
 
     public RecommendationDiffVO buildRecommendationDiff(AccelerationRecommendation recommendation) {
@@ -42,7 +45,7 @@ public class SqlDiffApplicationService {
         AstDiffResult astDiff = buildAstSummaryDiff(originalSql, recommendedSql);
         List<Map<String, Object>> ruleDiff = buildRuleDiff(recommendation, textDiff);
         Map<String, Object> accelerationArtifact =
-            accelerationArtifactApplicationService.buildForRecommendation(recommendation);
+            accelerationArtifactSnapshotService.resolveForResponse(recommendation);
         Map<String, Object> summary = buildDiffSummary(recommendation, textDiff, ruleDiff, astDiff);
         if (accelerationArtifact != null && !accelerationArtifact.isEmpty()) {
             summary.put("accelerationArtifactStatus", accelerationArtifact.get("artifactStatus"));

@@ -47,6 +47,7 @@ class MybatisAccelerationRecommendationRepositoryTest {
         assertEquals("SQL_RECOMMENDATION_RULE_MODEL_V1", record.getSchemaVersion());
         assertEquals("[{\"rule\":\"COUNT_ONE_TO_COUNT_STAR\"}]", record.getRuleChainJson());
         assertEquals("[{\"rule\":\"SELECT_STAR_EXPANSION\"}]", record.getUnappliedRulesJson());
+        assertEquals("{\"mvType\":\"PARAMETERIZED_AGG_MV\"}", record.getAccelerationArtifactJson());
         assertEquals("{\"claimBoundary\":\"NOT_REAL_EXECUTION_GAIN\"}", record.getExpectedBenefitJson());
         assertEquals(Boolean.FALSE, record.getAutoApplyAllowed());
         assertEquals(Boolean.TRUE, record.getManualReviewRequired());
@@ -68,6 +69,7 @@ class MybatisAccelerationRecommendationRepositoryTest {
         assertEquals(RewriteValidationStatus.NOT_VALIDATED, restored.getValidationStatus());
         assertEquals("COUNT_ONE_TO_COUNT_STAR", restored.getRuleChain().get(0).get("rule"));
         assertEquals("SELECT_STAR_EXPANSION", restored.getUnappliedRules().get(0).get("rule"));
+        assertEquals("PARAMETERIZED_AGG_MV", restored.getAccelerationArtifact().get("mvType"));
         assertEquals("NOT_REAL_EXECUTION_GAIN", restored.getExpectedBenefit().get("claimBoundary"));
         assertFalse(restored.isAutoApplyAllowed());
         assertEquals(true, restored.isManualReviewRequired());
@@ -113,6 +115,7 @@ class MybatisAccelerationRecommendationRepositoryTest {
             .evidenceLevel(EvidenceLevel.STATIC_PARSE)
             .ruleChain(Collections.singletonList(rule("COUNT_ONE_TO_COUNT_STAR")))
             .unappliedRules(Collections.singletonList(rule("SELECT_STAR_EXPANSION")))
+            .accelerationArtifact(map("mvType", "PARAMETERIZED_AGG_MV"))
             .expectedBenefit(map("claimBoundary", "NOT_REAL_EXECUTION_GAIN"))
             .confidence(Integer.valueOf(70))
             .validationMethod("RESULT_DIFF_THEN_MANUAL_REVIEW")
@@ -138,6 +141,7 @@ class MybatisAccelerationRecommendationRepositoryTest {
         record.setSchemaVersion("SQL_RECOMMENDATION_RULE_MODEL_V1");
         record.setRuleChainJson("[{\"rule\":\"COUNT_ONE_TO_COUNT_STAR\"}]");
         record.setUnappliedRulesJson("[{\"rule\":\"SELECT_STAR_EXPANSION\"}]");
+        record.setAccelerationArtifactJson("{\"mvType\":\"PARAMETERIZED_AGG_MV\"}");
         record.setExpectedBenefitJson("{\"claimBoundary\":\"NOT_REAL_EXECUTION_GAIN\"}");
         record.setValidationStatus("NOT_VALIDATED");
         record.setAutoApplyAllowed(Boolean.FALSE);

@@ -2,6 +2,7 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -370,6 +371,53 @@ class AccelerationRecommendationApplicationServiceTest {
         assertEquals("rec-structure-parse", sqlParsePage.getItems().get(1).getRecommendationId());
         assertEquals(Integer.valueOf(1), reportBatchPage.getTotalCount());
         assertEquals("rec-report-batch", reportBatchPage.getItems().get(0).getRecommendationId());
+    }
+
+    @Test
+    void shouldPersistAndReuseSameAdvancedMvArtifactForDetailAndDiff() {
+        RequestContext.set(
+            "tenant-a",
+            "operator-001",
+            Arrays.asList("TENANT_ADMIN"),
+            "request-001",
+            "trace-001",
+            "header",
+            1L,
+            2L
+        );
+        InMemoryAccelerationRecommendationRepository repository =
+            new InMemoryAccelerationRecommendationRepository();
+        AccelerationRecommendationApplicationService service =
+            new AccelerationRecommendationApplicationService(repository);
+        AccelerationRecommendationCreateRequest request = new AccelerationRecommendationCreateRequest();
+        request.setTenantId("tenant-a");
+        request.setRecommendationType(RecommendationType.ACCELERATION);
+        request.setSourceSqlText("SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id");
+        request.setRecommendedSqlText("SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id");
+        request.setTargetEngine("HETU");
+        request.setTargetDatasource("hetu-main");
+        request.setReportCode("RPT_SALES");
+        request.setSqlFingerprint("fp-amv-012");
+        request.setRuleChain(Collections.singletonList(rule("PRECOMPUTE_MV", "L2")));
+        request.setAutoApplyAllowed(Boolean.FALSE);
+        request.setManualReviewRequired(Boolean.TRUE);
+
+        AccelerationRecommendationVO created = service.createRecommendation(request);
+        AccelerationRecommendation stored = repository.findByRecommendationId(created.getRecommendationId());
+        AccelerationRecommendationVO detail = service.getRecommendation(created.getRecommendationId());
+        RecommendationDiffVO diff = service.getRecommendationDiff(created.getRecommendationId());
+
+        assertNotNull(stored.getAccelerationArtifact());
+        assertEquals("PARAMETERIZED_AGG_MV", stored.getAccelerationArtifact().get("mvType"));
+        assertEquals(stored.getAccelerationArtifact(), detail.getAccelerationArtifact());
+        assertEquals(detail.getAccelerationArtifact(), diff.getAccelerationArtifact());
+        assertEquals("GENERATED", detail.getAccelerationArtifact().get("artifactStatus"));
+        assertTrue(detail.getAccelerationArtifact().containsKey("grain"));
+        assertTrue(detail.getAccelerationArtifact().containsKey("dimensions"));
+        assertTrue(detail.getAccelerationArtifact().containsKey("measures"));
+        assertTrue(detail.getAccelerationArtifact().containsKey("coverage"));
+        assertTrue(detail.getAccelerationArtifact().containsKey("joinGraph"));
+        assertTrue(String.valueOf(detail.getAccelerationArtifact().get("rewriteSql")).contains("FROM "));
     }
 
     @Test

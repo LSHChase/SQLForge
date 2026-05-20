@@ -35,15 +35,15 @@ public class AccelerationRecommendationApplicationService {
 
     private final AccelerationRecommendationRepository recommendationRepository;
     private final SqlDiffApplicationService sqlDiffApplicationService;
-    private final L2AccelerationArtifactApplicationService accelerationArtifactApplicationService;
+    private final AccelerationArtifactSnapshotService accelerationArtifactSnapshotService;
 
     @Autowired
     public AccelerationRecommendationApplicationService(AccelerationRecommendationRepository recommendationRepository,
                                                         SqlDiffApplicationService sqlDiffApplicationService,
-                                                        L2AccelerationArtifactApplicationService accelerationArtifactApplicationService) {
+                                                        AccelerationArtifactSnapshotService accelerationArtifactSnapshotService) {
         this.recommendationRepository = recommendationRepository;
         this.sqlDiffApplicationService = sqlDiffApplicationService;
-        this.accelerationArtifactApplicationService = accelerationArtifactApplicationService;
+        this.accelerationArtifactSnapshotService = accelerationArtifactSnapshotService;
     }
 
     public AccelerationRecommendationApplicationService(AccelerationRecommendationRepository recommendationRepository,
@@ -51,7 +51,9 @@ public class AccelerationRecommendationApplicationService {
         this(
             recommendationRepository,
             sqlDiffApplicationService,
-            new L2AccelerationArtifactApplicationService(new SqlOptimizationPipelineService())
+            new AccelerationArtifactSnapshotService(
+                new L2AccelerationArtifactApplicationService(new SqlOptimizationPipelineService())
+            )
         );
     }
 
@@ -117,6 +119,7 @@ public class AccelerationRecommendationApplicationService {
             .createdAt(now)
             .updatedAt(now)
             .build();
+        recommendation = accelerationArtifactSnapshotService.captureSnapshot(recommendation);
         return toVo(recommendationRepository.save(recommendation));
     }
 
@@ -290,7 +293,7 @@ public class AccelerationRecommendationApplicationService {
         vo.setUnappliedRules(recommendation.getUnappliedRules());
         vo.setPreconditions(recommendation.getPreconditions());
         vo.setSemanticRisks(recommendation.getSemanticRisks());
-        vo.setAccelerationArtifact(accelerationArtifactApplicationService.buildForRecommendation(recommendation));
+        vo.setAccelerationArtifact(accelerationArtifactSnapshotService.resolveForResponse(recommendation));
         vo.setExpectedBenefit(recommendation.getExpectedBenefit());
         vo.setEstimatedCost(recommendation.getEstimatedCost());
         vo.setConfidence(recommendation.getConfidence());

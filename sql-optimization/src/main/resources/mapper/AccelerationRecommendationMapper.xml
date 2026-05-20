@@ -38,6 +38,7 @@
         <result property="unappliedRulesJson" column="unapplied_rules_json"/>
         <result property="preconditionsJson" column="preconditions_json"/>
         <result property="semanticRisksJson" column="semantic_risks_json"/>
+        <result property="accelerationArtifactJson" column="acceleration_artifact_json"/>
         <result property="expectedBenefitJson" column="expected_benefit_json"/>
         <result property="estimatedCostJson" column="estimated_cost_json"/>
         <result property="confidence" column="confidence"/>
@@ -59,7 +60,7 @@
         logical_object_key, summary, reason, expected_gain, benefit_level, risk_level,
         risk_summary, requires_dispatch, status, source_type, source_kind, source_id, evidence_level,
         schema_version, rule_chain_json, unapplied_rules_json, preconditions_json, semantic_risks_json,
-        expected_benefit_json, estimated_cost_json, confidence, validation_method, validation_status,
+        acceleration_artifact_json, expected_benefit_json, estimated_cost_json, confidence, validation_method, validation_status,
         auto_apply_allowed, manual_review_required, source_problems_json, issue_rule_links_json,
         created_by, created_at, updated_at
     </sql>
@@ -155,7 +156,7 @@
             logical_object_key, summary, reason, expected_gain, benefit_level, risk_level,
             risk_summary, requires_dispatch, status, source_type, source_kind, source_id, evidence_level,
             schema_version, rule_chain_json, unapplied_rules_json, preconditions_json, semantic_risks_json,
-            expected_benefit_json, estimated_cost_json, confidence, validation_method, validation_status,
+            acceleration_artifact_json, expected_benefit_json, estimated_cost_json, confidence, validation_method, validation_status,
             auto_apply_allowed, manual_review_required, source_problems_json, issue_rule_links_json,
             created_by, created_at, updated_at
         ) VALUES (
@@ -165,7 +166,7 @@
             #{logicalObjectKey}, #{summary}, #{reason}, #{expectedGain}, #{benefitLevel}, #{riskLevel},
             #{riskSummary}, #{requiresDispatch}, #{status}, #{sourceType}, #{sourceKind}, #{sourceId}, #{evidenceLevel},
             #{schemaVersion}, #{ruleChainJson}, #{unappliedRulesJson}, #{preconditionsJson}, #{semanticRisksJson},
-            #{expectedBenefitJson}, #{estimatedCostJson}, #{confidence}, #{validationMethod}, #{validationStatus},
+            #{accelerationArtifactJson}, #{expectedBenefitJson}, #{estimatedCostJson}, #{confidence}, #{validationMethod}, #{validationStatus},
             #{autoApplyAllowed}, #{manualReviewRequired}, #{sourceProblemsJson}, #{issueRuleLinksJson},
             #{createdBy}, #{createdAt}, #{updatedAt}
         )
@@ -205,6 +206,7 @@
             unapplied_rules_json = #{unappliedRulesJson},
             preconditions_json = #{preconditionsJson},
             semantic_risks_json = #{semanticRisksJson},
+            acceleration_artifact_json = #{accelerationArtifactJson},
             expected_benefit_json = #{expectedBenefitJson},
             estimated_cost_json = #{estimatedCostJson},
             confidence = #{confidence},

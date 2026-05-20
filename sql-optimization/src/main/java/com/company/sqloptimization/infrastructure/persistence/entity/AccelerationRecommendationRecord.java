@@ -37,6 +37,7 @@ public class AccelerationRecommendationRecord {
     private String unappliedRulesJson;
     private String preconditionsJson;
     private String semanticRisksJson;
+    private String accelerationArtifactJson;
     private String expectedBenefitJson;
     private String estimatedCostJson;
     private Integer confidence;
@@ -116,6 +117,8 @@ public class AccelerationRecommendationRecord {
     public void setPreconditionsJson(String preconditionsJson) { this.preconditionsJson = preconditionsJson; }
     public String getSemanticRisksJson() { return semanticRisksJson; }
     public void setSemanticRisksJson(String semanticRisksJson) { this.semanticRisksJson = semanticRisksJson; }
+    public String getAccelerationArtifactJson() { return accelerationArtifactJson; }
+    public void setAccelerationArtifactJson(String accelerationArtifactJson) { this.accelerationArtifactJson = accelerationArtifactJson; }
     public String getExpectedBenefitJson() { return expectedBenefitJson; }
     public void setExpectedBenefitJson(String expectedBenefitJson) { this.expectedBenefitJson = expectedBenefitJson; }
     public String getEstimatedCostJson() { return estimatedCostJson; }

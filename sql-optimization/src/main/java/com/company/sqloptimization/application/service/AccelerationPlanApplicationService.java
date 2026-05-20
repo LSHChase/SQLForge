@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -59,17 +60,36 @@ public class AccelerationPlanApplicationService {
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final QueryExecutionAccelerationPlanClient queryExecutionAccelerationPlanClient;
     private final AccelerationPlanModelApplicationService accelerationPlanModelApplicationService;
+    private final AccelerationArtifactSnapshotService accelerationArtifactSnapshotService;
 
     public AccelerationPlanApplicationService(AccelerationPlanRepository accelerationPlanRepository,
                                               OptimizationTaskRepository optimizationTaskRepository,
                                               GovernanceCapabilityClient governanceCapabilityClient,
                                               QueryExecutionAccelerationPlanClient queryExecutionAccelerationPlanClient,
                                               AccelerationPlanModelApplicationService accelerationPlanModelApplicationService) {
+        this(
+            accelerationPlanRepository,
+            optimizationTaskRepository,
+            governanceCapabilityClient,
+            queryExecutionAccelerationPlanClient,
+            accelerationPlanModelApplicationService,
+            new AccelerationArtifactSnapshotService()
+        );
+    }
+
+    @Autowired
+    public AccelerationPlanApplicationService(AccelerationPlanRepository accelerationPlanRepository,
+                                              OptimizationTaskRepository optimizationTaskRepository,
+                                              GovernanceCapabilityClient governanceCapabilityClient,
+                                              QueryExecutionAccelerationPlanClient queryExecutionAccelerationPlanClient,
+                                              AccelerationPlanModelApplicationService accelerationPlanModelApplicationService,
+                                              AccelerationArtifactSnapshotService accelerationArtifactSnapshotService) {
         this.accelerationPlanRepository = accelerationPlanRepository;
         this.optimizationTaskRepository = optimizationTaskRepository;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.queryExecutionAccelerationPlanClient = queryExecutionAccelerationPlanClient;
         this.accelerationPlanModelApplicationService = accelerationPlanModelApplicationService;
+        this.accelerationArtifactSnapshotService = accelerationArtifactSnapshotService;
     }
 
     public AccelerationPlanSubmitResponse submitPlan(AccelerationPlanSubmitRequest request) {
@@ -414,7 +434,9 @@ public class AccelerationPlanApplicationService {
     private Map<String, Object> extractAccelerationArtifact(OptimizationTask sourceTask) {
         for (OptimizationTaskArtifact artifact : sourceTask.getSuggestion().getArtifacts()) {
             if ("ACCELERATION_ARTIFACT".equals(artifact.getCategory())) {
-                return JsonUtils.fromJson(artifact.getContent(), LinkedHashMap.class);
+                return accelerationArtifactSnapshotService.sanitizeForResponse(
+                    JsonUtils.fromJson(artifact.getContent(), LinkedHashMap.class)
+                );
             }
         }
         return Collections.emptyMap();

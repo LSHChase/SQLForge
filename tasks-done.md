@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-012: 扩展 accelerationArtifact API 与持久/展示契约
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-012 persist MV acceleration artifact snapshots`
+- Priority: 1
+- Depends on: AMV-011
+- Scope: 让高级 MV accelerationArtifact 以落库快照方式在推荐详情、diff、加速任务和工作台中保持一致；扩展后端持久字段与 VO/DTO JSON 契约，兼容 SQL 五件套，新增 mvType、grain、dimensions、measures、谓词分类、coverage、joinGraph 等字段；详情/diff/加速计划读取同一 sanitized snapshot，禁止 EXACT_QUERY_MV 出现在响应中，并补充后端与前端兼容契约测试。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-012`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 acceleration_artifact_json 推荐快照字段与 migration/schema/mapper/domain 映射；创建 AccelerationArtifactSnapshotService/Sanitizer，推荐创建时保存 sanitized 高级 MV artifact，详情/diff 优先读取快照且仅历史空快照 fallback；加速计划 payload 复用同一 sanitizer；响应过滤 EXACT_QUERY_MV/未知 mvType；补齐后端/REST/前端 contract 测试和数据模型/接口文档。
+  - Validation evidence: 已在 JDK 8u112 下通过 mvn -pl sql-optimization -Dtest=AccelerationRecommendationApplicationServiceTest,SqlDiffApplicationServiceTest,AccelerationRecommendationControllerTest,MybatisAccelerationRecommendationRepositoryTest,ParseBatchPersistenceSchemaMappingTest,AccelerationPlanApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization test；node scripts/check-recommendation-page-contract.mjs；node scripts/check-acceleration-workbench-contract.mjs；node scripts/lint-repository-knowledge.js；node scripts/check-developer-copy-language.mjs --changed；git diff --check；python3 scripts/foreman.py validate AMV-012；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: SQLForge 仍不执行真实 DDL、刷新、结果校验或 runtime binding 发布；历史空 acceleration_artifact_json 行仍允许 legacy 读时 fallback，未回填前可能受当前解析/规则版本影响；高级 MV 的前端结构化解释区仍留给 AMV-013。
+  - Next step: 继续 AMV-013，补齐推荐中心和加速治理工作台对 mvType、grain、coverage、joinGraph 与谓词分类的结构化展示。
+
 ### AMV-011: 实现 rewrite SQL 生成与静态覆盖校验
 
 - Status: done

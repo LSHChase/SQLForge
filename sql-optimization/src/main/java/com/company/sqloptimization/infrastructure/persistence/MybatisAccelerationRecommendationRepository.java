@@ -114,6 +114,7 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
         record.setUnappliedRulesJson(writeList(recommendation.getUnappliedRules()));
         record.setPreconditionsJson(writeList(recommendation.getPreconditions()));
         record.setSemanticRisksJson(writeList(recommendation.getSemanticRisks()));
+        record.setAccelerationArtifactJson(writeMap(recommendation.getAccelerationArtifact()));
         record.setExpectedBenefitJson(writeMap(recommendation.getExpectedBenefit()));
         record.setEstimatedCostJson(writeMap(recommendation.getEstimatedCost()));
         record.setConfidence(recommendation.getConfidence());
@@ -164,6 +165,7 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
             .unappliedRules(readList(record.getUnappliedRulesJson()))
             .preconditions(readList(record.getPreconditionsJson()))
             .semanticRisks(readList(record.getSemanticRisksJson()))
+            .accelerationArtifact(readMap(record.getAccelerationArtifactJson()))
             .expectedBenefit(readMap(record.getExpectedBenefitJson()))
             .estimatedCost(readMap(record.getEstimatedCostJson()))
             .confidence(record.getConfidence())

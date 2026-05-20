@@ -48,6 +48,7 @@ public class AccelerationRecommendation {
     private final List<Map<String, Object>> unappliedRules;
     private final List<Map<String, Object>> preconditions;
     private final List<Map<String, Object>> semanticRisks;
+    private final Map<String, Object> accelerationArtifact;
     private final Map<String, Object> expectedBenefit;
     private final Map<String, Object> estimatedCost;
     private final Integer confidence;
@@ -95,6 +96,7 @@ public class AccelerationRecommendation {
         this.unappliedRules = immutableListCopy(builder.unappliedRules);
         this.preconditions = immutableListCopy(builder.preconditions);
         this.semanticRisks = immutableListCopy(builder.semanticRisks);
+        this.accelerationArtifact = immutableMapCopy(builder.accelerationArtifact);
         this.expectedBenefit = immutableMapCopy(builder.expectedBenefit);
         this.estimatedCost = immutableMapCopy(builder.estimatedCost);
         this.confidence = builder.confidence;
@@ -187,6 +189,7 @@ public class AccelerationRecommendation {
     public List<Map<String, Object>> getUnappliedRules() { return unappliedRules; }
     public List<Map<String, Object>> getPreconditions() { return preconditions; }
     public List<Map<String, Object>> getSemanticRisks() { return semanticRisks; }
+    public Map<String, Object> getAccelerationArtifact() { return accelerationArtifact; }
     public Map<String, Object> getExpectedBenefit() { return expectedBenefit; }
     public Map<String, Object> getEstimatedCost() { return estimatedCost; }
     public Integer getConfidence() { return confidence; }
@@ -199,6 +202,60 @@ public class AccelerationRecommendation {
     public String getCreatedBy() { return createdBy; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public Builder toBuilder() {
+        return builder()
+            .recommendationId(recommendationId)
+            .tenantId(tenantId)
+            .recommendationType(recommendationType)
+            .sourceSqlId(sourceSqlId)
+            .historyId(historyId)
+            .parseTaskId(parseTaskId)
+            .batchId(batchId)
+            .routeDecisionId(routeDecisionId)
+            .alertId(alertId)
+            .sqlFingerprint(sqlFingerprint)
+            .sourceSqlText(sourceSqlText)
+            .recommendedSqlText(recommendedSqlText)
+            .targetEngine(targetEngine)
+            .targetDatasource(targetDatasource)
+            .reportCode(reportCode)
+            .logicalObjectKey(logicalObjectKey)
+            .summary(summary)
+            .reason(reason)
+            .expectedGain(expectedGain)
+            .benefitLevel(benefitLevel)
+            .riskLevel(riskLevel)
+            .riskSummary(riskSummary)
+            .requiresDispatch(requiresDispatch)
+            .status(status)
+            .sourceType(sourceType)
+            .sourceKind(sourceKind)
+            .sourceId(sourceId)
+            .evidenceLevel(evidenceLevel)
+            .schemaVersion(schemaVersion)
+            .ruleChain(ruleChain)
+            .unappliedRules(unappliedRules)
+            .preconditions(preconditions)
+            .semanticRisks(semanticRisks)
+            .accelerationArtifact(accelerationArtifact)
+            .expectedBenefit(expectedBenefit)
+            .estimatedCost(estimatedCost)
+            .confidence(confidence)
+            .validationMethod(validationMethod)
+            .validationStatus(validationStatus)
+            .autoApplyAllowed(Boolean.valueOf(autoApplyAllowed))
+            .manualReviewRequired(Boolean.valueOf(manualReviewRequired))
+            .sourceProblems(sourceProblems)
+            .issueRuleLinks(issueRuleLinks)
+            .createdBy(createdBy)
+            .createdAt(createdAt)
+            .updatedAt(updatedAt);
+    }
+
+    public AccelerationRecommendation withAccelerationArtifact(Map<String, Object> artifact) {
+        return toBuilder().accelerationArtifact(artifact).build();
+    }
 
     public enum RecommendationType {
         REWRITE,
@@ -264,6 +321,7 @@ public class AccelerationRecommendation {
         private List<Map<String, Object>> unappliedRules;
         private List<Map<String, Object>> preconditions;
         private List<Map<String, Object>> semanticRisks;
+        private Map<String, Object> accelerationArtifact;
         private Map<String, Object> expectedBenefit;
         private Map<String, Object> estimatedCost;
         private Integer confidence;
@@ -313,6 +371,7 @@ public class AccelerationRecommendation {
         public Builder unappliedRules(List<Map<String, Object>> unappliedRules) { this.unappliedRules = unappliedRules; return this; }
         public Builder preconditions(List<Map<String, Object>> preconditions) { this.preconditions = preconditions; return this; }
         public Builder semanticRisks(List<Map<String, Object>> semanticRisks) { this.semanticRisks = semanticRisks; return this; }
+        public Builder accelerationArtifact(Map<String, Object> accelerationArtifact) { this.accelerationArtifact = accelerationArtifact; return this; }
         public Builder expectedBenefit(Map<String, Object> expectedBenefit) { this.expectedBenefit = expectedBenefit; return this; }
         public Builder estimatedCost(Map<String, Object> estimatedCost) { this.estimatedCost = estimatedCost; return this; }
         public Builder confidence(Integer confidence) { this.confidence = confidence; return this; }

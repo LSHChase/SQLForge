@@ -865,6 +865,7 @@ CREATE TABLE IF NOT EXISTS acceleration_recommendation (
   unapplied_rules_json JSON DEFAULT NULL COMMENT '已考虑但未应用的规则及原因证据',
   preconditions_json JSON DEFAULT NULL COMMENT '校验或后续应用前所需的前置条件',
   semantic_risks_json JSON DEFAULT NULL COMMENT '需要校验或人工评审的语义风险',
+  acceleration_artifact_json JSON DEFAULT NULL COMMENT '高级 MV accelerationArtifact 持久快照，响应仅返回允许的高级 MV 类型',
   expected_benefit_json JSON DEFAULT NULL COMMENT '静态预估收益证据，非真实执行收益',
   estimated_cost_json JSON DEFAULT NULL COMMENT '静态预估成本与治理跟进证据',
   confidence INT DEFAULT NULL COMMENT '静态模型置信分 0-100',

@@ -773,7 +773,7 @@ repo-side 基线：
 - `unappliedRules[]`
 - `preconditions[]`
 - `semanticRisks[]`
-- `accelerationArtifact`：仅 L2 `PRECOMPUTE_MV` 命中且可生成或可解释阻断时返回；`PRECOMPUTE_MV` 是物化视图推荐总规则，高级类型由 `mvType` 细分，结构见下文高级 MV 接口契约。
+- `accelerationArtifact`：仅 L2 `PRECOMPUTE_MV` 命中且可生成或可解释阻断时返回；`PRECOMPUTE_MV` 是物化视图推荐总规则，高级类型由 `mvType` 细分，推荐详情与 diff 优先读取推荐落库时的 `acceleration_artifact_json` 快照，只有历史空快照行允许 legacy 读时重算；结构见下文高级 MV 接口契约。
 - `diffSummary`
 - `validationMethod`
 - `validationStatus`
@@ -802,7 +802,7 @@ repo-side 基线：
 4. query-execution runtime binding 返回 `ACTIVE` 后，页面和历史才能展示运行时已生效。
 5. 后续执行是否真正改写，只能由执行历史中的 `rewriteApplied`、实际执行 SQL、改写记录和 runtime binding 追踪字段证明。
 
-当前仓库 V1 `PRECOMPUTE_MV` 产物仍存在 exact-query-like 草案行为，可能由 source SQL 生成 MV DDL 并返回 `SELECT * FROM mv...` 级别 rewrite SQL。本文档把高级 MV 契约固化为后续 AMV 实现的接口目标，不声明现有代码已经完成该禁止项；代码修正属于后续 AMV 实现任务。
+当前仓库 AMV-005 至 AMV-012 已将覆盖到的高级 MV 类型收口为可复用子图产物并落库推荐快照；响应层仍必须过滤 `EXACT_QUERY_MV` 或未知 `mvType`，且 L2 `accelerationArtifact` 不代表已建 MV、已刷新、已验证或 runtime 已生效。
 
 推荐 SQL diff 契约必须提供文本 diff、规则级 diff 与 AST 摘要差异。`HARN-132` 落地后，
 `GET /api/sql-optimization/recommendations/{recommendationId}/diff` 返回只读展示证据：

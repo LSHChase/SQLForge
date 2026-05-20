@@ -1,8 +1,10 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -38,6 +40,7 @@ import com.company.sqloptimization.infrastructure.repository.InMemoryOptimizatio
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -133,6 +136,81 @@ class AccelerationPlanApplicationServiceTest {
     }
 
     @Test
+    void shouldNotCopyExactQueryMvArtifactIntoPlanPayload() {
+        GovernanceCapabilityClient governanceClient = mockGovernanceClient();
+        QueryExecutionAccelerationPlanClient runtimeClient = mock(QueryExecutionAccelerationPlanClient.class);
+        InMemoryOptimizationTaskRepository taskRepository = new InMemoryOptimizationTaskRepository();
+        OptimizationTask sourceTask = succeededAccelerationTask(
+            "task-exact-artifact",
+            Arrays.asList(
+                new OptimizationTaskArtifact(
+                    "ACCELERATION_PLAN",
+                    "recommendedPlan",
+                    "{\"PRECOMPUTE\":\"mv_orders\"}"
+                ),
+                new OptimizationTaskArtifact(
+                    "ACCELERATION_ARTIFACT",
+                    "accelerationArtifact",
+                    "{\"mvType\":\"EXACT_QUERY_MV\",\"artifactStatus\":\"GENERATED\",\"rewriteSql\":\"SELECT * FROM mv_exact\"}"
+                )
+            )
+        );
+        taskRepository.save(sourceTask);
+        AccelerationPlanApplicationService service = new AccelerationPlanApplicationService(
+            new InMemoryAccelerationPlanRepository(),
+            taskRepository,
+            governanceClient,
+            runtimeClient,
+            new AccelerationPlanModelApplicationService()
+        );
+        setRequestContext("tenant-a");
+
+        AccelerationPlanSubmitResponse submitResponse = service.submitPlan(precomputeSubmitRequest(sourceTask.getTaskId()));
+        AccelerationPlanStatusResponse status = service.getPlanStatus(submitResponse.getPlanId());
+
+        assertFalse(status.getPlanPayloadJson().contains("EXACT_QUERY_MV"));
+        assertFalse(status.getPlanPayloadJson().contains("accelerationArtifact"));
+    }
+
+    @Test
+    void shouldCopyAllowedAdvancedMvArtifactIntoPlanPayload() {
+        GovernanceCapabilityClient governanceClient = mockGovernanceClient();
+        QueryExecutionAccelerationPlanClient runtimeClient = mock(QueryExecutionAccelerationPlanClient.class);
+        InMemoryOptimizationTaskRepository taskRepository = new InMemoryOptimizationTaskRepository();
+        OptimizationTask sourceTask = succeededAccelerationTask(
+            "task-amv-artifact",
+            Arrays.asList(
+                new OptimizationTaskArtifact(
+                    "ACCELERATION_PLAN",
+                    "recommendedPlan",
+                    "{\"PRECOMPUTE\":\"mv_orders\"}"
+                ),
+                new OptimizationTaskArtifact(
+                    "ACCELERATION_ARTIFACT",
+                    "accelerationArtifact",
+                    "{\"mvType\":\"PARAMETERIZED_AGG_MV\",\"artifactStatus\":\"BLOCKED\",\"grain\":[\"customer_id\"],\"blockingReasons\":[{\"code\":\"METADATA_REQUIRED\"}]}"
+                )
+            )
+        );
+        taskRepository.save(sourceTask);
+        AccelerationPlanApplicationService service = new AccelerationPlanApplicationService(
+            new InMemoryAccelerationPlanRepository(),
+            taskRepository,
+            governanceClient,
+            runtimeClient,
+            new AccelerationPlanModelApplicationService()
+        );
+        setRequestContext("tenant-a");
+
+        AccelerationPlanSubmitResponse submitResponse = service.submitPlan(precomputeSubmitRequest(sourceTask.getTaskId()));
+        AccelerationPlanStatusResponse status = service.getPlanStatus(submitResponse.getPlanId());
+
+        assertFalse(status.getPlanPayloadJson().contains("EXACT_QUERY_MV"));
+        assertTrue(status.getPlanPayloadJson().contains("PARAMETERIZED_AGG_MV"));
+        assertTrue(status.getPlanPayloadJson().contains("accelerationArtifact"));
+    }
+
+    @Test
     void shouldMarkVerifyFailedWhenRuntimeCannotConfirmBinding() {
         GovernanceCapabilityClient governanceClient = mockGovernanceClient();
         QueryExecutionAccelerationPlanClient runtimeClient = mock(QueryExecutionAccelerationPlanClient.class);
@@ -193,6 +271,19 @@ class AccelerationPlanApplicationServiceTest {
     }
 
     private OptimizationTask succeededAccelerationTask(String taskId) {
+        return succeededAccelerationTask(
+            taskId,
+            Collections.singletonList(
+                new OptimizationTaskArtifact(
+                    "ACCELERATION_PLAN",
+                    "recommendedPlan",
+                    "{\"PRECOMPUTE\":\"mv_orders\",\"PARTITION\":\"order_date\"}"
+                )
+            )
+        );
+    }
+
+    private OptimizationTask succeededAccelerationTask(String taskId, List<OptimizationTaskArtifact> artifacts) {
         OptimizationTask task = new OptimizationTaskModelApplicationService().createQueuedTask(
             optimizationTaskSubmitRequest(),
             taskId,
@@ -207,13 +298,7 @@ class AccelerationPlanApplicationServiceTest {
                 "governed acceleration is ready",
                 "submit a governed plan",
                 Integer.valueOf(87),
-                Collections.singletonList(
-                    new OptimizationTaskArtifact(
-                        "ACCELERATION_PLAN",
-                        "recommendedPlan",
-                        "{\"PRECOMPUTE\":\"mv_orders\",\"PARTITION\":\"order_date\"}"
-                    )
-                ),
+                artifacts,
                 Collections.singletonList(
                     new OptimizationTaskBenefit("PLAN_SIMPLIFICATION", Integer.valueOf(35), "fewer scan paths")
                 ),
@@ -244,6 +329,14 @@ class AccelerationPlanApplicationServiceTest {
         request.setTenantId("tenant-a");
         request.setSourceTaskId(sourceTaskId);
         request.setSelectedSuggestionTypes(Arrays.asList(AccelerationSuggestionType.PRECOMPUTE, AccelerationSuggestionType.PARTITION));
+        return request;
+    }
+
+    private AccelerationPlanSubmitRequest precomputeSubmitRequest(String sourceTaskId) {
+        AccelerationPlanSubmitRequest request = new AccelerationPlanSubmitRequest();
+        request.setTenantId("tenant-a");
+        request.setSourceTaskId(sourceTaskId);
+        request.setSelectedSuggestionTypes(Collections.singletonList(AccelerationSuggestionType.PRECOMPUTE));
         return request;
     }
 
