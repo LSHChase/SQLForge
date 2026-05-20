@@ -25,6 +25,10 @@ import {
   verifyAccelerationPlan
 } from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
+import {
+  buildAccelerationArtifactDisplay,
+  buildRuntimeRewriteSqlSourceNotice
+} from '../common/accelerationArtifactDisplay.mjs'
 import { buildRuntimeRewriteTraceRefs, resolveRuntimeRewriteSql } from '../common/runtimeRewriteSql.mjs'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
@@ -51,7 +55,7 @@ const sourceModeConfig = {
 const datasourceTypeOptions = ['HETU', 'HIVE', 'SPARK', 'CLICKHOUSE', 'GAUSSDB', 'AUTO']
 const suggestionTypeOptions = ['PRECOMPUTE', 'PARTITION', 'BUCKET', 'SPLIT', 'REPLACE']
 
-// Static contract tokens: ENTRY_EVIDENCE, CANDIDATE_SUGGESTION, SQL_DIFF, PLAN_APPROVAL, APPLY_VALIDATION, MONITORING_ALERT, ROLLBACK_DISCARD, runtimeRewriteSqlSource, ACCELERATION_ARTIFACT_REWRITE_SQL.
+// Static contract tokens: ENTRY_EVIDENCE, CANDIDATE_SUGGESTION, SQL_DIFF, PLAN_APPROVAL, APPLY_VALIDATION, MONITORING_ALERT, ROLLBACK_DISCARD, runtimeRewriteSqlSource, ACCELERATION_ARTIFACT_REWRITE_SQL, ddlSql, refreshSql, validationSql, rollbackSql, rewriteSql, reviewWarnings, blockingReasons, externalizedPredicates, retainedPredicates, securityPredicates, blockedPredicates, coverage, joinGraph.
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -167,33 +171,24 @@ const runtimeRewriteSqlSelection = computed(() =>
     diffRecommendedSql: diffResponse.value?.recommendedSql
   })
 )
+const runtimeRewriteSqlSourceNotice = computed(() =>
+  buildRuntimeRewriteSqlSourceNotice(runtimeRewriteSqlSelection.value)
+)
 const canCreateRewriteRecord = computed(() =>
   hasValue(diffResponse.value?.originalSql) && hasValue(runtimeRewriteSqlSelection.value.sqlText)
 )
-const diffAccelerationArtifactCards = computed(() => {
-  const artifact = diffAccelerationArtifact.value
-  if (!artifact) {
-    return []
-  }
-  return [
-    field('artifactStatus', t('recommendationCenter.fields.artifactStatus'), artifact.artifactStatus),
-    field('mvName', t('recommendationCenter.fields.mvName'), artifact.mvName),
-    field('targetEngine', t('accelerationGovernanceWorkbench.fields.datasourceType'), artifact.targetEngine),
-    field('dialect', t('recommendationCenter.fields.dialect'), artifact.dialect),
-    field('refreshStrategy', t('recommendationCenter.fields.refreshStrategy'), artifact.refreshStrategy),
-    field('runtimeRewriteBinding', t('recommendationCenter.fields.runtimeRewriteBinding'), artifact.runtimeRewriteBinding)
-  ]
-})
-const diffAccelerationArtifactSqlBlocks = computed(() => {
-  const artifact = diffAccelerationArtifact.value || {}
-  return [
-    field('ddlSql', t('recommendationCenter.fields.ddlSql'), artifact.ddlSql),
-    field('refreshSql', t('recommendationCenter.fields.refreshSql'), artifact.refreshSql),
-    field('validationSql', t('recommendationCenter.fields.validationSql'), artifact.validationSql),
-    field('rollbackSql', t('recommendationCenter.fields.rollbackSql'), artifact.rollbackSql),
-    field('rewriteSql', t('recommendationCenter.fields.rewriteSql'), artifact.rewriteSql)
-  ].filter(item => hasValue(item.value) && item.value !== '-')
-})
+const diffAccelerationArtifactDisplay = computed(() => buildAccelerationArtifactDisplay(diffAccelerationArtifact.value))
+const diffAccelerationArtifactCards = computed(() => diffAccelerationArtifactDisplay.value.overviewRows)
+const diffAccelerationArtifactBlockingRows = computed(() => diffAccelerationArtifactDisplay.value.blockingRows)
+const diffAccelerationArtifactReviewWarningRows = computed(() => diffAccelerationArtifactDisplay.value.reviewWarningRows)
+const diffAccelerationArtifactGrainRows = computed(() => diffAccelerationArtifactDisplay.value.grainRows)
+const diffAccelerationArtifactDimensionRows = computed(() => diffAccelerationArtifactDisplay.value.dimensionRows)
+const diffAccelerationArtifactMeasureRows = computed(() => diffAccelerationArtifactDisplay.value.measureRows)
+const diffAccelerationArtifactPredicateGroups = computed(() => diffAccelerationArtifactDisplay.value.predicateGroups)
+const diffAccelerationArtifactCoverageRows = computed(() => diffAccelerationArtifactDisplay.value.coverageRows)
+const diffAccelerationArtifactJoinGraphRows = computed(() => diffAccelerationArtifactDisplay.value.joinGraphRows)
+const diffAccelerationArtifactEvidenceSections = computed(() => diffAccelerationArtifactDisplay.value.evidenceSections)
+const diffAccelerationArtifactSqlBlocks = computed(() => diffAccelerationArtifactDisplay.value.sqlBlocks)
 
 const sourceSummaryText = computed(() =>
   t('accelerationGovernanceWorkbench.states.sourceSummary', {
@@ -1170,6 +1165,13 @@ function queryAccelerationApplied(result) {
                 <el-button :loading="loading.monitoring" :disabled="!canCreateRewriteRecord" data-testid="acceleration-workbench-create-rewrite-record" @click="createRewriteRecordFromDiff">
                   {{ t('accelerationGovernanceWorkbench.actions.createRewriteRecord') }}
                 </el-button>
+                <p
+                  v-if="runtimeRewriteSqlSourceNotice"
+                  class="runtime-rewrite-source-note"
+                  data-testid="acceleration-workbench-runtime-rewrite-sql-source"
+                >
+                  {{ runtimeRewriteSqlSourceNotice }}
+                </p>
                 <el-button @click="openEvidenceDrawer(t('accelerationGovernanceWorkbench.tabs.diff'), { diffSummary: diffResponse?.diffSummary, ruleDiff: diffResponse?.ruleDiff, astSummaryDiff: diffResponse?.astSummaryDiff })">
                   {{ t('common.actions.viewRawEvidence') }}
                 </el-button>
@@ -1182,7 +1184,7 @@ function queryAccelerationApplied(result) {
                   compact
                 />
                 <SqlCodeBlock
-                  :value="diffResponse?.recommendedSql || ''"
+                  :value="runtimeRewriteSqlSelection.sqlText || diffResponse?.recommendedSql || ''"
                   :label="t('accelerationGovernanceWorkbench.fields.recommendedSql')"
                   :copy-label="t('common.actions.copy')"
                   compact
@@ -1201,6 +1203,101 @@ function queryAccelerationApplied(result) {
                     <strong>{{ displayValue(item.value) }}</strong>
                   </div>
                 </dl>
+                <div class="artifact-structured-grid" data-testid="acceleration-workbench-acceleration-artifact-structure">
+                  <section class="artifact-subsection" data-testid="acceleration-workbench-acceleration-artifact-grain">
+                    <h4>{{ t('recommendationCenter.artifact.grain') }}</h4>
+                    <el-table :data="diffAccelerationArtifactGrainRows" border empty-text="-">
+                      <el-table-column prop="name" :label="t('recommendationCenter.artifact.grainField')" min-width="180" />
+                      <el-table-column prop="detail" :label="t('recommendationCenter.artifact.details')" min-width="240" show-overflow-tooltip />
+                    </el-table>
+                  </section>
+                  <section class="artifact-subsection" data-testid="acceleration-workbench-acceleration-artifact-dimensions">
+                    <h4>{{ t('recommendationCenter.artifact.dimensions') }}</h4>
+                    <el-table :data="diffAccelerationArtifactDimensionRows" border empty-text="-">
+                      <el-table-column prop="name" :label="t('recommendationCenter.artifact.dimensionField')" min-width="180" />
+                      <el-table-column prop="detail" :label="t('recommendationCenter.artifact.details')" min-width="240" show-overflow-tooltip />
+                    </el-table>
+                  </section>
+                </div>
+                <section class="artifact-subsection" data-testid="acceleration-workbench-acceleration-artifact-measures">
+                  <h4>{{ t('recommendationCenter.artifact.measures') }}</h4>
+                  <el-table :data="diffAccelerationArtifactMeasureRows" border empty-text="-">
+                    <el-table-column prop="name" :label="t('recommendationCenter.artifact.measureName')" min-width="150" />
+                    <el-table-column prop="sourceExpression" :label="t('recommendationCenter.artifact.sourceExpression')" min-width="220" show-overflow-tooltip />
+                    <el-table-column prop="rewriteExpression" :label="t('recommendationCenter.artifact.rewriteExpression')" min-width="220" show-overflow-tooltip />
+                    <el-table-column prop="aggregateFunction" :label="t('recommendationCenter.artifact.aggregateFunction')" min-width="120" />
+                    <el-table-column prop="mergeable" :label="t('recommendationCenter.artifact.mergeable')" min-width="110" />
+                  </el-table>
+                </section>
+                <section class="artifact-subsection" data-testid="acceleration-workbench-acceleration-artifact-predicates">
+                  <h4>{{ t('recommendationCenter.artifact.predicates') }}</h4>
+                  <div class="artifact-predicate-grid">
+                    <div v-for="group in diffAccelerationArtifactPredicateGroups" :key="group.key" class="artifact-mini-section">
+                      <h5>{{ group.title }}</h5>
+                      <el-table :data="group.rows" border empty-text="-">
+                        <el-table-column prop="expression" :label="t('recommendationCenter.artifact.expression')" min-width="190" show-overflow-tooltip />
+                        <el-table-column prop="context" :label="t('recommendationCenter.artifact.context')" min-width="120" show-overflow-tooltip />
+                        <el-table-column prop="reason" :label="t('recommendationCenter.artifact.reason')" min-width="160" show-overflow-tooltip />
+                      </el-table>
+                    </div>
+                  </div>
+                </section>
+                <section class="artifact-subsection" data-testid="acceleration-workbench-acceleration-artifact-coverage">
+                  <h4>{{ t('recommendationCenter.artifact.coverageChecklist') }}</h4>
+                  <ul class="coverage-checklist">
+                    <li v-for="item in diffAccelerationArtifactCoverageRows" :key="item.key">
+                      <span>{{ item.label }}</span>
+                      <el-tag :type="item.passed ? 'success' : 'info'">{{ item.value }}</el-tag>
+                    </li>
+                  </ul>
+                </section>
+                <section class="artifact-subsection" data-testid="acceleration-workbench-acceleration-artifact-join-graph">
+                  <h4>{{ t('recommendationCenter.artifact.joinGraph') }}</h4>
+                  <el-table :data="diffAccelerationArtifactJoinGraphRows" border empty-text="-">
+                    <el-table-column prop="joinType" :label="t('recommendationCenter.artifact.joinType')" min-width="120" />
+                    <el-table-column prop="left" :label="t('recommendationCenter.artifact.left')" min-width="160" show-overflow-tooltip />
+                    <el-table-column prop="right" :label="t('recommendationCenter.artifact.right')" min-width="160" show-overflow-tooltip />
+                    <el-table-column prop="condition" :label="t('recommendationCenter.artifact.condition')" min-width="220" show-overflow-tooltip />
+                  </el-table>
+                </section>
+                <section
+                  v-if="diffAccelerationArtifactEvidenceSections.length"
+                  class="artifact-subsection"
+                  data-testid="acceleration-workbench-acceleration-artifact-type-evidence"
+                >
+                  <h4>{{ t('recommendationCenter.artifact.typeEvidence') }}</h4>
+                  <div class="artifact-evidence-grid">
+                    <div v-for="section in diffAccelerationArtifactEvidenceSections" :key="section.key" class="artifact-mini-section">
+                      <h5>{{ section.title }}</h5>
+                      <dl class="artifact-kv-list">
+                        <div v-for="row in section.rows" :key="row.key">
+                          <dt>{{ row.label }}</dt>
+                          <dd>{{ row.value }}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                </section>
+                <el-table
+                  v-if="diffAccelerationArtifactReviewWarningRows.length"
+                  :data="diffAccelerationArtifactReviewWarningRows"
+                  border
+                  data-testid="acceleration-workbench-acceleration-artifact-review-warnings"
+                >
+                  <el-table-column prop="code" :label="t('recommendationCenter.artifact.reviewCode')" min-width="190" />
+                  <el-table-column prop="description" :label="t('recommendationCenter.artifact.reviewReason')" min-width="280" show-overflow-tooltip />
+                  <el-table-column prop="evidenceRef" :label="t('recommendationCenter.artifact.evidenceRef')" min-width="180" show-overflow-tooltip />
+                </el-table>
+                <el-table
+                  v-if="diffAccelerationArtifactBlockingRows.length"
+                  :data="diffAccelerationArtifactBlockingRows"
+                  border
+                  data-testid="acceleration-workbench-acceleration-artifact-blocking"
+                >
+                  <el-table-column prop="code" :label="t('recommendationCenter.fields.refusalCode')" min-width="190" />
+                  <el-table-column prop="description" :label="t('recommendationCenter.fields.refusalMessage')" min-width="280" show-overflow-tooltip />
+                  <el-table-column prop="evidenceRef" :label="t('recommendationCenter.fields.evidenceRef')" min-width="180" show-overflow-tooltip />
+                </el-table>
                 <div v-if="diffAccelerationArtifactSqlBlocks.length" class="sql-diff-grid">
                   <SqlCodeBlock
                     v-for="item in diffAccelerationArtifactSqlBlocks"
@@ -1677,6 +1774,135 @@ function queryAccelerationApplied(result) {
   gap: var(--sqlforge-space-4);
 }
 
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.summary-cell {
+  display: grid;
+  gap: var(--sqlforge-space-2);
+  min-width: 0;
+  padding-bottom: var(--sqlforge-space-3);
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+}
+
+.summary-cell span {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+}
+
+.summary-cell strong {
+  min-width: 0;
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.evidence-table,
+.artifact-subsection,
+.artifact-mini-section,
+.artifact-kv-list {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.evidence-table {
+  padding-block: var(--sqlforge-space-3);
+  border-block: 1px solid var(--sqlforge-border-subtle);
+}
+
+.artifact-structured-grid,
+.artifact-predicate-grid,
+.artifact-evidence-grid {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.artifact-structured-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.artifact-predicate-grid,
+.artifact-evidence-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.artifact-subsection h4,
+.artifact-mini-section h5 {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+}
+
+.artifact-mini-section {
+  padding: var(--sqlforge-space-3);
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.coverage-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--sqlforge-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coverage-checklist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sqlforge-space-2);
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.coverage-checklist span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.artifact-kv-list {
+  margin: 0;
+}
+
+.artifact-kv-list div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.artifact-kv-list dt {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+}
+
+.artifact-kv-list dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.runtime-rewrite-source-note {
+  max-width: 360px;
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .result-box,
 .interface-action-row,
 .evidence-summary,
@@ -1794,6 +2020,7 @@ function queryAccelerationApplied(result) {
   .runtime-strip,
   .source-grid,
   .tab-grid,
+  .artifact-structured-grid,
   .sql-diff-grid,
   .query-result-grid {
     grid-template-columns: minmax(0, 1fr);

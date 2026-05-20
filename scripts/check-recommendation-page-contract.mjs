@@ -1,4 +1,8 @@
 import { readFileSync } from 'node:fs'
+import {
+  buildAccelerationArtifactDisplay,
+  buildRuntimeRewriteSqlSourceNotice
+} from '../src/views/common/accelerationArtifactDisplay.mjs'
 
 const targets = [
   {
@@ -27,14 +31,42 @@ const targets = [
       'data-testid="recommendation-sql-compare"',
       'data-testid="recommendation-acceleration-artifact"',
       'accelerationArtifact',
+      'accelerationArtifactDisplay',
       'accelerationArtifactCards',
       'accelerationArtifactBlockingRows',
+      'accelerationArtifactReviewWarningRows',
+      'accelerationArtifactGrainRows',
+      'accelerationArtifactDimensionRows',
+      'accelerationArtifactMeasureRows',
+      'accelerationArtifactPredicateGroups',
+      'accelerationArtifactCoverageRows',
+      'accelerationArtifactJoinGraphRows',
+      'accelerationArtifactEvidenceSections',
       'accelerationArtifactSqlBlocks',
+      'data-testid="recommendation-acceleration-artifact-structure"',
+      'data-testid="recommendation-acceleration-artifact-grain"',
+      'data-testid="recommendation-acceleration-artifact-dimensions"',
+      'data-testid="recommendation-acceleration-artifact-measures"',
+      'data-testid="recommendation-acceleration-artifact-predicates"',
+      'data-testid="recommendation-acceleration-artifact-coverage"',
+      'data-testid="recommendation-acceleration-artifact-join-graph"',
+      'data-testid="recommendation-acceleration-artifact-type-evidence"',
+      'data-testid="recommendation-acceleration-artifact-review-warnings"',
+      'data-testid="recommendation-runtime-rewrite-sql-source"',
       'ddlSql',
       'refreshSql',
       'validationSql',
       'rollbackSql',
       'rewriteSql',
+      'reviewWarnings',
+      'blockingReasons',
+      'externalizedPredicates',
+      'retainedPredicates',
+      'securityPredicates',
+      'blockedPredicates',
+      'coverage',
+      'joinGraph',
+      'runtimeRewriteSqlSourceNotice',
       'titleZh',
       'triggerZh',
       'actionZh',
@@ -216,6 +248,34 @@ const targets = [
     ]
   },
   {
+    path: 'src/views/common/accelerationArtifactDisplay.mjs',
+    tokens: [
+      'PARAMETERIZED_AGG_MV',
+      'PREJOIN_MV',
+      'STAR_AGG_MV',
+      'ROLLUP_MV',
+      'COMMON_SUBGRAPH_MV',
+      'GENERATED',
+      'BLOCKED',
+      'REVIEW_REQUIRED',
+      'reviewWarnings',
+      'blockingReasons',
+      'externalizedPredicates',
+      'retainedPredicates',
+      'securityPredicates',
+      'blockedPredicates',
+      'rewriteSqlReadonly',
+      'rewriteSqlReferencesMv',
+      'rewriteSqlAvoidsOriginalSources',
+      'timeRollupEvidence',
+      'starSchemaEvidence',
+      'commonSubgraphEvidence',
+      'joinKeys',
+      'buildAccelerationArtifactDisplay',
+      'buildRuntimeRewriteSqlSourceNotice'
+    ]
+  },
+  {
     path: 'src/config/routePaths.mjs',
     tokens: ['recommendationCenter', '/governance/recommendations']
   },
@@ -274,6 +334,8 @@ for (const target of targets) {
   }
 }
 
+assertAmv013DisplayContract()
+
 function assertOrderedTokens(path, content, orderedTokens) {
   let previousIndex = -1
   for (const token of orderedTokens) {
@@ -286,6 +348,107 @@ function assertOrderedTokens(path, content, orderedTokens) {
     }
     previousIndex = index
   }
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    throw new Error(message)
+  }
+}
+
+function syntheticArtifact(mvType, overrides = {}) {
+  return {
+    rule: 'PRECOMPUTE_MV',
+    mvType,
+    artifactStatus: 'GENERATED',
+    mvName: `mv_${mvType.toLowerCase()}`,
+    targetEngine: 'HETU',
+    targetDatasource: 'hetu_main',
+    dialect: 'HETU',
+    grain: ['customer_id'],
+    dimensions: ['customer_id'],
+    measures: [
+      {
+        name: 'sum_amount',
+        sourceExpression: 'SUM(amount)',
+        rewriteExpression: 'SUM(sum_amount)',
+        mergeable: true
+      }
+    ],
+    externalizedPredicates: [{ expression: 'tenant_id = ?' }],
+    retainedPredicates: [{ expression: "status = 'PAID'" }],
+    securityPredicates: [{ expression: "access_domain = 'BI'" }],
+    blockedPredicates: [],
+    coverage: {
+      coversProjection: true,
+      coversFilters: true,
+      coversGrouping: true,
+      coversMeasures: true,
+      coversSecurity: true,
+      rewriteSqlReadonly: true,
+      rewriteSqlReferencesMv: true,
+      rewriteSqlAvoidsOriginalSources: true
+    },
+    joinGraph: [{ joinType: 'INNER', leftTable: 'orders', rightTable: 'customers', condition: 'orders.customer_id = customers.customer_id' }],
+    joinKeys: [{ leftColumn: 'orders.customer_id', rightColumn: 'customers.customer_id' }],
+    timeRollupEvidence: mvType === 'ROLLUP_MV' ? { queryTargetGrain: 'MONTH', mvFinestGrain: 'DAY' } : undefined,
+    starSchemaEvidence: mvType === 'STAR_AGG_MV' ? { factInference: 'MEASURE_SOURCE_AND_JOIN_TOPOLOGY' } : undefined,
+    commonSubgraphEvidence: mvType === 'COMMON_SUBGRAPH_MV' ? { sourceKind: 'CTE', referenceCount: 2 } : undefined,
+    ddlSql: 'CREATE MATERIALIZED VIEW mv AS SELECT customer_id, SUM(amount) AS sum_amount FROM orders GROUP BY customer_id',
+    refreshSql: 'REFRESH MATERIALIZED VIEW mv',
+    validationSql: 'SELECT COUNT(*) FROM mv',
+    rollbackSql: 'DROP MATERIALIZED VIEW mv',
+    rewriteSql: 'SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv GROUP BY customer_id',
+    runtimeRewriteBinding: 'NOT_CREATED',
+    governanceBoundary: 'PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE',
+    ...overrides
+  }
+}
+
+function assertAmv013DisplayContract() {
+  for (const mvType of ['PARAMETERIZED_AGG_MV', 'PREJOIN_MV', 'STAR_AGG_MV', 'ROLLUP_MV', 'COMMON_SUBGRAPH_MV']) {
+    const display = buildAccelerationArtifactDisplay(syntheticArtifact(mvType))
+    assert(display.overviewRows.some(row => row.value.includes('MV')), `AMV-013 display missing Chinese MV explanation for ${mvType}.`)
+    assert(display.measureRows[0]?.sourceExpression === 'SUM(amount)', `AMV-013 display missing sourceExpression for ${mvType}.`)
+    assert(display.measureRows[0]?.rewriteExpression === 'SUM(sum_amount)', `AMV-013 display missing rewriteExpression for ${mvType}.`)
+    assert(display.predicateGroups.length === 4, `AMV-013 display must expose four predicate groups for ${mvType}.`)
+    assert(display.coverageRows.some(row => row.key === 'rewriteSqlReferencesMv' && row.value === 'true'), `AMV-013 display missing rewrite MV reference proof for ${mvType}.`)
+  }
+
+  const blocked = buildAccelerationArtifactDisplay(
+    syntheticArtifact('ROLLUP_MV', {
+      artifactStatus: 'BLOCKED',
+      blockingReasons: [{ code: 'TIME_ROLLUP_EXPRESSION_NOT_NORMALIZABLE', description: 'blocked' }],
+      ddlSql: '',
+      rewriteSql: ''
+    })
+  )
+  assert(blocked.blockingRows[0]?.code === 'TIME_ROLLUP_EXPRESSION_NOT_NORMALIZABLE', 'AMV-013 display must expose BLOCKED reasons.')
+
+  const reviewRequired = buildAccelerationArtifactDisplay(
+    syntheticArtifact('PREJOIN_MV', {
+      artifactStatus: 'REVIEW_REQUIRED',
+      reviewWarnings: [{ code: 'ROW_AMPLIFICATION_METADATA_MISSING', description: 'review' }]
+    })
+  )
+  assert(reviewRequired.reviewWarningRows[0]?.code === 'ROW_AMPLIFICATION_METADATA_MISSING', 'AMV-013 display must expose REVIEW_REQUIRED warnings.')
+
+  const generatedWithWarnings = buildAccelerationArtifactDisplay(
+    syntheticArtifact('PREJOIN_MV', {
+      artifactStatus: 'GENERATED',
+      reviewWarnings: [{ code: 'ROW_AMPLIFICATION_METADATA_MISSING', description: 'review' }]
+    })
+  )
+  assert(generatedWithWarnings.reviewWarningRows.length === 1, 'AMV-013 display must expose GENERATED artifacts with reviewWarnings.')
+
+  const legacy = buildAccelerationArtifactDisplay({ mvType: 'PARAMETERIZED_AGG_MV', artifactStatus: 'GENERATED' })
+  assert(legacy.grainRows.length === 0 && legacy.measureRows.length === 0, 'AMV-013 display must tolerate legacy snapshots with missing arrays.')
+
+  const notice = buildRuntimeRewriteSqlSourceNotice({
+    source: 'ACCELERATION_ARTIFACT_REWRITE_SQL',
+    accelerationArtifact: syntheticArtifact('PARAMETERIZED_AGG_MV')
+  })
+  assert(notice.includes('accelerationArtifact.rewriteSql') && notice.includes('runtime binding ACTIVE'), 'AMV-013 notice must explain rewriteSql source and runtime boundary.')
 }
 
 console.log('recommendation page contract ok')

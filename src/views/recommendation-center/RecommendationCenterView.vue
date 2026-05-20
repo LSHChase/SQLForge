@@ -28,6 +28,10 @@ import {
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlCompareBlock from '../common/SqlCompareBlock.vue'
+import {
+  buildAccelerationArtifactDisplay,
+  buildRuntimeRewriteSqlSourceNotice
+} from '../common/accelerationArtifactDisplay.mjs'
 import { buildRuntimeRewriteTraceRefs, resolveRuntimeRewriteSql } from '../common/runtimeRewriteSql.mjs'
 import { buildRecommendedSqlDisplay } from '../common/sqlCompare.mjs'
 
@@ -129,7 +133,7 @@ const dispatchEventPager = reactive({
   size: 6
 })
 
-// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, SqlCompareBlock, runtimeRewriteSqlSource, ACCELERATION_ARTIFACT_REWRITE_SQL.
+// Static contract tokens: recommendation detail, coordinationMode, PULL_ONLY, dispatchEvents, benefitLevel, riskLevel, recommendedSqlText, logicalObjectKey, textDiff, astSummaryDiff, ruleChain, preconditions, semanticRisks, unappliedRules, manualReviewRequired, SqlCompareBlock, runtimeRewriteSqlSource, ACCELERATION_ARTIFACT_REWRITE_SQL, ddlSql, refreshSql, validationSql, rollbackSql, rewriteSql, reviewWarnings, blockingReasons, externalizedPredicates, retainedPredicates, securityPredicates, blockedPredicates, coverage, joinGraph.
 
 const recommendationTypeOptions = ['REWRITE', 'ACCELERATION', 'CREATE_TABLE', 'PREWARM', 'MAINTENANCE']
 const recommendationStatusOptions = ['RECOMMENDED', 'REVIEWING', 'DISPATCH_READY', 'CANCELLED']
@@ -385,33 +389,18 @@ const ruleChainRows = computed(() => normalizeArray(selectedRecommendation.value
 const accelerationArtifact = computed(() =>
   recommendationDiff.value?.accelerationArtifact || selectedRecommendation.value?.accelerationArtifact || null
 )
-const accelerationArtifactCards = computed(() => {
-  const artifact = accelerationArtifact.value
-  if (!artifact) {
-    return []
-  }
-  return [
-    field('artifactStatus', t('recommendationCenter.fields.artifactStatus'), artifact.artifactStatus),
-    field('mvName', t('recommendationCenter.fields.mvName'), artifact.mvName),
-    field('targetEngine', t('inline.viewsRecommendationCenterRecommendationCenterView.text006'), artifact.targetEngine),
-    field('targetDatasource', t('inline.viewsRecommendationCenterRecommendationCenterView.text007'), artifact.targetDatasource),
-    field('dialect', t('recommendationCenter.fields.dialect'), artifact.dialect),
-    field('refreshStrategy', t('recommendationCenter.fields.refreshStrategy'), artifact.refreshStrategy),
-    field('runtimeRewriteBinding', t('recommendationCenter.fields.runtimeRewriteBinding'), artifact.runtimeRewriteBinding),
-    field('governanceBoundary', t('recommendationCenter.fields.evidenceBoundary'), artifact.governanceBoundary)
-  ]
-})
-const accelerationArtifactBlockingRows = computed(() => normalizeArray(accelerationArtifact.value?.blockingReasons))
-const accelerationArtifactSqlBlocks = computed(() => {
-  const artifact = accelerationArtifact.value || {}
-  return [
-    field('ddlSql', t('recommendationCenter.fields.ddlSql'), artifact.ddlSql),
-    field('refreshSql', t('recommendationCenter.fields.refreshSql'), artifact.refreshSql),
-    field('validationSql', t('recommendationCenter.fields.validationSql'), artifact.validationSql),
-    field('rollbackSql', t('recommendationCenter.fields.rollbackSql'), artifact.rollbackSql),
-    field('rewriteSql', t('recommendationCenter.fields.rewriteSql'), artifact.rewriteSql)
-  ].filter(item => hasDisplayValue(item.value) && item.value !== '-')
-})
+const accelerationArtifactDisplay = computed(() => buildAccelerationArtifactDisplay(accelerationArtifact.value))
+const accelerationArtifactCards = computed(() => accelerationArtifactDisplay.value.overviewRows)
+const accelerationArtifactBlockingRows = computed(() => accelerationArtifactDisplay.value.blockingRows)
+const accelerationArtifactReviewWarningRows = computed(() => accelerationArtifactDisplay.value.reviewWarningRows)
+const accelerationArtifactGrainRows = computed(() => accelerationArtifactDisplay.value.grainRows)
+const accelerationArtifactDimensionRows = computed(() => accelerationArtifactDisplay.value.dimensionRows)
+const accelerationArtifactMeasureRows = computed(() => accelerationArtifactDisplay.value.measureRows)
+const accelerationArtifactPredicateGroups = computed(() => accelerationArtifactDisplay.value.predicateGroups)
+const accelerationArtifactCoverageRows = computed(() => accelerationArtifactDisplay.value.coverageRows)
+const accelerationArtifactJoinGraphRows = computed(() => accelerationArtifactDisplay.value.joinGraphRows)
+const accelerationArtifactEvidenceSections = computed(() => accelerationArtifactDisplay.value.evidenceSections)
+const accelerationArtifactSqlBlocks = computed(() => accelerationArtifactDisplay.value.sqlBlocks)
 const sourceProblemRows = computed(() => normalizeArray(selectedRecommendation.value?.sourceProblems))
 const issueRuleLinkRows = computed(() => normalizeArray(selectedRecommendation.value?.issueRuleLinks))
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
@@ -426,6 +415,9 @@ const runtimeRewriteSqlSelection = computed(() =>
     recommendedSqlText: selectedRecommendation.value?.recommendedSqlText,
     diffRecommendedSql: recommendationDiff.value?.recommendedSql
   })
+)
+const runtimeRewriteSqlSourceNotice = computed(() =>
+  buildRuntimeRewriteSqlSourceNotice(runtimeRewriteSqlSelection.value)
 )
 const frontendCompareRecommendedSql = computed(() =>
   buildRecommendedSqlDisplay(
@@ -1649,6 +1641,13 @@ watch(
                 >
                   {{ rewriteRecordEntryActionText }}
                 </el-button>
+                <p
+                  v-if="runtimeRewriteSqlSourceNotice"
+                  class="runtime-rewrite-source-note"
+                  data-testid="recommendation-runtime-rewrite-sql-source"
+                >
+                  {{ runtimeRewriteSqlSourceNotice }}
+                </p>
               </div>
             </div>
             <dl class="description-grid">
@@ -1751,6 +1750,91 @@ watch(
                       <dd>{{ displayValue(item.value) }}</dd>
                     </div>
                   </dl>
+                  <div class="artifact-structured-grid" data-testid="recommendation-acceleration-artifact-structure">
+                    <section class="artifact-subsection" data-testid="recommendation-acceleration-artifact-grain">
+                      <h4>{{ t('recommendationCenter.artifact.grain') }}</h4>
+                      <el-table :data="accelerationArtifactGrainRows" border empty-text="-">
+                        <el-table-column prop="name" :label="t('recommendationCenter.artifact.grainField')" min-width="180" />
+                        <el-table-column prop="detail" :label="t('recommendationCenter.artifact.details')" min-width="240" show-overflow-tooltip />
+                      </el-table>
+                    </section>
+                    <section class="artifact-subsection" data-testid="recommendation-acceleration-artifact-dimensions">
+                      <h4>{{ t('recommendationCenter.artifact.dimensions') }}</h4>
+                      <el-table :data="accelerationArtifactDimensionRows" border empty-text="-">
+                        <el-table-column prop="name" :label="t('recommendationCenter.artifact.dimensionField')" min-width="180" />
+                        <el-table-column prop="detail" :label="t('recommendationCenter.artifact.details')" min-width="240" show-overflow-tooltip />
+                      </el-table>
+                    </section>
+                  </div>
+                  <section class="artifact-subsection" data-testid="recommendation-acceleration-artifact-measures">
+                    <h4>{{ t('recommendationCenter.artifact.measures') }}</h4>
+                    <el-table :data="accelerationArtifactMeasureRows" border empty-text="-">
+                      <el-table-column prop="name" :label="t('recommendationCenter.artifact.measureName')" min-width="150" />
+                      <el-table-column prop="sourceExpression" :label="t('recommendationCenter.artifact.sourceExpression')" min-width="220" show-overflow-tooltip />
+                      <el-table-column prop="rewriteExpression" :label="t('recommendationCenter.artifact.rewriteExpression')" min-width="220" show-overflow-tooltip />
+                      <el-table-column prop="aggregateFunction" :label="t('recommendationCenter.artifact.aggregateFunction')" min-width="120" />
+                      <el-table-column prop="mergeable" :label="t('recommendationCenter.artifact.mergeable')" min-width="110" />
+                    </el-table>
+                  </section>
+                  <section class="artifact-subsection" data-testid="recommendation-acceleration-artifact-predicates">
+                    <h4>{{ t('recommendationCenter.artifact.predicates') }}</h4>
+                    <div class="artifact-predicate-grid">
+                      <div v-for="group in accelerationArtifactPredicateGroups" :key="group.key" class="artifact-mini-section">
+                        <h5>{{ group.title }}</h5>
+                        <el-table :data="group.rows" border empty-text="-">
+                          <el-table-column prop="expression" :label="t('recommendationCenter.artifact.expression')" min-width="190" show-overflow-tooltip />
+                          <el-table-column prop="context" :label="t('recommendationCenter.artifact.context')" min-width="120" show-overflow-tooltip />
+                          <el-table-column prop="reason" :label="t('recommendationCenter.artifact.reason')" min-width="160" show-overflow-tooltip />
+                        </el-table>
+                      </div>
+                    </div>
+                  </section>
+                  <section class="artifact-subsection" data-testid="recommendation-acceleration-artifact-coverage">
+                    <h4>{{ t('recommendationCenter.artifact.coverageChecklist') }}</h4>
+                    <ul class="coverage-checklist">
+                      <li v-for="item in accelerationArtifactCoverageRows" :key="item.key">
+                        <span>{{ item.label }}</span>
+                        <el-tag :type="item.passed ? 'success' : 'info'">{{ item.value }}</el-tag>
+                      </li>
+                    </ul>
+                  </section>
+                  <section class="artifact-subsection" data-testid="recommendation-acceleration-artifact-join-graph">
+                    <h4>{{ t('recommendationCenter.artifact.joinGraph') }}</h4>
+                    <el-table :data="accelerationArtifactJoinGraphRows" border empty-text="-">
+                      <el-table-column prop="joinType" :label="t('recommendationCenter.artifact.joinType')" min-width="120" />
+                      <el-table-column prop="left" :label="t('recommendationCenter.artifact.left')" min-width="160" show-overflow-tooltip />
+                      <el-table-column prop="right" :label="t('recommendationCenter.artifact.right')" min-width="160" show-overflow-tooltip />
+                      <el-table-column prop="condition" :label="t('recommendationCenter.artifact.condition')" min-width="220" show-overflow-tooltip />
+                    </el-table>
+                  </section>
+                  <section
+                    v-if="accelerationArtifactEvidenceSections.length"
+                    class="artifact-subsection"
+                    data-testid="recommendation-acceleration-artifact-type-evidence"
+                  >
+                    <h4>{{ t('recommendationCenter.artifact.typeEvidence') }}</h4>
+                    <div class="artifact-evidence-grid">
+                      <div v-for="section in accelerationArtifactEvidenceSections" :key="section.key" class="artifact-mini-section">
+                        <h5>{{ section.title }}</h5>
+                        <dl class="artifact-kv-list">
+                          <div v-for="row in section.rows" :key="row.key">
+                            <dt>{{ row.label }}</dt>
+                            <dd>{{ row.value }}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+                  </section>
+                  <el-table
+                    v-if="accelerationArtifactReviewWarningRows.length"
+                    :data="accelerationArtifactReviewWarningRows"
+                    border
+                    data-testid="recommendation-acceleration-artifact-review-warnings"
+                  >
+                    <el-table-column prop="code" :label="t('recommendationCenter.artifact.reviewCode')" min-width="190" />
+                    <el-table-column prop="description" :label="t('recommendationCenter.artifact.reviewReason')" min-width="280" show-overflow-tooltip />
+                    <el-table-column prop="evidenceRef" :label="t('recommendationCenter.artifact.evidenceRef')" min-width="180" show-overflow-tooltip />
+                  </el-table>
                   <el-table
                     v-if="accelerationArtifactBlockingRows.length"
                     :data="accelerationArtifactBlockingRows"
@@ -1759,6 +1843,7 @@ watch(
                   >
                     <el-table-column prop="code" :label="t('recommendationCenter.fields.refusalCode')" min-width="190" />
                     <el-table-column prop="description" :label="t('recommendationCenter.fields.refusalMessage')" min-width="280" show-overflow-tooltip />
+                    <el-table-column prop="evidenceRef" :label="t('recommendationCenter.fields.evidenceRef')" min-width="180" show-overflow-tooltip />
                   </el-table>
                   <div v-if="accelerationArtifactSqlBlocks.length" class="sql-grid sql-grid-wide">
                     <SqlCodeBlock
@@ -2429,6 +2514,104 @@ watch(
   overflow-wrap: anywhere;
 }
 
+.runtime-rewrite-source-note {
+  max-width: 360px;
+  margin: 0;
+  color: var(--sqlforge-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.artifact-structured-grid,
+.artifact-predicate-grid,
+.artifact-evidence-grid {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.artifact-structured-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.artifact-predicate-grid,
+.artifact-evidence-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.artifact-subsection,
+.artifact-mini-section {
+  display: grid;
+  gap: var(--sqlforge-space-3);
+  min-width: 0;
+}
+
+.artifact-subsection h4,
+.artifact-mini-section h5 {
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+}
+
+.artifact-mini-section {
+  padding: var(--sqlforge-space-3);
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.coverage-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--sqlforge-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coverage-checklist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sqlforge-space-2);
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-sm);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.coverage-checklist span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.artifact-kv-list {
+  display: grid;
+  gap: var(--sqlforge-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.artifact-kv-list div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.artifact-kv-list dt {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+}
+
+.artifact-kv-list dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--sqlforge-text-primary);
+  overflow-wrap: anywhere;
+}
+
 .inline-code,
 .code-block {
   margin: 0;
@@ -2503,6 +2686,10 @@ watch(
   }
 
   .rewrite-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .artifact-structured-grid {
     grid-template-columns: 1fr;
   }
 

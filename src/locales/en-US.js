@@ -1396,6 +1396,33 @@ export default {
       publishEligibility: 'Publish status reference',
       validationRuns: 'Validation runs'
     },
+    artifact: {
+      grain: 'Grain',
+      grainField: 'Grain field',
+      details: 'Details',
+      dimensions: 'Dimensions',
+      dimensionField: 'Dimension field',
+      measures: 'Measures',
+      measureName: 'Measure name',
+      sourceExpression: 'sourceExpression',
+      rewriteExpression: 'rewriteExpression',
+      aggregateFunction: 'Aggregate function',
+      mergeable: 'mergeable',
+      predicates: 'Predicate groups',
+      expression: 'Expression',
+      context: 'Context',
+      reason: 'Reason',
+      coverageChecklist: 'Coverage checklist',
+      joinGraph: 'Join graph summary',
+      joinType: 'Join type',
+      left: 'Left side',
+      right: 'Right side',
+      condition: 'Condition',
+      typeEvidence: 'Type-specific evidence',
+      reviewCode: 'Review code',
+      reviewReason: 'Review reason',
+      evidenceRef: 'Evidence ref'
+    },
     reviewGuard: {
       eyebrow: 'manual review',
       title: 'Review risk and diff evidence first'

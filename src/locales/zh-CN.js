@@ -1380,6 +1380,33 @@ export default {
       publishEligibility: '发布状态参考',
       validationRuns: '验证运行'
     },
+    artifact: {
+      grain: '粒度 grain',
+      grainField: '粒度字段',
+      details: '说明',
+      dimensions: '维度 dimensions',
+      dimensionField: '维度字段',
+      measures: '指标 measures',
+      measureName: '指标名',
+      sourceExpression: '来源表达式 sourceExpression',
+      rewriteExpression: '改写表达式 rewriteExpression',
+      aggregateFunction: '聚合函数',
+      mergeable: '可合并 mergeable',
+      predicates: '谓词分类',
+      expression: '表达式',
+      context: '上下文',
+      reason: '原因',
+      coverageChecklist: '覆盖证明 checklist',
+      joinGraph: 'Join 图摘要',
+      joinType: 'Join 类型',
+      left: '左侧',
+      right: '右侧',
+      condition: '条件',
+      typeEvidence: '类型专属证据',
+      reviewCode: '复核码',
+      reviewReason: '复核原因',
+      evidenceRef: '证据引用'
+    },
     reviewGuard: {
       eyebrow: '人工复核',
       title: '风险与 diff 证据必须先复核'

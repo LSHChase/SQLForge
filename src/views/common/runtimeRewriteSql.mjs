@@ -45,10 +45,13 @@ export const buildRuntimeRewriteTraceRefs = selection => {
   }
   if (artifact) {
     traceRefs.accelerationArtifact = artifact
+    traceRefs.mvType = artifact.mvType
     traceRefs.mvName = artifact.mvName
+    traceRefs.artifactStatus = artifact.artifactStatus
     traceRefs.ddlSql = artifact.ddlSql
     traceRefs.refreshSql = artifact.refreshSql
     traceRefs.validationSql = artifact.validationSql
+    traceRefs.rewriteSql = artifact.rewriteSql
     traceRefs.governanceBoundary = artifact.governanceBoundary
   }
   return traceRefs

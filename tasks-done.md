@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-013: 前端结构化展示审查与优化
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-013 add structured MV artifact display`
+- Priority: 1
+- Depends on: AMV-012
+- Scope: 在推荐中心和加速治理工作台补齐高级 MV accelerationArtifact 的结构化主区展示，覆盖 mvType、粒度、维度、指标、谓词分类、Join 图、覆盖证明、reviewWarnings、阻断/复核原因和 rewriteSql 来源说明；不新增后端接口、不改变审批发布状态机或 runtime 生效链路。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-013`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增共享 accelerationArtifact 结构化展示 helper，并在推荐中心与加速治理工作台主区展示 mvType 中文说明、状态边界、reviewWarnings、blockingReasons、grain、dimensions、measures、谓词分类、coverage checklist、Join 图、类型专属证据和 SQL 五件套；创建改写记录入口同步展示 recommendedSqlText 来源，traceRefs 兼容补充 mvType。
+  - Validation evidence: 已通过 node scripts/check-recommendation-page-contract.mjs；node scripts/check-acceleration-workbench-contract.mjs；npm run lint -- --quiet；npm run build；npm run test:frontend-page-governance；npm run test:sql-ui-contract；node scripts/check-developer-copy-language.mjs --changed；node scripts/lint-repository-knowledge.js；git diff --check；Playwright 桌面/窄屏截图自检 logs/amv-013-*.png 且 body 横向溢出为 0；python3 scripts/foreman.py validate AMV-013；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: AMV-013 只补齐前端展示与改写记录来源说明，不执行 MV DDL、刷新、验证、审批发布或 runtime binding；legacy 空快照仍只展示空态或 '-'，不由前端推断后端未返回的覆盖结论。
+  - Next step: 后续如需更强浏览器回归，可把 AMV-013 的 mocked artifact 截图脚本固化为专项 smoke；runtime 生效仍按既有改写记录审批发布链路推进。
+
 ### AMV-012: 扩展 accelerationArtifact API 与持久/展示契约
 
 - Status: done

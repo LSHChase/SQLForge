@@ -6,6 +6,10 @@ import {
   findActiveNavigationItem,
   flattenNavigationItems
 } from '../src/config/routePaths.mjs'
+import {
+  buildAccelerationArtifactDisplay,
+  buildRuntimeRewriteSqlSourceNotice
+} from '../src/views/common/accelerationArtifactDisplay.mjs'
 
 const errors = []
 
@@ -117,12 +121,42 @@ const requiredTokens = [
   'acceleration-workbench-load-diff',
   'acceleration-workbench-acceleration-artifact',
   'diffAccelerationArtifact',
+  'diffAccelerationArtifactDisplay',
   'diffAccelerationArtifactCards',
+  'diffAccelerationArtifactBlockingRows',
+  'diffAccelerationArtifactReviewWarningRows',
+  'diffAccelerationArtifactGrainRows',
+  'diffAccelerationArtifactDimensionRows',
+  'diffAccelerationArtifactMeasureRows',
+  'diffAccelerationArtifactPredicateGroups',
+  'diffAccelerationArtifactCoverageRows',
+  'diffAccelerationArtifactJoinGraphRows',
+  'diffAccelerationArtifactEvidenceSections',
   'diffAccelerationArtifactSqlBlocks',
+  'acceleration-workbench-acceleration-artifact-structure',
+  'acceleration-workbench-acceleration-artifact-grain',
+  'acceleration-workbench-acceleration-artifact-dimensions',
+  'acceleration-workbench-acceleration-artifact-measures',
+  'acceleration-workbench-acceleration-artifact-predicates',
+  'acceleration-workbench-acceleration-artifact-coverage',
+  'acceleration-workbench-acceleration-artifact-join-graph',
+  'acceleration-workbench-acceleration-artifact-type-evidence',
+  'acceleration-workbench-acceleration-artifact-review-warnings',
+  'acceleration-workbench-acceleration-artifact-blocking',
   'ddlSql',
   'refreshSql',
   'validationSql',
   'rollbackSql',
+  'reviewWarnings',
+  'blockingReasons',
+  'externalizedPredicates',
+  'retainedPredicates',
+  'securityPredicates',
+  'blockedPredicates',
+  'coverage',
+  'joinGraph',
+  'runtimeRewriteSqlSourceNotice',
+  'acceleration-workbench-runtime-rewrite-sql-source',
   'resolveRuntimeRewriteSql',
   'runtimeRewriteSqlSource',
   'ACCELERATION_ARTIFACT_REWRITE_SQL',
@@ -138,6 +172,34 @@ const requiredTokens = [
 
 for (const token of requiredTokens) {
   check(source.includes(token), `Workbench source is missing token: ${token}`)
+}
+
+const helperSource = readFileSync(
+  new URL('../src/views/common/accelerationArtifactDisplay.mjs', import.meta.url),
+  'utf8'
+)
+const helperTokens = [
+  'PARAMETERIZED_AGG_MV',
+  'PREJOIN_MV',
+  'STAR_AGG_MV',
+  'ROLLUP_MV',
+  'COMMON_SUBGRAPH_MV',
+  'GENERATED',
+  'BLOCKED',
+  'REVIEW_REQUIRED',
+  'rewriteSqlReadonly',
+  'rewriteSqlReferencesMv',
+  'rewriteSqlAvoidsOriginalSources',
+  'timeRollupEvidence',
+  'starSchemaEvidence',
+  'commonSubgraphEvidence',
+  'joinKeys',
+  'buildAccelerationArtifactDisplay',
+  'buildRuntimeRewriteSqlSourceNotice'
+]
+
+for (const token of helperTokens) {
+  check(helperSource.includes(token), `AMV-013 acceleration artifact display helper is missing token: ${token}`)
 }
 
 const forbiddenTokens = [
@@ -186,12 +248,109 @@ check(source.includes(':disabled="!canVerifyPlan"'), 'Verify button must be gate
 check(source.includes(':disabled="!canRollbackPlan"'), 'Rollback button must be gated by plan status.')
 check(source.includes('APPLIED') && source.includes('appliedPendingVerification'), 'APPLIED must map to pending verification, not active.')
 
+checkAmv013DisplayScenarios()
+
 if (errors.length > 0) {
   console.error('Acceleration workbench contract check failed.')
   for (const error of errors) {
     console.error(`- ${error}`)
   }
   process.exit(1)
+}
+
+function syntheticArtifact(mvType, overrides = {}) {
+  return {
+    rule: 'PRECOMPUTE_MV',
+    mvType,
+    artifactStatus: 'GENERATED',
+    mvName: `mv_${mvType.toLowerCase()}`,
+    targetEngine: 'HETU',
+    targetDatasource: 'hetu_main',
+    dialect: 'HETU',
+    grain: ['customer_id'],
+    dimensions: ['customer_id'],
+    measures: [
+      {
+        name: 'sum_amount',
+        sourceExpression: 'SUM(amount)',
+        rewriteExpression: 'SUM(sum_amount)',
+        mergeable: true
+      }
+    ],
+    externalizedPredicates: [{ expression: 'tenant_id = ?' }],
+    retainedPredicates: [{ expression: "status = 'PAID'" }],
+    securityPredicates: [{ expression: "access_domain = 'BI'" }],
+    blockedPredicates: [],
+    coverage: {
+      coversProjection: true,
+      coversFilters: true,
+      coversGrouping: true,
+      coversMeasures: true,
+      coversSecurity: true,
+      rewriteSqlReadonly: true,
+      rewriteSqlReferencesMv: true,
+      rewriteSqlAvoidsOriginalSources: true
+    },
+    joinGraph: [{ joinType: 'INNER', leftTable: 'orders', rightTable: 'customers', condition: 'orders.customer_id = customers.customer_id' }],
+    joinKeys: [{ leftColumn: 'orders.customer_id', rightColumn: 'customers.customer_id' }],
+    timeRollupEvidence: mvType === 'ROLLUP_MV' ? { queryTargetGrain: 'MONTH', mvFinestGrain: 'DAY' } : undefined,
+    starSchemaEvidence: mvType === 'STAR_AGG_MV' ? { factInference: 'MEASURE_SOURCE_AND_JOIN_TOPOLOGY' } : undefined,
+    commonSubgraphEvidence: mvType === 'COMMON_SUBGRAPH_MV' ? { sourceKind: 'CTE', referenceCount: 2 } : undefined,
+    ddlSql: 'CREATE MATERIALIZED VIEW mv AS SELECT customer_id, SUM(amount) AS sum_amount FROM orders GROUP BY customer_id',
+    refreshSql: 'REFRESH MATERIALIZED VIEW mv',
+    validationSql: 'SELECT COUNT(*) FROM mv',
+    rollbackSql: 'DROP MATERIALIZED VIEW mv',
+    rewriteSql: 'SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv GROUP BY customer_id',
+    runtimeRewriteBinding: 'NOT_CREATED',
+    governanceBoundary: 'PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE',
+    ...overrides
+  }
+}
+
+function checkAmv013DisplayScenarios() {
+  for (const mvType of ['PARAMETERIZED_AGG_MV', 'PREJOIN_MV', 'STAR_AGG_MV', 'ROLLUP_MV', 'COMMON_SUBGRAPH_MV']) {
+    const display = buildAccelerationArtifactDisplay(syntheticArtifact(mvType))
+    check(display.overviewRows.some(row => row.value.includes('MV')), `Workbench AMV-013 display missing Chinese MV explanation for ${mvType}.`)
+    check(display.measureRows[0]?.sourceExpression === 'SUM(amount)', `Workbench AMV-013 display missing sourceExpression for ${mvType}.`)
+    check(display.measureRows[0]?.rewriteExpression === 'SUM(sum_amount)', `Workbench AMV-013 display missing rewriteExpression for ${mvType}.`)
+    check(display.predicateGroups.length === 4, `Workbench AMV-013 display must expose four predicate groups for ${mvType}.`)
+    check(display.coverageRows.some(row => row.key === 'rewriteSqlReferencesMv' && row.value === 'true'), `Workbench AMV-013 display missing rewrite MV reference proof for ${mvType}.`)
+  }
+
+  const blocked = buildAccelerationArtifactDisplay(
+    syntheticArtifact('ROLLUP_MV', {
+      artifactStatus: 'BLOCKED',
+      blockingReasons: [{ code: 'TIME_ROLLUP_EXPRESSION_NOT_NORMALIZABLE', description: 'blocked' }],
+      ddlSql: '',
+      rewriteSql: ''
+    })
+  )
+  check(blocked.blockingRows[0]?.code === 'TIME_ROLLUP_EXPRESSION_NOT_NORMALIZABLE', 'Workbench AMV-013 display must expose BLOCKED reasons.')
+
+  const reviewRequired = buildAccelerationArtifactDisplay(
+    syntheticArtifact('PREJOIN_MV', {
+      artifactStatus: 'REVIEW_REQUIRED',
+      reviewWarnings: [{ code: 'ROW_AMPLIFICATION_METADATA_MISSING', description: 'review' }]
+    })
+  )
+  check(reviewRequired.reviewWarningRows[0]?.code === 'ROW_AMPLIFICATION_METADATA_MISSING', 'Workbench AMV-013 display must expose REVIEW_REQUIRED warnings.')
+
+  const generatedWithWarnings = buildAccelerationArtifactDisplay(
+    syntheticArtifact('PREJOIN_MV', {
+      artifactStatus: 'GENERATED',
+      reviewWarnings: [{ code: 'ROW_AMPLIFICATION_METADATA_MISSING', description: 'review' }]
+    })
+  )
+  check(generatedWithWarnings.reviewWarningRows.length === 1, 'Workbench AMV-013 display must expose GENERATED artifacts with reviewWarnings.')
+
+  const legacy = buildAccelerationArtifactDisplay({ mvType: 'PARAMETERIZED_AGG_MV', artifactStatus: 'GENERATED' })
+  check(legacy.grainRows.length === 0 && legacy.measureRows.length === 0, 'Workbench AMV-013 display must tolerate legacy snapshots with missing arrays.')
+
+  const notice = buildRuntimeRewriteSqlSourceNotice({
+    source: 'ACCELERATION_ARTIFACT_REWRITE_SQL',
+    accelerationArtifact: syntheticArtifact('PARAMETERIZED_AGG_MV')
+  })
+  check(notice.includes('accelerationArtifact.rewriteSql') && notice.includes('runtime binding ACTIVE'), 'Workbench AMV-013 notice must explain rewriteSql source and runtime boundary.')
 }
 
 console.log('acceleration workbench contract ok')
