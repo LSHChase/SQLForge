@@ -33,8 +33,9 @@ class L2RollupMvCandidateGeneratorTest {
         assertEquals("order_date_day", evidence.get("mvTimeColumn"));
         assertEquals("NATURAL_CALENDAR_DAY_TO_MONTH_QUARTER_YEAR", evidence.get("calendarPolicy"));
 
+        String mvName = String.valueOf(artifact.get("mvName"));
         String ddlSql = String.valueOf(artifact.get("ddlSql"));
-        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW mv_sales_daily AS"));
+        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"));
         assertTrue(ddlSql.contains("DATE_TRUNC('day', order_date) AS order_date_day"));
         assertTrue(ddlSql.contains("region"));
         assertTrue(ddlSql.contains("access_domain"));
@@ -48,7 +49,7 @@ class L2RollupMvCandidateGeneratorTest {
 
         String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
         assertTrue(rewriteSql.contains("DATE_TRUNC('month', order_date_day) AS order_month"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily"));
+        assertTrue(rewriteSql.contains("FROM " + mvName));
         assertTrue(rewriteSql.contains("order_date_day BETWEEN DATE '2026-05-01' AND DATE '2026-05-31'"));
         assertTrue(rewriteSql.contains("region = 'CN'"));
         assertTrue(rewriteSql.contains("access_domain = 'BI'"));

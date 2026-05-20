@@ -62,17 +62,25 @@ final class L2AccelerationArtifactBuilder {
             predicateClassification,
             grainMeasureDerivation
         );
-        String mvName = mvName(input, profile);
         L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql = null;
         L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql = null;
         L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql = null;
         L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql = null;
         L2CommonSubgraphMvCandidateGenerator.CandidateSql commonSubgraphCandidateSql = null;
+        String mvName = L2MaterializedViewNamePolicy.mvName(
+            input.logicalObjectKey,
+            input.reportCode,
+            input.sqlFingerprint,
+            sourceSql,
+            profile,
+            grainMeasureDerivation
+        );
         if (blockingReasons.isEmpty()) {
             if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
                 commonSubgraphCandidateSql = L2CommonSubgraphMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
+                    targetEngine,
                     advancedStructureProfile,
                     profile,
                     input.commonSubgraphPeerSqls
@@ -82,6 +90,7 @@ final class L2AccelerationArtifactBuilder {
                 starAggCandidateSql = L2StarAggMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
+                    targetEngine,
                     advancedStructureProfile,
                     predicateClassification,
                     grainMeasureDerivation
@@ -91,6 +100,7 @@ final class L2AccelerationArtifactBuilder {
                 prejoinCandidateSql = L2PrejoinMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
+                    targetEngine,
                     advancedStructureProfile,
                     predicateClassification,
                     grainMeasureDerivation
@@ -100,6 +110,7 @@ final class L2AccelerationArtifactBuilder {
                 rollupCandidateSql = L2RollupMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
+                    targetEngine,
                     advancedStructureProfile,
                     predicateClassification,
                     grainMeasureDerivation
@@ -109,6 +120,7 @@ final class L2AccelerationArtifactBuilder {
                 candidateSql = L2ParameterizedAggMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
+                    targetEngine,
                     advancedStructureProfile,
                     predicateClassification,
                     grainMeasureDerivation
@@ -123,7 +135,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("mvName", mvName);
         artifact.put("targetEngine", targetEngine);
         artifact.put("targetDatasource", input.targetDatasource);
-        artifact.put("dialect", dialect(targetEngine));
+        artifact.put("dialect", L2MaterializedViewDialectRenderer.dialect(targetEngine));
         artifact.put("grain", grainMeasureDerivation.getGrain());
         artifact.put("dimensions", grainMeasureDerivation.getDimensions());
         artifact.put("measures", grainMeasureDerivation.getMeasures());
@@ -213,7 +225,7 @@ final class L2AccelerationArtifactBuilder {
         }
         if (!StringUtils.hasText(targetEngine) || "AUTO".equals(targetEngine)) {
             reasons.add(reason("TARGET_ENGINE_REQUIRED", "缺少明确目标引擎方言，不能声明 DDL 可执行。"));
-        } else if (!isSupportedEngine(targetEngine)) {
+        } else if (!L2MaterializedViewDialectRenderer.supports(targetEngine)) {
             reasons.add(reason("UNSUPPORTED_TARGET_ENGINE", "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"));
         }
         if (profile == null) {
@@ -258,23 +270,6 @@ final class L2AccelerationArtifactBuilder {
             || !mapList(advancedStructureProfile.get("subqueries")).isEmpty();
     }
 
-    private static boolean isSupportedEngine(String targetEngine) {
-        return "HETU".equals(targetEngine) || "HIVE".equals(targetEngine) || "SPARK".equals(targetEngine);
-    }
-
-    private static String dialect(String targetEngine) {
-        if ("HETU".equals(targetEngine)) {
-            return "HETU_MATERIALIZED_VIEW";
-        }
-        if ("HIVE".equals(targetEngine)) {
-            return "HIVE_MATERIALIZED_VIEW";
-        }
-        if ("SPARK".equals(targetEngine)) {
-            return "SPARK_MATERIALIZED_VIEW";
-        }
-        return "UNRESOLVED";
-    }
-
     private static List<String> steps() {
         return Arrays.asList(
             "检查表元数据、分区键、字段血缘",
@@ -293,26 +288,6 @@ final class L2AccelerationArtifactBuilder {
         source.put("reportCode", input.reportCode);
         source.put("logicalObjectKey", input.logicalObjectKey);
         return source;
-    }
-
-    private static String mvName(AccelerationRecommendationInput input,
-                                 SqlOptimizationPipelineService.ParsedSqlProfile profile) {
-        String base = firstText(input.logicalObjectKey, input.reportCode, input.sqlFingerprint);
-        if (!StringUtils.hasText(base) && profile != null && !profile.getTables().isEmpty()) {
-            base = profile.getTables().get(0);
-        }
-        if (!StringUtils.hasText(base)) {
-            base = "query";
-        }
-        String normalized = base.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_");
-        normalized = normalized.replaceAll("^_+", "").replaceAll("_+$", "");
-        if (!StringUtils.hasText(normalized)) {
-            normalized = "query";
-        }
-        if (normalized.length() > 48) {
-            normalized = normalized.substring(0, 48).replaceAll("_+$", "");
-        }
-        return "mv_" + normalized;
     }
 
     private static boolean containsRule(List<Map<String, Object>> ruleChain, String expectedRule) {

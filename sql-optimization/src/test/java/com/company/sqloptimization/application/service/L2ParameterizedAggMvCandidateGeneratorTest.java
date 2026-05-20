@@ -41,8 +41,9 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
         assertFalse(String.valueOf(mayArtifact.get("ddlSql")).contains("DATE '2026-05-01'"));
         assertFalse(String.valueOf(mayArtifact.get("ddlSql")).contains(maySql));
 
+        String mvName = String.valueOf(mayArtifact.get("mvName"));
         String rewriteSql = String.valueOf(mayArtifact.get("rewriteSql"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily"));
+        assertTrue(rewriteSql.contains("FROM " + mvName));
         assertTrue(rewriteSql.contains("dt BETWEEN DATE '2026-05-01' AND DATE '2026-05-31'"));
         assertTrue(rewriteSql.contains("region = 'CN'"));
         assertTrue(rewriteSql.contains("channel = 'APP'"));
@@ -50,12 +51,46 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
         assertTrue(rewriteSql.contains("access_domain = 'BI'"));
         assertTrue(rewriteSql.contains("SUM(total_amount) AS total_amount"));
         assertTrue(rewriteSql.contains("GROUP BY customer_id"));
-        assertFalse(rewriteSql.contains("SELECT * FROM mv_sales_daily"));
+        assertFalse(rewriteSql.contains("SELECT * FROM " + mvName));
 
         String validationSql = String.valueOf(mayArtifact.get("validationSql"));
         assertTrue(validationSql.contains("original_result"));
         assertTrue(validationSql.contains("rewrite_result"));
-        assertTrue(validationSql.contains("FROM mv_sales_daily"));
+        assertTrue(validationSql.contains("FROM " + mvName));
+    }
+
+    @Test
+    void shouldRenderParameterizedAggMvForHetuHiveAndSparkDialects() {
+        String sql = "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id";
+
+        Map<String, Object> hetuArtifact = artifactWithEngine(sql, "HETU");
+        Map<String, Object> hiveArtifact = artifactWithEngine(sql, "HIVE");
+        Map<String, Object> sparkArtifact = artifactWithEngine(sql, "SPARK");
+
+        assertDialectSql(
+            hetuArtifact,
+            "HETU_MATERIALIZED_VIEW",
+            "CREATE MATERIALIZED VIEW ",
+            "REFRESH MATERIALIZED VIEW ",
+            "DROP MATERIALIZED VIEW "
+        );
+        assertDialectSql(
+            hiveArtifact,
+            "HIVE_MATERIALIZED_VIEW",
+            "CREATE MATERIALIZED VIEW ",
+            "ALTER MATERIALIZED VIEW ",
+            "DROP MATERIALIZED VIEW "
+        );
+        assertTrue(String.valueOf(hiveArtifact.get("refreshSql")).endsWith(" REBUILD;"));
+        assertDialectSql(
+            sparkArtifact,
+            "SPARK_TABLE_AS_SELECT",
+            "CREATE TABLE ",
+            "INSERT OVERWRITE TABLE ",
+            "DROP TABLE IF EXISTS "
+        );
+        assertTrue(String.valueOf(sparkArtifact.get("ddlSql")).contains(" AS\nSELECT"));
+        assertTrue(String.valueOf(sparkArtifact.get("refreshSql")).contains("\nSELECT"));
     }
 
     @Test
@@ -107,6 +142,20 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
             "TARGET_ENGINE_REQUIRED"
         );
         assertBlocked(
+            artifactWithEngine(
+                "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id",
+                "CLICKHOUSE"
+            ),
+            "UNSUPPORTED_TARGET_ENGINE"
+        );
+        assertBlocked(
+            artifactWithEngine(
+                "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id",
+                "GAUSSDB"
+            ),
+            "UNSUPPORTED_TARGET_ENGINE"
+        );
+        assertBlocked(
             artifact("SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"),
             "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE"
         );
@@ -151,8 +200,31 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
         assertEquals("GENERATED", artifact.get("artifactStatus"));
         assertEquals("PREJOIN_MV", artifact.get("mvType"));
         assertFalse(hasReason(maps(artifact.get("blockingReasons")), "JOIN_MV_TYPE_DEFERRED"));
-        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM mv_sales_daily"));
+        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM " + artifact.get("mvName")));
         assertFalse(String.valueOf(artifact.get("rewriteSql")).contains("JOIN customers"));
+    }
+
+    private static void assertDialectSql(Map<String, Object> artifact,
+                                         String dialect,
+                                         String ddlPrefix,
+                                         String refreshPrefix,
+                                         String rollbackPrefix) {
+        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("PARAMETERIZED_AGG_MV", artifact.get("mvType"));
+        assertEquals(dialect, artifact.get("dialect"));
+        String mvName = String.valueOf(artifact.get("mvName"));
+        assertTrue(String.valueOf(artifact.get("ddlSql")).startsWith(ddlPrefix + mvName));
+        assertTrue(String.valueOf(artifact.get("refreshSql")).startsWith(refreshPrefix + mvName));
+        assertTrue(String.valueOf(artifact.get("rollbackSql")).startsWith(rollbackPrefix + mvName));
+        assertNoPlaceholder(String.valueOf(artifact.get("ddlSql")));
+        assertNoPlaceholder(String.valueOf(artifact.get("refreshSql")));
+        assertNoPlaceholder(String.valueOf(artifact.get("rollbackSql")));
+    }
+
+    private static void assertNoPlaceholder(String sql) {
+        assertFalse(sql.contains("${"));
+        assertFalse(sql.contains("{{"));
+        assertFalse(sql.contains("<name>"));
     }
 
     private Map<String, Object> artifact(String sql) {

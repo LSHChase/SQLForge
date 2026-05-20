@@ -20,6 +20,7 @@ final class L2PrejoinMvCandidateGenerator {
 
     static CandidateSql generate(String sourceSql,
                                  String mvName,
+                                 String targetEngine,
                                  Map<String, Object> advancedStructureProfile,
                                  L2PredicateClassifier.PredicateClassificationResult predicateClassification,
                                  L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation) {
@@ -47,19 +48,26 @@ final class L2PrejoinMvCandidateGenerator {
             return CandidateSql.blocked(blockingReasons, joinPlan, columnPlan);
         }
 
-        String ddlSql = ddlSql(
-            mvName,
+        String selectSql = selectSql(
             columnPlan.ddlSelectItems(),
             fromClause(sourceSql, baseTables, joinPlan),
             retainedWherePredicates(predicateClassification)
         );
         String rewriteSql = rewriteSql(mvName, advancedStructureProfile, predicateClassification, columnPlan);
         String validationSql = validationSql(sourceSql, rewriteSql);
+        L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
+            L2MaterializedViewDialectRenderer.render(targetEngine, mvName, selectSql);
+        if (renderedSql == null) {
+            return CandidateSql.blocked(Collections.singletonList(reason(
+                "UNSUPPORTED_TARGET_ENGINE",
+                "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"
+            )), joinPlan, columnPlan);
+        }
         return CandidateSql.generated(
-            ddlSql,
-            "REFRESH MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getDdlSql(),
+            renderedSql.getRefreshSql(),
             validationSql,
-            "DROP MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getRollbackSql(),
             rewriteSql,
             joinPlan,
             columnPlan
@@ -334,12 +342,10 @@ final class L2PrejoinMvCandidateGenerator {
         return new ColumnPlan(blockingReasons, mappings);
     }
 
-    private static String ddlSql(String mvName,
-                                 List<String> selectItems,
-                                 String fromClause,
-                                 List<String> retainedWherePredicates) {
+    private static String selectSql(List<String> selectItems,
+                                    String fromClause,
+                                    List<String> retainedWherePredicates) {
         StringBuilder builder = new StringBuilder();
-        builder.append("CREATE MATERIALIZED VIEW ").append(mvName).append(" AS\n");
         builder.append("SELECT\n");
         for (int i = 0; i < selectItems.size(); i++) {
             builder.append("  ");

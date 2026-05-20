@@ -30,8 +30,9 @@ class L2PrejoinMvCandidateGeneratorTest {
         assertFalse(maps(artifact.get("joinKeys")).isEmpty());
         assertTrue(hasMapping(maps(artifact.get("fieldMappings")), "c.customer_level", "customer_level"));
 
+        String mvName = String.valueOf(artifact.get("mvName"));
         String ddlSql = String.valueOf(artifact.get("ddlSql"));
-        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW mv_sales_daily AS"));
+        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"));
         assertTrue(ddlSql.contains("FROM orders o"));
         assertTrue(ddlSql.contains("JOIN customers c ON"));
         assertTrue(ddlSql.contains("o.customer_id = c.customer_id"));
@@ -42,7 +43,7 @@ class L2PrejoinMvCandidateGeneratorTest {
         assertFalse(ddlSql.contains("SUM(o.amount)"));
 
         String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily"));
+        assertTrue(rewriteSql.contains("FROM " + mvName));
         assertTrue(rewriteSql.contains("SUM(amount) AS total_amount"));
         assertTrue(rewriteSql.contains("dt BETWEEN DATE '2026-05-01' AND DATE '2026-05-31'"));
         assertTrue(rewriteSql.contains("GROUP BY customer_level"));

@@ -28,6 +28,7 @@ final class L2StarAggMvCandidateGenerator {
 
     static CandidateSql generate(String sourceSql,
                                  String mvName,
+                                 String targetEngine,
                                  Map<String, Object> advancedStructureProfile,
                                  L2PredicateClassifier.PredicateClassificationResult predicateClassification,
                                  L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation) {
@@ -71,8 +72,7 @@ final class L2StarAggMvCandidateGenerator {
             return CandidateSql.blocked(blockingReasons, factPlan, joinPlan, dimensionPlan, measurePlan);
         }
 
-        String ddlSql = ddlSql(
-            mvName,
+        String selectSql = selectSql(
             dimensionPlan.ddlSelectItems(),
             measurePlan.ddlSelectItems(),
             fromClause(sourceSql, baseTables),
@@ -87,11 +87,19 @@ final class L2StarAggMvCandidateGenerator {
             dimensionPlan
         );
         String validationSql = validationSql(sourceSql, rewriteSql);
+        L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
+            L2MaterializedViewDialectRenderer.render(targetEngine, mvName, selectSql);
+        if (renderedSql == null) {
+            return CandidateSql.blocked(Collections.singletonList(reason(
+                "UNSUPPORTED_TARGET_ENGINE",
+                "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"
+            )), factPlan, joinPlan, dimensionPlan, measurePlan);
+        }
         return CandidateSql.generated(
-            ddlSql,
-            "REFRESH MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getDdlSql(),
+            renderedSql.getRefreshSql(),
             validationSql,
-            "DROP MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getRollbackSql(),
             rewriteSql,
             factPlan,
             joinPlan,
@@ -652,17 +660,15 @@ final class L2StarAggMvCandidateGenerator {
         return predicates;
     }
 
-    private static String ddlSql(String mvName,
-                                 List<String> dimensionSelectItems,
-                                 List<String> measureSelectItems,
-                                 String fromClause,
-                                 List<String> retainedWherePredicates,
-                                 DimensionPlan dimensionPlan) {
+    private static String selectSql(List<String> dimensionSelectItems,
+                                    List<String> measureSelectItems,
+                                    String fromClause,
+                                    List<String> retainedWherePredicates,
+                                    DimensionPlan dimensionPlan) {
         List<String> selectItems = new ArrayList<String>();
         selectItems.addAll(dimensionSelectItems);
         selectItems.addAll(measureSelectItems);
         StringBuilder builder = new StringBuilder();
-        builder.append("CREATE MATERIALIZED VIEW ").append(mvName).append(" AS\n");
         builder.append("SELECT\n");
         for (int i = 0; i < selectItems.size(); i++) {
             builder.append("  ");

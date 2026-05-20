@@ -37,8 +37,9 @@ class L2StarAggMvCandidateGeneratorTest {
         assertTrue(hasMeasure(maps(artifact.get("measureSources")), "total_amount"));
         assertEquals("MEASURE_SOURCE_AND_JOIN_TOPOLOGY", map(artifact.get("starSchemaEvidence")).get("factInference"));
 
+        String mvName = String.valueOf(artifact.get("mvName"));
         String ddlSql = String.valueOf(artifact.get("ddlSql"));
-        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW mv_sales_daily AS"));
+        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"));
         assertTrue(ddlSql.contains("FROM orders o"));
         assertTrue(ddlSql.contains("JOIN products p ON"));
         assertTrue(ddlSql.contains("JOIN shops s ON"));
@@ -52,7 +53,7 @@ class L2StarAggMvCandidateGeneratorTest {
         assertFalse(ddlSql.contains(sql));
 
         String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily"));
+        assertTrue(rewriteSql.contains("FROM " + mvName));
         assertTrue(rewriteSql.contains("dt BETWEEN DATE '2026-05-01' AND DATE '2026-05-31'"));
         assertTrue(rewriteSql.contains("city = 'HZ'"));
         assertTrue(rewriteSql.contains("SUM(total_amount) AS total_amount"));
@@ -71,7 +72,7 @@ class L2StarAggMvCandidateGeneratorTest {
 
         assertEquals("GENERATED", artifact.get("artifactStatus"));
         assertEquals("PREJOIN_MV", artifact.get("mvType"));
-        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM mv_sales_daily"));
+        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM " + artifact.get("mvName")));
     }
 
     @Test

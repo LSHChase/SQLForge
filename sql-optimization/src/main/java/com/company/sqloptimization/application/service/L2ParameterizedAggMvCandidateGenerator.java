@@ -19,6 +19,7 @@ final class L2ParameterizedAggMvCandidateGenerator {
 
     static CandidateSql generate(String sourceSql,
                                  String mvName,
+                                 String targetEngine,
                                  Map<String, Object> advancedStructureProfile,
                                  L2PredicateClassifier.PredicateClassificationResult predicateClassification,
                                  L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation) {
@@ -45,8 +46,7 @@ final class L2ParameterizedAggMvCandidateGenerator {
             ddlSelectItems.add(measureColumn.sourceExpression + " AS " + measureColumn.name);
         }
 
-        String ddlSql = ddlSql(
-            mvName,
+        String selectSql = selectSql(
             ddlSelectItems,
             fromClause,
             retainedWherePredicates(predicateClassification),
@@ -60,11 +60,19 @@ final class L2ParameterizedAggMvCandidateGenerator {
             dimensions
         );
         String validationSql = validationSql(sourceSql, rewriteSql);
+        L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
+            L2MaterializedViewDialectRenderer.render(targetEngine, mvName, selectSql);
+        if (renderedSql == null) {
+            return CandidateSql.blocked(Collections.singletonList(reason(
+                "UNSUPPORTED_TARGET_ENGINE",
+                "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"
+            )));
+        }
         return CandidateSql.generated(
-            ddlSql,
-            "REFRESH MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getDdlSql(),
+            renderedSql.getRefreshSql(),
             validationSql,
-            "DROP MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getRollbackSql(),
             rewriteSql
         );
     }
@@ -159,13 +167,11 @@ final class L2ParameterizedAggMvCandidateGenerator {
         return false;
     }
 
-    private static String ddlSql(String mvName,
-                                 List<String> selectItems,
-                                 String fromClause,
-                                 List<String> retainedWherePredicates,
-                                 List<DimensionSpec> dimensions) {
+    private static String selectSql(List<String> selectItems,
+                                    String fromClause,
+                                    List<String> retainedWherePredicates,
+                                    List<DimensionSpec> dimensions) {
         StringBuilder builder = new StringBuilder();
-        builder.append("CREATE MATERIALIZED VIEW ").append(mvName).append(" AS\n");
         builder.append("SELECT\n");
         for (int i = 0; i < selectItems.size(); i++) {
             builder.append("  ");

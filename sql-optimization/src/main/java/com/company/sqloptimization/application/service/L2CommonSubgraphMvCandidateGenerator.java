@@ -49,6 +49,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
 
     static CandidateSql generate(String sourceSql,
                                  String mvName,
+                                 String targetEngine,
                                  Map<String, Object> advancedStructureProfile,
                                  SqlOptimizationPipelineService.ParsedSqlProfile profile,
                                  List<L2AccelerationArtifactBuilder.CommonSubgraphPeerSql> peerSqls) {
@@ -95,8 +96,14 @@ final class L2CommonSubgraphMvCandidateGenerator {
             ));
             return CandidateSql.blocked(blockingReasons);
         }
-        String ddlSql = "CREATE MATERIALIZED VIEW " + mvName + " AS\n"
-            + trimTrailingSemicolon(candidate.subgraphSql) + ";";
+        L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
+            L2MaterializedViewDialectRenderer.render(targetEngine, mvName, candidate.subgraphSql);
+        if (renderedSql == null) {
+            return CandidateSql.blocked(Collections.singletonList(reason(
+                "UNSUPPORTED_TARGET_ENGINE",
+                "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"
+            )));
+        }
         Map<String, Object> evidence = commonSubgraphEvidence(
             sourceSql,
             candidate,
@@ -105,10 +112,10 @@ final class L2CommonSubgraphMvCandidateGenerator {
             peerSqls
         );
         return CandidateSql.generated(
-            ddlSql,
-            "REFRESH MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getDdlSql(),
+            renderedSql.getRefreshSql(),
             validationSql(sourceSql, rewriteSql),
-            "DROP MATERIALIZED VIEW " + mvName + ";",
+            renderedSql.getRollbackSql(),
             rewriteSql,
             evidence
         );

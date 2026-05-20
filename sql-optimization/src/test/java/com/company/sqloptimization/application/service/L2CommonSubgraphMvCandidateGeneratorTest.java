@@ -37,8 +37,9 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
         assertEquals("recent_orders", evidence.get("sourceName"));
         assertEquals(Integer.valueOf(1), evidence.get("referenceCount"));
 
+        String mvName = String.valueOf(artifact.get("mvName"));
         String ddlSql = String.valueOf(artifact.get("ddlSql"));
-        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW mv_sales_daily AS"));
+        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"));
         assertTrue(
             ddlSql.contains("SELECT customer_id, amount, region, dt FROM orders WHERE status = 'PAID'"),
             ddlSql
@@ -46,7 +47,7 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
         assertFalse(ddlSql.contains(sql));
 
         String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily recent_orders"));
+        assertTrue(rewriteSql.contains("FROM " + mvName + " recent_orders"));
         assertTrue(rewriteSql.contains("SUM(amount) AS total_amount"));
         assertTrue(rewriteSql.contains("WHERE region = 'CN'"));
         assertFalse(rewriteSql.contains("WITH archived_orders"));
@@ -68,7 +69,7 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
             "SELECT customer_id, amount, region FROM orders WHERE status = 'PAID'"
         ));
         String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily d"));
+        assertTrue(rewriteSql.contains("FROM " + artifact.get("mvName") + " d"));
         assertFalse(rewriteSql.contains("FROM (SELECT"));
         assertFalse(rewriteSql.contains("FROM orders"));
     }

@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-010: 实现方言渲染与命名规范
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-010 add MV dialect renderer and naming policy`
+- Priority: 1
+- Depends on: N/A
+- Scope: 为 HETU、HIVE、SPARK 渲染高级 MV DDL、刷新和回滚 SQL，并统一 MV 命名；保持 AUTO 与不支持引擎阻断语义。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-010`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 L2MaterializedViewDialectRenderer 和 L2MaterializedViewNamePolicy；五类高级 MV 生成器统一交给 HETU/HIVE/SPARK 方言渲染 DDL、刷新和回滚 SQL；MV 名称按逻辑对象/报表、主表、类型、维度和短 hash 生成并限制 63 字符；保持 accelerationArtifact 字段形态和 AUTO/不支持引擎阻断语义。
+  - Validation evidence: 已通过 mvn -pl sql-optimization -Dtest=L2MaterializedViewDialectRendererTest,L2MaterializedViewNamePolicyTest,L2ParameterizedAggMvCandidateGeneratorTest,L2PrejoinMvCandidateGeneratorTest,L2StarAggMvCandidateGeneratorTest,L2RollupMvCandidateGeneratorTest,L2CommonSubgraphMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization test；node scripts/lint-repository-knowledge.js；node scripts/check-developer-copy-language.mjs --changed；git diff --check；python3 scripts/foreman.py validate AMV-010；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 方言渲染仅覆盖项目契约中的 HETU/HIVE/SPARK 模板；rewrite 覆盖证明、真实引擎语法执行差异和 runtime binding 发布仍留给后续 AMV-011 及既有治理链路。
+  - Next step: 继续 AMV-011 rewrite SQL 生成与静态覆盖校验；AMV-013 可后续补齐前端结构化展示。
+
 ### AMV-009: 实现 COMMON_SUBGRAPH_MV 候选生成
 
 - Status: done

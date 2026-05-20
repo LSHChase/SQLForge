@@ -76,12 +76,13 @@ class SqlDiffApplicationServiceTest {
         assertEquals("PARAMETERIZED_AGG_MV", diff.getAccelerationArtifact().get("mvType"));
         assertTrue(((List<?>) diff.getAccelerationArtifact().get("grain")).contains("customer_id"));
         assertFalse(((List<?>) diff.getAccelerationArtifact().get("measures")).isEmpty());
+        String mvName = String.valueOf(diff.getAccelerationArtifact().get("mvName"));
         String ddlSql = String.valueOf(diff.getAccelerationArtifact().get("ddlSql"));
         String rewriteSql = String.valueOf(diff.getAccelerationArtifact().get("rewriteSql"));
-        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW mv_sales_daily"));
-        assertTrue(rewriteSql.contains("FROM mv_sales_daily"));
+        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName));
+        assertTrue(rewriteSql.contains("FROM " + mvName));
         assertTrue(rewriteSql.contains("SUM(total_amount) AS total_amount"));
-        assertFalse(rewriteSql.contains("SELECT * FROM mv_sales_daily"));
+        assertFalse(rewriteSql.contains("SELECT * FROM " + mvName));
         assertEquals("GENERATED", diff.getDiffSummary().get("accelerationArtifactStatus"));
     }
 
