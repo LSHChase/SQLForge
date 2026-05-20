@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-015: 增强验证 SQL 与等价验证证据
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-015 enhance MV validation SQL checks`
+- Priority: 1
+- Depends on: AMV-014
+- Scope: 增强高级 MV accelerationArtifact.validationSql：为 PARAMETERIZED_AGG_MV、PREJOIN_MV、STAR_AGG_MV、ROLLUP_MV、COMMON_SUBGRAPH_MV 生成包含 original_result、rewrite_result、行数、指标、关键维度分组、Join 后差异或公共子图输出对比的可复制验证 SQL 草案；无法生成增强验证 SQL 时输出 BLOCKED 与 blockingReasons；不新增 API/schema 字段，不执行验证 SQL，不改变审批发布或 runtime binding ACTIVE 生效边界。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-015`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增统一 L2MaterializedViewValidationSqlBuilder，并将 PARAMETERIZED_AGG_MV、PREJOIN_MV、STAR_AGG_MV、ROLLUP_MV、COMMON_SUBGRAPH_MV 的 validationSql 统一升级为 original_result/rewrite_result CTE 草案，覆盖 ROW_COUNT_CHECK、MEASURE_DIFF、GROUP_MEASURE_DIFF、GROUP_KEY_DIFF、PREJOIN/STAR 的 JOIN_ROW_COUNT_CHECK 以及 COMMON_SUBGRAPH 的 COMMON_SUBGRAPH_OUTPUT_CHECK/UPPER_REWRITE_RESULT_CHECK；无法解析验证字段时返回 BLOCKED 与 blockingReasons，不新增 API/schema 字段，不执行 SQL，不改变 runtime binding ACTIVE 生效边界。
+  - Validation evidence: JDK 8u112 下通过 mvn -pl sql-optimization -Dtest=L2MaterializedViewValidationSqlBuilderTest,L2ParameterizedAggMvCandidateGeneratorTest,L2PrejoinMvCandidateGeneratorTest,L2StarAggMvCandidateGeneratorTest,L2RollupMvCandidateGeneratorTest,L2CommonSubgraphMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test；node scripts/check-recommendation-page-contract.mjs；node scripts/check-acceleration-workbench-contract.mjs；git diff --check；node scripts/check-developer-copy-language.mjs --changed；python3 scripts/foreman.py validate AMV-015；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未在真实外部 HETU/HIVE/SPARK 环境执行 validationSql；本任务仅生成可复制、外部执行的验证草案。
+  - Next step: AMV-016 继续补齐更广测试 SQL、契约测试和 smoke 样例。
+
 ### AMV-014: 打通从 MV rewriteSql 创建改写记录的治理入口
 
 - Status: done

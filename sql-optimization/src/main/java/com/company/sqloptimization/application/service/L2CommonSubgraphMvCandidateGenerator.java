@@ -104,6 +104,27 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"
             )));
         }
+        L2GrainMeasureDeriver.DerivationResult validationDerivation =
+            L2GrainMeasureDeriver.derive(
+                advancedStructureProfile,
+                L2PredicateClassifier.classify(advancedStructureProfile)
+            );
+        L2MaterializedViewValidationSqlBuilder.ValidationSqlResult validationSql =
+            L2MaterializedViewValidationSqlBuilder.build(
+                new L2MaterializedViewValidationSqlBuilder.ValidationInput(
+                    L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH,
+                    sourceSql,
+                    rewriteSql,
+                    mvName,
+                    advancedStructureProfile,
+                    validationDerivation.getMeasures(),
+                    candidate.subgraphSql,
+                    outputColumns.columns
+                )
+            );
+        if (!validationSql.isGenerated()) {
+            return CandidateSql.blocked(validationSql.getBlockingReasons());
+        }
         Map<String, Object> evidence = commonSubgraphEvidence(
             sourceSql,
             candidate,
@@ -114,7 +135,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
         return CandidateSql.generated(
             renderedSql.getDdlSql(),
             renderedSql.getRefreshSql(),
-            validationSql(sourceSql, rewriteSql),
+            validationSql.getValidationSql(),
             renderedSql.getRollbackSql(),
             rewriteSql,
             evidence
@@ -556,17 +577,6 @@ final class L2CommonSubgraphMvCandidateGenerator {
         item.put("reportCode", reportCode);
         item.put("subgraphFingerprint", subgraphFingerprint);
         refs.add(item);
-    }
-
-    private static String validationSql(String sourceSql, String rewriteSql) {
-        return "WITH original_result AS (\n"
-            + trimTrailingSemicolon(sourceSql)
-            + "\n), rewrite_result AS (\n"
-            + trimTrailingSemicolon(rewriteSql)
-            + "\n)\n"
-            + "SELECT 'ROW_COUNT_CHECK' AS check_name,\n"
-            + "       (SELECT COUNT(*) FROM original_result) AS original_count,\n"
-            + "       (SELECT COUNT(*) FROM rewrite_result) AS rewrite_count;";
     }
 
     private static String extractMainQueryAfterWith(String sourceSql) {

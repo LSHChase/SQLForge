@@ -49,6 +49,15 @@ class L2PrejoinMvCandidateGeneratorTest {
         assertTrue(rewriteSql.contains("GROUP BY customer_level"));
         assertFalse(rewriteSql.contains("JOIN customers"));
         assertFalse(rewriteSql.contains("orders o"));
+
+        String validationSql = String.valueOf(artifact.get("validationSql"));
+        assertTrue(validationSql.contains("original_result"));
+        assertTrue(validationSql.contains("rewrite_result"));
+        assertTrue(validationSql.contains("ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("JOIN_ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_KEY_DIFF"));
     }
 
     @Test

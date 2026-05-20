@@ -62,6 +62,15 @@ class L2StarAggMvCandidateGeneratorTest {
         assertFalse(rewriteSql.contains("JOIN products"));
         assertFalse(rewriteSql.contains("JOIN shops"));
         assertFalse(rewriteSql.contains("orders o"));
+
+        String validationSql = String.valueOf(artifact.get("validationSql"));
+        assertTrue(validationSql.contains("original_result"));
+        assertTrue(validationSql.contains("rewrite_result"));
+        assertTrue(validationSql.contains("ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("JOIN_ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_KEY_DIFF"));
     }
 
     @Test

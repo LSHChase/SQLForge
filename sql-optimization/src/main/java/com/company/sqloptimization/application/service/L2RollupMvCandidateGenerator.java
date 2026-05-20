@@ -72,7 +72,25 @@ final class L2RollupMvCandidateGenerator {
             rollupPlan,
             dimensions
         );
-        String validationSql = validationSql(sourceSql, rewriteSql);
+        L2MaterializedViewValidationSqlBuilder.ValidationSqlResult validationSql =
+            L2MaterializedViewValidationSqlBuilder.build(
+                new L2MaterializedViewValidationSqlBuilder.ValidationInput(
+                    L2GrainMeasureDeriver.MV_TYPE_ROLLUP,
+                    sourceSql,
+                    rewriteSql,
+                    mvName,
+                    advancedStructureProfile,
+                    grainMeasureDerivation.getMeasures(),
+                    null,
+                    Collections.<String>emptyList()
+                )
+            );
+        if (!validationSql.isGenerated()) {
+            return CandidateSql.blocked(
+                validationSql.getBlockingReasons(),
+                timeRollupEvidence(rollupPlan, validationSql.getBlockingReasons())
+            );
+        }
         L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
             L2MaterializedViewDialectRenderer.render(targetEngine, mvName, selectSql);
         if (renderedSql == null) {
@@ -85,7 +103,7 @@ final class L2RollupMvCandidateGenerator {
         return CandidateSql.generated(
             renderedSql.getDdlSql(),
             renderedSql.getRefreshSql(),
-            validationSql,
+            validationSql.getValidationSql(),
             renderedSql.getRollbackSql(),
             rewriteSql,
             timeRollupEvidence(rollupPlan, Collections.<Map<String, Object>>emptyList())
@@ -738,16 +756,6 @@ final class L2RollupMvCandidateGenerator {
             }
         }
         return result;
-    }
-
-    private static String validationSql(String sourceSql, String rewriteSql) {
-        return "WITH original_result AS (\n"
-            + trimTrailingSemicolon(sourceSql)
-            + "\n),\nrewrite_result AS (\n"
-            + trimTrailingSemicolon(rewriteSql)
-            + "\n)\nSELECT 'original' AS source_name, COUNT(*) AS row_count FROM original_result\n"
-            + "UNION ALL\n"
-            + "SELECT 'rewrite' AS source_name, COUNT(*) AS row_count FROM rewrite_result;";
     }
 
     private static Map<String, Object> timeRollupEvidence(RollupPlan rollupPlan,

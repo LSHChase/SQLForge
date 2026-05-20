@@ -56,6 +56,14 @@ class L2RollupMvCandidateGeneratorTest {
         assertTrue(rewriteSql.contains("SUM(total_amount) AS total_amount"));
         assertTrue(rewriteSql.contains("GROUP BY DATE_TRUNC('month', order_date_day), region"));
         assertFalse(rewriteSql.contains("FROM orders"));
+
+        String validationSql = String.valueOf(artifact.get("validationSql"));
+        assertTrue(validationSql.contains("original_result"));
+        assertTrue(validationSql.contains("rewrite_result"));
+        assertTrue(validationSql.contains("ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_KEY_DIFF"));
     }
 
     @Test

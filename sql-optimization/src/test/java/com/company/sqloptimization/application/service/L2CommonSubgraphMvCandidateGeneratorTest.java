@@ -52,6 +52,15 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
         assertTrue(rewriteSql.contains("WHERE region = 'CN'"));
         assertFalse(rewriteSql.contains("WITH archived_orders"));
         assertFalse(rewriteSql.contains("FROM orders"));
+
+        String validationSql = String.valueOf(artifact.get("validationSql"));
+        assertTrue(validationSql.contains("original_result"));
+        assertTrue(validationSql.contains("rewrite_result"));
+        assertTrue(validationSql.contains("ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("COMMON_SUBGRAPH_OUTPUT_CHECK"));
+        assertTrue(validationSql.contains("UPPER_REWRITE_RESULT_CHECK"));
+        assertTrue(validationSql.contains("GROUP_MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_KEY_DIFF"));
     }
 
     @Test

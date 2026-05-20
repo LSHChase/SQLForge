@@ -54,7 +54,22 @@ final class L2PrejoinMvCandidateGenerator {
             retainedWherePredicates(predicateClassification)
         );
         String rewriteSql = rewriteSql(mvName, advancedStructureProfile, predicateClassification, columnPlan);
-        String validationSql = validationSql(sourceSql, rewriteSql);
+        L2MaterializedViewValidationSqlBuilder.ValidationSqlResult validationSql =
+            L2MaterializedViewValidationSqlBuilder.build(
+                new L2MaterializedViewValidationSqlBuilder.ValidationInput(
+                    L2GrainMeasureDeriver.MV_TYPE_PREJOIN,
+                    sourceSql,
+                    rewriteSql,
+                    mvName,
+                    advancedStructureProfile,
+                    grainMeasureDerivation.getMeasures(),
+                    null,
+                    Collections.<String>emptyList()
+                )
+            );
+        if (!validationSql.isGenerated()) {
+            return CandidateSql.blocked(validationSql.getBlockingReasons(), joinPlan, columnPlan);
+        }
         L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
             L2MaterializedViewDialectRenderer.render(targetEngine, mvName, selectSql);
         if (renderedSql == null) {
@@ -66,7 +81,7 @@ final class L2PrejoinMvCandidateGenerator {
         return CandidateSql.generated(
             renderedSql.getDdlSql(),
             renderedSql.getRefreshSql(),
-            validationSql,
+            validationSql.getValidationSql(),
             renderedSql.getRollbackSql(),
             rewriteSql,
             joinPlan,
@@ -545,16 +560,6 @@ final class L2PrejoinMvCandidateGenerator {
             }
         }
         return predicates;
-    }
-
-    private static String validationSql(String sourceSql, String rewriteSql) {
-        return "WITH original_result AS (\n"
-            + trimTrailingSemicolon(sourceSql)
-            + "\n),\nrewrite_result AS (\n"
-            + trimTrailingSemicolon(rewriteSql)
-            + "\n)\nSELECT 'original' AS source_name, COUNT(*) AS row_count FROM original_result\n"
-            + "UNION ALL\n"
-            + "SELECT 'rewrite' AS source_name, COUNT(*) AS row_count FROM rewrite_result;";
     }
 
     private static String rewriteColumns(String expression, ColumnPlan columnPlan) {

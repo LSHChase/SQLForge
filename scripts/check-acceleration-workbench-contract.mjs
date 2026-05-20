@@ -298,13 +298,40 @@ function syntheticArtifact(mvType, overrides = {}) {
     commonSubgraphEvidence: mvType === 'COMMON_SUBGRAPH_MV' ? { sourceKind: 'CTE', referenceCount: 2 } : undefined,
     ddlSql: 'CREATE MATERIALIZED VIEW mv AS SELECT customer_id, SUM(amount) AS sum_amount FROM orders GROUP BY customer_id',
     refreshSql: 'REFRESH MATERIALIZED VIEW mv',
-    validationSql: 'SELECT COUNT(*) FROM mv',
+    validationSql: syntheticValidationSql(mvType),
     rollbackSql: 'DROP MATERIALIZED VIEW mv',
     rewriteSql: 'SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv GROUP BY customer_id',
     runtimeRewriteBinding: 'NOT_CREATED',
     governanceBoundary: 'PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE',
     ...overrides
   }
+}
+
+function syntheticValidationSql(mvType) {
+  const checks = [
+    "SELECT 'ROW_COUNT_CHECK' AS check_name, 'final_result' AS check_target",
+    "SELECT 'MEASURE_DIFF' AS check_name, 'sum_amount' AS check_target",
+    "SELECT 'GROUP_MEASURE_DIFF' AS check_name, 'sum_amount' AS check_target",
+    "SELECT 'GROUP_KEY_DIFF' AS check_name, 'customer_id' AS check_target"
+  ]
+  if (mvType === 'PREJOIN_MV' || mvType === 'STAR_AGG_MV') {
+    checks.push("SELECT 'JOIN_ROW_COUNT_CHECK' AS check_name, 'post_join_result' AS check_target")
+  }
+  if (mvType === 'COMMON_SUBGRAPH_MV') {
+    checks.push("SELECT 'COMMON_SUBGRAPH_OUTPUT_CHECK' AS check_name, 'common_subgraph_output' AS check_target")
+    checks.push("SELECT 'UPPER_REWRITE_RESULT_CHECK' AS check_name, 'upper_query_result' AS check_target")
+  }
+  return [
+    'WITH original_result AS (',
+    'SELECT customer_id, SUM(amount) AS sum_amount FROM orders GROUP BY customer_id',
+    '),',
+    'rewrite_result AS (',
+    'SELECT customer_id, SUM(sum_amount) AS sum_amount FROM mv GROUP BY customer_id',
+    '),',
+    'original_group AS (SELECT customer_id, SUM(sum_amount) AS sum_amount FROM original_result GROUP BY customer_id),',
+    'rewrite_group AS (SELECT customer_id, SUM(sum_amount) AS sum_amount FROM rewrite_result GROUP BY customer_id)',
+    checks.join('\nUNION ALL\n')
+  ].join('\n')
 }
 
 function checkAmv013DisplayScenarios() {
@@ -315,6 +342,18 @@ function checkAmv013DisplayScenarios() {
     check(display.measureRows[0]?.rewriteExpression === 'SUM(sum_amount)', `Workbench AMV-013 display missing rewriteExpression for ${mvType}.`)
     check(display.predicateGroups.length === 4, `Workbench AMV-013 display must expose four predicate groups for ${mvType}.`)
     check(display.coverageRows.some(row => row.key === 'rewriteSqlReferencesMv' && row.value === 'true'), `Workbench AMV-013 display missing rewrite MV reference proof for ${mvType}.`)
+    const validationBlock = display.sqlBlocks.find(block => block.key === 'validationSql')
+    check(validationBlock?.value.includes('ROW_COUNT_CHECK'), `Workbench AMV-015 validation SQL missing ROW_COUNT_CHECK for ${mvType}.`)
+    check(validationBlock?.value.includes('MEASURE_DIFF'), `Workbench AMV-015 validation SQL missing MEASURE_DIFF for ${mvType}.`)
+    check(validationBlock?.value.includes('GROUP_MEASURE_DIFF'), `Workbench AMV-015 validation SQL missing GROUP_MEASURE_DIFF for ${mvType}.`)
+    check(validationBlock?.value.includes('GROUP_KEY_DIFF'), `Workbench AMV-015 validation SQL missing GROUP_KEY_DIFF for ${mvType}.`)
+    if (mvType === 'PREJOIN_MV' || mvType === 'STAR_AGG_MV') {
+      check(validationBlock?.value.includes('JOIN_ROW_COUNT_CHECK'), `Workbench AMV-015 validation SQL missing join check for ${mvType}.`)
+    }
+    if (mvType === 'COMMON_SUBGRAPH_MV') {
+      check(validationBlock?.value.includes('COMMON_SUBGRAPH_OUTPUT_CHECK'), 'Workbench AMV-015 validation SQL missing common subgraph output check.')
+      check(validationBlock?.value.includes('UPPER_REWRITE_RESULT_CHECK'), 'Workbench AMV-015 validation SQL missing upper rewrite result check.')
+    }
   }
 
   const blocked = buildAccelerationArtifactDisplay(

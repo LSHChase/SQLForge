@@ -56,6 +56,10 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
         String validationSql = String.valueOf(mayArtifact.get("validationSql"));
         assertTrue(validationSql.contains("original_result"));
         assertTrue(validationSql.contains("rewrite_result"));
+        assertTrue(validationSql.contains("ROW_COUNT_CHECK"));
+        assertTrue(validationSql.contains("MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_MEASURE_DIFF"));
+        assertTrue(validationSql.contains("GROUP_KEY_DIFF"));
         assertTrue(validationSql.contains("FROM " + mvName));
     }
 
