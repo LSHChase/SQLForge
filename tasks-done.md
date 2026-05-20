@@ -4,6 +4,28 @@
 
 ## Done
 
+### USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520: 分析去除审计取证追踪告警门禁恢复演练
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520: analyze ops surface removal`
+- Priority: 1
+- Depends on: N/A
+- Scope: 盘点审计取证、追踪查询、告警中心、运行门禁、恢复演练在文档、规则、代码、脚本、验证中的分布；评估去除合理性、可行性、核心功能影响与解决方案；形成等待人类决策的分析结论，未获确认前不实施删除。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-20: archived raw requirement and produced impact analysis covering docs, rules, product specs, frontend routes/views/API wrappers, backend governance trace/alert/audit contracts, SQL schema, scripts, CI/runtime smoke and validation gates.
+- Context closeout:
+  - Completed scope: 已完成原始需求归档、影响分析文档和 `INBOX-007` 决策项；未执行删除或破坏性迁移。
+  - Validation evidence: `python3 scripts/foreman.py validate USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520`、`python3 scripts/task_audit.py --check --phase pre-closeout`、`node scripts/lint-repository-knowledge.js` 与 `git diff --check` 通过。
+  - Residual risk: 后续改造方向依赖人类选择 A/B/C；未确认前不得删除前端、后端、SQL、脚本或验证能力。
+  - Next step: 等待人类选择 A/B/C，并确认等保、SQL 执行历史、runtime binding 安全约束、历史数据和 benchmark artifact recovery / cleanup 边界。
+- Review reason: 本任务按人类要求只完成影响分析和解决方案，不在未确认前执行删除或破坏性迁移。
+- Human decision: 请选择 `docs/plans/simplify-engine-remove-ops-surfaces-impact-analysis-2026-05-20.md` 中的 A/B/C 后续方向，并确认是否保留等保要求、SQL 执行历史、runtime binding 安全约束、历史审计/告警/trace 数据处理方式，以及 benchmark artifact recovery / cleanup 是否出界。
+- INBOX ref: INBOX-007
+
 ### USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520: 折叠审批发布撤销回滚流程为激活暂停模型
 
 - Status: done

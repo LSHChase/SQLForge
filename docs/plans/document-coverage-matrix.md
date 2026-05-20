@@ -90,6 +90,7 @@
 | `docs/plans/l2-advanced-materialized-view-task-plan.md` | Indexed | L2 高级物化视图推荐任务拆解计划 | Consumed | 将参数外提聚合、预 Join、星型聚合、Rollup、公共子图 MV 推荐拆成可执行任务，并明确禁止 `EXACT_QUERY_MV` |
 | `docs/plans/frontend-core-workflow-refocus-task-pack.md` | Indexed | 前端核心链路聚焦改造任务包 | Consumed | 将核心 SQL 工作流菜单、首页、历史、推荐、改写和参考页边界拆成可逐个 materialize、规划、实现和 closeout 的候选前端任务 |
 | `docs/plans/lifecycle-activation-pause-impact-analysis-2026-05-20.md` | Indexed | 生命周期激活/暂停折叠核心影响分析 | Referenced | 记录 `USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520` 对旧生命周期状态机的核心影响、可选方案和 `INBOX-006` 人工决策项 |
+| `docs/plans/simplify-engine-remove-ops-surfaces-impact-analysis-2026-05-20.md` | Indexed | 执行引擎纯化与运维治理面移除影响分析 | Referenced | 记录 `USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520` 对审计取证、追踪查询、告警中心、运行门禁和恢复演练的核心影响、可选方案和 `INBOX-007` 人工决策项 |
 | `docs/plans/process-flow-and-governance-audit-2026-04-20.md` | Indexed | 正式全流程说明、流程缺陷审计与整改建议 | Consumed | 供后续接手人与治理批次快速理解当前执行流程与缺陷闭口优先级 |
 | `docs/plans/retrospective-template.md` | Indexed | 阶段与复杂批次复盘模板 | Referenced | 复盘闭环与后续治理沉淀 |
 | `docs/plans/document-governance-retrospective-2026-04-20.md` | Indexed | 本轮文档治理复盘记录 | Consumed | 漂移、缺口和后续治理沉淀 |
@@ -103,6 +104,7 @@
 | `docs/quality/validation-rules.md` | Authority | `R-116` 至 `R-190` 验证规则与 `R-168` 执行衔接 | Consumed | 任务、阶段、上下文收尾、前端视觉自检与开发者可读文本中文化验证矩阵 |
 | `docs/references/human-constraint-history.md` | Authority | 长期约束历史账本 | Consumed | 规则追加与人类决策追溯 |
 | `docs/references/sql-rewrite-recommendation-research-2026-05-18.md` | Indexed | SQL 推荐改写、物化视图透明改写、动态过滤、LLM 改写验证与相关专利调研归档 | Consumed | 支撑 USER-CN-SELECT-REWRITE-36-20260518 的 36 类以上 SELECT 推荐改写规则来源与边界 |
+| `docs/references/raw-requirements/USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520.md` | Archive | USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520 raw requirement snapshot | Archived | 保存执行引擎纯化与运维治理面移除需求原文，供影响分析、`INBOX-007` 人工决策和后续实现追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/README.snapshot.md` | Archive | Java 规范原始 README 快照 | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/license.txt` | Archive | 原始资料许可证 | Archived | 归档保留，不作为执行基线 |
