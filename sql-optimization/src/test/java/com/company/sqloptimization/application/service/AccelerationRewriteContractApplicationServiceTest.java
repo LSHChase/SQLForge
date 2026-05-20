@@ -36,10 +36,12 @@ import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionRuntimeRewriteBindingClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryAccelerationCandidateRepository;
+import com.company.sqloptimization.infrastructure.repository.InMemoryAccelerationRecommendationRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlRewriteRecordRepository;
 import java.time.Instant;
 import java.util.Arrays;
@@ -613,6 +615,107 @@ class AccelerationRewriteContractApplicationServiceTest {
     }
 
     @Test
+    void shouldCreateGeneratedMvRewriteRecordFromStoredRecommendationArtifactWhenTraceRefsMissing() {
+        InMemorySqlRewriteRecordRepository rewriteRepository = new InMemorySqlRewriteRecordRepository();
+        InMemoryAccelerationRecommendationRepository recommendationRepository =
+            new InMemoryAccelerationRecommendationRepository();
+        String rewriteSql = "SELECT customer_id, SUM(total_amount) AS total_amount "
+            + "FROM mv_sales_daily GROUP BY customer_id;";
+        recommendationRepository.save(mvRecommendation("rec-mv-authority", "tenant-a", rewriteSql));
+        SqlRewriteRecordApplicationService service =
+            new SqlRewriteRecordApplicationService(rewriteRepository, recommendationRepository);
+        setTenant("tenant-a");
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-mv-authority");
+        request.setRecommendationId("rec-mv-authority");
+        request.setRecommendedSqlText(rewriteSql);
+        request.setTraceRefs(null);
+
+        SqlRewriteRecordVO created = service.createRewriteRecord(request);
+
+        assertEquals(rewriteSql, created.getRecommendedSqlText());
+        assertEquals("PARAMETERIZED_AGG_MV", created.getTraceRefs().get("mvType"));
+        assertEquals("mv_sales_daily", created.getTraceRefs().get("mvName"));
+        Map<?, ?> artifactTrace = (Map<?, ?>) created.getTraceRefs().get("accelerationArtifact");
+        assertEquals("ACCELERATION_RECOMMENDATION_SNAPSHOT", artifactTrace.get("artifactAuthority"));
+        assertEquals("PRECOMPUTE_MV", artifactTrace.get("rule"));
+        assertEquals("GENERATED", artifactTrace.get("artifactStatus"));
+        assertEquals(rewriteSql, artifactTrace.get("rewriteSql"));
+    }
+
+    @Test
+    void shouldRejectGeneratedMvRewriteRecordWhenRecommendedSqlDriftsFromStoredRecommendationArtifact() {
+        InMemorySqlRewriteRecordRepository rewriteRepository = new InMemorySqlRewriteRecordRepository();
+        InMemoryAccelerationRecommendationRepository recommendationRepository =
+            new InMemoryAccelerationRecommendationRepository();
+        recommendationRepository.save(mvRecommendation(
+            "rec-mv-drift-create",
+            "tenant-a",
+            "SELECT customer_id, SUM(total_amount) AS total_amount FROM mv_sales_daily GROUP BY customer_id"
+        ));
+        SqlRewriteRecordApplicationService service =
+            new SqlRewriteRecordApplicationService(rewriteRepository, recommendationRepository);
+        setTenant("tenant-a");
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-mv-drift-create");
+        request.setRecommendationId("rec-mv-drift-create");
+        request.setRecommendedSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id");
+        request.setTraceRefs(null);
+
+        BizException exception = assertThrows(BizException.class, () -> service.createRewriteRecord(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectStaleMvTraceRefsWhenStoredRecommendationArtifactIsAuthoritative() {
+        InMemorySqlRewriteRecordRepository rewriteRepository = new InMemorySqlRewriteRecordRepository();
+        InMemoryAccelerationRecommendationRepository recommendationRepository =
+            new InMemoryAccelerationRecommendationRepository();
+        String rewriteSql = "SELECT customer_id, SUM(total_amount) AS total_amount "
+            + "FROM mv_sales_daily GROUP BY customer_id";
+        recommendationRepository.save(mvRecommendation("rec-mv-stale-trace", "tenant-a", rewriteSql));
+        SqlRewriteRecordApplicationService service =
+            new SqlRewriteRecordApplicationService(rewriteRepository, recommendationRepository);
+        setTenant("tenant-a");
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-mv-stale-trace");
+        request.setRecommendationId("rec-mv-stale-trace");
+        request.setRecommendedSqlText(rewriteSql);
+        Map<String, Object> staleTraceRefs = new LinkedHashMap<String, Object>();
+        staleTraceRefs.put("mvType", "PREJOIN_MV");
+        staleTraceRefs.put("accelerationArtifact", generatedMvArtifact(
+            "SELECT customer_id, SUM(total_amount) AS total_amount FROM mv_old_sales GROUP BY customer_id"
+        ));
+        request.setTraceRefs(staleTraceRefs);
+
+        BizException exception = assertThrows(BizException.class, () -> service.createRewriteRecord(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
+
+    @Test
+    void shouldRejectCrossTenantRecommendationArtifactOnRewriteRecordCreate() {
+        InMemorySqlRewriteRecordRepository rewriteRepository = new InMemorySqlRewriteRecordRepository();
+        InMemoryAccelerationRecommendationRepository recommendationRepository =
+            new InMemoryAccelerationRecommendationRepository();
+        recommendationRepository.save(mvRecommendation(
+            "rec-mv-cross-tenant",
+            "tenant-b",
+            "SELECT customer_id, SUM(total_amount) AS total_amount FROM mv_sales_daily GROUP BY customer_id"
+        ));
+        SqlRewriteRecordApplicationService service =
+            new SqlRewriteRecordApplicationService(rewriteRepository, recommendationRepository);
+        setTenant("tenant-a");
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-mv-cross-tenant");
+        request.setRecommendationId("rec-mv-cross-tenant");
+        request.setRecommendedSqlText(
+            "SELECT customer_id, SUM(total_amount) AS total_amount FROM mv_sales_daily GROUP BY customer_id"
+        );
+
+        assertThrows(AccessDeniedException.class, () -> service.createRewriteRecord(request));
+    }
+
+    @Test
     void shouldRejectGeneratedMvArtifactPublishWhenStoredRecommendedSqlDriftedFromRewriteSql() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
@@ -744,10 +847,28 @@ class AccelerationRewriteContractApplicationServiceTest {
         artifact.put("refreshSql", "REFRESH MATERIALIZED VIEW mv_sales_daily");
         artifact.put("validationSql", "WITH rewrite_result AS (" + rewriteSql + ") "
             + "SELECT COUNT(*) FROM rewrite_result");
+        artifact.put("rollbackSql", "DROP MATERIALIZED VIEW mv_sales_daily");
         artifact.put("rewriteSql", rewriteSql);
         artifact.put("blockingReasons", Collections.emptyList());
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
         return artifact;
+    }
+
+    private AccelerationRecommendation mvRecommendation(String recommendationId,
+                                                        String tenantId,
+                                                        String rewriteSql) {
+        return AccelerationRecommendation.builder()
+            .recommendationId(recommendationId)
+            .tenantId(tenantId)
+            .recommendationType(AccelerationRecommendation.RecommendationType.ACCELERATION)
+            .historyId("history-" + recommendationId)
+            .sourceSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
+            .recommendedSqlText("CREATE MATERIALIZED VIEW mv_sales_daily AS SELECT ...")
+            .targetDatasource("hetu_main")
+            .accelerationArtifact(generatedMvArtifact(rewriteSql))
+            .createdBy("operator-001")
+            .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
+            .build();
     }
 
     private SqlRewriteRecordPublishActionRequest publishActionRequest(String reason) {

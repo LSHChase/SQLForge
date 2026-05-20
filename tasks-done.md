@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-014: 打通从 MV rewriteSql 创建改写记录的治理入口
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-014 enforce MV rewrite artifact authority`
+- Priority: 1
+- Depends on: AMV-013
+- Scope: 以既有 USER-CN-MV-RUNTIME-REWRITE-BINDING-20260519 为功能基线，正式补齐 AMV-014 治理链路：创建改写记录时以后端落库 GENERATED PRECOMPUTE_MV accelerationArtifact.rewriteSql 为 recommendedSqlText 权威来源，校验或补齐 traceRefs.mvType、traceRefs.mvName、traceRefs.accelerationArtifact 摘要；不新增第二套 API，不绕过审批、发布和 query-execution runtime binding ACTIVE 生效语义；补充后端回归测试与推荐中心/加速治理工作台 runtime binding 文案。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-014`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 正式补齐 AMV-014 治理链路，不新增 API：创建改写记录时会按 recommendationId 反查已落库 GENERATED PRECOMPUTE_MV accelerationArtifact，以 rewriteSql 校验 recommendedSqlText，并补齐/校验 traceRefs.mvType、traceRefs.mvName 与 accelerationArtifact 摘要；前端文案同步为 runtime binding ACTIVE 后才生效。
+  - Validation evidence: mvn -pl sql-optimization -Dtest=AccelerationRewriteContractApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；node scripts/check-recommendation-page-contract.mjs；node scripts/check-acceleration-workbench-contract.mjs；node scripts/check-developer-copy-language.mjs --changed；git diff --check；python3 scripts/foreman.py validate AMV-014；python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未执行真实外部 MV DDL、refresh 或 validation SQL；SQLForge 仍保持 PULL_ONLY，运行时生效继续以 query-execution runtime binding ACTIVE 与执行历史证据为准。
+  - Next step: 后续 AMV-015/AMV-016 继续补齐验证 SQL 草案、等价证据和更广样例回归。
+
 ### AMV-013: 前端结构化展示审查与优化
 
 - Status: done

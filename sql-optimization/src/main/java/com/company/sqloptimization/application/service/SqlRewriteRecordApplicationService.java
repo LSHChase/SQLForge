@@ -26,6 +26,8 @@ import com.company.sqloptimization.domain.governance.RewritePublishStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
+import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
 import com.company.sqloptimization.domain.rewrite.RewriteValidationRun;
 import com.company.sqloptimization.domain.rewrite.SqlRewriteRecord;
 import com.company.sqloptimization.domain.rewrite.policy.RewritePublishEligibility;
@@ -69,6 +71,7 @@ public class SqlRewriteRecordApplicationService {
     private final GovernanceCapabilityClient governanceCapabilityClient;
     private final ResultDigestComparisonEngine resultDigestComparisonEngine;
     private final RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy;
+    private final AccelerationRecommendationRepository recommendationRepository;
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository) {
         this(
@@ -76,6 +79,7 @@ public class SqlRewriteRecordApplicationService {
             null,
             new ResultDigestComparisonEngine(),
             new RewritePublishEligibilityPolicy(),
+            null,
             null,
             null
         );
@@ -86,14 +90,16 @@ public class SqlRewriteRecordApplicationService {
                                               QueryExecutionResultDigestClient queryExecutionResultDigestClient,
                                               ResultDigestComparisonEngine resultDigestComparisonEngine,
                                               QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
-                                              GovernanceCapabilityClient governanceCapabilityClient) {
+                                              GovernanceCapabilityClient governanceCapabilityClient,
+                                              AccelerationRecommendationRepository recommendationRepository) {
         this(
             sqlRewriteRecordRepository,
             queryExecutionResultDigestClient,
             resultDigestComparisonEngine,
             new RewritePublishEligibilityPolicy(),
             runtimeRewriteBindingClient,
-            governanceCapabilityClient
+            governanceCapabilityClient,
+            recommendationRepository
         );
     }
 
@@ -107,6 +113,7 @@ public class SqlRewriteRecordApplicationService {
             resultDigestComparisonEngine,
             new RewritePublishEligibilityPolicy(),
             runtimeRewriteBindingClient,
+            null,
             null
         );
     }
@@ -120,7 +127,21 @@ public class SqlRewriteRecordApplicationService {
             resultDigestComparisonEngine,
             new RewritePublishEligibilityPolicy(),
             null,
+            null,
             null
+        );
+    }
+
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              AccelerationRecommendationRepository recommendationRepository) {
+        this(
+            sqlRewriteRecordRepository,
+            null,
+            new ResultDigestComparisonEngine(),
+            new RewritePublishEligibilityPolicy(),
+            null,
+            null,
+            recommendationRepository
         );
     }
 
@@ -134,6 +155,7 @@ public class SqlRewriteRecordApplicationService {
             resultDigestComparisonEngine,
             rewritePublishEligibilityPolicy,
             null,
+            null,
             null
         );
     }
@@ -143,13 +165,15 @@ public class SqlRewriteRecordApplicationService {
                                               ResultDigestComparisonEngine resultDigestComparisonEngine,
                                               RewritePublishEligibilityPolicy rewritePublishEligibilityPolicy,
                                               QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
-                                              GovernanceCapabilityClient governanceCapabilityClient) {
+                                              GovernanceCapabilityClient governanceCapabilityClient,
+                                              AccelerationRecommendationRepository recommendationRepository) {
         this.sqlRewriteRecordRepository = sqlRewriteRecordRepository;
         this.queryExecutionResultDigestClient = queryExecutionResultDigestClient;
         this.runtimeRewriteBindingClient = runtimeRewriteBindingClient;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.resultDigestComparisonEngine = resultDigestComparisonEngine;
         this.rewritePublishEligibilityPolicy = rewritePublishEligibilityPolicy;
+        this.recommendationRepository = recommendationRepository;
     }
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
@@ -163,6 +187,7 @@ public class SqlRewriteRecordApplicationService {
             resultDigestComparisonEngine,
             rewritePublishEligibilityPolicy,
             runtimeRewriteBindingClient,
+            null,
             null
         );
     }
@@ -173,6 +198,7 @@ public class SqlRewriteRecordApplicationService {
             throw invalidArgument("request", "rewrite record request 为必填项");
         }
         Instant now = Instant.now();
+        Map<String, Object> traceRefs = buildCreateTraceRefs(request, tenantId);
         SqlRewriteRecord rewriteRecord = SqlRewriteRecord.builder()
             .rewriteRecordId(UUID.randomUUID().toString())
             .tenantId(tenantId)
@@ -212,7 +238,7 @@ public class SqlRewriteRecordApplicationService {
             .ruleChain(request.getRuleChain())
             .diffSummary(request.getDiffSummary())
             .risk(request.getRisk())
-            .traceRefs(enrichRewriteTrialTraceRefs(request.getTraceRefs(), request.getSourceProblems(), request.getIssueRuleLinks()))
+            .traceRefs(traceRefs)
             .build();
         requireMvRuntimeRewriteSqlAligned(rewriteRecord);
         assertRewriteAuthorization(rewriteRecord, CREATE_OPERATION);
@@ -903,12 +929,175 @@ public class SqlRewriteRecordApplicationService {
         return request == null ? null : trimToNull(request.getReason());
     }
 
+    private Map<String, Object> buildCreateTraceRefs(SqlRewriteRecordCreateRequest request,
+                                                     String tenantId) {
+        Map<String, Object> traceRefs = enrichRewriteTrialTraceRefs(
+            request.getTraceRefs(),
+            request.getSourceProblems(),
+            request.getIssueRuleLinks()
+        );
+        Map<String, Object> storedArtifact = storedGeneratedMvArtifact(request.getRecommendationId(), tenantId);
+        if (storedArtifact == null) {
+            return traceRefs;
+        }
+        requireRecommendedSqlTextMatchesArtifact(request.getRecommendedSqlText(), storedArtifact);
+        return normalizeMvArtifactTraceRefs(traceRefs, storedArtifact, request.getRecommendationId());
+    }
+
+    private Map<String, Object> storedGeneratedMvArtifact(String recommendationId,
+                                                          String tenantId) {
+        if (recommendationRepository == null || !StringUtils.hasText(recommendationId)) {
+            return null;
+        }
+        AccelerationRecommendation recommendation =
+            recommendationRepository.findByRecommendationId(recommendationId.trim());
+        if (recommendation == null) {
+            return null;
+        }
+        if (!tenantId.equals(recommendation.getTenantId())) {
+            throw new AccessDeniedException("当前认证租户无权使用该推荐生成改写记录");
+        }
+        Map<String, Object> sanitized =
+            AccelerationArtifactSnapshotSanitizer.sanitize(recommendation.getAccelerationArtifact());
+        if (sanitized == null
+            || !isGeneratedMvArtifact(sanitized)
+            || hasBlockingReasons(sanitized.get("blockingReasons"))) {
+            return null;
+        }
+        return sanitized;
+    }
+
+    private void requireRecommendedSqlTextMatchesArtifact(String recommendedSqlText,
+                                                          Map<String, Object> artifact) {
+        String artifactRewriteSql = textValue(artifact.get("rewriteSql"));
+        if (normalizeRuntimeSql(artifactRewriteSql).equals(normalizeRuntimeSql(recommendedSqlText))) {
+            return;
+        }
+        throw invalidArgument(
+            "recommendedSqlText",
+            "PRECOMPUTE_MV 推荐必须以后端落库 accelerationArtifact.rewriteSql 作为 recommendedSqlText"
+        );
+    }
+
+    private Map<String, Object> normalizeMvArtifactTraceRefs(Map<String, Object> traceRefs,
+                                                             Map<String, Object> storedArtifact,
+                                                             String recommendationId) {
+        Map<String, Object> result = traceRefs == null
+            ? new LinkedHashMap<String, Object>()
+            : new LinkedHashMap<String, Object>(traceRefs);
+        requireTraceTextIfPresent(result, "mvType", storedArtifact.get("mvType"), "traceRefs.mvType");
+        requireTraceTextIfPresent(result, "mvName", storedArtifact.get("mvName"), "traceRefs.mvName");
+
+        Map<String, Object> traceArtifact = asMap(result.get("accelerationArtifact"));
+        requireTraceArtifactIfPresent(traceArtifact, storedArtifact, "traceRefs.accelerationArtifact");
+
+        Map<String, Object> runtimeRewriteEvidence = asMap(result.get("runtimeRewriteEvidence"));
+        Map<String, Object> runtimeTraceArtifact =
+            asMap(runtimeRewriteEvidence == null ? null : runtimeRewriteEvidence.get("accelerationArtifact"));
+        requireTraceArtifactIfPresent(
+            runtimeTraceArtifact,
+            storedArtifact,
+            "traceRefs.runtimeRewriteEvidence.accelerationArtifact"
+        );
+
+        String mvType = textValue(storedArtifact.get("mvType"));
+        if (StringUtils.hasText(mvType)) {
+            result.put("mvType", mvType);
+        }
+        String mvName = textValue(storedArtifact.get("mvName"));
+        if (StringUtils.hasText(mvName)) {
+            result.put("mvName", mvName);
+        }
+        result.put("accelerationArtifact", mvArtifactTraceSummary(storedArtifact, recommendationId));
+        return result;
+    }
+
+    private void requireTraceArtifactIfPresent(Map<String, Object> traceArtifact,
+                                               Map<String, Object> storedArtifact,
+                                               String fieldPrefix) {
+        if (traceArtifact == null || traceArtifact.isEmpty()) {
+            return;
+        }
+        requireTraceTextIfPresent(traceArtifact, "rule", storedArtifact.get("rule"), fieldPrefix + ".rule");
+        requireTraceTextIfPresent(
+            traceArtifact,
+            "artifactStatus",
+            storedArtifact.get("artifactStatus"),
+            fieldPrefix + ".artifactStatus"
+        );
+        requireTraceTextIfPresent(traceArtifact, "mvType", storedArtifact.get("mvType"), fieldPrefix + ".mvType");
+        requireTraceTextIfPresent(traceArtifact, "mvName", storedArtifact.get("mvName"), fieldPrefix + ".mvName");
+        requireTraceTextIfPresent(
+            traceArtifact,
+            "targetDatasource",
+            storedArtifact.get("targetDatasource"),
+            fieldPrefix + ".targetDatasource"
+        );
+        requireTraceSqlIfPresent(
+            traceArtifact,
+            "rewriteSql",
+            storedArtifact.get("rewriteSql"),
+            fieldPrefix + ".rewriteSql"
+        );
+    }
+
+    private void requireTraceTextIfPresent(Map<String, Object> traceRefs,
+                                           String key,
+                                           Object expected,
+                                           String field) {
+        Object actual = traceRefs == null ? null : traceRefs.get(key);
+        if (!StringUtils.hasText(textValue(actual)) || !StringUtils.hasText(textValue(expected))) {
+            return;
+        }
+        if (textValue(expected).equals(textValue(actual))) {
+            return;
+        }
+        throw invalidArgument(field, field + " 与后端落库 PRECOMPUTE_MV 产物不一致");
+    }
+
+    private void requireTraceSqlIfPresent(Map<String, Object> traceRefs,
+                                          String key,
+                                          Object expected,
+                                          String field) {
+        Object actual = traceRefs == null ? null : traceRefs.get(key);
+        if (!StringUtils.hasText(textValue(actual)) || !StringUtils.hasText(textValue(expected))) {
+            return;
+        }
+        if (normalizeRuntimeSql(textValue(expected)).equals(normalizeRuntimeSql(textValue(actual)))) {
+            return;
+        }
+        throw invalidArgument(field, field + " 与后端落库 PRECOMPUTE_MV 产物不一致");
+    }
+
+    private Map<String, Object> mvArtifactTraceSummary(Map<String, Object> storedArtifact,
+                                                       String recommendationId) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        putText(summary, "rule", storedArtifact.get("rule"));
+        putText(summary, "artifactStatus", storedArtifact.get("artifactStatus"));
+        putText(summary, "mvType", storedArtifact.get("mvType"));
+        putText(summary, "mvName", storedArtifact.get("mvName"));
+        putText(summary, "targetDatasource", storedArtifact.get("targetDatasource"));
+        putText(summary, "governanceBoundary", storedArtifact.get("governanceBoundary"));
+        putText(summary, "rewriteSql", storedArtifact.get("rewriteSql"));
+        putText(summary, "recommendationId", recommendationId);
+        summary.put("artifactAuthority", "ACCELERATION_RECOMMENDATION_SNAPSHOT");
+        return summary;
+    }
+
+    private void putText(Map<String, Object> target, String key, Object value) {
+        String text = textValue(value);
+        if (StringUtils.hasText(text)) {
+            target.put(key, text);
+        }
+    }
+
     private void requireMvRuntimeRewriteSqlAligned(SqlRewriteRecord rewriteRecord) {
         String artifactRewriteSql = generatedMvArtifactRewriteSql(rewriteRecord.getTraceRefs());
         if (!StringUtils.hasText(artifactRewriteSql)) {
             return;
         }
-        if (normalizeRuntimeSql(artifactRewriteSql).equals(normalizeRuntimeSql(rewriteRecord.getRecommendedSqlText()))) {
+        if (normalizeRuntimeSql(artifactRewriteSql)
+            .equals(normalizeRuntimeSql(rewriteRecord.getRecommendedSqlText()))) {
             return;
         }
         throw invalidArgument(

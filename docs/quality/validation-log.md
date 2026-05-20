@@ -4920,3 +4920,25 @@
 2026-05-19T22:12:44-05:00 | AMV-013 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-19T22:12:44-05:00 | AMV-013 closeout commit | `R-168` | projected | `git commit -m 'AMV-013 add structured MV artifact display' (projected-precommit)`
 2026-05-19T22:12:44-05:00 | AMV-013 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-19T22:33:32-05:00 | AMV-014 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-19T22:33:32-05:00 | AMV-014 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-19T22:33:34-05:00 | AMV-014 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-19T22:33:38-05:00 | AMV-014 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-19T22:33:38-05:00 | AMV-014 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-19T22:33:38-05:00 | AMV-014 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-19T22:33:39-05:00 | AMV-014 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | failed | `npm run test:frontend-page-governance`
+2026-05-19T22:33:39-05:00 | AMV-014 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-19T22:34:02-05:00 | AMV-014 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-19T22:34:02-05:00 | AMV-014 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-19T22:34:04-05:00 | AMV-014 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-19T22:34:08-05:00 | AMV-014 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-19T22:34:08-05:00 | AMV-014 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-19T22:34:08-05:00 | AMV-014 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-19T22:34:09-05:00 | AMV-014 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-19T22:34:09-05:00 | AMV-014 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-19T22:35:12-05:00 | AMV-014 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-19T22:35:12-05:00 | AMV-014 closeout commit | `R-168` | projected | `git commit -m 'AMV-014 enforce MV rewrite artifact authority' (projected-precommit)`
+2026-05-19T22:35:12-05:00 | AMV-014 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-19T22:35:12-05:00 | AMV-014 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-19T22:35:12-05:00 | AMV-014 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-developer-copy-language.mjs --changed (projected-precommit)`
+2026-05-19T22:35:12-05:00 | AMV-014 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
