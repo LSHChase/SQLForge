@@ -593,7 +593,7 @@ MV 粒度必须由以下字段组成：
 
 **范围**：
 
-- 推荐中心和加速治理工作台展示 MV 类型、粒度、维度、指标、谓词分类、Join 图、覆盖证明、阻断原因。
+- 推荐中心展示 MV 类型、粒度、维度、指标、谓词分类、Join 图、覆盖证明、阻断原因。
 - 展示 `rewriteSql` 可作为 SQL 改写记录的 `recommendedSqlText` 来源。
 - 页面文案明确 SQLForge 不执行 DDL，runtime 生效需要审批发布。
 
@@ -609,7 +609,7 @@ MV 粒度必须由以下字段组成：
 
 **范围**：
 
-- 在推荐中心或加速治理工作台提供“用 MV rewriteSql 创建改写记录”的动作。
+- 在推荐中心提供“用 MV rewriteSql 创建改写记录”的动作。
 - 创建改写记录时：
   - `originalSqlText` 来自原 SQL。
   - `recommendedSqlText` 来自 `accelerationArtifact.rewriteSql`。

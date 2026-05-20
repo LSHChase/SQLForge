@@ -73,7 +73,7 @@
 | Frontend lint | Enabled | `npm run lint` | 与 `npm install` 同步执行 |
 | Frontend build | Enabled | `npm run build` | 与 `npm install` 同步执行 |
 | Frontend dev browser smoke | Not in CI by design | `npm run smoke:frontend-dev` | 当前只作为本地 `repo-closed` 开发回归基线；不得替代 `npm run smoke:frontend-runtime` 或被提升为默认 CI/runtime gate |
-| HARN-142 acceleration governance smoke | Not in CI by design | `npm run smoke:acceleration-governance` | 本地任务级 repo-closed smoke，串联工作台 browser smoke、PRW-012 生产改写闭环 browser smoke、推荐/历史/告警契约和文档 closeout 检查；不消费真实 Hetu/MRS environment-backed 证据 |
+| Rewrite governance smoke | Not in CI by design | `npm run smoke:rewrite-governance` | 本地任务级 repo-closed smoke，串联 PRW-012 生产改写闭环 browser smoke、推荐/历史/告警契约和文档 closeout 检查；不消费真实 Hetu/MRS environment-backed 证据 |
 | Repository knowledge lint | Enabled | `node scripts/lint-repository-knowledge.js` | 已作为仓库级文档门禁 |
 | Task audit | Enabled | `python3 scripts/task_audit.py --check` | 已进入主 CI |
 | Governance compile drift check | Enabled | `python3 scripts/foreman.py compile-governance --check` | 已进入主 CI |
@@ -89,7 +89,7 @@
 | Foreman task validation | `python3 scripts/foreman.py validate <TASK_ID>` | 当前 workflow 仍未做任务级 validate 编排 |
 | Codex runtime validation | `python3 scripts/validate_codex_runtime.py` | 当前 workflow 未调用 |
 | Frontend dev browser smoke | `npm run smoke:frontend-dev` | 该入口被刻意保留为本地 `repo-closed` 开发回归基线，不属于默认 CI/browser runtime gate 覆盖 |
-| HARN-142 acceleration governance smoke | `npm run smoke:acceleration-governance` | 该入口是加速与改写治理任务级 repo-closed 收口检查，并包含 PRW-012 生产改写闭环 browser smoke；Not in CI by design，若要升级为默认 CI / release gate 必须另立任务并人工确认 |
+| Rewrite governance smoke | `npm run smoke:rewrite-governance` | 该入口是改写治理任务级 repo-closed 收口检查，并包含 PRW-012 生产改写闭环 browser smoke；Not in CI by design，若要升级为默认 CI / release gate 必须另立任务并人工确认 |
 | Test-environment minimal smoke | `bash scripts/run-env-smoke.sh` | 供外部测试环境独立 CI/CD 在部署后调用；当前仓库内 GitHub Actions 未直接触发 |
 ## Current Gaps
 

@@ -60,7 +60,7 @@
 **范围**：
 
 - 更新 `docs/architecture/service-interface-contract-baseline.md` 中 `sql-optimization` 与 `query-execution` 的生产改写协作契约。
-- 更新 `docs/product/acceleration-rewrite-governance-workbench-spec.md` 中改写审批与自动改写生产闭环说明。
+- 更新当前产品规格与改写功能分层文档中的改写审批与自动改写生产闭环说明。
 - 不修改业务代码。
 
 **验收**：

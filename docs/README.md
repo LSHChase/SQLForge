@@ -21,7 +21,6 @@
 8. 产品/设计/接口文档
    [架构初始化总文档](./architecture/init.md) 仍是历史初始化基线与总览入口；当前 C4 权威更新落点以 [C4 文字总览](./architecture/c4-overview.md) 为准，当前服务边界以 [服务能力分配图](./architecture/service-capability-map.md) 为准，当前接口契约以 [服务接口契约基线](./architecture/service-interface-contract-baseline.md) 为准，后续新增文档统一补入 `docs/`。
    - [SQL 治理平台实施规格](./product/sql-governance-platform-implementation-spec.md)
-   - [加速与改写治理工作台方案](./product/acceleration-rewrite-governance-workbench-spec.md)
    - [SQL 改写功能分层设计](./product/sql-rewrite-function-boundary-design.md)
    - [生产自动改写闭环任务拆解计划](./plans/production-rewrite-auto-apply-task-plan.md)
    - [L2 高级物化视图推荐任务拆解计划](./plans/l2-advanced-materialized-view-task-plan.md)
@@ -56,7 +55,7 @@
    - [Hetu/MRS 测试环境部署与取证手册](./deployments/hetu-test-environment-deployment-runbook.md)
    - [压测生产规模证据取证手册](./deployments/benchmark-production-evidence-runbook.md)
    - [测试环境 smoke 基线](./deployments/test-environment-smoke-baseline.md)
-   - [加速与改写治理 smoke runbook](./deployments/acceleration-rewrite-governance-smoke-runbook.md)
+   - [改写治理 smoke runbook](./deployments/rewrite-governance-smoke-runbook.md)
    - [可观测基线](./deployments/observability-baseline.md)
    - [备份恢复基线](./deployments/backup-recovery-baseline.md)
    - [CI 能力基线](./deployments/ci-capability-baseline.md)
@@ -98,7 +97,6 @@
 - `product/`
   产品实施规格与页面、流程、角色、分期设计权威入口。
   - `sql-governance-platform-implementation-spec.md`：SQL 治理中后台 + 开放接入平台实施规格。
-  - `acceleration-rewrite-governance-workbench-spec.md`：加速与改写治理工作台、双入口流程、SQL diff、改写记录、周期比对告警与后续任务拆分方案。
   - `sql-rewrite-function-boundary-design.md`：SQL 改写验证、推荐结果 / 改写记录、真实 SQL 改写历史的产品分层、边界和联动方案。
   - `frontend-retrospective-gap-closure-baseline.md`：前端复盘、规格补漏与 repo-closed 边界基线。
 - `rules/`
@@ -157,7 +155,7 @@
   - `hetu-test-environment-deployment-runbook.md`：真实 Hetu / MRS 测试环境的最小部署、配置、启动、smoke 执行与证据留档手册。
   - `benchmark-production-evidence-runbook.md`：真实生产规模压测证据目录格式、`provenance.json` 来源元数据、`verify-benchmark-production-evidence.py` 校验入口、`audit-rewrite-production-readiness.py` 完成度审计入口、`verificationBundle` 与 `evidenceFileDigests` 生成边界。
   - `test-environment-smoke-baseline.md`：外部测试环境独立 CI/CD 的最小部署后 smoke 入口、覆盖范围与证据边界。
-  - `acceleration-rewrite-governance-smoke-runbook.md`：`HARN-142` 加速与改写治理工作台 repo-closed smoke、`PRW-012` 生产改写闭环 browser smoke、契约检查与 environment-backed 边界说明。
+  - `rewrite-governance-smoke-runbook.md`：改写治理 repo-closed smoke、`PRW-012` 生产改写闭环 browser smoke、推荐 / 历史 / 告警契约检查与 environment-backed 边界说明。
   - `observability-baseline.md`：当前 logs/metrics/alerts 运维落地清单与缺口基线。
   - `backup-recovery-baseline.md`：当前备份对象、恢复目标与演练模板基线。
   - `ci-capability-baseline.md`：当前 GitHub Actions CI 覆盖、缺口与后续门禁接入映射。

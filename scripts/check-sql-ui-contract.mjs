@@ -234,11 +234,6 @@ const requiredFiles = {
     'sql-compare-token-mark--insert',
     'sql-compare-token-mark--delete'
   ],
-  'src/views/acceleration-governance/AccelerationGovernanceWorkbenchView.vue': [
-    'SqlEditorField',
-    'acceleration-workbench-sql-text',
-    'SqlCodeBlock'
-  ],
   'src/views/benchmark/BenchmarkView.vue': ['SqlEditorField', 'benchmark-sql-input']
 }
 

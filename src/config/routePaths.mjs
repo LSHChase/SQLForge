@@ -2,7 +2,6 @@ export const ROUTE_PATHS = {
   dashboard: '/dashboard',
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
-  accelerationGovernanceWorkbench: '/governance/acceleration-workbench',
   benchmark: '/benchmark',
   routingGovernance: '/governance/routing',
   recommendationCenter: '/governance/recommendations',
@@ -102,19 +101,6 @@ export const APP_ROUTE_DEFINITIONS = [
       pageKind: 'workbench',
       titleKey: 'acceleration.title',
       descriptionKey: 'acceleration.summary'
-    })
-  ),
-  componentRoute(
-    'accelerationGovernanceWorkbench',
-    'AccelerationGovernanceWorkbench',
-    'AccelerationGovernanceWorkbenchView',
-    routeMeta({
-      navGroup: 'reference',
-      module: 'reference-pages',
-      submodule: 'governance-workbench',
-      pageKind: 'reference',
-      titleKey: 'accelerationGovernanceWorkbench.title',
-      descriptionKey: 'accelerationGovernanceWorkbench.summary'
     })
   ),
   componentRoute(
@@ -538,10 +524,6 @@ export const NAVIGATION_TREE = [
     key: 'reference-pages',
     label: 'navigation.modules.referencePages',
     items: [
-      navItem('accelerationGovernanceWorkbench', 'accelerationGovernanceWorkbench.title', 'navigation.items.accelerationGovernanceWorkbench', {
-        badge: 'navigation.badges.reference',
-        referencePage: true
-      }),
       navItem('deliveryProgress', 'deliveryProgress.title', 'navigation.items.deliveryWorkbench', {
         badge: 'navigation.badges.temporary',
         referencePage: true

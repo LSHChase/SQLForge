@@ -21,7 +21,7 @@
 8. [L2 高级物化视图推荐任务拆解计划](./l2-advanced-materialized-view-task-plan.md)
    将“从 SQL 中抽取可复用计算子图并生成高级物化视图候选”的能力拆成可逐项 materialize 的任务包，并明确禁止 `EXACT_QUERY_MV`。
 9. [前端核心链路聚焦改造任务包](./frontend-core-workflow-refocus-task-pack.md)
-   将“SQL 查询分析 / SQL 历史查询 / SQL 解析 / 解析历史 / 推荐结果 / 改写记录 / 改写历史”聚焦改造拆成可逐个 materialize、规划、实现和 closeout 的小任务，并明确 `加速治理工作台` 仅作为参考模拟页。
+   将“SQL 查询分析 / SQL 历史查询 / SQL 解析 / 解析历史 / 推荐结果 / 改写记录 / 改写历史”聚焦改造拆成可逐个 materialize、规划、实现和 closeout 的小任务；旧工作台参考页不再作为当前产品页面保留。
 
 ## 计划治理要求
 

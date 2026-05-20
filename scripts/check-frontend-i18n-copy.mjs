@@ -247,8 +247,7 @@ function checkCoreWorkflowCopy(zhLeaves, enLeaves, errors) {
       'sqlHistory.title': 'SQL 历史查询',
       'parseRecord.title': '解析历史',
       'recommendationCenter.title': '推荐结果',
-      'recommendationCenter.pageTitle': '推荐结果',
-      'accelerationGovernanceWorkbench.pageTitle': '加速治理流程模拟参考页'
+      'recommendationCenter.pageTitle': '推荐结果'
     },
     en: {
       'dashboard.title': 'Overview',
@@ -256,8 +255,7 @@ function checkCoreWorkflowCopy(zhLeaves, enLeaves, errors) {
       'sqlHistory.title': 'SQL History Search',
       'parseRecord.title': 'Parse History',
       'recommendationCenter.title': 'Recommendation Results',
-      'recommendationCenter.pageTitle': 'Recommendation Results',
-      'accelerationGovernanceWorkbench.pageTitle': 'Acceleration Governance Flow Simulation Reference Page'
+      'recommendationCenter.pageTitle': 'Recommendation Results'
     }
   }
   for (const [locale, expectedByKey] of Object.entries(expectedValues)) {
@@ -278,9 +276,7 @@ function checkCoreWorkflowCopy(zhLeaves, enLeaves, errors) {
       ['recommendationCenter.title', '推荐与加速中心'],
       ['recommendationCenter.pageTitle', '推荐与加速中心'],
       ['recommendationCenter.eyebrow', '推荐中心'],
-      ['recommendationCenter.actions.refresh', '推荐中心'],
-      ['accelerationGovernanceWorkbench.boundarySummary', 'HARN-138'],
-      ['accelerationGovernanceWorkbench.boundarySummary', '真实接口工作台']
+      ['recommendationCenter.actions.refresh', '推荐中心']
     ],
     en: [
       ['dashboard.title', 'Engineering Dashboard'],
@@ -288,9 +284,7 @@ function checkCoreWorkflowCopy(zhLeaves, enLeaves, errors) {
       ['recommendationCenter.title', 'Recommendation Center'],
       ['recommendationCenter.pageTitle', 'Recommendation Center'],
       ['recommendationCenter.eyebrow', 'recommendation center'],
-      ['recommendationCenter.actions.refresh', 'center'],
-      ['accelerationGovernanceWorkbench.boundarySummary', 'HARN-138'],
-      ['accelerationGovernanceWorkbench.boundarySummary', 'real existing interfaces only']
+      ['recommendationCenter.actions.refresh', 'center']
     ]
   }
   for (const [locale, checks] of Object.entries(forbiddenFragments)) {
@@ -302,22 +296,6 @@ function checkCoreWorkflowCopy(zhLeaves, enLeaves, errors) {
     }
   }
 
-  const zhReferenceSummary = maps.zh.get('accelerationGovernanceWorkbench.summary') || ''
-  const zhReferenceBoundary = maps.zh.get('accelerationGovernanceWorkbench.boundarySummary') || ''
-  const enReferenceSummary = maps.en.get('accelerationGovernanceWorkbench.summary') || ''
-  const enReferenceBoundary = maps.en.get('accelerationGovernanceWorkbench.boundarySummary') || ''
-  if (!zhReferenceSummary.includes('流程模拟参考页') || !zhReferenceSummary.includes('不作为正式核心功能入口')) {
-    errors.push(`${localePaths.zh}:accelerationGovernanceWorkbench.summary must keep the reference-page boundary.`)
-  }
-  if (!zhReferenceBoundary.includes('流程模拟参考页') || !zhReferenceBoundary.includes('不作为正式项目交付功能页')) {
-    errors.push(`${localePaths.zh}:accelerationGovernanceWorkbench.boundarySummary must keep the reference-page boundary.`)
-  }
-  if (!enReferenceSummary.includes('Flow simulation reference page') || !enReferenceSummary.includes('not a formal core feature entry')) {
-    errors.push(`${localePaths.en}:accelerationGovernanceWorkbench.summary must keep the reference-page boundary.`)
-  }
-  if (!enReferenceBoundary.includes('flow simulation reference page') || !enReferenceBoundary.includes('not a formal delivery feature page')) {
-    errors.push(`${localePaths.en}:accelerationGovernanceWorkbench.boundarySummary must keep the reference-page boundary.`)
-  }
 }
 
 const errors = []

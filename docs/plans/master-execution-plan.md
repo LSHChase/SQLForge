@@ -860,17 +860,17 @@ Tasks:
 | `HARN-116` | 加固前端页面治理脚本与设计文档 | 扩展 `check-frontend-page-governance.mjs`，补充 layout/i18n/card nesting/SQL component/page shell 检查；更新设计系统与前端治理文档，防止重构后回退 | `HARN-109`,`HARN-110` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js` |
 | `HARN-120` | 补齐前端截图自检机器门禁 | 补齐 HARN-116 后复核发现的执行缺口：默认运行页面治理自测、把 R-186 纳入 validation-rules、通过 task_audit closeout gate 检查 before/after 截图和 Codex 读图修复结论，并修正 HARN-111 以后页面任务依赖 | `HARN-116` | `npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/foreman.py validate HARN-120` |
 
-##### Story `E-STORY-015` 加速与改写治理工作台闭环
+##### Story `E-STORY-015` SQL 改写治理闭环
 
-- 目标：在不把推荐误写成真实装数、不把静态解析误写成真实执行指标的前提下，补齐加速与改写治理工作台、推荐 SQL 深化、SQL diff、SQL 历史改写记录、周期比对和差异告警闭环。
-- 设计权威：[加速与改写治理工作台方案](../product/acceleration-rewrite-governance-workbench-spec.md)。
-- 执行边界：`HARN-127` 只落方案和任务清单；`HARN-143` / `HARN-144` 只做复核与文档修正；`HARN-128` 至 `HARN-142` 后续逐个 `/plan` 实施，普通任务保持单任务单 commit。
+- 目标：在不把推荐误写成真实装数、不把静态解析误写成真实执行指标的前提下，补齐推荐 SQL 深化、SQL diff、SQL 历史改写记录、周期比对和差异告警闭环。
+- 设计权威：当前以 `docs/product/sql-rewrite-function-boundary-design.md`、`docs/plans/production-rewrite-auto-apply-task-plan.md` 和各核心页面契约脚本为准；旧统一流程参考页已从当前产品页面、路由和验证入口中移除。
+- 执行边界：`HARN-127` / `HARN-143` / `HARN-144` 保留为历史复核记录；当前实现与验证不得恢复旧参考页，核心改写闭环继续由推荐中心、SQL 历史、告警中心和生产改写 smoke 覆盖。
 
 Tasks:
 
 | Task ID | Task | Scope | Dependencies | Verification |
 |:---|:---|:---|:---|:---|
-| `HARN-127` | 落地加速与改写治理方案和任务清单 | 复盘历史需求，新增完整方案文档、原始需求快照、主计划、任务矩阵和后续任务台账；不实现业务代码 | N/A | `python3 scripts/foreman.py validate HARN-127`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
+| `HARN-127` | 历史方案任务清单 | 复盘历史需求并形成过往任务清单；当前活跃方案不再保留旧统一流程参考页 | N/A | `python3 scripts/foreman.py validate HARN-127`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
 | `HARN-143` | 复核加速与改写治理方案完整性 | 严格复核 HARN-127 方案、输入输出、历史记录、产品/接口/数据模型/计划/任务台账一致性，修正文档中的遗漏、偏离和不对等；不实现业务代码 | `HARN-127` | `python3 scripts/foreman.py validate HARN-143`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
 | `HARN-144` | 复核加速改写治理文档一致性 | 复核 HARN-143 后的方案、接口、数据模型、计划、任务台账与覆盖矩阵一致性，修正遗留歧义和任务表达偏差；不实现业务代码 | `HARN-143` | `python3 scripts/foreman.py validate HARN-144`、`node scripts/lint-repository-knowledge.js`、`python3 scripts/task_audit.py --check --phase pre-closeout` |
 | `HARN-128` | 固化加速候选与改写记录后端契约 | 补齐 candidate、rewrite record、validation run DTO/VO、状态枚举、接口契约与最小 controller/service 骨架 | `HARN-144` | `mvn -pl sql-optimization test`、接口契约测试 |
@@ -882,12 +882,12 @@ Tasks:
 | `HARN-134` | 改写记录写入与 SQL 历史聚合接口 | 写入 `sql_rewrite_record`，并提供 `query-history/{historyId}/rewrite-records` 聚合面 | `HARN-129`,`HARN-133` | governance + optimization contract 测试 |
 | `HARN-135` | 周期比对执行模型与只读比较引擎 | validation policy、result digest、schema/row/hash/checksum comparison，不拉全量结果到前端 | `HARN-134` | comparison engine 测试 |
 | `HARN-136` | 周期比对调度与差异告警 | scheduled validation、自动暂停应用、`SQL_REWRITE_RESULT_DIVERGENCE` 告警联动 | `HARN-135`,`F-TASK-037` | scheduler/alert linkage 测试 |
-| `HARN-137` | 前端加速治理工作台壳层 | 双入口、流程图、source fields、已有页面跳转、证据抽屉与设计系统约束 | `HARN-133`,`HARN-116` | lint/build/page governance/截图自检 |
-| `HARN-138` | 工作台候选、计划审批与应用验证 tabs | 候选建议、SQL 差异、计划审批、应用验证、接口证据 tabs 与真实接口按钮 | `HARN-137`,`HARN-134` | browser smoke + API mock contract |
+| `HARN-137` | 旧参考页壳层（已退役） | 历史前端参考页任务；当前页面、路由、菜单和专属验证入口已移除 | `HARN-133`,`HARN-116` | 不作为当前验证入口 |
+| `HARN-138` | 旧参考页 tabs（已退役） | 历史前端参考页任务；当前候选、diff、审批、验证能力由推荐中心、SQL 历史和后端接口承接 | `HARN-137`,`HARN-134` | 不作为当前验证入口 |
 | `HARN-139` | 推荐中心 SQL diff 与规则详情 | 推荐详情接入 diff 视图、ruleChain、risk/precondition/unappliedRules 展示 | `HARN-132`,`HARN-114` | recommendation page contract |
 | `HARN-140` | SQL 历史改写记录 tab 与筛选 | SQL 历史列表筛选、详情改写记录 tab、diff 跳转与验证状态展示 | `HARN-134`,`HARN-110` | history page/detail contract |
-| `HARN-141` | 监控与告警前端联动 | 工作台、推荐中心、SQL 历史展示 validation status、告警入口和自动暂停证据 | `HARN-136`,`HARN-138`,`HARN-140` | alert/history/workbench contract |
-| `HARN-142` | 加速与改写治理端到端 smoke 与文档收口 | repo-closed smoke、runbook、契约检查脚本、文档同步与残余风险收口 | `HARN-141` | `foreman validate`、frontend smoke、knowledge lint |
+| `HARN-141` | 监控与告警前端联动 | 推荐中心、SQL 历史展示 validation status、告警入口和自动暂停证据 | `HARN-136`,`HARN-140` | alert/history contract |
+| `HARN-142` | 改写治理端到端 smoke 与文档收口 | repo-closed smoke、runbook、契约检查脚本、文档同步与残余风险收口 | `HARN-141` | `foreman validate`、`npm run smoke:rewrite-governance`、knowledge lint |
 | `PRW-001` | 固化生产改写闭环接口与状态契约 | 更新生产自动改写闭环的产品与服务接口契约，明确推荐、人工复核标记、审批状态、发布状态和运行时生效状态的边界；不修改业务代码。 | `HARN-142`,`HARN-145` | node scripts/lint-repository-knowledge.js、python3 scripts/task_audit.py --check --phase pre-closeout、git diff --check |
 | `PRW-002` | 扩展改写记录审批与发布数据模型 | 为 sql_rewrite_record 或等价改写记录模型新增审批、发布和运行时绑定追踪字段，并补齐 migration、entity、DTO、MyBatis 映射和仓储测试。 | `PRW-001` | mvn -pl sql-optimization test、node scripts/lint-repository-knowledge.js、python3 scripts/foreman.py validate PRW-002 |
 | `PRW-003` | 实现改写记录审批状态机 | 在 sql-optimization 中新增改写记录审批应用服务和 review API，支持批准、驳回或要求修改等状态迁移，并写入审批人、时间、意见和审计 trace。 | `PRW-002` | mvn -pl sql-optimization test、python3 scripts/foreman.py validate PRW-003 |
@@ -899,7 +899,7 @@ Tasks:
 | `PRW-009` | 比对差异触发自动暂停与告警闭环 | 扩展周期验证服务，在改写结果不等价或超过容忍阈值时通过 runtime binding 暂停运行时规则，再回写 `PAUSED`、告警、trace 和审计事件；runtime 暂停失败时保留失败 trace，不直接改数据库状态伪造暂停。 | `PRW-006`,`PRW-008`,`HARN-136` | mvn -pl sql-optimization,query-execution,governance,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-009 |
 | `PRW-010` | 推荐中心与改写记录详情页面接入审批动作 | 在推荐中心详情或改写记录详情增加审批、发布、暂停、撤销动作区，展示审批状态、发布状态、验证结果、发布资格和拒绝原因；不得把加速计划审批标注为改写审批入口。 | `PRW-003`,`PRW-004`,`PRW-006`,`HARN-145` | npm run lint、npm run build、node scripts/check-recommendation-page-contract.mjs、python3 scripts/foreman.py validate PRW-010 |
 | `PRW-011` | SQL 历史页面展示改写前后链路 | 在 SQL 历史列表和详情中展示自动改写状态、原始 SQL、实际执行 SQL、diff、改写记录、运行时绑定和规则版本，并提供跳转到改写记录详情的入口。 | `PRW-008`,`PRW-010`,`HARN-145` | npm run lint、npm run build、node scripts/check-history-page-contract.mjs、node scripts/check-history-detail-contract.mjs、python3 scripts/foreman.py validate PRW-011 |
-| `PRW-012` | 生产闭环端到端测试与 smoke | 补齐生产自动改写闭环的后端端到端测试和前端 smoke，覆盖推荐生成、改写记录、审批、验证、发布、命中自动改写、历史留痕以及差异暂停。 | `PRW-009`,`PRW-010`,`PRW-011` | mvn test、npm run lint、npm run build、npm run smoke:acceleration-governance、python3 scripts/foreman.py validate PRW-012 |
+| `PRW-012` | 生产闭环端到端测试与 smoke | 补齐生产自动改写闭环的后端端到端测试和前端 smoke，覆盖推荐生成、改写记录、审批、验证、发布、命中自动改写、历史留痕以及差异暂停。 | `PRW-009`,`PRW-010`,`PRW-011` | mvn test、npm run lint、npm run build、npm run smoke:rewrite-governance、python3 scripts/foreman.py validate PRW-012 |
 | `PRW-013` | JDBC Agent Redis 改写规则桥接 | 在生产主闭环完成后，按需把已发布的 query-execution 运行时改写绑定同步到 JDBC Agent 现有 Redis 改写规则格式，并处理同步失败、过期、撤销和版本覆盖策略。 | `PRW-012` | mvn -pl query-execution,sqlforge-shared -am test、python3 scripts/foreman.py validate PRW-013 |
 | `USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517` | 推荐结果页布局与 SQL Compare 收口 | 新增推荐分页过滤接口并重排推荐结果页为顶部查询条件、列表分页和详情抽屉；抽取公共 SQL compare 组件，收口 SQL diff tab 展示。 | `HARN-146`,`HARN-FE-006`,`HARN-FE-007`,`PRW-010` | mvn -pl sql-optimization,sqlforge-shared -am test、npm run lint、npm run build、npm run test:sql-ui-contract、npm run test:frontend-page-governance、node scripts/check-recommendation-page-contract.mjs、npm run smoke:frontend-dev、npm run smoke:production-rewrite-closed-loop、git diff --check |
 

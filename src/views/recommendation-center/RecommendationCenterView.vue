@@ -1479,7 +1479,7 @@ watch(
             </el-select>
           </label>
           <label class="field-block">
-            <span class="field-label">{{ t('accelerationGovernanceWorkbench.fields.status') }}</span>
+            <span class="field-label">{{ t('recommendationCenter.fields.status') }}</span>
             <el-select v-model="recommendationFilters.status" clearable data-testid="recommendation-status-filter">
               <el-option v-for="item in recommendationStatusOptions" :key="item" :label="item" :value="item" />
             </el-select>
@@ -1560,7 +1560,7 @@ watch(
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130" sortable="custom">
+          <el-table-column prop="status" :label="t('recommendationCenter.fields.status')" min-width="130" sortable="custom">
             <template #default="{ row }">
               <el-tag :type="row.status === 'FAILED' ? 'danger' : 'info'">{{ row.status || 'UNKNOWN' }}</el-tag>
             </template>
@@ -1581,7 +1581,7 @@ watch(
             <template #default="{ row }">{{ boolText(row.manualReviewRequired) || 'false' }}</template>
           </el-table-column>
           <el-table-column prop="createdAt" :label="t('recommendationCenter.fields.createdAt')" min-width="170" sortable="custom" />
-          <el-table-column prop="recommendationId" :label="t('accelerationGovernanceWorkbench.fields.recommendationId')" min-width="190" sortable="custom" />
+          <el-table-column prop="recommendationId" :label="t('recommendationCenter.fields.recommendationId')" min-width="190" sortable="custom" />
         </el-table>
 
         <el-pagination
@@ -1865,7 +1865,7 @@ watch(
                   </div>
                   <dl class="description-grid">
                     <div class="description-item">
-                      <dt>{{ t('accelerationGovernanceWorkbench.fields.status') }}</dt>
+                      <dt>{{ t('recommendationCenter.fields.status') }}</dt>
                       <dd>{{ displayValue(recommendationDiff.astSummaryDiff?.parseStatus) }}</dd>
                     </div>
                   </dl>
@@ -1892,7 +1892,7 @@ watch(
                   <el-table-column :label="t('recommendationCenter.sections.ruleDiff')" min-width="190">
                     <template #default="{ row }">{{ displayValue(row.titleZh || row.rule) }}</template>
                   </el-table-column>
-                  <el-table-column :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="160">
+                  <el-table-column :label="t('recommendationCenter.fields.status')" min-width="160">
                     <template #default="{ row }">{{ displayValue(row.statusZh || row.status) }}</template>
                   </el-table-column>
                   <el-table-column prop="triggerZh" :label="t('recommendationCenter.fields.trigger')" min-width="220" show-overflow-tooltip />
@@ -2254,14 +2254,14 @@ watch(
                 data-testid="recommendation-dispatch-event"
                 @row-click="row => openEvidenceDrawer(t('recommendationCenter.tabs.dispatchEvents'), row)"
               >
-                <el-table-column prop="dispatchEventId" :label="t('accelerationGovernanceWorkbench.fields.endpoint')" min-width="210" />
-                <el-table-column prop="dispatchType" :label="t('accelerationGovernanceWorkbench.fields.sourceType')" min-width="150" />
-                <el-table-column prop="status" :label="t('accelerationGovernanceWorkbench.fields.status')" min-width="130">
+                <el-table-column prop="dispatchEventId" :label="t('recommendationCenter.fields.endpoint')" min-width="210" />
+                <el-table-column prop="dispatchType" :label="t('recommendationCenter.fields.sourceType')" min-width="150" />
+                <el-table-column prop="status" :label="t('recommendationCenter.fields.status')" min-width="130">
                   <template #default="{ row }">
                     <el-tag :type="row.status === 'FAILED' ? 'danger' : 'info'">{{ row.status || '-' }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="reportCode" :label="t('accelerationGovernanceWorkbench.fields.reportCode')" min-width="150" />
+                <el-table-column prop="reportCode" :label="t('recommendationCenter.fields.reportCode')" min-width="150" />
                 <el-table-column prop="logicalObjectKey" :label="'logicalObjectKey'" min-width="180" />
                 <el-table-column prop="targetEngine" :label="t('inline.viewsRecommendationCenterRecommendationCenterView.text006')" min-width="140" />
               </el-table>

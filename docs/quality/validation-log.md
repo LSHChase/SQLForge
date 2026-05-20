@@ -4992,3 +4992,26 @@
 2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
 2026-05-20T00:12:33-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-20T03:58:53-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-20T03:58:53-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-20T03:58:55-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-20T03:58:59-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-20T03:58:59-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-20T03:58:59-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-20T03:59:00-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-20T03:59:00-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-20T03:59:00-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-20T03:59:00-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `node scripts/check-rewrite-governance-closeout.mjs`
+2026-05-20T03:59:04-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `npm run smoke:rewrite-governance`
+2026-05-20T03:59:05-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-20T03:59:05-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `npm run test:i18n-copy`
+2026-05-20T03:59:06-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-20T03:59:10-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-20T03:59:15-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-20T03:59:15-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-20T03:59:15-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `python3 scripts/foreman.py compile-governance --check`
+2026-05-20T03:59:15-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-20T04:00:11-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-20T04:00:11-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 closeout commit | `R-168` | projected | `git commit -m 'Remove acceleration governance workbench reference page' (projected-precommit)`
+2026-05-20T04:00:11-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-20T04:00:11-05:00 | USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

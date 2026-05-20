@@ -21,7 +21,6 @@ const AuditTroubleshootingView = () => import('../views/audit-troubleshooting/Au
 const RuntimeGatesView = () => import('../views/runtime-gates/RuntimeGatesView.vue')
 const RecoveryDrillView = () => import('../views/recovery-drill/RecoveryDrillView.vue')
 const AccelerationView = () => import('../views/optimization/AccelerationView.vue')
-const AccelerationGovernanceWorkbenchView = () => import('../views/acceleration-governance/AccelerationGovernanceWorkbenchView.vue')
 const ParseStatisticsCenterView = () => import('../views/parse-statistics/ParseStatisticsCenterView.vue')
 const BenchmarkView = () => import('../views/benchmark/BenchmarkView.vue')
 const RoutingGovernanceView = () => import('../views/routing-governance/RoutingGovernanceView.vue')
@@ -43,7 +42,6 @@ const routeComponents = {
   RuntimeGatesView,
   RecoveryDrillView,
   AccelerationView,
-  AccelerationGovernanceWorkbenchView,
   ParseStatisticsCenterView,
   BenchmarkView,
   RoutingGovernanceView,

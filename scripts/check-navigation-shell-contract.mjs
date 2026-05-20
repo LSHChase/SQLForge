@@ -30,7 +30,6 @@ const expectedRoutePaths = {
   dashboard: '/dashboard',
   sqlQuery: '/sql-query',
   acceleration: '/acceleration',
-  accelerationGovernanceWorkbench: '/governance/acceleration-workbench',
   benchmark: '/benchmark',
   routingGovernance: '/governance/routing',
   recommendationCenter: '/governance/recommendations',
@@ -157,9 +156,8 @@ check(
 check(Array.isArray(auxiliaryModule?.sections), 'Auxiliary governance must group audit, trace, alert and runtime evidence.')
 check(
   Array.isArray(referenceModule?.items) &&
-    referenceModule.items.some(item => item.routeKey === 'accelerationGovernanceWorkbench') &&
     referenceModule.items.some(item => item.routeKey === 'deliveryProgress'),
-  'Reference pages must contain acceleration workbench and AI delivery when explicitly enabled.'
+  'Reference pages must contain AI delivery when explicitly enabled.'
 )
 
 const defaultNavItems = flattenNavigationItems(defaultTree)
@@ -188,15 +186,7 @@ const requiredDefaultNavTargets = [
 for (const path of requiredDefaultNavTargets) {
   check(defaultNavItems.some(item => item.path === path), `Default navigation tree is missing menu path: ${path}`)
 }
-check(
-  !defaultNavItems.some(item => item.path === ROUTE_PATHS.accelerationGovernanceWorkbench),
-  'Acceleration governance workbench must not appear in default formal navigation.'
-)
 check(!defaultNavItems.some(item => item.path === ROUTE_PATHS.deliveryProgress), 'AI delivery must not appear in default formal navigation.')
-check(
-  fullNavItems.some(item => item.path === ROUTE_PATHS.accelerationGovernanceWorkbench),
-  'Full navigation tree is missing acceleration governance workbench reference page.'
-)
 check(fullNavItems.some(item => item.path === ROUTE_PATHS.deliveryProgress), 'Full navigation tree is missing AI delivery reference page.')
 
 const runtimeItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATHS.runtimeGates, query: {} })
@@ -227,22 +217,6 @@ const rewriteHistoryItem = findActiveNavigationItem(defaultTree, {
 })
 check(rewriteHistoryItem?.moduleKey === 'rewrite-governance', '改写历史深链必须命中改写治理导航分组。')
 
-const hiddenWorkbenchItem = findActiveNavigationItem(defaultTree, { path: ROUTE_PATHS.accelerationGovernanceWorkbench, query: {} })
-check(!hiddenWorkbenchItem, 'Acceleration governance workbench must be hidden from default formal navigation.')
-const accelerationWorkbenchItem = findActiveNavigationItem(fullTree, { path: ROUTE_PATHS.accelerationGovernanceWorkbench, query: {} })
-check(
-  accelerationWorkbenchItem?.moduleKey === 'reference-pages',
-  'Acceleration governance workbench active item must stay under reference pages when explicitly enabled.'
-)
-check(
-  accelerationWorkbenchItem?.menuLabel === 'navigation.items.accelerationGovernanceWorkbench',
-  'Acceleration governance workbench menu label drifted.'
-)
-check(
-  JSON.stringify(accelerationWorkbenchItem?.defaultOpeneds) === JSON.stringify(['reference-pages']),
-  'Acceleration governance workbench open state drifted.'
-)
-
 const unknownMenuKey = buildNavigationKey('/unknown', { z: 'last', a: 'first', empty: '' })
 check(unknownMenuKey === '/unknown?a=first&z=last', `Navigation key normalization drifted: ${unknownMenuKey}`)
 
@@ -262,7 +236,6 @@ check(
 
 const requiredRouteTargets = [
   ...requiredDefaultNavTargets,
-  ROUTE_PATHS.accelerationGovernanceWorkbench,
   ROUTE_PATHS.parseStatisticsCenter
 ]
 

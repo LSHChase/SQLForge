@@ -4,7 +4,6 @@
   "scope": "scripts/**/*.py, scripts/**/*.sh, scripts/**/*.mjs, scripts/**/*.js 中已存在的脚本可读字符串英文存量",
   "maxIssuesByFile": {
     "scripts/chat_native_router.py": 5,
-    "scripts/check-acceleration-workbench-browser-smoke.mjs": 1,
     "scripts/check-batch-import-contract.mjs": 2,
     "scripts/check-dev-frontend.mjs": 2,
     "scripts/check-frontend-backend-separation.js": 1,
@@ -60,9 +59,6 @@
       "脚本可读字符串: Route governed chat-native templates into governed intake runtime automation.": 1,
       "脚本可读字符串: Stable run id to use when creating a preview.": 1,
       "脚本可读字符串: Use governed_intake confirm-run --dry-run for confirmation prompts.": 1
-    },
-    "scripts/check-acceleration-workbench-browser-smoke.mjs": {
-      "脚本可读字符串: Frontend dev server did not become ready at ${baseUrl}": 1
     },
     "scripts/check-batch-import-contract.mjs": {
       "脚本可读字符串: - forbidden report statistics overview token: ${token}": 1,

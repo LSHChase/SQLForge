@@ -10,7 +10,7 @@
 - 产品原则：核心功能用于完成 SQL 分析闭环；审计、追踪、审批、告警、运行门禁、恢复演练等只作为辅助治理证据，不抢占核心视角。
 - 文档权威：HARN-FE-001A 已确认本文是前端展示层菜单与视觉权重的当前权威；`docs/product/sql-governance-platform-implementation-spec.md` 中的历史一级模块清单保留为产品能力域基线。
 - 交付边界：本任务包默认不新增后端 API、不改数据库、不改变推荐、改写、审批、发布、自动应用的业务语义。
-- 参考页边界：`加速治理工作台`只作为模拟核心流程执行的参考页面，按 `AI 交付` 类临时/参考页逻辑保留，不作为实际项目交付功能页面。
+- 旧参考页边界：旧流程模拟参考页已从当前产品页面、路由和验证入口中移除；推荐、改写、历史与告警由各自核心页面承接。
 - Codex 执行原则：每个任务都必须足够小、可独立验证、可单任务单 commit；不得以一个大任务同时改导航、首页、历史、推荐、改写和参考页。
 
 ## 最终菜单清单
@@ -23,7 +23,7 @@
 | SQL 解析 | 单条 SQL 解析 | 输入单条 SQL，展示结构解析、数据访问解析、问题场景、风险提示和推荐动作。 | 默认突出单条解析，不让批量导入抢占首屏。 |
 | SQL 解析 | 批量解析中心 | 承接 SQL 文件、表格、报表清单导入和批量解析结果概览。 | 属于解析能力的次级入口，不作为主链路第一视觉。 |
 | 解析历史 | - | 查询解析历史、批次历史、报表解析历史，查看解析状态、失败原因、问题场景、逻辑对象和推荐关联。 | 不承担 SQL 执行历史；执行历史仍归 `SQL 历史查询`。 |
-| 推荐结果 | - | 展示推荐列表、推荐来源、收益、风险、推荐 SQL、SQL diff、规则链和适用条件。 | 不包装为 `加速治理工作台`；审批、dispatch、trace 为详情辅助信息。 |
+| 推荐结果 | - | 展示推荐列表、推荐来源、收益、风险、推荐 SQL、SQL diff、规则链和适用条件。 | 不包装为统一工作台；审批、dispatch、trace 为详情辅助信息。 |
 | 改写治理 | 改写记录 | 查看由推荐生成或人工创建的改写记录，关注 review、publish、active、paused、validation 等状态。 | 审批只是记录操作的一部分，不单独作为核心菜单。 |
 | 改写治理 | 改写历史 | 查询历史改写、SQL 历史关联改写、验证运行、结果差异、暂停原因和生命周期证据。 | 不替代推荐结果；推荐产生候选，改写历史沉淀执行与验证证据。 |
 | 辅助治理 | 审计取证 | 查看审计链、补偿、修复、回写与历史事件。 | 辅助排障与合规，不进入核心主链路首屏。 |
@@ -33,7 +33,6 @@
 | 辅助治理 | 恢复演练 | 查看恢复、回滚、演练证据。 | 运维辅助页面，不作为业务用户主入口。 |
 | 系统管理 | - | 管理数据源、系统配置和基础管理能力。 | 平台配置入口，不承载 SQL 分析主流程。 |
 | 开放接入 | - | 展示 SDK、JDBC Agent、开放接入契约与接入状态。 | 面向接入管理，不参与核心 SQL 页面视觉竞争。 |
-| 参考页面 | 加速治理工作台 | 模拟 `入口证据 -> 候选建议 -> SQL 差异 -> 计划审批 -> 应用验证 -> 监控告警 -> 回滚/废弃` 的核心流程执行参考。 | 暂时保留，按 `AI 交付` 类临时/参考页处理；不作为实际项目交付功能页面，不放入核心菜单。 |
 | 参考页面 | AI 交付 | 展示任务与交付参考信息。 | 非生产主功能，按现有临时页策略保留或隐藏。 |
 
 ## 菜单命名映射
@@ -46,7 +45,6 @@
 | SQL 解析 | 单条 SQL 解析 | 保留为 SQL 解析下的主入口。 |
 | 解析历史查询 | 解析历史 | 正式核心菜单名。 |
 | 推荐与加速中心 | 推荐结果 | 正式核心菜单名。 |
-| 加速治理工作台 | 加速治理工作台 | 降级为参考页，不作为正式功能页面。 |
 | 审计取证 / 故障处置 / 告警中心 / 运行门禁 | 辅助治理 | 后置或折叠，不抢占核心视角。 |
 
 ## 执行波次
@@ -61,7 +59,7 @@
 
 ### Wave C：推荐、改写与参考页收口
 
-最后调整推荐结果、改写记录/历史，以及 `加速治理工作台` 的参考页定位和验证门禁。
+最后调整推荐结果、改写记录/历史，以及旧参考页移除后的验证门禁。
 
 ## 候选任务包
 
@@ -71,7 +69,7 @@
 
 **目标**：将本任务包作为长期计划入口写入 `docs/plans/` 并挂入计划索引，明确最终菜单清单、核心/辅助/参考页面边界和后续任务拆分。
 
-**上下文**：`docs/product/sql-governance-platform-implementation-spec.md`、`docs/product/acceleration-rewrite-governance-workbench-spec.md`、`docs/frontend/design-system.md`、`docs/plans/README.md`。
+**上下文**：`docs/product/sql-governance-platform-implementation-spec.md`、`docs/frontend/design-system.md`、`docs/plans/README.md`。
 
 **接口契约**：文档契约；不改变前端路由、后端 API、数据库 schema 或运行时配置。
 
@@ -85,13 +83,13 @@
 
 **环境要求**：docs-only，repo-closed。
 
-**人工确认点**：若要把 `加速治理工作台`重新提升为正式交付功能页，必须人工确认。
+**人工确认点**：若要重新新增统一流程工作台类页面，必须人工确认。
 
 **回滚策略**：回退或追加修正文档，不删除已有历史记录。
 
 ### HARN-FE-002：重排导航树与核心菜单命名
 
-**目标**：调整 `src/config/routePaths.mjs` 的 `NAVIGATION_TREE`，让核心菜单优先展示，并将 `加速治理工作台`移出正式核心菜单。
+**目标**：调整 `src/config/routePaths.mjs` 的 `NAVIGATION_TREE`，让核心菜单优先展示，并保持统一流程工作台类页面不进入正式核心菜单。
 
 **上下文**：HARN-FE-001、本文件最终菜单清单、`src/config/routePaths.mjs`、`src/App.vue`。
 
@@ -101,7 +99,7 @@
 
 **分层定位**：`frontend/router`。
 
-**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/check-navigation-shell-contract.mjs`、`node scripts/check-acceleration-workbench-contract.mjs`、前端 before/after 截图自检、`git diff --check`。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`node scripts/check-navigation-shell-contract.mjs`、前端 before/after 截图自检、`git diff --check`。
 
 **依赖**：HARN-FE-001。
 
@@ -221,27 +219,27 @@
 
 **回滚策略**：回退新增入口和 tab/query 参数，保留原推荐中心与历史详情能力。
 
-### HARN-FE-008：参考页治理与最终验证
+### HARN-FE-008：旧参考页移除后的最终验证
 
-**目标**：把 `加速治理工作台`按 `AI 交付`类似逻辑收口为参考模拟页，并完成全链路验收。
+**目标**：确认旧流程模拟参考页不再作为当前产品页面、路由、菜单、i18n 或专属 smoke 入口存在，并完成全链路验收。
 
-**上下文**：HARN-FE-002 至 HARN-FE-007、`src/views/acceleration-governance/AccelerationGovernanceWorkbenchView.vue`、`src/config/runtimeFlags.js`、`src/config/routePaths.mjs`。
+**上下文**：HARN-FE-002 至 HARN-FE-007、`src/config/routePaths.mjs`、`src/router/index.js`、`package.json`。
 
-**接口契约**：保留页面代码、路由和现有接口调用；不删除已有 smoke 所需入口；不作为正式功能页面出现在核心菜单。
+**接口契约**：不删除推荐中心、SQL 历史、告警中心、生产改写闭环、后端加速计划或运行时绑定能力；只移除旧参考页入口与专属验证。
 
-**技术约束**：页面标题和说明必须明确“流程模拟参考页”；Dashboard 和主导航不得把它宣传为实际项目交付功能。
+**技术约束**：主导航和 Dashboard 不得恢复旧流程模拟参考页；核心验证继续通过推荐、历史、告警与生产改写闭环 smoke 覆盖。
 
-**分层定位**：`frontend/router`、`frontend/views/acceleration-governance`、`frontend/runtime-flags`。
+**分层定位**：`frontend/router`、`frontend/i18n`、`scripts`、`docs`。
 
-**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`npm run test:sql-ui-contract`、`node scripts/check-acceleration-workbench-contract.mjs`、前端 smoke、before/after 截图自检、`git diff --check`。
+**测试策略**：`npm run lint`、`npm run build`、`npm run test:frontend-page-governance`、`npm run test:sql-ui-contract`、`npm run smoke:rewrite-governance`、`git diff --check`。
 
 **依赖**：HARN-FE-002 至 HARN-FE-007。
 
 **环境要求**：前端本地 Node/Vite 环境。
 
-**人工确认点**：若要删除参考页、默认隐藏方式改变生产行为，或把参考页恢复为正式交付功能，必须人工确认。
+**人工确认点**：若要重新新增统一流程工作台类页面，必须人工确认。
 
-**回滚策略**：恢复参考页入口和文案到改造前状态；不影响核心菜单已完成改造。
+**回滚策略**：通过新任务恢复页面入口、文案和专属验证；不影响核心菜单已完成改造。
 
 ## 推荐执行顺序
 
@@ -250,7 +248,7 @@
 3. HARN-FE-004：改首页入口权重。
 4. HARN-FE-005：改历史与解析链路。
 5. HARN-FE-006、HARN-FE-007：改推荐与改写链路。
-6. HARN-FE-008：收口参考页和全量验证。
+6. HARN-FE-008：确认旧参考页移除后的全量验证。
 
 ## 通用执行要求
 
@@ -266,6 +264,6 @@
 
 - 核心菜单能完成：查询、历史、解析、解析历史、推荐、改写记录、改写历史闭环。
 - 审计、追踪、审批、告警、运行门禁、恢复演练不抢占核心首屏。
-- `加速治理工作台`保留为参考模拟页，且不被标记为正式交付功能。
-- 旧路由和已有 smoke 不被破坏。
+- 旧流程模拟参考页不再作为当前产品页面、路由、菜单、i18n 或专属 smoke 入口存在。
+- 核心改写 smoke 不被破坏。
 - 所有页面继续遵守前端设计系统、页面治理、SQL UI 契约和文案国际化要求。

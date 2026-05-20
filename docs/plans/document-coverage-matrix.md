@@ -36,7 +36,7 @@
 | `docs/deployments/hetu-test-environment-deployment-runbook.md` | Authority | 真实 Hetu / MRS 测试环境的最小部署、配置、启动、smoke 执行与证据留档手册 | Consumed | 外部测试环境 owner 部署 `governance` / `query-execution`、执行 `run-hetu-env-smoke.sh` 并保留 `JDBC` / `REST` / `CLIENT` 证据的权威落点 |
 | `docs/deployments/benchmark-production-evidence-runbook.md` | Authority | 真实生产规模压测证据目录格式、来源元数据、校验入口、改写生产就绪审计入口以及 `verificationBundle` / `evidenceFileDigests` 生成边界 | Consumed | 外部环境 owner 收集 `provenance.json`、10000 并发、千万级日查询、30PB 数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待和成本账单证据后，执行 `scripts/verify-benchmark-production-evidence.py` 与 `scripts/audit-rewrite-production-readiness.py` 并保留结果 |
 | `docs/deployments/test-environment-smoke-baseline.md` | Authority | 外部测试环境部署后 minimal smoke 入口、覆盖范围与证据边界 | Consumed | `F-TASK-033` 的环境无关 smoke 入口、外部 CI/CD 调用方式与 repo-closed 边界权威落点 |
-| `docs/deployments/acceleration-rewrite-governance-smoke-runbook.md` | Authority | 加速与改写治理工作台 repo-closed smoke、生产改写闭环 browser smoke、契约检查与 environment-backed 边界 runbook | Consumed | `HARN-142` 的 `npm run smoke:acceleration-governance`、工作台 browser smoke、`PRW-012` 生产改写闭环 browser smoke、推荐/历史/告警契约检查与 `HARN-016` / `INBOX-002` 外部证据边界权威落点 |
+| `docs/deployments/rewrite-governance-smoke-runbook.md` | Authority | 改写治理 repo-closed smoke、生产改写闭环 browser smoke、契约检查与 environment-backed 边界 runbook | Consumed | `npm run smoke:rewrite-governance`、`PRW-012` 生产改写闭环 browser smoke、推荐/历史/告警契约检查与 `HARN-016` / `INBOX-002` 外部证据边界权威落点 |
 | `docs/deployments/observability-baseline.md` | Authority | 当前 logs/metrics/alerts 运维落地清单 | Consumed | `F-TASK-007` 的可观测基线、实现映射与缺口权威落点 |
 | `docs/deployments/backup-recovery-baseline.md` | Authority | 当前备份对象、恢复目标与演练模板基线 | Consumed | `F-TASK-008` 的恢复基线、责任分工与验收模板权威落点 |
 | `docs/deployments/ci-capability-baseline.md` | Authority | 当前 GitHub Actions CI 覆盖与缺口基线 | Consumed | `F-TASK-004` 的 CI 盘点、门禁缺口与后续任务范围权威落点 |
@@ -46,7 +46,6 @@
 | `docs/frontend/design-system.md` | Authority | 前端视觉与页面设计规则 | Consumed | Dashboard、业务页、主题系统 |
 | `docs/frontend/form-component-governance.md` | Authority | 页面表单组件语义治理基线 | Consumed | `HARN-045` 的日期时间、租户、数据源、枚举、布尔、数值与敏感输入组件映射权威落点 |
 | `docs/product/sql-governance-platform-implementation-spec.md` | Authority | SQL 治理中后台 + 开放接入平台产品实施规格 | Consumed | `HARN-042` 与后续 D/E/F Story 的产品目标、页面与流程权威落点 |
-| `docs/product/acceleration-rewrite-governance-workbench-spec.md` | Authority | 加速与改写治理工作台、SQL diff、改写记录、周期比对告警与任务拆分方案 | Consumed | `HARN-127`、`HARN-143`、`HARN-144` 与后续 `HARN-128` 至 `HARN-142` 的方案、页面、接口、数据模型与任务边界权威落点 |
 | `docs/product/sql-rewrite-function-boundary-design.md` | Authority | SQL 改写验证、推荐结果 / 改写记录、真实 SQL 改写历史的产品分层、边界和联动方案 | Consumed | 约束解析记录来源改写、推荐治理对象和生产执行改写历史的归属，供后续前端和产品任务引用 |
 | `docs/product/frontend-retrospective-gap-closure-baseline.md` | Authority | 前端复盘、规格补漏与 repo-closed 边界基线 | Consumed | `U-TASK-004` 的前端差距基线、导航/首页补漏边界与剩余待后端承接项权威落点 |
 | `docs/report-import-parse-stress-sample.md` | Indexed | 报表导入解析 XLSX 压测样例说明 | Referenced | 记录本次报表导入测试样例的模板、规模、低质量 SQL 场景、自测边界与使用参数 |

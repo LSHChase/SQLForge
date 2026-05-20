@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520: 去除加速治理工作台参考功能与文档
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `Remove acceleration governance workbench reference page`
+- Priority: 1
+- Depends on: N/A
+- Scope: Remove the acceleration governance workbench reference page, dedicated documents, route/menu/i18n, and workbench-only smoke/contract scripts while preserving core recommendation, SQL history, alert, production rewrite closed-loop, backend acceleration-plan/runtime-binding capabilities, and replacing the smoke bundle so core validation remains covered.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Removed the old acceleration governance workbench reference page, route/menu/i18n entries, dedicated product and deployment docs, workbench-only contract/browser smoke scripts, and refreshed portable frontend assets while preserving core recommendation, SQL history, alert, production rewrite closed-loop, backend acceleration-plan and runtime-binding capabilities.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520 --include-task-audit with extra commands: node scripts/check-rewrite-governance-closeout.mjs; npm run smoke:rewrite-governance; npm run test:sql-ui-contract; npm run test:i18n-copy; npm run lint; npm run build; npm run build:portable; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py compile-governance --check; git diff --check.
+  - Residual risk: Historical audit/raw requirement records still contain old workbench references by design; active source, product/deployment docs, navigation, package scripts and replacement closeout checks no longer expose the removed workbench.
+  - Next step: No follow-up required for the removed workbench. Future real Hetu/MRS environment-backed evidence remains under HARN-016 / INBOX-002 and must not be treated as covered by repo-closed smoke.
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260520: 按最新页面刷新 dist-portable
 
 - Status: done
