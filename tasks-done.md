@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520: 推荐改写加速前端可用性验证与补链
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `test(frontend): verify rewrite acceleration usability`
+- Priority: 1
+- Depends on: HARN-FE-008,PRW-012,USER-CN-RECOMMENDATION-DIFF-LAYOUT-20260517
+- Scope: 验证并在必要时修复推荐结果、改写记录/改写历史、加速治理参考页的前端调用、深链、契约、构建与浏览器 smoke；不新增后端 API、不改变审批发布或自动应用语义。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 完成推荐结果、改写记录/改写历史、加速治理参考页的当前前端调用、深链、构建、契约与浏览器 smoke 可用性验证；确认无需新增后端 API，未改变审批发布、dispatch、运行时绑定或自动应用语义。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-FRONTEND-REWRITE-ACCELERATION-USABILITY-20260520 --include-task-audit 通过；npm run lint、npm run build、npm run test:sql-ui-contract、npm run test:frontend-page-governance、node scripts/check-recommendation-page-contract.mjs、node scripts/check-history-page-contract.mjs、node scripts/check-history-detail-contract.mjs、node scripts/check-acceleration-workbench-contract.mjs、node scripts/check-navigation-shell-contract.mjs、npm run smoke:frontend-dev、npm run smoke:acceleration-workbench、npm run smoke:production-rewrite-closed-loop、npm run smoke:acceleration-governance、node scripts/lint-repository-knowledge.js、git diff --check 均通过。
+  - Residual risk: repo-closed browser smoke 使用 mock API；真实 Hetu/MRS 与外部生产环境证据仍按 HARN-016/INBOX-002 等 environment-backed 链路沉淀，不作为本次前端可用性验证阻断。
+  - Next step: 无仓库内后续修复项；后续仅在真实外部环境提供时补充 environment-backed 证据。
+
 ### AMV-016: 补齐测试 SQL、契约测试和 smoke
 
 - Status: done
