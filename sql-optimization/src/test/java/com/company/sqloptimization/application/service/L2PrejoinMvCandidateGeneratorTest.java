@@ -23,7 +23,7 @@ class L2PrejoinMvCandidateGeneratorTest {
             + "GROUP BY c.customer_level";
         Map<String, Object> artifact = artifact(sql);
 
-        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("REVIEW_REQUIRED", artifact.get("artifactStatus"));
         assertEquals("PREJOIN_MV", artifact.get("mvType"));
         assertTrue(hasWarning(maps(artifact.get("reviewWarnings")), "ROW_AMPLIFICATION_METADATA_MISSING"));
         assertEquals("REVIEW_REQUIRED", map(artifact.get("rowAmplificationRisk")).get("status"));
@@ -74,7 +74,7 @@ class L2PrejoinMvCandidateGeneratorTest {
         Map<String, Object> mayArtifact = artifact(maySql);
         Map<String, Object> juneArtifact = artifact(juneSql);
 
-        assertEquals("GENERATED", mayArtifact.get("artifactStatus"));
+        assertEquals("REVIEW_REQUIRED", mayArtifact.get("artifactStatus"));
         assertEquals("PREJOIN_MV", mayArtifact.get("mvType"));
         assertEquals(mayArtifact.get("ddlSql"), juneArtifact.get("ddlSql"));
         assertFalse(String.valueOf(mayArtifact.get("ddlSql")).contains("DATE '2026-05-01'"));

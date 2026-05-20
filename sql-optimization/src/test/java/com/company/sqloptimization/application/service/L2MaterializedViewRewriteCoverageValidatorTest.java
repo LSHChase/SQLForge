@@ -186,7 +186,12 @@ class L2MaterializedViewRewriteCoverageValidatorTest {
     }
 
     private static void assertGeneratedCoverage(Map<String, Object> artifact) {
-        assertEquals("GENERATED", artifact.get("artifactStatus"), String.valueOf(artifact));
+        if (list(artifact.get("reviewWarnings")).isEmpty()) {
+            assertEquals("GENERATED", artifact.get("artifactStatus"), String.valueOf(artifact));
+        } else {
+            assertEquals("REVIEW_REQUIRED", artifact.get("artifactStatus"), String.valueOf(artifact));
+        }
+        assertTrue(list(artifact.get("blockingReasons")).isEmpty(), String.valueOf(artifact));
         Map<String, Object> coverage = map(artifact.get("coverage"));
         assertEquals(Boolean.TRUE, coverage.get("coversProjection"));
         assertEquals(Boolean.TRUE, coverage.get("coversFilters"));
@@ -220,6 +225,11 @@ class L2MaterializedViewRewriteCoverageValidatorTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> map(Object value) {
         return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> list(Object value) {
+        return (List<Object>) value;
     }
 
     private static final class ValidationResultData {

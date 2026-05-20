@@ -25,7 +25,7 @@ class L2StarAggMvCandidateGeneratorTest {
             + "GROUP BY o.dt, p.category";
         Map<String, Object> artifact = artifact(sql);
 
-        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("REVIEW_REQUIRED", artifact.get("artifactStatus"));
         assertEquals("STAR_AGG_MV", artifact.get("mvType"));
         assertEquals("orders", map(artifact.get("factTable")).get("tableName"));
         assertEquals("o", map(artifact.get("factTable")).get("alias"));
@@ -79,7 +79,7 @@ class L2StarAggMvCandidateGeneratorTest {
             + "FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
             + "GROUP BY c.customer_level");
 
-        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("REVIEW_REQUIRED", artifact.get("artifactStatus"));
         assertEquals("PREJOIN_MV", artifact.get("mvType"));
         assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM " + artifact.get("mvName")));
     }

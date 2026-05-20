@@ -91,15 +91,16 @@ class SqlDiffApplicationServiceTest {
     void shouldPreferPersistedArtifactSnapshotAndRejectExactQueryMv() {
         Map<String, Object> snapshot = new LinkedHashMap<String, Object>();
         snapshot.put("rule", "PRECOMPUTE_MV");
-        snapshot.put("mvType", "ROLLUP_MV");
-        snapshot.put("artifactStatus", "BLOCKED");
+        snapshot.put("mvType", "PREJOIN_MV");
+        snapshot.put("artifactStatus", "REVIEW_REQUIRED");
         snapshot.put("mvName", "persisted_mv_snapshot");
         snapshot.put("grain", Collections.singletonList("dt"));
         snapshot.put("dimensions", Collections.singletonList("dt"));
         snapshot.put("measures", Collections.<Map<String, Object>>emptyList());
         snapshot.put("joinGraph", Collections.<Map<String, Object>>emptyList());
         snapshot.put("coverage", map("coversProjection", Boolean.TRUE));
-        snapshot.put("blockingReasons", Collections.singletonList(map("code", "PERSISTED_ONLY")));
+        snapshot.put("blockingReasons", Collections.<Map<String, Object>>emptyList());
+        snapshot.put("reviewWarnings", Collections.singletonList(map("code", "ROW_AMPLIFICATION_METADATA_MISSING")));
         AccelerationRecommendation persisted = mvRecommendation().toBuilder()
             .accelerationArtifact(snapshot)
             .build();
@@ -107,8 +108,13 @@ class SqlDiffApplicationServiceTest {
         RecommendationDiffVO diff = service.buildRecommendationDiff(persisted);
 
         assertEquals("persisted_mv_snapshot", diff.getAccelerationArtifact().get("mvName"));
-        assertEquals("ROLLUP_MV", diff.getAccelerationArtifact().get("mvType"));
-        assertEquals("BLOCKED", diff.getDiffSummary().get("accelerationArtifactStatus"));
+        assertEquals("PREJOIN_MV", diff.getAccelerationArtifact().get("mvType"));
+        assertEquals("REVIEW_REQUIRED", diff.getAccelerationArtifact().get("artifactStatus"));
+        assertEquals(
+            "ROW_AMPLIFICATION_METADATA_MISSING",
+            ((Map<?, ?>) ((List<?>) diff.getAccelerationArtifact().get("reviewWarnings")).get(0)).get("code")
+        );
+        assertEquals("REVIEW_REQUIRED", diff.getDiffSummary().get("accelerationArtifactStatus"));
 
         Map<String, Object> exactQuery = new LinkedHashMap<String, Object>();
         exactQuery.put("mvType", "EXACT_QUERY_MV");

@@ -10,6 +10,7 @@ import {
   buildAccelerationArtifactDisplay,
   buildRuntimeRewriteSqlSourceNotice
 } from '../src/views/common/accelerationArtifactDisplay.mjs'
+import { resolveRuntimeRewriteSql } from '../src/views/common/runtimeRewriteSql.mjs'
 
 const errors = []
 
@@ -373,6 +374,19 @@ function checkAmv013DisplayScenarios() {
     })
   )
   check(reviewRequired.reviewWarningRows[0]?.code === 'ROW_AMPLIFICATION_METADATA_MISSING', 'Workbench AMV-013 display must expose REVIEW_REQUIRED warnings.')
+  const reviewRequiredRuntimeSelection = resolveRuntimeRewriteSql({
+    artifact: syntheticArtifact('PREJOIN_MV', {
+      artifactStatus: 'REVIEW_REQUIRED',
+      reviewWarnings: [{ code: 'ROW_AMPLIFICATION_METADATA_MISSING', description: 'review' }]
+    }),
+    recommendedSqlText: 'SELECT fallback_sql'
+  })
+  check(
+    reviewRequiredRuntimeSelection.source === 'RECOMMENDATION_RECOMMENDED_SQL' &&
+      reviewRequiredRuntimeSelection.sqlText === 'SELECT fallback_sql' &&
+      reviewRequiredRuntimeSelection.accelerationArtifact === null,
+    'Workbench AMV-016 REVIEW_REQUIRED artifact must not become automatic runtime rewrite SQL source.'
+  )
 
   const generatedWithWarnings = buildAccelerationArtifactDisplay(
     syntheticArtifact('PREJOIN_MV', {

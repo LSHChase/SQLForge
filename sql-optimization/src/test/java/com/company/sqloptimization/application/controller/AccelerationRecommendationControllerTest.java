@@ -78,7 +78,9 @@ class AccelerationRecommendationControllerTest {
             .andExpect(jsonPath("$.recommendationId").value("rec-001"))
             .andExpect(jsonPath("$.requiresDispatch").value(true))
             .andExpect(jsonPath("$.ruleChain[0].rule").value("COUNT_ONE_TO_COUNT_STAR"))
-            .andExpect(jsonPath("$.accelerationArtifact.mvType").value("PARAMETERIZED_AGG_MV"))
+            .andExpect(jsonPath("$.accelerationArtifact.mvType").value("PREJOIN_MV"))
+            .andExpect(jsonPath("$.accelerationArtifact.artifactStatus").value("REVIEW_REQUIRED"))
+            .andExpect(jsonPath("$.accelerationArtifact.reviewWarnings[0].code").value("ROW_AMPLIFICATION_METADATA_MISSING"))
             .andExpect(jsonPath("$.accelerationArtifact.grain[0]").value("customer_id"))
             .andExpect(jsonPath("$.accelerationArtifact.dimensions[0]").value("customer_id"))
             .andExpect(jsonPath("$.accelerationArtifact.measures[0].name").value("sum_amount"))
@@ -96,7 +98,9 @@ class AccelerationRecommendationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sourceKind").value("QUERY_HISTORY"))
             .andExpect(jsonPath("$.evidenceLevel").value("RUNTIME_HISTORY"))
-            .andExpect(jsonPath("$.accelerationArtifact.mvType").value("PARAMETERIZED_AGG_MV"))
+            .andExpect(jsonPath("$.accelerationArtifact.mvType").value("PREJOIN_MV"))
+            .andExpect(jsonPath("$.accelerationArtifact.artifactStatus").value("REVIEW_REQUIRED"))
+            .andExpect(jsonPath("$.accelerationArtifact.reviewWarnings[0].code").value("ROW_AMPLIFICATION_METADATA_MISSING"))
             .andExpect(jsonPath("$.accelerationArtifact.coverage.coversProjection").value(true))
             .andExpect(jsonPath("$.accelerationArtifact.rewriteSql").value("SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv_orders_customer GROUP BY customer_id"))
             .andExpect(jsonPath("$.diffStatus").value("READY"))
@@ -199,8 +203,8 @@ class AccelerationRecommendationControllerTest {
 
     private Map<String, Object> artifact() {
         Map<String, Object> artifact = new LinkedHashMap<String, Object>();
-        artifact.put("mvType", "PARAMETERIZED_AGG_MV");
-        artifact.put("artifactStatus", "GENERATED");
+        artifact.put("mvType", "PREJOIN_MV");
+        artifact.put("artifactStatus", "REVIEW_REQUIRED");
         artifact.put("grain", Collections.singletonList("customer_id"));
         artifact.put("dimensions", Collections.singletonList("customer_id"));
         artifact.put("measures", Collections.singletonList(measure()));
@@ -208,6 +212,8 @@ class AccelerationRecommendationControllerTest {
         artifact.put("retainedPredicates", Collections.emptyList());
         artifact.put("securityPredicates", Collections.emptyList());
         artifact.put("blockedPredicates", Collections.emptyList());
+        artifact.put("blockingReasons", Collections.emptyList());
+        artifact.put("reviewWarnings", Collections.singletonList(warning()));
         artifact.put("coverage", coverage());
         artifact.put("joinGraph", Collections.emptyList());
         artifact.put(
@@ -222,6 +228,13 @@ class AccelerationRecommendationControllerTest {
             "SELECT customer_id, SUM(sum_amount) AS total_amount FROM mv_orders_customer GROUP BY customer_id"
         );
         return artifact;
+    }
+
+    private Map<String, Object> warning() {
+        Map<String, Object> warning = new LinkedHashMap<String, Object>();
+        warning.put("code", "ROW_AMPLIFICATION_METADATA_MISSING");
+        warning.put("description", "missing uniqueness and selectivity metadata");
+        return warning;
     }
 
     private Map<String, Object> measure() {

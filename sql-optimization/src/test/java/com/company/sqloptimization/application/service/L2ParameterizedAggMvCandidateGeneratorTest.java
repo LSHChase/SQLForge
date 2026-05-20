@@ -201,7 +201,7 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
         Map<String, Object> artifact = artifact("SELECT o.customer_id, SUM(o.amount) AS total_amount FROM orders o "
             + "JOIN customers c ON o.customer_id = c.customer_id GROUP BY o.customer_id");
 
-        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("REVIEW_REQUIRED", artifact.get("artifactStatus"));
         assertEquals("PREJOIN_MV", artifact.get("mvType"));
         assertFalse(hasReason(maps(artifact.get("blockingReasons")), "JOIN_MV_TYPE_DEFERRED"));
         assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM " + artifact.get("mvName")));

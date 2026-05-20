@@ -188,7 +188,7 @@ class AccelerationPlanApplicationServiceTest {
                 new OptimizationTaskArtifact(
                     "ACCELERATION_ARTIFACT",
                     "accelerationArtifact",
-                    "{\"mvType\":\"PARAMETERIZED_AGG_MV\",\"artifactStatus\":\"BLOCKED\",\"grain\":[\"customer_id\"],\"blockingReasons\":[{\"code\":\"METADATA_REQUIRED\"}]}"
+                    "{\"mvType\":\"PREJOIN_MV\",\"artifactStatus\":\"REVIEW_REQUIRED\",\"grain\":[\"customer_id\"],\"blockingReasons\":[],\"reviewWarnings\":[{\"code\":\"ROW_AMPLIFICATION_METADATA_MISSING\"}],\"rewriteSql\":\"SELECT customer_id FROM mv_prejoin\"}"
                 )
             )
         );
@@ -206,7 +206,9 @@ class AccelerationPlanApplicationServiceTest {
         AccelerationPlanStatusResponse status = service.getPlanStatus(submitResponse.getPlanId());
 
         assertFalse(status.getPlanPayloadJson().contains("EXACT_QUERY_MV"));
-        assertTrue(status.getPlanPayloadJson().contains("PARAMETERIZED_AGG_MV"));
+        assertTrue(status.getPlanPayloadJson().contains("PREJOIN_MV"));
+        assertTrue(status.getPlanPayloadJson().contains("REVIEW_REQUIRED"));
+        assertTrue(status.getPlanPayloadJson().contains("ROW_AMPLIFICATION_METADATA_MISSING"));
         assertTrue(status.getPlanPayloadJson().contains("accelerationArtifact"));
     }
 

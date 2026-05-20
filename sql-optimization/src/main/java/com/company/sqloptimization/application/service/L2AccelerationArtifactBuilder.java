@@ -16,6 +16,7 @@ final class L2AccelerationArtifactBuilder {
     static final String RULE_PRECOMPUTE_MV = "PRECOMPUTE_MV";
     private static final String STATUS_GENERATED = "GENERATED";
     private static final String STATUS_BLOCKED = "BLOCKED";
+    private static final String STATUS_REVIEW_REQUIRED = "REVIEW_REQUIRED";
     private static final List<String> REQUIRED_EVIDENCE = Collections.unmodifiableList(Arrays.asList(
         "TARGET_ENGINE",
         "FIELD_METADATA",
@@ -171,10 +172,11 @@ final class L2AccelerationArtifactBuilder {
         Map<String, Object> coverage = rewriteValidation == null
             ? grainMeasureDerivation.getCoverage()
             : rewriteValidation.getCoverage();
+        List<Map<String, Object>> reviewWarnings = grainMeasureDerivation.getReviewWarnings();
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
         artifact.put("mvType", grainMeasureDerivation.getMvType());
-        artifact.put("artifactStatus", blockingReasons.isEmpty() ? STATUS_GENERATED : STATUS_BLOCKED);
+        artifact.put("artifactStatus", artifactStatus(blockingReasons, reviewWarnings));
         artifact.put("mvName", mvName);
         artifact.put("targetEngine", targetEngine);
         artifact.put("targetDatasource", input.targetDatasource);
@@ -190,7 +192,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("blockedPredicates", predicateClassification.getBlockedPredicates());
         artifact.put("coverage", coverage);
         artifact.put("blockingReasons", blockingReasons);
-        artifact.put("reviewWarnings", grainMeasureDerivation.getReviewWarnings());
+        artifact.put("reviewWarnings", reviewWarnings);
         if (prejoinCandidateSql != null) {
             artifact.put("joinKeys", prejoinCandidateSql.getJoinKeys());
             artifact.put("fieldMappings", prejoinCandidateSql.getFieldMappings());
@@ -253,6 +255,17 @@ final class L2AccelerationArtifactBuilder {
             }
         }
         return artifact;
+    }
+
+    private static String artifactStatus(List<Map<String, Object>> blockingReasons,
+                                         List<Map<String, Object>> reviewWarnings) {
+        if (blockingReasons != null && !blockingReasons.isEmpty()) {
+            return STATUS_BLOCKED;
+        }
+        if (reviewWarnings != null && !reviewWarnings.isEmpty()) {
+            return STATUS_REVIEW_REQUIRED;
+        }
+        return STATUS_GENERATED;
     }
 
     private static String candidateRewriteSql(L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql,

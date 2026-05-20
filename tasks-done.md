@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-016: 补齐测试 SQL、契约测试和 smoke
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-016 complete MV contract smoke coverage`
+- Priority: 1
+- Depends on: N/A
+- Scope: 正式补齐 AMV-016 repo-closed 验收链路：覆盖高级 MV 五类类型的非阻断 SQL-bundle 与阻断样例，明确 REVIEW_REQUIRED 状态语义与人工复核样例，扩展推荐详情、diff、plan payload 与推荐中心/加速治理工作台 contract，继续拒绝 EXACT_QUERY_MV；不执行真实 MV DDL、refresh 或外部验证 SQL，不新增公开 endpoint，不改变审批发布或 query-execution runtime binding 主链路。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-016`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 补齐 AMV-016 repo-closed 验收链路：高级 MV 五类类型均有非阻断 SQL-bundle 与阻断样例回归；PREJOIN_MV 与 STAR_AGG_MV 的复核警告显式输出 artifactStatus=REVIEW_REQUIRED；推荐详情、diff、plan payload 保留合法 mvType/artifactStatus/reviewWarnings 并继续过滤 EXACT_QUERY_MV；推荐中心和加速治理工作台 contract 断言 REVIEW_REQUIRED 不能作为自动 runtime rewrite SQL 来源。不执行真实 MV DDL、refresh 或外部验证 SQL，不新增公开 endpoint，不改变审批发布或 query-execution runtime binding 主链路。
+  - Validation evidence: JDK 8u112 下通过 mvn -pl sql-optimization -Dtest=L2MaterializedViewAmv016RegressionTest,L2ParameterizedAggMvCandidateGeneratorTest,L2PrejoinMvCandidateGeneratorTest,L2StarAggMvCandidateGeneratorTest,L2RollupMvCandidateGeneratorTest,L2CommonSubgraphMvCandidateGeneratorTest,AccelerationRecommendationControllerTest,SqlDiffApplicationServiceTest,AccelerationPlanApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；node scripts/check-recommendation-page-contract.mjs；node scripts/check-acceleration-workbench-contract.mjs；git diff --check；node scripts/lint-repository-knowledge.js；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/foreman.py validate AMV-016 --include-task-audit --extra-command <focused Maven> --extra-command <recommendation contract> --extra-command <workbench contract>。
+  - Residual risk: Repo-closed 验收未执行真实 HETU/HIVE/SPARK MV DDL、refresh 或外部验证 SQL；runtime 生效仍需后续审批发布与 query-execution runtime binding ACTIVE 证据证明。
+  - Next step: 后续若进入外部环境验收，按部署 runbook 收集真实 MV 建表、刷新、验证和 runtime binding 命中证据。
+
 ### AMV-015: 增强验证 SQL 与等价验证证据
 
 - Status: done

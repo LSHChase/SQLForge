@@ -4951,3 +4951,13 @@
 2026-05-19T23:02:44-05:00 | AMV-015 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
 2026-05-19T23:02:44-05:00 | AMV-015 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/check-developer-copy-language.mjs --changed (projected-precommit)`
 2026-05-19T23:02:44-05:00 | AMV-015 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-19T23:18:44-05:00 | AMV-016 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-19T23:18:44-05:00 | AMV-016 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-19T23:18:44-05:00 | AMV-016 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-19T23:18:44-05:00 | AMV-016 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-19T23:18:51-05:00 | AMV-016 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -Dtest=L2MaterializedViewAmv016RegressionTest,L2ParameterizedAggMvCandidateGeneratorTest,L2PrejoinMvCandidateGeneratorTest,L2StarAggMvCandidateGeneratorTest,L2RollupMvCandidateGeneratorTest,L2CommonSubgraphMvCandidateGeneratorTest,AccelerationRecommendationControllerTest,SqlDiffApplicationServiceTest,AccelerationPlanApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-19T23:18:51-05:00 | AMV-016 validate | `R-133`, `R-168` | passed | `node scripts/check-recommendation-page-contract.mjs`
+2026-05-19T23:18:51-05:00 | AMV-016 validate | `R-133`, `R-168` | passed | `node scripts/check-acceleration-workbench-contract.mjs`
+2026-05-19T23:19:37-05:00 | AMV-016 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-19T23:19:37-05:00 | AMV-016 closeout commit | `R-168` | projected | `git commit -m 'AMV-016 complete MV contract smoke coverage' (projected-precommit)`
+2026-05-19T23:19:37-05:00 | AMV-016 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
