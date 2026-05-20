@@ -105,6 +105,7 @@
 | `docs/references/human-constraint-history.md` | Authority | 长期约束历史账本 | Consumed | 规则追加与人类决策追溯 |
 | `docs/references/sql-rewrite-recommendation-research-2026-05-18.md` | Indexed | SQL 推荐改写、物化视图透明改写、动态过滤、LLM 改写验证与相关专利调研归档 | Consumed | 支撑 USER-CN-SELECT-REWRITE-36-20260518 的 36 类以上 SELECT 推荐改写规则来源与边界 |
 | `docs/references/raw-requirements/USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520.md` | Archive | USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520 raw requirement snapshot | Archived | 保存执行引擎纯化与运维治理面移除需求原文，供影响分析、`INBOX-007` 人工决策和后续实现追溯 |
+| `docs/references/raw-requirements/USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520.md` | Archive | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 raw requirement snapshot | Archived | 保存 MV 推荐改写准确性、大 SQL 支持与 50 类 SQL 测试需求原文，供本任务实现、验证和后续追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/README.snapshot.md` | Archive | Java 规范原始 README 快照 | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/license.txt` | Archive | 原始资料许可证 | Archived | 归档保留，不作为执行基线 |

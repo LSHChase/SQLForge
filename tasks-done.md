@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520: 优化 MV 推荐改写准确性与大 SQL 支持
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `fix(sql-optimization): improve MV rewrite large SQL support`
+- Priority: 1
+- Depends on: N/A
+- Scope: 深入分析并优化 SQL 推荐改写中的建 MV 物理视图生成准确性，扩展 SQL 改写系列可支持的 SQL 文本长度和行数，并补齐 50 类不同 SQL 样例的回归测试覆盖；不执行真实外部 MV DDL/refresh，不改变 runtime binding ACTIVE 生效边界。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 优化 MV 推荐改写生成准确性：修复 HAVING alias 指标重写、允许有分组键的维度-only 聚合 MV 验证 SQL，扩展大 SQL diff 为采样策略，提升 SQL 输入/展示容量，并补齐 51 类不同 MV SQL 形态与超长多行 SQL 回归。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 通过；python3 scripts/task_audit.py --check --phase pre-closeout 通过；mvn -pl sql-optimization test 通过 325 tests；npm run lint 通过；npm run build 通过；node scripts/check-sql-ui-contract.mjs 通过；node scripts/lint-repository-knowledge.js 通过；git diff --check 通过。
+  - Residual risk: 未执行真实外部 MV DDL、refresh、validationSql 或 runtime binding ACTIVE 联调；SQLForge 仍仅生成可审查 PULL_ONLY 方案，外部环境验收继续按既有环境证据链处理。
+  - Next step: 如需外部环境验收，按部署 runbook 收集真实 MV 建表、刷新、validationSql 执行和 runtime binding ACTIVE 命中证据。
+
 ### USER-CN-BACKEND-BUILD-REPAIR-20260520: 修复后端 Maven 构建失败
 
 - Status: done

@@ -20,6 +20,8 @@ public class SqlDiffApplicationService {
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "HARN_132_SQL_DIFF_SERVICE";
     private static final int TOKEN_DIFF_LIMIT = 500;
+    private static final int EXACT_DIFF_UNIT_LIMIT = 1600;
+    private static final int LARGE_DIFF_CONTEXT_UNITS = 80;
 
     private final SqlOptimizationPipelineService pipelineService;
     private final AccelerationArtifactSnapshotService accelerationArtifactSnapshotService;
@@ -77,8 +79,8 @@ public class SqlDiffApplicationService {
             return Collections.emptyList();
         }
         DiffInput input = diffInput(originalSql, recommendedSql);
-        List<DiffOperation> operations = lcsDiff(input.originalUnits, input.recommendedUnits);
-        return toDiffHunks(operations, input.granularity);
+        DiffComputation computation = diffComputation(input);
+        return toDiffHunks(computation, input.granularity);
     }
 
     private DiffInput diffInput(String originalSql, String recommendedSql) {
@@ -91,6 +93,23 @@ public class SqlDiffApplicationService {
             return new DiffInput(originalTokens, recommendedTokens, "TOKEN");
         }
         return new DiffInput(splitLines(originalSql), splitLines(recommendedSql), "LINE");
+    }
+
+    private DiffComputation diffComputation(DiffInput input) {
+        if (requiresLargeDiffFallback(input.originalUnits, input.recommendedUnits)) {
+            return largeDiff(input.originalUnits, input.recommendedUnits);
+        }
+        return DiffComputation.exact(lcsDiff(input.originalUnits, input.recommendedUnits));
+    }
+
+    private boolean requiresLargeDiffFallback(List<String> originalUnits, List<String> recommendedUnits) {
+        int originalSize = originalUnits.size();
+        int recommendedSize = recommendedUnits.size();
+        if (originalSize <= EXACT_DIFF_UNIT_LIMIT && recommendedSize <= EXACT_DIFF_UNIT_LIMIT) {
+            return false;
+        }
+        long matrixCells = ((long) originalSize + 1L) * ((long) recommendedSize + 1L);
+        return matrixCells > ((long) EXACT_DIFF_UNIT_LIMIT + 1L) * ((long) EXACT_DIFF_UNIT_LIMIT + 1L);
     }
 
     private List<DiffOperation> lcsDiff(List<String> originalUnits, List<String> recommendedUnits) {
@@ -151,7 +170,60 @@ public class SqlDiffApplicationService {
         return operations;
     }
 
-    private List<Map<String, Object>> toDiffHunks(List<DiffOperation> operations, String granularity) {
+    private DiffComputation largeDiff(List<String> originalUnits, List<String> recommendedUnits) {
+        int originalSize = originalUnits.size();
+        int recommendedSize = recommendedUnits.size();
+        int prefix = 0;
+        while (prefix < originalSize
+            && prefix < recommendedSize
+            && originalUnits.get(prefix).equals(recommendedUnits.get(prefix))) {
+            prefix++;
+        }
+        int suffix = 0;
+        while (suffix + prefix < originalSize
+            && suffix + prefix < recommendedSize
+            && originalUnits.get(originalSize - 1 - suffix)
+                .equals(recommendedUnits.get(recommendedSize - 1 - suffix))) {
+            suffix++;
+        }
+        int originalEnd = originalSize - suffix;
+        int recommendedEnd = recommendedSize - suffix;
+        List<String> originalSample = sampledMiddle(originalUnits, prefix, originalEnd);
+        List<String> recommendedSample = sampledMiddle(recommendedUnits, prefix, recommendedEnd);
+        List<DiffOperation> operations = new ArrayList<DiffOperation>();
+        for (int i = 0; i < originalSample.size(); i++) {
+            operations.add(new DiffOperation("DELETE", originalSample.get(i), null, prefix + i, prefix));
+        }
+        for (int i = 0; i < recommendedSample.size(); i++) {
+            operations.add(new DiffOperation("INSERT", null, recommendedSample.get(i), originalEnd, prefix + i));
+        }
+        return DiffComputation.large(
+            operations,
+            originalSize,
+            recommendedSize,
+            Math.max(0, originalEnd - prefix - originalSample.size()),
+            Math.max(0, recommendedEnd - prefix - recommendedSample.size())
+        );
+    }
+
+    private List<String> sampledMiddle(List<String> units, int start, int end) {
+        if (end <= start) {
+            return Collections.emptyList();
+        }
+        int size = end - start;
+        if (size <= LARGE_DIFF_CONTEXT_UNITS) {
+            return new ArrayList<String>(units.subList(start, end));
+        }
+        int head = LARGE_DIFF_CONTEXT_UNITS / 2;
+        int tail = LARGE_DIFF_CONTEXT_UNITS - head;
+        List<String> sample = new ArrayList<String>(LARGE_DIFF_CONTEXT_UNITS);
+        sample.addAll(units.subList(start, start + head));
+        sample.addAll(units.subList(end - tail, end));
+        return sample;
+    }
+
+    private List<Map<String, Object>> toDiffHunks(DiffComputation computation, String granularity) {
+        List<DiffOperation> operations = computation.operations;
         List<Map<String, Object>> hunks = new ArrayList<Map<String, Object>>();
         int index = 0;
         int hunkNumber = 1;
@@ -191,6 +263,14 @@ public class SqlDiffApplicationService {
             hunk.put("recommendedText", joinUnits(recommendedUnits, granularity));
             hunk.put("originalUnits", originalUnits);
             hunk.put("recommendedUnits", recommendedUnits);
+            if (computation.largeDiffTruncated) {
+                hunk.put("largeDiffTruncated", Boolean.TRUE);
+                hunk.put("originalUnitCount", Integer.valueOf(computation.originalUnitCount));
+                hunk.put("recommendedUnitCount", Integer.valueOf(computation.recommendedUnitCount));
+                hunk.put("originalOmittedUnitCount", Integer.valueOf(computation.originalOmittedUnitCount));
+                hunk.put("recommendedOmittedUnitCount", Integer.valueOf(computation.recommendedOmittedUnitCount));
+                hunk.put("diffPolicy", "LARGE_SQL_CONTEXT_SAMPLE");
+            }
             hunks.add(hunk);
             hunkNumber++;
         }
@@ -428,6 +508,7 @@ public class SqlDiffApplicationService {
         summary.put("insertCount", Integer.valueOf(countHunks(textDiff, "INSERT")));
         summary.put("deleteCount", Integer.valueOf(countHunks(textDiff, "DELETE")));
         summary.put("replaceCount", Integer.valueOf(countHunks(textDiff, "REPLACE")));
+        summary.put("largeDiffTruncated", Boolean.valueOf(hasLargeDiffTruncation(textDiff)));
         summary.put("ruleDiffCount", Integer.valueOf(ruleDiff.size()));
         summary.put("astChangeCategories", astChangeCategories(astDiff.payload));
         summary.put("riskFlags", astDiff.payload.get("riskFlags"));
@@ -446,6 +527,15 @@ public class SqlDiffApplicationService {
             }
         }
         return count;
+    }
+
+    private boolean hasLargeDiffTruncation(List<Map<String, Object>> hunks) {
+        for (Map<String, Object> hunk : hunks) {
+            if (Boolean.TRUE.equals(hunk.get("largeDiffTruncated"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -562,6 +652,48 @@ public class SqlDiffApplicationService {
             this.originalUnits = originalUnits;
             this.recommendedUnits = recommendedUnits;
             this.granularity = granularity;
+        }
+    }
+
+    private static final class DiffComputation {
+        private final List<DiffOperation> operations;
+        private final boolean largeDiffTruncated;
+        private final int originalUnitCount;
+        private final int recommendedUnitCount;
+        private final int originalOmittedUnitCount;
+        private final int recommendedOmittedUnitCount;
+
+        private DiffComputation(List<DiffOperation> operations,
+                                boolean largeDiffTruncated,
+                                int originalUnitCount,
+                                int recommendedUnitCount,
+                                int originalOmittedUnitCount,
+                                int recommendedOmittedUnitCount) {
+            this.operations = operations;
+            this.largeDiffTruncated = largeDiffTruncated;
+            this.originalUnitCount = originalUnitCount;
+            this.recommendedUnitCount = recommendedUnitCount;
+            this.originalOmittedUnitCount = originalOmittedUnitCount;
+            this.recommendedOmittedUnitCount = recommendedOmittedUnitCount;
+        }
+
+        private static DiffComputation exact(List<DiffOperation> operations) {
+            return new DiffComputation(operations, false, 0, 0, 0, 0);
+        }
+
+        private static DiffComputation large(List<DiffOperation> operations,
+                                             int originalUnitCount,
+                                             int recommendedUnitCount,
+                                             int originalOmittedUnitCount,
+                                             int recommendedOmittedUnitCount) {
+            return new DiffComputation(
+                operations,
+                true,
+                originalUnitCount,
+                recommendedUnitCount,
+                originalOmittedUnitCount,
+                recommendedOmittedUnitCount
+            );
         }
     }
 

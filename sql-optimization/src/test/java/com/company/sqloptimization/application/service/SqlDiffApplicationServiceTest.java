@@ -192,6 +192,33 @@ class SqlDiffApplicationServiceTest {
         assertEquals(Boolean.FALSE, diff.getDiffSummary().get("astSummaryReady"));
     }
 
+    @Test
+    void shouldSampleVeryLargeMultiLineSqlDiffWithoutExactMatrix() {
+        AccelerationRecommendation recommendation = recommendation(
+            largeProjectionSql("dim"),
+            largeProjectionSql("mv_dim"),
+            Collections.singletonList(rule("LARGE_SQL_REWRITE_DISPLAY", "L1", "APPLIED_TO_CANDIDATE_SQL")),
+            Collections.<Map<String, Object>>emptyList(),
+            Collections.<Map<String, Object>>emptyList(),
+            true
+        );
+
+        RecommendationDiffVO diff = service.buildRecommendationDiff(recommendation);
+        Map<String, Object> hunk = diff.getTextDiff().get(0);
+
+        assertFalse(diff.getTextDiff().isEmpty());
+        assertEquals(Boolean.TRUE, diff.getDiffSummary().get("largeDiffTruncated"));
+        assertEquals(Boolean.TRUE, hunk.get("largeDiffTruncated"));
+        assertEquals("LINE", hunk.get("granularity"));
+        assertEquals("LARGE_SQL_CONTEXT_SAMPLE", hunk.get("diffPolicy"));
+        assertTrue(((Integer) hunk.get("originalUnitCount")).intValue() > 1600);
+        assertTrue(((Integer) hunk.get("recommendedUnitCount")).intValue() > 1600);
+        assertTrue(((Integer) hunk.get("originalOmittedUnitCount")).intValue() > 0);
+        assertTrue(((Integer) hunk.get("recommendedOmittedUnitCount")).intValue() > 0);
+        assertTrue(String.valueOf(hunk.get("originalText")).contains("dim_0001"));
+        assertTrue(String.valueOf(hunk.get("recommendedText")).contains("mv_dim_0001"));
+    }
+
     private AccelerationRecommendation recommendation(String originalSql,
                                                        String recommendedSql,
                                                        List<Map<String, Object>> ruleChain,
@@ -264,5 +291,19 @@ class SqlDiffApplicationServiceTest {
         entry.put("category", "SEMANTIC_EQUIVALENCE_RISK");
         entry.put("severity", "HIGH");
         return entry;
+    }
+
+    private String largeProjectionSql(String prefix) {
+        StringBuilder builder = new StringBuilder("SELECT\n");
+        for (int i = 1; i <= 1800; i++) {
+            builder.append("  ")
+                .append(prefix)
+                .append('_')
+                .append(String.format("%04d", Integer.valueOf(i)))
+                .append(i == 1800 ? "\n" : ",\n");
+        }
+        builder.append("FROM orders\n");
+        builder.append("WHERE dt = DATE '2026-05-01'");
+        return builder.toString();
     }
 }

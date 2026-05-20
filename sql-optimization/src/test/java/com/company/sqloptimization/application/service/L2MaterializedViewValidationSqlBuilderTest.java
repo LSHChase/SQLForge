@@ -94,6 +94,33 @@ class L2MaterializedViewValidationSqlBuilderTest {
     }
 
     @Test
+    void shouldBuildGroupOnlyValidationSqlWhenMeasuresAreAbsent() {
+        String sourceSql = "SELECT c.customer_level FROM orders o "
+            + "JOIN customers c ON o.customer_id = c.customer_id GROUP BY c.customer_level";
+        Map<String, Object> profile = advancedProfile(sourceSql);
+
+        L2MaterializedViewValidationSqlBuilder.ValidationSqlResult result =
+            L2MaterializedViewValidationSqlBuilder.build(
+                new L2MaterializedViewValidationSqlBuilder.ValidationInput(
+                    L2GrainMeasureDeriver.MV_TYPE_PREJOIN,
+                    sourceSql,
+                    "SELECT customer_level FROM mv_prejoin GROUP BY customer_level",
+                    "mv_prejoin",
+                    profile,
+                    Collections.<Map<String, Object>>emptyList(),
+                    null,
+                    Collections.<String>emptyList()
+                )
+            );
+
+        assertTrue(result.isGenerated(), String.valueOf(result.getBlockingReasons()));
+        assertTrue(result.getValidationSql().contains("ROW_COUNT_CHECK"));
+        assertTrue(result.getValidationSql().contains("GROUP_KEY_DIFF"));
+        assertFalse(result.getValidationSql().contains("MEASURE_DIFF"));
+        assertFalse(result.getValidationSql().contains("GROUP_MEASURE_DIFF"));
+    }
+
+    @Test
     void shouldBlockWhenValidationFieldCannotBeResolved() {
         String sourceSql = "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id";
         Map<String, Object> badMeasure = new LinkedHashMap<String, Object>();

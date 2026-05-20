@@ -651,7 +651,8 @@ onMounted(loadGovernanceDatasources)
             <SqlEditorField
               v-model="form.sqlText"
               :label="t('rewriteValidation.fields.originalSql')"
-              :rows="10"
+              :rows="24"
+              max-height="840px"
               :copy-label="t('rewriteValidation.actions.copy')"
               :format-label="t('rewriteValidation.actions.format')"
               data-testid="rewrite-validation-sql-input"

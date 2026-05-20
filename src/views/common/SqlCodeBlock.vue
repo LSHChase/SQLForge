@@ -41,7 +41,7 @@ const props = defineProps({
   },
   maxHeight: {
     type: String,
-    default: '420px'
+    default: '760px'
   }
 })
 

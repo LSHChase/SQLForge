@@ -383,10 +383,20 @@ final class L2ParameterizedAggMvCandidateGenerator {
                 text(measure.get("sourceExpression")),
                 text(measure.get("rewriteExpression"))
             );
+            addMeasureReplacement(
+                replacements,
+                text(measure.get("name")),
+                text(measure.get("rewriteExpression"))
+            );
             for (Map<String, Object> component : mapList(measure.get("components"))) {
                 addMeasureReplacement(
                     replacements,
                     text(component.get("sourceExpression")),
+                    text(component.get("rewriteExpression"))
+                );
+                addMeasureReplacement(
+                    replacements,
+                    text(component.get("name")),
                     text(component.get("rewriteExpression"))
                 );
             }
@@ -397,8 +407,20 @@ final class L2ParameterizedAggMvCandidateGenerator {
                 return Integer.compare(right.sourceExpression.length(), left.sourceExpression.length());
             }
         });
+        boolean exactExpressionApplied = false;
         for (MeasureReplacement replacement : replacements) {
-            result = result.replace(replacement.sourceExpression, replacement.rewriteExpression);
+            if (replacement.sourceExpression.indexOf('(') >= 0) {
+                String next = result.replace(replacement.sourceExpression, replacement.rewriteExpression);
+                exactExpressionApplied = exactExpressionApplied || !next.equals(result);
+                result = next;
+            }
+        }
+        if (!exactExpressionApplied) {
+            for (MeasureReplacement replacement : replacements) {
+                if (replacement.sourceExpression.indexOf('(') < 0) {
+                    result = replaceIdentifier(result, replacement.sourceExpression, replacement.rewriteExpression);
+                }
+            }
         }
         return result;
     }

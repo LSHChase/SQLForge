@@ -61,10 +61,10 @@ final class L2MaterializedViewValidationSqlBuilder {
         List<ValidationColumn> groupKeys = groupKeyColumns(input.advancedStructureProfile, blockingReasons);
         List<ValidationMeasure> measures = measureColumns(input.measures, blockingReasons);
         boolean commonSubgraph = L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(input.mvType);
-        if (AGGREGATION_MV_TYPES.contains(input.mvType) && measures.isEmpty()) {
+        if (AGGREGATION_MV_TYPES.contains(input.mvType) && measures.isEmpty() && groupKeys.isEmpty()) {
             blockingReasons.add(reason(
                 "VALIDATION_MEASURE_REQUIRED",
-                "缺少可对比指标字段，不能生成指标差异验证 SQL。"
+                "缺少可对比指标字段或分组键，不能生成聚合物化视图结果验证 SQL。"
             ));
         }
         List<String> commonSubgraphOutputColumns = commonSubgraphOutputColumns(input, blockingReasons);

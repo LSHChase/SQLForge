@@ -5078,3 +5078,22 @@
 2026-05-20T11:34:10-05:00 | USER-CN-BACKEND-BUILD-REPAIR-20260520 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-20T11:34:10-05:00 | USER-CN-BACKEND-BUILD-REPAIR-20260520 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): repair rewrite record schema drift' (projected-precommit)`
 2026-05-20T11:34:10-05:00 | USER-CN-BACKEND-BUILD-REPAIR-20260520 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-20T12:16:02-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-20T12:16:02-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-20T12:16:04-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-20T12:16:08-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-20T12:16:08-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-20T12:16:08-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-20T12:16:08-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-20T12:16:08-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-20T12:16:23-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-20T12:16:23-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-20T12:16:24-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-20T12:16:28-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-20T12:16:28-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-20T12:16:28-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-20T12:16:28-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-20T12:16:29-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-20T12:17:47-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-20T12:17:47-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): improve MV rewrite large SQL support' (projected-precommit)`
+2026-05-20T12:17:47-05:00 | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
