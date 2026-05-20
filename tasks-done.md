@@ -4,6 +4,24 @@
 
 ## Done
 
+### AMV-009: 实现 COMMON_SUBGRAPH_MV 候选生成
+
+- Status: done
+- Completed at: 2026-05-19
+- Commit subject: `AMV-009 add common subgraph MV generator`
+- Priority: 1
+- Depends on: AMV-008
+- Scope: 针对复杂 CTE、FROM/JOIN 派生表、重复子查询以及同批/同报表/同租户候选中的跨 SQL 精确共享子图生成 COMMON_SUBGRAPH_MV；DDL 只能物化被选中的公共子图，rewriteSql 必须查询 MV；输出 commonSubgraphEvidence；对相关子查询、递归 CTE、窗口函数、非确定函数、子图内 ORDER BY/LIMIT、SELECT *、输出列或覆盖证明不足等场景结构化阻断且不输出可发布 SQL；不新增前端专项页面，不改变 runtime 生效链路。
+- Validation:
+  - `python3 scripts/foreman.py validate AMV-009`
+- Progress log:
+  - 2026-05-19: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 COMMON_SUBGRAPH_MV 路由、CTE/派生表公共子图生成、跨 SQL 精确共享 evidence、保守阻断与回归测试；文档同步 AMV-005 至 AMV-009 当前事实。
+  - Validation evidence: 已通过 focused AMV Maven suite、mvn -pl sql-optimization test、node scripts/lint-repository-knowledge.js、node scripts/check-developer-copy-language.mjs --changed、git diff --check、python3 scripts/foreman.py validate AMV-009、python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 跨 SQL 子图匹配仅采用规范化 SQL 精确匹配；递归/相关/窗口/非确定函数/排序分页/SELECT * 与覆盖不足场景保持阻断，方言细化仍归 AMV-010。
+  - Next step: 进入 AMV-010 方言精细渲染与后续 AMV 任务。
+
 ### AMV-008: 实现 ROLLUP_MV 候选生成
 
 - Status: done

@@ -335,7 +335,7 @@ SQL 历史、慢 SQL、P99 超阈值、高扫描量、压测回归或人工输�
 - `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
 - `manualReviewRequired` 只表示风险需要人工看，不等于审批通过。
 
-当前仓库已通过 AMV-005 消除 `PARAMETERIZED_AGG_MV` 的 exact-query-like 生成路径：`GENERATED` 产物必须把参数字段提升为 MV 维度，`rewriteSql` 必须查询 MV 并二次过滤、二次聚合；`SELECT *`、不可合并指标、不稳定谓词、缺少明确目标引擎或非 AMV-005 范围的 MV 形态必须返回 `BLOCKED` 且不得输出 `ddlSql` / `rewriteSql`。`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV`、`COMMON_SUBGRAPH_MV` 的专用生成仍由后续 AMV 任务补齐。
+当前仓库已通过 AMV-005 至 AMV-009 消除已覆盖高级 MV 类型的 exact-query-like 生成路径：`PARAMETERIZED_AGG_MV` 必须把参数字段提升为 MV 维度并在 `rewriteSql` 中二次过滤、二次聚合；`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV` 与 `COMMON_SUBGRAPH_MV` 必须只物化对应 Join、星型聚合、时间上卷或公共子图，不得把完整原 SQL 包进 MV。`SELECT *`、不可合并指标、不稳定谓词、缺少明确目标引擎或覆盖证明不足的场景必须返回 `BLOCKED` 且不得输出 `ddlSql` / `rewriteSql`。
 
 ### Advanced MV Runtime Path
 

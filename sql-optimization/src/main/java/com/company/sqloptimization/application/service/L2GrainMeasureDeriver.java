@@ -19,6 +19,7 @@ final class L2GrainMeasureDeriver {
     static final String MV_TYPE_PREJOIN = "PREJOIN_MV";
     static final String MV_TYPE_STAR_AGG = "STAR_AGG_MV";
     static final String MV_TYPE_ROLLUP = "ROLLUP_MV";
+    static final String MV_TYPE_COMMON_SUBGRAPH = "COMMON_SUBGRAPH_MV";
 
     private static final Set<String> DIRECT_MERGEABLE_FUNCTIONS =
         new LinkedHashSet<String>(Arrays.asList("SUM", "COUNT", "MIN", "MAX"));
@@ -58,7 +59,7 @@ final class L2GrainMeasureDeriver {
             predicateClassification
         );
         List<Map<String, Object>> joinGraph = mapList(advancedStructureProfile.get("joinGraph"));
-        String mvType = mvType(joinGraph, grainDerivation, measureDerivation);
+        String mvType = mvType(advancedStructureProfile, joinGraph, grainDerivation, measureDerivation);
         return new DerivationResult(
             mvType,
             grainDerivation.grain,
@@ -71,9 +72,14 @@ final class L2GrainMeasureDeriver {
         );
     }
 
-    private static String mvType(List<Map<String, Object>> joinGraph,
+    private static String mvType(Map<String, Object> advancedStructureProfile,
+                                 List<Map<String, Object>> joinGraph,
                                  GrainDerivation grainDerivation,
                                  MeasureDerivation measureDerivation) {
+        if (!mapList(advancedStructureProfile.get("ctes")).isEmpty()
+            || !mapList(advancedStructureProfile.get("subqueries")).isEmpty()) {
+            return MV_TYPE_COMMON_SUBGRAPH;
+        }
         if (!joinGraph.isEmpty()) {
             return joinGraph.size() >= 2 && !measureDerivation.measures.isEmpty()
                 ? MV_TYPE_STAR_AGG
@@ -83,7 +89,7 @@ final class L2GrainMeasureDeriver {
     }
 
     private static List<Map<String, Object>> reviewWarnings(List<Map<String, Object>> joinGraph, String mvType) {
-        if (joinGraph == null || joinGraph.isEmpty()) {
+        if (MV_TYPE_COMMON_SUBGRAPH.equals(mvType) || joinGraph == null || joinGraph.isEmpty()) {
             return Collections.emptyList();
         }
         if (MV_TYPE_STAR_AGG.equals(mvType)) {

@@ -132,11 +132,6 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
     @Test
     void shouldBlockDeferredNonPrejoinMvShapesAndUnsafeRewriteCasesWithoutSql() {
         assertBlocked(
-            artifact("WITH recent_orders AS (SELECT customer_id, amount FROM orders) "
-                + "SELECT customer_id, SUM(amount) AS total_amount FROM recent_orders GROUP BY customer_id"),
-            "COMMON_SUBGRAPH_MV_DEFERRED"
-        );
-        assertBlocked(
             artifact("SELECT region, SUM(amount) AS total_amount FROM orders "
                 + "WHERE region = 'CN' OR region = 'US' GROUP BY region"),
             "OR_PREDICATE_REWRITE_UNSUPPORTED"

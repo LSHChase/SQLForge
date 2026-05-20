@@ -67,8 +67,18 @@ final class L2AccelerationArtifactBuilder {
         L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql = null;
         L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql = null;
         L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql = null;
+        L2CommonSubgraphMvCandidateGenerator.CandidateSql commonSubgraphCandidateSql = null;
         if (blockingReasons.isEmpty()) {
-            if (L2GrainMeasureDeriver.MV_TYPE_STAR_AGG.equals(grainMeasureDerivation.getMvType())) {
+            if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
+                commonSubgraphCandidateSql = L2CommonSubgraphMvCandidateGenerator.generate(
+                    sourceSql,
+                    mvName,
+                    advancedStructureProfile,
+                    profile,
+                    input.commonSubgraphPeerSqls
+                );
+                blockingReasons.addAll(commonSubgraphCandidateSql.getBlockingReasons());
+            } else if (L2GrainMeasureDeriver.MV_TYPE_STAR_AGG.equals(grainMeasureDerivation.getMvType())) {
                 starAggCandidateSql = L2StarAggMvCandidateGenerator.generate(
                     sourceSql,
                     mvName,
@@ -143,6 +153,11 @@ final class L2AccelerationArtifactBuilder {
         if (rollupCandidateSql != null) {
             artifact.put("timeRollupEvidence", rollupCandidateSql.getTimeRollupEvidence());
         }
+        if (commonSubgraphCandidateSql != null
+            && commonSubgraphCandidateSql.getCommonSubgraphEvidence() != null
+            && !commonSubgraphCandidateSql.getCommonSubgraphEvidence().isEmpty()) {
+            artifact.put("commonSubgraphEvidence", commonSubgraphCandidateSql.getCommonSubgraphEvidence());
+        }
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
@@ -150,7 +165,13 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("runtimeRewriteBinding", "NOT_CREATED");
         artifact.put("source", source(input));
         if (blockingReasons.isEmpty()) {
-            if (starAggCandidateSql != null) {
+            if (commonSubgraphCandidateSql != null) {
+                artifact.put("ddlSql", commonSubgraphCandidateSql.getDdlSql());
+                artifact.put("refreshSql", commonSubgraphCandidateSql.getRefreshSql());
+                artifact.put("rollbackSql", commonSubgraphCandidateSql.getRollbackSql());
+                artifact.put("validationSql", commonSubgraphCandidateSql.getValidationSql());
+                artifact.put("rewriteSql", commonSubgraphCandidateSql.getRewriteSql());
+            } else if (starAggCandidateSql != null) {
                 artifact.put("ddlSql", starAggCandidateSql.getDdlSql());
                 artifact.put("refreshSql", starAggCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", starAggCandidateSql.getRollbackSql());
@@ -198,7 +219,7 @@ final class L2AccelerationArtifactBuilder {
         if (profile == null) {
             reasons.add(reason("PARSE_PROFILE_REQUIRED", "缺少解析画像，不能证明存在聚合预计算候选。"));
         } else if (!hasPrecomputeSignal(profile)) {
-            reasons.add(reason("AGGREGATION_SIGNAL_REQUIRED", "未检测到聚合函数或 GROUP BY。"));
+            reasons.add(reason("PRECOMPUTE_SIGNAL_REQUIRED", "未检测到聚合函数、GROUP BY 或可物化公共子图。"));
         }
         if (profile != null && profile.isSelectStar()) {
             reasons.add(reason("EXPLICIT_PROJECTION_REQUIRED", "SELECT * 需要先展开字段后才能生成可审查物化视图。"));
@@ -211,7 +232,8 @@ final class L2AccelerationArtifactBuilder {
             reason.put("blockedPredicates", predicateClassification.getBlockedPredicates());
             reasons.add(reason);
         }
-        if (grainMeasureDerivation != null) {
+        if (grainMeasureDerivation != null
+            && !L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
             reasons.addAll(grainMeasureDerivation.getBlockingReasons());
         }
         return reasons;
@@ -225,7 +247,15 @@ final class L2AccelerationArtifactBuilder {
     }
 
     private static boolean hasPrecomputeSignal(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
-        return profile != null && (profile.getAggregateFunctionCount() > 0 || profile.getGroupByCount() > 0);
+        if (profile == null) {
+            return false;
+        }
+        if (profile.getAggregateFunctionCount() > 0 || profile.getGroupByCount() > 0) {
+            return true;
+        }
+        Map<String, Object> advancedStructureProfile = profile.toAdvancedStructureProfile();
+        return !mapList(advancedStructureProfile.get("ctes")).isEmpty()
+            || !mapList(advancedStructureProfile.get("subqueries")).isEmpty();
     }
 
     private static boolean isSupportedEngine(String targetEngine) {
@@ -331,6 +361,20 @@ final class L2AccelerationArtifactBuilder {
         return StringUtils.hasText(targetEngine) ? targetEngine.trim().toUpperCase(Locale.ROOT) : null;
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> mapList(Object value) {
+        if (!(value instanceof List<?>)) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Object item : (List<?>) value) {
+            if (item instanceof Map<?, ?>) {
+                result.add((Map<String, Object>) item);
+            }
+        }
+        return result;
+    }
+
     static final class AccelerationRecommendationInput {
 
         private final String sourceSqlText;
@@ -340,6 +384,7 @@ final class L2AccelerationArtifactBuilder {
         private final String reportCode;
         private final String logicalObjectKey;
         private final List<Map<String, Object>> ruleChain;
+        private final List<CommonSubgraphPeerSql> commonSubgraphPeerSqls;
 
         AccelerationRecommendationInput(String sourceSqlText,
                                         String targetEngine,
@@ -348,6 +393,26 @@ final class L2AccelerationArtifactBuilder {
                                         String reportCode,
                                         String logicalObjectKey,
                                         List<Map<String, Object>> ruleChain) {
+            this(
+                sourceSqlText,
+                targetEngine,
+                targetDatasource,
+                sqlFingerprint,
+                reportCode,
+                logicalObjectKey,
+                ruleChain,
+                Collections.<CommonSubgraphPeerSql>emptyList()
+            );
+        }
+
+        AccelerationRecommendationInput(String sourceSqlText,
+                                        String targetEngine,
+                                        String targetDatasource,
+                                        String sqlFingerprint,
+                                        String reportCode,
+                                        String logicalObjectKey,
+                                        List<Map<String, Object>> ruleChain,
+                                        List<CommonSubgraphPeerSql> commonSubgraphPeerSqls) {
             this.sourceSqlText = sourceSqlText;
             this.targetEngine = targetEngine;
             this.targetDatasource = targetDatasource;
@@ -355,6 +420,59 @@ final class L2AccelerationArtifactBuilder {
             this.reportCode = reportCode;
             this.logicalObjectKey = logicalObjectKey;
             this.ruleChain = ruleChain;
+            this.commonSubgraphPeerSqls = commonSubgraphPeerSqls == null
+                ? Collections.<CommonSubgraphPeerSql>emptyList()
+                : commonSubgraphPeerSqls;
+        }
+    }
+
+    static final class CommonSubgraphPeerSql {
+
+        private final String sqlText;
+        private final String sqlFingerprint;
+        private final String sourceKind;
+        private final String sourceRef;
+        private final String reportCode;
+        private final Map<String, Object> advancedStructureProfile;
+
+        CommonSubgraphPeerSql(String sqlText,
+                              String sqlFingerprint,
+                              String sourceKind,
+                              String sourceRef,
+                              String reportCode,
+                              Map<String, Object> advancedStructureProfile) {
+            this.sqlText = sqlText;
+            this.sqlFingerprint = sqlFingerprint;
+            this.sourceKind = sourceKind;
+            this.sourceRef = sourceRef;
+            this.reportCode = reportCode;
+            this.advancedStructureProfile = advancedStructureProfile == null
+                ? Collections.<String, Object>emptyMap()
+                : advancedStructureProfile;
+        }
+
+        String getSqlText() {
+            return sqlText;
+        }
+
+        String getSqlFingerprint() {
+            return sqlFingerprint;
+        }
+
+        String getSourceKind() {
+            return sourceKind;
+        }
+
+        String getSourceRef() {
+            return sourceRef;
+        }
+
+        String getReportCode() {
+            return reportCode;
+        }
+
+        Map<String, Object> getAdvancedStructureProfile() {
+            return advancedStructureProfile;
         }
     }
 }

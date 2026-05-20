@@ -2722,10 +2722,10 @@ public class SqlOptimizationPipelineService {
 
     private LinkedHashMap<AccelerationSuggestionType, String> deriveAccelerationReasons(ParsedSqlProfile profile) {
         LinkedHashMap<AccelerationSuggestionType, String> reasons = new LinkedHashMap<AccelerationSuggestionType, String>();
-        if (!profile.aggregateFunctions.isEmpty() || profile.groupByCount > 0) {
+        if (!profile.aggregateFunctions.isEmpty() || profile.groupByCount > 0 || hasCommonSubgraphSignal(profile)) {
             reasons.put(
                 AccelerationSuggestionType.PRECOMPUTE,
-                "聚合函数和分组键表明存在重复预计算或物化视图价值。"
+                "聚合函数、分组键或可复用公共子图表明存在预计算或物化视图价值。"
             );
         }
         if (!profile.datePredicateColumns.isEmpty() || profile.predicateCount >= 2) {
@@ -2753,6 +2753,30 @@ public class SqlOptimizationPipelineService {
             );
         }
         return reasons;
+    }
+
+    private boolean hasCommonSubgraphSignal(ParsedSqlProfile profile) {
+        if (profile == null) {
+            return false;
+        }
+        Map<String, Object> advancedStructureProfile = profile.toAdvancedStructureProfile();
+        return !advancedMapList(advancedStructureProfile.get("ctes")).isEmpty()
+            || !advancedMapList(advancedStructureProfile.get("subqueries")).isEmpty()
+            || profile.getRepeatedSubqueryCount() > 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> advancedMapList(Object value) {
+        if (!(value instanceof List<?>)) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Object item : (List<?>) value) {
+            if (item instanceof Map<?, ?>) {
+                result.add((Map<String, Object>) item);
+            }
+        }
+        return result;
     }
 
     private LinkedHashMap<AccelerationSuggestionType, String> filterRequestedTypes(
