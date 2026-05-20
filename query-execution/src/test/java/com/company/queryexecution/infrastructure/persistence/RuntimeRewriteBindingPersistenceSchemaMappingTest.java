@@ -35,7 +35,7 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         );
 
         assertContains(migration, "CREATE TABLE IF NOT EXISTS runtime_rewrite_binding");
-        assertContains(migration, "运行时改写绑定状态：ACTIVE/PAUSED/UNPUBLISHED");
+        assertContains(migration, "运行时改写绑定状态：ACTIVE/PAUSED");
         assertContains(migration, "UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key)");
         assertContains(migration, "KEY idx_runtime_rewrite_tenant_fingerprint");
         assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration 不得新增物理外键约束");

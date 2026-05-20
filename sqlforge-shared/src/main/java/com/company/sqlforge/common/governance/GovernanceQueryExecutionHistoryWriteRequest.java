@@ -28,7 +28,7 @@ public class GovernanceQueryExecutionHistoryWriteRequest {
     private Long rewriteRuleVersion;
     private String runtimeRuleVersion;
     private String runtimeRewriteStatus;
-    private String rewritePublishStatusSnapshot;
+    private String rewriteActivationStatusSnapshot;
     private String rewriteFallbackReason;
     private String logicalObjectHits;
     private String routeSummary;
@@ -96,8 +96,8 @@ public class GovernanceQueryExecutionHistoryWriteRequest {
     public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
     public String getRuntimeRewriteStatus() { return runtimeRewriteStatus; }
     public void setRuntimeRewriteStatus(String runtimeRewriteStatus) { this.runtimeRewriteStatus = runtimeRewriteStatus; }
-    public String getRewritePublishStatusSnapshot() { return rewritePublishStatusSnapshot; }
-    public void setRewritePublishStatusSnapshot(String rewritePublishStatusSnapshot) { this.rewritePublishStatusSnapshot = rewritePublishStatusSnapshot; }
+    public String getRewriteActivationStatusSnapshot() { return rewriteActivationStatusSnapshot; }
+    public void setRewriteActivationStatusSnapshot(String rewriteActivationStatusSnapshot) { this.rewriteActivationStatusSnapshot = rewriteActivationStatusSnapshot; }
     public String getRewriteFallbackReason() { return rewriteFallbackReason; }
     public void setRewriteFallbackReason(String rewriteFallbackReason) { this.rewriteFallbackReason = rewriteFallbackReason; }
     public String getLogicalObjectHits() { return logicalObjectHits; }

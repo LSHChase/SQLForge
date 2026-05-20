@@ -573,7 +573,7 @@ public class SqlOptimizationPipelineService {
             new OptimizationTaskCost(
                 "GOVERNANCE_FOLLOW_UP",
                 "MEDIUM",
-                "加速仍是受治理对象，后续仍需要批准、校验和回滚语义。"
+                "加速仍是受治理对象，后续仍需要激活、校验和暂停证据。"
             )
         );
         List<OptimizationTaskRisk> risks = new ArrayList<OptimizationTaskRisk>(buildShapeRisks(profile));
@@ -582,7 +582,7 @@ public class SqlOptimizationPipelineService {
                 "MEDIUM",
                 "FRESHNESS_AND_ROLLBACK",
                 "如果未经过治理就应用，加速计划可能用新鲜度或运维简单性换取速度。",
-                "后续任何应用步骤前，都要明确保留批准、激活、校验和回滚证据。"
+                "后续任何生效步骤前，都要明确保留激活、校验和暂停证据。"
             )
         );
         String summary = "已从真实 SQL 形态派生 " + filteredReasons.size() + " 条加速推荐。";

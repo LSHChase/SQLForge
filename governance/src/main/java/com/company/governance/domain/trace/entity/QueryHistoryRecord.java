@@ -37,7 +37,7 @@ public class QueryHistoryRecord {
     private Long rewriteRuleVersion;
     private String runtimeRuleVersion;
     private String runtimeRewriteStatus;
-    private String rewritePublishStatusSnapshot;
+    private String rewriteActivationStatusSnapshot;
     private String rewriteFallbackReason;
     private String logicalObjectHits;
     private String routeSummary;
@@ -303,12 +303,12 @@ public class QueryHistoryRecord {
         this.runtimeRewriteStatus = runtimeRewriteStatus;
     }
 
-    public String getRewritePublishStatusSnapshot() {
-        return rewritePublishStatusSnapshot;
+    public String getRewriteActivationStatusSnapshot() {
+        return rewriteActivationStatusSnapshot;
     }
 
-    public void setRewritePublishStatusSnapshot(String rewritePublishStatusSnapshot) {
-        this.rewritePublishStatusSnapshot = rewritePublishStatusSnapshot;
+    public void setRewriteActivationStatusSnapshot(String rewriteActivationStatusSnapshot) {
+        this.rewriteActivationStatusSnapshot = rewriteActivationStatusSnapshot;
     }
 
     public String getRewriteFallbackReason() {

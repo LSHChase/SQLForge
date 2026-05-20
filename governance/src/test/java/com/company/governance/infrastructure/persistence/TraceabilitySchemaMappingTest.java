@@ -32,7 +32,7 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "comment_context JSON DEFAULT NULL");
         assertContains(schema, "rewrite_record_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "runtime_binding_id VARCHAR(64) DEFAULT NULL");
-        assertContains(schema, "rewrite_publish_status_snapshot VARCHAR(32) DEFAULT NULL");
+        assertContains(schema, "rewrite_activation_status_snapshot VARCHAR(32) DEFAULT NULL");
         assertContains(schema, "idx_query_history_rewrite_record");
         assertContains(schema, "logical_object_hits JSON DEFAULT NULL");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS business_logical_view");
@@ -106,7 +106,7 @@ class TraceabilitySchemaMappingTest {
         assertContains(migration, "ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL");
         assertContains(migration, "ADD COLUMN rewrite_rule_version BIGINT DEFAULT NULL");
         assertContains(migration, "ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL");
-        assertContains(migration, "ADD COLUMN rewrite_publish_status_snapshot VARCHAR(32) DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN rewrite_activation_status_snapshot VARCHAR(32) DEFAULT NULL");
         assertContains(migration, "ADD KEY idx_query_history_rewrite_record");
     }
 
@@ -161,7 +161,7 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "comment_context");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "binding_render_status");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "rewrite_record_id");
-        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "rewrite_publish_status_snapshot");
+        assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "rewrite_activation_status_snapshot");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "COALESCE(er.rewrite_applied, 0)");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "qh.history_type = #{historyType}");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "trace_id = #{traceId}");

@@ -159,13 +159,13 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
         request.setBindingSummary("{\"rewriteApplied\":true,\"rewriteRecordId\":\"rewrite-001\","
             + "\"runtimeBindingId\":\"rwb-001\",\"ruleVersion\":3,"
             + "\"runtimeRuleVersion\":\"runtime-rewrite-v3\","
-            + "\"rewritePublishStatusSnapshot\":\"PUBLISHED\"}");
+            + "\"rewriteActivationStatusSnapshot\":\"ACTIVE\"}");
         request.setRewriteRecordId("rewrite-001");
         request.setRuntimeBindingId("rwb-001");
         request.setRewriteRuleVersion(Long.valueOf(3L));
         request.setRuntimeRuleVersion("runtime-rewrite-v3");
         request.setRuntimeRewriteStatus("ACTIVE");
-        request.setRewritePublishStatusSnapshot("PUBLISHED");
+        request.setRewriteActivationStatusSnapshot("ACTIVE");
 
         service.writeQueryExecutionHistory(request);
 
@@ -191,7 +191,7 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
         assertEquals(Long.valueOf(3L), history.getRewriteRuleVersion());
         assertEquals("runtime-rewrite-v3", history.getRuntimeRuleVersion());
         assertEquals("ACTIVE", history.getRuntimeRewriteStatus());
-        assertEquals("PUBLISHED", history.getRewritePublishStatusSnapshot());
+        assertEquals("ACTIVE", history.getRewriteActivationStatusSnapshot());
     }
 
     private GovernanceQueryExecutionHistoryWriteRequest sampleRequest() {

@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
-import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityReasonVO;
-import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
+import com.company.sqloptimization.application.controller.vo.RewriteActivationEligibilityReasonVO;
+import com.company.sqloptimization.application.controller.vo.RewriteActivationEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.application.service.SqlRewriteRecordApplicationService;
@@ -46,44 +46,33 @@ class SqlRewriteRecordControllerTest {
         record.setAutoApplyAllowed(Boolean.FALSE);
         record.setManualReviewRequired(Boolean.TRUE);
         record.setReviewStatus("PENDING_REVIEW");
-        record.setPublishStatus("UNPUBLISHED");
+        record.setActivationStatus("INACTIVE");
         record.setRuntimeBindingId("binding-001");
         record.setRuntimeRuleVersion("rule-v1");
         record.setContractStage("LONG_TERM_BASELINE");
         record.setImplementationStage("ACCELERATION_REWRITE_CONTRACT_BASELINE");
-        SqlRewriteRecordVO approvedRecord = new SqlRewriteRecordVO();
-        approvedRecord.setRewriteRecordId("rewrite-001");
-        approvedRecord.setTenantId("tenant-a");
-        approvedRecord.setReviewStatus("APPROVED");
-        approvedRecord.setReviewedBy("operator-001");
-        approvedRecord.setReviewNote("looks equivalent");
-        approvedRecord.setPublishStatus("UNPUBLISHED");
-        SqlRewriteRecordVO publishedRecord = new SqlRewriteRecordVO();
-        publishedRecord.setRewriteRecordId("rewrite-001");
-        publishedRecord.setTenantId("tenant-a");
-        publishedRecord.setPublishStatus("PUBLISHED");
+        SqlRewriteRecordVO activatedRecord = new SqlRewriteRecordVO();
+        activatedRecord.setRewriteRecordId("rewrite-001");
+        activatedRecord.setTenantId("tenant-a");
+        activatedRecord.setActivationStatus("ACTIVE");
         SqlRewriteRecordVO pausedRecord = new SqlRewriteRecordVO();
         pausedRecord.setRewriteRecordId("rewrite-001");
         pausedRecord.setTenantId("tenant-a");
-        pausedRecord.setPublishStatus("PAUSED");
-        SqlRewriteRecordVO unpublishedRecord = new SqlRewriteRecordVO();
-        unpublishedRecord.setRewriteRecordId("rewrite-001");
-        unpublishedRecord.setTenantId("tenant-a");
-        unpublishedRecord.setPublishStatus("UNPUBLISHED");
-        RewritePublishEligibilityReasonVO reason = new RewritePublishEligibilityReasonVO();
+        pausedRecord.setActivationStatus("PAUSED");
+        RewriteActivationEligibilityReasonVO reason = new RewriteActivationEligibilityReasonVO();
         reason.setCode("VALIDATION_STATUS_NOT_EQUIVALENT");
         reason.setMessage("改写记录 validationStatus 必须为 EQUIVALENT。");
         reason.setBlocking(Boolean.TRUE);
         reason.setField("validationStatus");
         reason.setEvidenceRef("validation-001");
-        RewritePublishEligibilityVO eligibility = new RewritePublishEligibilityVO();
+        RewriteActivationEligibilityVO eligibility = new RewriteActivationEligibilityVO();
         eligibility.setRewriteRecordId("rewrite-001");
         eligibility.setTenantId("tenant-a");
-        eligibility.setPolicyId("DEFAULT_REWRITE_PUBLISH_ELIGIBILITY");
+        eligibility.setPolicyId("DEFAULT_REWRITE_ACTIVATION_ELIGIBILITY");
         eligibility.setEligible(Boolean.FALSE);
         eligibility.setReviewStatus("APPROVED");
         eligibility.setValidationStatus("NOT_VALIDATED");
-        eligibility.setPublishStatus("UNPUBLISHED");
+        eligibility.setActivationStatus("INACTIVE");
         eligibility.setAlertStatus("NONE");
         eligibility.setAutoApplyAllowed(Boolean.TRUE);
         eligibility.setLastValidationRunId("validation-001");
@@ -101,11 +90,9 @@ class SqlRewriteRecordControllerTest {
         when(sqlRewriteRecordApplicationService.getRewriteRecord("rewrite-001")).thenReturn(record);
         when(sqlRewriteRecordApplicationService.listRewriteRecords("history-001", null, null, null))
             .thenReturn(Collections.singletonList(record));
-        when(sqlRewriteRecordApplicationService.reviewRewriteRecord(any(), any())).thenReturn(approvedRecord);
-        when(sqlRewriteRecordApplicationService.getPublishEligibility("rewrite-001")).thenReturn(eligibility);
-        when(sqlRewriteRecordApplicationService.publishRewriteRecord(any(), any())).thenReturn(publishedRecord);
+        when(sqlRewriteRecordApplicationService.getActivationEligibility("rewrite-001")).thenReturn(eligibility);
+        when(sqlRewriteRecordApplicationService.activateRewriteRecord(any(), any())).thenReturn(activatedRecord);
         when(sqlRewriteRecordApplicationService.pauseRewriteRecord(any(), any())).thenReturn(pausedRecord);
-        when(sqlRewriteRecordApplicationService.unpublishRewriteRecord(any(), any())).thenReturn(unpublishedRecord);
         when(sqlRewriteRecordApplicationService.createValidationRun(any(), any())).thenReturn(run);
         when(sqlRewriteRecordApplicationService.listValidationRuns("rewrite-001"))
             .thenReturn(Collections.singletonList(run));
@@ -128,43 +115,28 @@ class SqlRewriteRecordControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.manualReviewRequired").value(true))
             .andExpect(jsonPath("$.reviewStatus").value("PENDING_REVIEW"))
-            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"))
+            .andExpect(jsonPath("$.activationStatus").value("INACTIVE"))
             .andExpect(jsonPath("$.runtimeBindingId").value("binding-001"))
             .andExpect(jsonPath("$.runtimeRuleVersion").value("rule-v1"));
 
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/review"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"tenant-a\",\"reviewStatus\":\"APPROVED\","
-                    + "\"reviewNote\":\"looks equivalent\"}"))
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/rewrite-records/rewrite-001/activation-eligibility")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.reviewStatus").value("APPROVED"))
-            .andExpect(jsonPath("$.reviewedBy").value("operator-001"))
-            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"));
-
-        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/rewrite-records/rewrite-001/publish-eligibility")))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.policyId").value("DEFAULT_REWRITE_PUBLISH_ELIGIBILITY"))
+            .andExpect(jsonPath("$.policyId").value("DEFAULT_REWRITE_ACTIVATION_ELIGIBILITY"))
             .andExpect(jsonPath("$.eligible").value(false))
             .andExpect(jsonPath("$.refusalReasons[0].code").value("VALIDATION_STATUS_NOT_EQUIVALENT"))
             .andExpect(jsonPath("$.refusalReasons[0].blocking").value(true));
 
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/publish"))
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/activate"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"tenant-a\",\"reason\":\"release approved rewrite\"}"))
+                .content("{\"tenantId\":\"tenant-a\",\"reason\":\"activate validated rewrite\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.publishStatus").value("PUBLISHED"));
+            .andExpect(jsonPath("$.activationStatus").value("ACTIVE"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/pause"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"reason\":\"validation divergence\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.publishStatus").value("PAUSED"));
-
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/unpublish"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"tenantId\":\"tenant-a\",\"reason\":\"operator rollback\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.publishStatus").value("UNPUBLISHED"));
+            .andExpect(jsonPath("$.activationStatus").value("PAUSED"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/validation-runs"))
                 .contentType(MediaType.APPLICATION_JSON)

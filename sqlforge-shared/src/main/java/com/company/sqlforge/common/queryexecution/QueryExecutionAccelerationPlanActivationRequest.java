@@ -2,7 +2,7 @@ package com.company.sqlforge.common.queryexecution;
 
 import java.util.List;
 
-public class QueryExecutionAccelerationPlanApplyRequest {
+public class QueryExecutionAccelerationPlanActivationRequest {
 
     private String tenantId;
     private String planId;

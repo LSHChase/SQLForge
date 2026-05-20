@@ -12,6 +12,13 @@
 
 ## Open
 
+### INBOX-006: 激活/暂停折叠方案核心语义待确认
+
+- Status: resolved
+- Needed decision: 人类已选择 C）破坏性状态机迁移，确认 approval 不是 activate 背后的强制审计门禁，确认 `unpublish` 完全并入 `pause`，并确认 acceleration plan 的 `apply/verify/rollback` 纳入本轮迁移但保留原有证据内容，改为 activate/pause 的 `activationEvidence` / `pauseEvidence`。
+- Task refs: USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520
+- Plan refs: docs/plans/lifecycle-activation-pause-impact-analysis-2026-05-20.md
+
 ### INBOX-001: 恢复 Sonar 强制门禁的环境恢复项
 
 - Status: open

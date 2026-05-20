@@ -22,22 +22,14 @@
         <result property="configSnapshotId" column="config_snapshot_id"/>
         <result property="resultId" column="result_id"/>
         <result property="historyId" column="history_id"/>
-        <result property="reviewNote" column="review_note"/>
-        <result property="approvedBy" column="approved_by"/>
-        <result property="approvedAt" column="approved_at"/>
-        <result property="rejectedBy" column="rejected_by"/>
-        <result property="rejectedAt" column="rejected_at"/>
         <result property="lastErrorCode" column="last_error_code"/>
         <result property="lastErrorMessage" column="last_error_message"/>
-        <result property="runtimeBindingJson" column="runtime_binding_json"/>
-        <result property="runtimeBindingAt" column="runtime_binding_at"/>
-        <result property="runtimeBindingBy" column="runtime_binding_by"/>
-        <result property="verificationEvidenceJson" column="verification_evidence_json"/>
-        <result property="verifiedAt" column="verified_at"/>
-        <result property="verifiedBy" column="verified_by"/>
-        <result property="rollbackEvidenceJson" column="rollback_evidence_json"/>
-        <result property="rolledBackAt" column="rolled_back_at"/>
-        <result property="rolledBackBy" column="rolled_back_by"/>
+        <result property="activationEvidenceJson" column="activation_evidence_json"/>
+        <result property="activatedAt" column="activated_at"/>
+        <result property="activatedBy" column="activated_by"/>
+        <result property="pauseEvidenceJson" column="pause_evidence_json"/>
+        <result property="pausedAt" column="paused_at"/>
+        <result property="pausedBy" column="paused_by"/>
         <result property="statusHistoryJson" column="status_history_json"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
@@ -61,22 +53,14 @@
         config_snapshot_id,
         result_id,
         history_id,
-        review_note,
-        approved_by,
-        approved_at,
-        rejected_by,
-        rejected_at,
         last_error_code,
         last_error_message,
-        runtime_binding_json,
-        runtime_binding_at,
-        runtime_binding_by,
-        verification_evidence_json,
-        verified_at,
-        verified_by,
-        rollback_evidence_json,
-        rolled_back_at,
-        rolled_back_by,
+        activation_evidence_json,
+        activated_at,
+        activated_by,
+        pause_evidence_json,
+        paused_at,
+        paused_by,
         status_history_json,
         created_at,
         updated_at
@@ -108,22 +92,14 @@
             config_snapshot_id,
             result_id,
             history_id,
-            review_note,
-            approved_by,
-            approved_at,
-            rejected_by,
-            rejected_at,
             last_error_code,
             last_error_message,
-            runtime_binding_json,
-            runtime_binding_at,
-            runtime_binding_by,
-            verification_evidence_json,
-            verified_at,
-            verified_by,
-            rollback_evidence_json,
-            rolled_back_at,
-            rolled_back_by,
+            activation_evidence_json,
+            activated_at,
+            activated_by,
+            pause_evidence_json,
+            paused_at,
+            paused_by,
             status_history_json,
             created_at,
             updated_at
@@ -145,22 +121,14 @@
             #{configSnapshotId},
             #{resultId},
             #{historyId},
-            #{reviewNote},
-            #{approvedBy},
-            #{approvedAt},
-            #{rejectedBy},
-            #{rejectedAt},
             #{lastErrorCode},
             #{lastErrorMessage},
-            #{runtimeBindingJson},
-            #{runtimeBindingAt},
-            #{runtimeBindingBy},
-            #{verificationEvidenceJson},
-            #{verifiedAt},
-            #{verifiedBy},
-            #{rollbackEvidenceJson},
-            #{rolledBackAt},
-            #{rolledBackBy},
+            #{activationEvidenceJson},
+            #{activatedAt},
+            #{activatedBy},
+            #{pauseEvidenceJson},
+            #{pausedAt},
+            #{pausedBy},
             #{statusHistoryJson},
             #{createdAt},
             #{updatedAt}
@@ -185,22 +153,14 @@
             config_snapshot_id = #{configSnapshotId},
             result_id = #{resultId},
             history_id = #{historyId},
-            review_note = #{reviewNote},
-            approved_by = #{approvedBy},
-            approved_at = #{approvedAt},
-            rejected_by = #{rejectedBy},
-            rejected_at = #{rejectedAt},
             last_error_code = #{lastErrorCode},
             last_error_message = #{lastErrorMessage},
-            runtime_binding_json = #{runtimeBindingJson},
-            runtime_binding_at = #{runtimeBindingAt},
-            runtime_binding_by = #{runtimeBindingBy},
-            verification_evidence_json = #{verificationEvidenceJson},
-            verified_at = #{verifiedAt},
-            verified_by = #{verifiedBy},
-            rollback_evidence_json = #{rollbackEvidenceJson},
-            rolled_back_at = #{rolledBackAt},
-            rolled_back_by = #{rolledBackBy},
+            activation_evidence_json = #{activationEvidenceJson},
+            activated_at = #{activatedAt},
+            activated_by = #{activatedBy},
+            pause_evidence_json = #{pauseEvidenceJson},
+            paused_at = #{pausedAt},
+            paused_by = #{pausedBy},
             status_history_json = #{statusHistoryJson},
             created_at = #{createdAt},
             updated_at = #{updatedAt}

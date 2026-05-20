@@ -18,14 +18,11 @@ public class RuntimeRewriteBinding {
     private final RuntimeRewriteBindingStatus status;
     private final long ruleVersion;
     private final String runtimeRuleVersion;
-    private final String publishedBy;
-    private final Instant publishedAt;
+    private final String activatedBy;
+    private final Instant activatedAt;
     private final String pausedBy;
     private final Instant pausedAt;
     private final String pauseReason;
-    private final String unpublishedBy;
-    private final Instant unpublishedAt;
-    private final String unpublishReason;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -44,15 +41,12 @@ public class RuntimeRewriteBinding {
         this.status = builder.status == null ? RuntimeRewriteBindingStatus.ACTIVE : builder.status;
         this.ruleVersion = builder.ruleVersion <= 0 ? 1L : builder.ruleVersion;
         this.runtimeRuleVersion = requireText(builder.runtimeRuleVersion, "runtimeRuleVersion");
-        this.publishedBy = requireText(builder.publishedBy, "publishedBy");
-        this.publishedAt = builder.publishedAt == null ? Instant.now() : builder.publishedAt;
+        this.activatedBy = requireText(builder.activatedBy, "activatedBy");
+        this.activatedAt = builder.activatedAt == null ? Instant.now() : builder.activatedAt;
         this.pausedBy = trimToNull(builder.pausedBy);
         this.pausedAt = builder.pausedAt;
         this.pauseReason = trimToNull(builder.pauseReason);
-        this.unpublishedBy = trimToNull(builder.unpublishedBy);
-        this.unpublishedAt = builder.unpublishedAt;
-        this.unpublishReason = trimToNull(builder.unpublishReason);
-        this.createdAt = builder.createdAt == null ? this.publishedAt : builder.createdAt;
+        this.createdAt = builder.createdAt == null ? this.activatedAt : builder.createdAt;
         this.updatedAt = builder.updatedAt == null ? this.createdAt : builder.updatedAt;
     }
 
@@ -61,7 +55,7 @@ public class RuntimeRewriteBinding {
     }
 
     public RuntimeRewriteBinding pause(String operatorId, String reason, Instant now) {
-        if (status == RuntimeRewriteBindingStatus.PAUSED || status == RuntimeRewriteBindingStatus.UNPUBLISHED) {
+        if (status == RuntimeRewriteBindingStatus.PAUSED) {
             return this;
         }
         Instant changedAt = now == null ? Instant.now() : now;
@@ -70,20 +64,6 @@ public class RuntimeRewriteBinding {
             .pausedBy(requireText(operatorId, "operatorId"))
             .pausedAt(changedAt)
             .pauseReason(trimToNull(reason))
-            .updatedAt(changedAt)
-            .build();
-    }
-
-    public RuntimeRewriteBinding unpublish(String operatorId, String reason, Instant now) {
-        if (status == RuntimeRewriteBindingStatus.UNPUBLISHED) {
-            return this;
-        }
-        Instant changedAt = now == null ? Instant.now() : now;
-        return copyBuilder()
-            .status(RuntimeRewriteBindingStatus.UNPUBLISHED)
-            .unpublishedBy(requireText(operatorId, "operatorId"))
-            .unpublishedAt(changedAt)
-            .unpublishReason(trimToNull(reason))
             .updatedAt(changedAt)
             .build();
     }
@@ -108,14 +88,11 @@ public class RuntimeRewriteBinding {
             .status(status)
             .ruleVersion(ruleVersion)
             .runtimeRuleVersion(runtimeRuleVersion)
-            .publishedBy(publishedBy)
-            .publishedAt(publishedAt)
+            .activatedBy(activatedBy)
+            .activatedAt(activatedAt)
             .pausedBy(pausedBy)
             .pausedAt(pausedAt)
             .pauseReason(pauseReason)
-            .unpublishedBy(unpublishedBy)
-            .unpublishedAt(unpublishedAt)
-            .unpublishReason(unpublishReason)
             .createdAt(createdAt)
             .updatedAt(updatedAt);
     }
@@ -149,14 +126,11 @@ public class RuntimeRewriteBinding {
     public RuntimeRewriteBindingStatus getStatus() { return status; }
     public long getRuleVersion() { return ruleVersion; }
     public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
-    public String getPublishedBy() { return publishedBy; }
-    public Instant getPublishedAt() { return publishedAt; }
+    public String getActivatedBy() { return activatedBy; }
+    public Instant getActivatedAt() { return activatedAt; }
     public String getPausedBy() { return pausedBy; }
     public Instant getPausedAt() { return pausedAt; }
     public String getPauseReason() { return pauseReason; }
-    public String getUnpublishedBy() { return unpublishedBy; }
-    public Instant getUnpublishedAt() { return unpublishedAt; }
-    public String getUnpublishReason() { return unpublishReason; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
@@ -175,14 +149,11 @@ public class RuntimeRewriteBinding {
         private RuntimeRewriteBindingStatus status;
         private long ruleVersion;
         private String runtimeRuleVersion;
-        private String publishedBy;
-        private Instant publishedAt;
+        private String activatedBy;
+        private Instant activatedAt;
         private String pausedBy;
         private Instant pausedAt;
         private String pauseReason;
-        private String unpublishedBy;
-        private Instant unpublishedAt;
-        private String unpublishReason;
         private Instant createdAt;
         private Instant updatedAt;
 
@@ -200,14 +171,11 @@ public class RuntimeRewriteBinding {
         public Builder status(RuntimeRewriteBindingStatus status) { this.status = status; return this; }
         public Builder ruleVersion(long ruleVersion) { this.ruleVersion = ruleVersion; return this; }
         public Builder runtimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; return this; }
-        public Builder publishedBy(String publishedBy) { this.publishedBy = publishedBy; return this; }
-        public Builder publishedAt(Instant publishedAt) { this.publishedAt = publishedAt; return this; }
+        public Builder activatedBy(String activatedBy) { this.activatedBy = activatedBy; return this; }
+        public Builder activatedAt(Instant activatedAt) { this.activatedAt = activatedAt; return this; }
         public Builder pausedBy(String pausedBy) { this.pausedBy = pausedBy; return this; }
         public Builder pausedAt(Instant pausedAt) { this.pausedAt = pausedAt; return this; }
         public Builder pauseReason(String pauseReason) { this.pauseReason = pauseReason; return this; }
-        public Builder unpublishedBy(String unpublishedBy) { this.unpublishedBy = unpublishedBy; return this; }
-        public Builder unpublishedAt(Instant unpublishedAt) { this.unpublishedAt = unpublishedAt; return this; }
-        public Builder unpublishReason(String unpublishReason) { this.unpublishReason = unpublishReason; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
         public RuntimeRewriteBinding build() { return new RuntimeRewriteBinding(this); }

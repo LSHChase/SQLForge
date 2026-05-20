@@ -36,11 +36,11 @@
 
 - Spring Boot 应用入口和独立 Maven 模块
 - `application` / `domain` / `infrastructure` / `config` 分层骨架
-- 查询执行服务的不可变边界定义，显式收口到路由、执行控制、轻量解析、轻量改写和已批准加速配置应用
+- 查询执行服务的不可变边界定义，显式收口到路由、执行控制、轻量解析、轻量改写和已激活加速配置应用
 - `JDBC` / `REST` / `CLIENT` 三种 Hetu 访问模式的边界声明，以及真实模式选择、route calibration、严格路由失败语义与结果聚合实现
-- 只读优先、开源 parser 复用、已批准加速配置运行时应用的策略声明
+- 只读优先、开源 parser 复用、已激活加速配置运行时应用的策略声明
 - 受保护内部 Hetu route calibration / cluster evidence 快照入口，以及 ready/unready / priority / failure-layer 证据模型
-- 受保护内部 acceleration-plan apply / verify / rollback runtime gating 入口，以及按 `tenantId + sqlFingerprint + datasourceType` 收口的 approved binding registry
+- 受保护内部 acceleration-plan activate / pause runtime gating 入口，以及按 `tenantId + sqlFingerprint + datasourceType` 收口的 activated binding registry
 - 受保护内部 cache policy apply / verify / invalidate runtime surface，以及按 `tenantId + sqlFingerprint + datasourceType + schemaVersion` 收口的 result-cache hit / bypass / invalidate / backfill 证据模型；当前还具备 provider-neutral cache backend contract、默认 in-memory backend、显式配置的 Redis RESP provider adapter、per-tenant/per-policy capacity limit、TTL/manual/capacity/schema eviction reason evidence、policy verify capacity/backend health summary，以及低基数 cache governance metrics
 - 与 `governance` 的租户范围检查、数据源访问检查和审计写入 HTTP 调用基线
 
@@ -72,14 +72,14 @@
 - `PARSE` / `REWRITE` / `ACCELERATION_SUGGESTION` 三类异步优化任务模型
 - `QUEUED` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELLED` 生命周期状态与类型感知的处理阶段流转
 - `POST /api/sql-optimization/tasks` 和 `GET /api/sql-optimization/tasks/{taskId}` 的受保护异步入口
-- `POST /api/sql-optimization/acceleration-plans`、`GET /api/sql-optimization/acceleration-plans/{planId}`、`approval/apply/verify/rollback` 的受保护治理入口
+- `POST /api/sql-optimization/acceleration-plans`、`GET /api/sql-optimization/acceleration-plans/{planId}`、`activate/pause` 的受保护治理入口
 - 基于 MySQL `optimization_task` / `acceleration_plan` 双表、MyBatis XML repository 和 in-process scheduled worker 的提交、轮询、失败路径与流程日志
 - 基础 DTO / VO 与错误码区间固化
 - 真实 SQL parser / AST analysis / conservative rewrite rule / acceleration suggestion pipeline
 - 结构化 `suggestion / failure` 输出，覆盖收益、成本、风险、失败阶段与任务类型差异
 - 独立 SQL 解析记录面：结构解析、综合解析、批量解析、报表解析写入 `sql_parse_history`，并通过 `GET /api/sql-optimization/parse-history`、`GET /api/sql-optimization/parse-history/{parseHistoryId}`、`POST /api/sql-optimization/parse-history/export` 提供解析记录查询与 inline 导出
 - 日终慢 SQL 解析服务骨架：只读 `SlowSqlExecutionHistorySource` 端口、`EndOfDaySlowSqlParseApplicationService`、时间窗口/慢 SQL 阈值/limit 过滤，以及 `batchKey + sqlFingerprint` 幂等写入解析记录；真实 cron 调度与执行历史 source 实现后续任务化
-- acceleration plan 通过 `governance` 受保护 trace 入口回写 `config/result/history` 追溯链，并通过 `query-execution` internal runtime surface 收口 apply/verify/rollback 闭环
+- acceleration plan 通过 `governance` 受保护 trace 入口回写 `config/result/history` 追溯链，并通过 `query-execution` internal runtime surface 收口 activate/pause 闭环
 - 与 `governance` 的租户/数据源检查、审计写入、失败恢复与补偿 queue smoke
 
 当前还未完整承载：

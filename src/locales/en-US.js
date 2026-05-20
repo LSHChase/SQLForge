@@ -591,7 +591,7 @@ export default {
       ruleVersion: 'Rule version',
       runtimeRuleVersion: 'Runtime rule version',
       runtimeRewriteStatus: 'Runtime rewrite status',
-      publishStatusSnapshot: 'Publish status snapshot',
+      activationStatusSnapshot: 'Activation status snapshot',
       rewriteFallbackReason: 'Rewrite fallback reason',
       linkedNotAppliedTitle: 'Linked governance object, no rewrite in this execution',
       linkedNotAppliedMessage: 'This execution history does not have rewriteApplied=true; linked recommendations or rewrite records are governance evidence, not real rewrite history.'
@@ -1245,7 +1245,7 @@ export default {
     summary: 'Review recommendation lists, sources, benefits, risks, recommended SQL, SQL diff, rule chains, and applicability conditions.',
     eyebrow: 'recommendation results',
     pageTitle: 'Recommendation Results',
-    boundarySummary: 'This page centers on recommendation results; approval, dispatch, and trace evidence remain detail support while SQLForge does not execute recommended SQL or load data.',
+    boundarySummary: 'This page centers on recommendation results; manual review, dispatch, and trace evidence remain detail support while SQLForge does not execute recommended SQL or load data.',
     filters: {
       eyebrow: 'recommendation filters',
       title: 'Tenant and refresh'
@@ -1264,13 +1264,10 @@ export default {
       openAlertCenter: 'Open alert center',
       refreshRewriteRecords: 'Refresh rewrite records',
       refreshValidationRuns: 'Refresh validation runs',
-      createRewriteRecordAndReview: 'Create rewrite record and review',
-      openRewriteReview: 'Open rewrite review',
-      approveRewrite: 'Approve',
-      rejectRewrite: 'Reject',
-      publishRewrite: 'Publish',
+      createRewriteRecordAndReview: 'Create rewrite record',
+      openRewriteReview: 'Open rewrite activation',
+      activateRewrite: 'Activate',
       pauseRewrite: 'Pause',
-      unpublishRewrite: 'Unpublish'
     },
     list: {
       eyebrow: 'recommendation list',
@@ -1314,18 +1311,14 @@ export default {
       evidenceBoundary: 'Evidence boundary',
       hunk: 'Diff hunk',
       rewriteRecordId: 'Rewrite record ID',
-      reviewStatus: 'Review status',
-      reviewNote: 'Review note',
-      reviewedBy: 'Reviewed by',
-      reviewedAt: 'Reviewed at',
-      publishStatus: 'Publish status',
+      activationStatus: 'Activation status',
       lastValidationRunId: 'Last validation run ID',
       runtimeBindingId: 'Runtime binding ID',
       runtimeRuleVersion: 'Rule version',
       runtimeBindingScope: 'Runtime scope',
       runtimeBindingAt: 'Runtime binding at',
-      runtimeBindingBy: 'Published by',
-      publishEligible: 'Publish eligible',
+      runtimeBindingBy: 'Activated by',
+      activationEligible: 'Activation eligible',
       policyId: 'Policy ID',
       actionReason: 'Action reason',
       status: 'Status',
@@ -1362,22 +1355,21 @@ export default {
       noRuleEvidence: 'No rule evidence is available for this recommendation.',
       waitingCallback: 'Waiting for an external callback.',
       noRewriteRecord: 'This recommendation has no linked rewrite record.',
-      approvedNotPublished: 'Approved, but not active in runtime yet.',
+      readyForActivation: 'Rewrite record is ready for activation checks.',
       runtimeActive: 'Runtime binding is ACTIVE, so automatic rewrite is active.',
       runtimePaused: 'Rewrite record is paused.',
-      reviewRejected: 'Rewrite review has been rejected.',
-      awaitingRewriteReview: 'Waiting for rewrite review or publish.',
-      reviewNoteRequired: 'A review note is required when rejecting.',
+      runtimeActionFailed: 'Runtime activation or pause action failed.',
+      awaitingRewriteActivation: 'Waiting for rewrite activation.',
       lifecycleActionApplied: 'Rewrite record action was submitted and refreshed from the backend.',
-      rewriteRecordCreated: 'Rewrite record created; it becomes active only after review, publish, and runtime binding ACTIVE.',
+      rewriteRecordCreated: 'Rewrite record created; it becomes active after activation and runtime binding ACTIVE.',
       rewriteRecordCreateUnavailable: 'This recommendation is missing the original or recommended SQL required to create a rewrite record.',
-      noRefusalReasons: 'No publish eligibility refusal reason is present.',
+      noRefusalReasons: 'No activation eligibility refusal reason is present.',
       noValidationRuns: 'This rewrite record has no validation runs.'
     },
     tabs: {
       summary: 'Summary',
       sqlEvidence: 'SQL evidence',
-      rewriteLifecycle: 'Rewrite review and publish',
+      rewriteLifecycle: 'Rewrite activation and pause',
       sqlDiff: 'SQL diff',
       rulesRisk: 'Rules and risk',
       dispatchContract: 'Dispatch contract',
@@ -1396,7 +1388,7 @@ export default {
       unappliedRules: 'unappliedRules',
       accelerationArtifact: 'L2 acceleration artifact',
       alertLinkage: 'Alert linkage',
-      publishEligibility: 'Publish status reference',
+      activationEligibility: 'Activation eligibility reference',
       validationRuns: 'Validation runs'
     },
     artifact: {
@@ -1431,9 +1423,9 @@ export default {
       title: 'Review risk and diff evidence first'
     },
     rewriteLifecycle: {
-      eyebrow: 'rewrite review',
-      title: 'Review, publish, pause, and unpublish',
-      boundary: 'This section only calls real rewrite-record APIs. Approval is not runtime activation; automatic rewrite is active only after publish returns a runtime binding.'
+      eyebrow: 'rewrite activation',
+      title: 'Activate and pause',
+      boundary: 'This section only calls real rewrite-record APIs. Automatic rewrite is active only after activation returns a runtime binding.'
     },
     dispatch: {
       boundary: 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'
@@ -1572,7 +1564,7 @@ export default {
     title: 'SQL Rewrite Validation',
     summary: 'Submit one SQL statement to the rewrite trial task, then inspect candidate SQL, rule chains, risks, diff, recommendation links, rewrite records, and validation runs.',
     eyebrow: 'rewrite trial workbench',
-    boundary: 'This page only creates trial evidence, recommendation linkage, rewrite-record drafts, and read-only validation-run evidence. It never marks production auto-rewrite as happened and never bypasses review or publish gates.',
+    boundary: 'This page only creates trial evidence, recommendation linkage, rewrite-record drafts, and read-only validation-run evidence. It never marks production auto-rewrite as happened and never bypasses activation gates.',
     defaults: {
       validationReason: 'Static trial from rewrite validation page'
     },
@@ -1793,7 +1785,7 @@ export default {
       text010: 'Recommendation result sample',
       text011: 'Current visible recommendation count is known; adoption rate still lacks a dedicated backend aggregate.',
       text012: 'Rewrite-record sample',
-      text013: 'Taken from the current rewrite-records response and focused on review, publish, paused, and validation status.',
+      text013: 'Taken from the current rewrite-records response and focused on activation, paused, and validation status.',
       text014: 'SQL Query Analysis',
       text015: 'Go from SQL input to execution, Explain, route summary, and result evidence.',
       text016: 'SQL History Query',

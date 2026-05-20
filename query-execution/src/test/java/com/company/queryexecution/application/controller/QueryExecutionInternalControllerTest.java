@@ -210,7 +210,7 @@ class QueryExecutionInternalControllerTest {
     }
 
     @Test
-    void shouldPublishRuntimeRewriteBindingThroughInternalEndpoint() throws Exception {
+    void shouldActivateRuntimeRewriteBindingThroughInternalEndpoint() throws Exception {
         RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
         response.setTenantId("tenant-a");
         response.setRuntimeBindingId("rwb-001");
@@ -225,9 +225,9 @@ class QueryExecutionInternalControllerTest {
         response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
         response.setContractStage("LONG_TERM_BASELINE");
         response.setImplementationStage("RUNTIME_REWRITE_BINDING_DB_BASELINE");
-        when(queryExecutionRuntimeRewriteBindingService.publish(any())).thenReturn(response);
+        when(queryExecutionRuntimeRewriteBindingService.activate(any())).thenReturn(response);
 
-        mockMvc.perform(post("/api/query-execution/internal/rewrite-bindings/publish")
+        mockMvc.perform(post("/api/query-execution/internal/rewrite-bindings/activate")
                 .header("X-Tenant-Id", "tenant-a")
                 .header("X-User-Id", "service-user")
                 .header("X-Role-Codes", "SERVICE")
@@ -248,25 +248,25 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.runtimeRuleVersion").value("runtime-rewrite-v1"))
             .andExpect(jsonPath("$.implementationStage").value("RUNTIME_REWRITE_BINDING_DB_BASELINE"));
 
-        verify(queryExecutionRuntimeRewriteBindingService).publish(any());
+        verify(queryExecutionRuntimeRewriteBindingService).activate(any());
     }
 
     @Test
-    void shouldApplyAccelerationPlanThroughInternalEndpoint() throws Exception {
+    void shouldActivateAccelerationPlanThroughInternalEndpoint() throws Exception {
         QueryExecutionAccelerationPlanResponse response = new QueryExecutionAccelerationPlanResponse();
         response.setTenantId("tenant-a");
         response.setPlanId("plan-001");
         response.setSqlFingerprint("fp-001");
         response.setTargetEngine("HETU");
         response.setActive(true);
-        response.setStatus("APPLIED");
-        response.setRuntimeSummary("已批准加速方案已在运行时偏好门控中生效。");
+        response.setStatus("ACTIVE");
+        response.setRuntimeSummary("加速方案已在运行时偏好门控中激活。");
         response.setRuntimeDetailsJson("{\"bindingState\":\"ACTIVE\"}");
         response.setContractStage("LONG_TERM_BASELINE");
-        response.setImplementationStage("APPROVED_ACCELERATION_RUNTIME_BASELINE");
-        when(queryExecutionAccelerationRuntimeService.apply(any())).thenReturn(response);
+        response.setImplementationStage("ACCELERATION_RUNTIME_ACTIVATION_BASELINE");
+        when(queryExecutionAccelerationRuntimeService.activate(any())).thenReturn(response);
 
-        mockMvc.perform(post("/api/query-execution/internal/acceleration-plans/apply")
+        mockMvc.perform(post("/api/query-execution/internal/acceleration-plans/activate")
                 .header("X-Tenant-Id", "tenant-a")
                 .header("X-User-Id", "service-user")
                 .header("X-Role-Codes", "SERVICE")
@@ -278,11 +278,11 @@ class QueryExecutionInternalControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"tenant-a\",\"planId\":\"plan-001\",\"sqlFingerprint\":\"fp-001\",\"datasourceType\":\"HETU\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("APPLIED"))
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
             .andExpect(jsonPath("$.active").value(true))
-            .andExpect(jsonPath("$.implementationStage").value("APPROVED_ACCELERATION_RUNTIME_BASELINE"));
+            .andExpect(jsonPath("$.implementationStage").value("ACCELERATION_RUNTIME_ACTIVATION_BASELINE"));
 
-        verify(queryExecutionAccelerationRuntimeService).apply(any());
+        verify(queryExecutionAccelerationRuntimeService).activate(any());
     }
 
     @Test

@@ -65,7 +65,7 @@ export default {
     summary: '展示核心 SQL 链路待办、最近查询、最近解析、推荐结果和改写风险摘要。',
     eyebrow: '核心总览',
     heroTitle: '让核心 SQL 链路先在首页完成总览判断。',
-    heroSummary: '首页集中呈现查询负载、解析稳定性、推荐结果、改写风险与审计信号，帮助你快速判断平台是否处于可发布、可追踪、可处置状态。',
+    heroSummary: '首页集中呈现查询负载、解析稳定性、推荐结果、改写风险与审计信号，帮助你快速判断平台是否处于可激活、可追踪、可处置状态。',
     heroPrimary: '进入 SQL 查询分析',
     heroSecondary: '查看压测报告',
     heroFootnote: '深色原生驾驶舱基线',
@@ -575,7 +575,7 @@ export default {
       ruleVersion: '规则版本',
       runtimeRuleVersion: '运行时规则版本',
       runtimeRewriteStatus: '运行时改写状态',
-      publishStatusSnapshot: '发布状态快照',
+      activationStatusSnapshot: '激活状态快照',
       rewriteFallbackReason: '改写回退原因',
       linkedNotAppliedTitle: '有关联治理对象，但本次未发生自动改写',
       linkedNotAppliedMessage: '本次执行历史的 rewriteApplied 不是 true；关联推荐或改写记录只作为治理证据展示，不能写成真实改写历史。'
@@ -1229,7 +1229,7 @@ export default {
     summary: '查看推荐列表、推荐来源、收益、风险、推荐 SQL、SQL diff、规则链和适用条件。',
     eyebrow: '推荐结果',
     pageTitle: '推荐结果',
-    boundarySummary: '页面聚焦推荐结果本身；审批、dispatch 与 trace 只作为详情证据，SQLForge 不执行推荐 SQL、不主动装数。',
+    boundarySummary: '页面聚焦推荐结果本身；人工复核、dispatch 与 trace 只作为详情证据，SQLForge 不执行推荐 SQL、不主动装数。',
     filters: {
       eyebrow: '推荐筛选',
       title: '租户与刷新'
@@ -1248,13 +1248,10 @@ export default {
       openAlertCenter: '打开告警中心',
       refreshRewriteRecords: '刷新改写记录',
       refreshValidationRuns: '刷新验证运行',
-      createRewriteRecordAndReview: '创建改写记录并复核',
-      openRewriteReview: '进入改写复核',
-      approveRewrite: '审批通过',
-      rejectRewrite: '驳回',
-      publishRewrite: '发布',
+      createRewriteRecordAndReview: '创建改写记录',
+      openRewriteReview: '进入改写激活',
+      activateRewrite: '激活',
       pauseRewrite: '暂停',
-      unpublishRewrite: '撤销'
     },
     list: {
       eyebrow: '推荐列表',
@@ -1298,18 +1295,14 @@ export default {
       evidenceBoundary: '证据边界',
       hunk: '差异片段',
       rewriteRecordId: '改写记录 ID',
-      reviewStatus: '审批状态',
-      reviewNote: '审批意见',
-      reviewedBy: '审批人',
-      reviewedAt: '审批时间',
-      publishStatus: '发布状态',
+      activationStatus: '激活状态',
       lastValidationRunId: '最近验证运行 ID',
       runtimeBindingId: '运行时绑定 ID',
       runtimeRuleVersion: '规则版本',
       runtimeBindingScope: '生效范围',
       runtimeBindingAt: '生效时间',
-      runtimeBindingBy: '发布人',
-      publishEligible: '发布资格',
+      runtimeBindingBy: '激活人',
+      activationEligible: '激活资格',
       policyId: '策略 ID',
       actionReason: '动作原因',
       status: '状态',
@@ -1346,22 +1339,21 @@ export default {
       noRuleEvidence: '当前没有可展示的规则证据。',
       waitingCallback: '等待外部回执。',
       noRewriteRecord: '当前推荐没有关联改写记录。',
-      approvedNotPublished: '审批已通过，尚未运行时生效。',
+      readyForActivation: '改写记录可进入激活检查。',
       runtimeActive: '运行时绑定 ACTIVE，自动改写已生效。',
       runtimePaused: '改写记录已暂停。',
-      reviewRejected: '改写审批已驳回。',
-      awaitingRewriteReview: '等待改写审批或发布。',
-      reviewNoteRequired: '驳回必须填写审批意见。',
+      runtimeActionFailed: '运行时激活或暂停动作失败。',
+      awaitingRewriteActivation: '等待改写记录激活。',
       lifecycleActionApplied: '改写记录动作已提交，状态已从后端刷新。',
-      rewriteRecordCreated: '改写记录已创建，需复核、发布并确认运行时绑定处于 ACTIVE 后生效。',
+      rewriteRecordCreated: '改写记录已创建，激活并确认运行时绑定处于 ACTIVE 后生效。',
       rewriteRecordCreateUnavailable: '当前推荐缺少创建改写记录所需的原 SQL 或推荐 SQL。',
-      noRefusalReasons: '当前没有发布资格拒绝原因。',
+      noRefusalReasons: '当前没有激活资格拒绝原因。',
       noValidationRuns: '当前改写记录没有验证运行。'
     },
     tabs: {
       summary: '摘要',
       sqlEvidence: 'SQL 证据',
-      rewriteLifecycle: '改写复核与发布',
+      rewriteLifecycle: '改写激活与暂停',
       sqlDiff: 'SQL 差异',
       rulesRisk: '规则与风险',
       dispatchContract: 'Dispatch 契约',
@@ -1380,7 +1372,7 @@ export default {
       unappliedRules: '未应用规则 unappliedRules',
       accelerationArtifact: 'L2 加速产物',
       alertLinkage: '告警联动',
-      publishEligibility: '发布状态参考',
+      activationEligibility: '激活资格参考',
       validationRuns: '验证运行'
     },
     artifact: {
@@ -1415,9 +1407,9 @@ export default {
       title: '风险与 diff 证据必须先复核'
     },
     rewriteLifecycle: {
-      eyebrow: '改写复核',
-      title: '审批、发布、暂停与撤销',
-      boundary: '本区只调用改写记录真实接口；审批通过不等同运行时生效，只有发布成功并返回运行时绑定后才表示自动改写已生效。'
+      eyebrow: '改写激活',
+      title: '激活与暂停',
+      boundary: '本区只调用改写记录真实接口；只有激活成功并返回运行时绑定后才表示自动改写已生效。'
     },
     dispatch: {
       boundary: '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留推荐与 dispatch 回执审计。'
@@ -1556,7 +1548,7 @@ export default {
     title: 'SQL 改写验证',
     summary: '提交单条 SQL 到改写试算任务，查看候选 SQL、规则链、风险、差异、推荐关联、改写记录和验证运行。',
     eyebrow: '改写试算工作台',
-    boundary: '本页只创建试算、推荐关联、改写记录草稿和只读验证运行证据；不会标记生产已自动改写，也不会绕过审批发布门禁。',
+    boundary: '本页只创建试算、推荐关联、改写记录草稿和只读验证运行证据；不会标记生产已自动改写，也不会绕过激活门禁。',
     defaults: {
       validationReason: '改写验证页面静态试算'
     },
@@ -1749,7 +1741,7 @@ export default {
       text007: '跨引擎对比 / 只读 / 中等并发',
       text008: '当前页面用任务预设组织模板，不宣称后端已有模板 CRUD。',
       text009: '回归守卫模板',
-      text010: '关注 p99 延迟与扫描量，输出发布门禁风险。',
+      text010: '关注 p99 延迟与扫描量，输出激活门禁风险。',
       text011: '回归验证 / 阈值门禁 / 只读',
       text012: '用于回归模式展示，不把“测试集管理”误写成已落库对象。',
       text013: '路由对比集',
@@ -1777,7 +1769,7 @@ export default {
       text010: '推荐结果样本',
       text011: '当前可见 recommendation 数量已知，但采纳率仍缺专用后端聚合。',
       text012: '改写记录样本',
-      text013: '来自改写记录接口的当前返回样本，关注评审、发布、暂停与验证状态。',
+      text013: '来自改写记录接口的当前返回样本，关注激活、暂停与验证状态。',
       text014: 'SQL 查询分析',
       text015: '从 SQL 输入直达执行、Explain、路由摘要和结果证据。',
       text016: 'SQL 历史查询',

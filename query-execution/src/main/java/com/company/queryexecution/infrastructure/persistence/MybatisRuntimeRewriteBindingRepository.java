@@ -81,14 +81,11 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
         record.setStatus(binding.getStatus().name());
         record.setRuleVersion(Long.valueOf(binding.getRuleVersion()));
         record.setRuntimeRuleVersion(binding.getRuntimeRuleVersion());
-        record.setPublishedBy(binding.getPublishedBy());
-        record.setPublishedAt(toLocalDateTime(binding.getPublishedAt()));
+        record.setActivatedBy(binding.getActivatedBy());
+        record.setActivatedAt(toLocalDateTime(binding.getActivatedAt()));
         record.setPausedBy(binding.getPausedBy());
         record.setPausedAt(toLocalDateTime(binding.getPausedAt()));
         record.setPauseReason(binding.getPauseReason());
-        record.setUnpublishedBy(binding.getUnpublishedBy());
-        record.setUnpublishedAt(toLocalDateTime(binding.getUnpublishedAt()));
-        record.setUnpublishReason(binding.getUnpublishReason());
         record.setCreatedAt(toLocalDateTime(binding.getCreatedAt()));
         record.setUpdatedAt(toLocalDateTime(binding.getUpdatedAt()));
         return record;
@@ -110,14 +107,11 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
             .status(record.getStatus() == null ? null : RuntimeRewriteBindingStatus.valueOf(record.getStatus()))
             .ruleVersion(record.getRuleVersion() == null ? 1L : record.getRuleVersion().longValue())
             .runtimeRuleVersion(record.getRuntimeRuleVersion())
-            .publishedBy(record.getPublishedBy())
-            .publishedAt(toInstant(record.getPublishedAt()))
+            .activatedBy(record.getActivatedBy())
+            .activatedAt(toInstant(record.getActivatedAt()))
             .pausedBy(record.getPausedBy())
             .pausedAt(toInstant(record.getPausedAt()))
             .pauseReason(record.getPauseReason())
-            .unpublishedBy(record.getUnpublishedBy())
-            .unpublishedAt(toInstant(record.getUnpublishedAt()))
-            .unpublishReason(record.getUnpublishReason())
             .createdAt(toInstant(record.getCreatedAt()))
             .updatedAt(toInstant(record.getUpdatedAt()))
             .build();

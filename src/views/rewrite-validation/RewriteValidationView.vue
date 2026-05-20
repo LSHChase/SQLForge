@@ -273,7 +273,7 @@ function buildRewriteRecordPayload() {
     datasourceCode: form.datasourceCode,
     status: 'DRAFT',
     validationStatus: 'NOT_VALIDATED',
-    publishStatus: 'UNPUBLISHED',
+    activationStatus: 'INACTIVE',
     autoApplyAllowed: false,
     manualReviewRequired: true,
     alertStatus: 'NONE',

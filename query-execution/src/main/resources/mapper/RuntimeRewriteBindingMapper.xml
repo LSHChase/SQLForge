@@ -19,14 +19,11 @@
         <result property="status" column="status"/>
         <result property="ruleVersion" column="rule_version"/>
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
-        <result property="publishedBy" column="published_by"/>
-        <result property="publishedAt" column="published_at"/>
+        <result property="activatedBy" column="activated_by"/>
+        <result property="activatedAt" column="activated_at"/>
         <result property="pausedBy" column="paused_by"/>
         <result property="pausedAt" column="paused_at"/>
         <result property="pauseReason" column="pause_reason"/>
-        <result property="unpublishedBy" column="unpublished_by"/>
-        <result property="unpublishedAt" column="unpublished_at"/>
-        <result property="unpublishReason" column="unpublish_reason"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -34,9 +31,8 @@
     <sql id="BaseColumns">
         runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
         source_kind, source_id, sql_fingerprint, original_sql_digest, recommended_sql_text,
-        datasource_code, status, rule_version, runtime_rule_version, published_by, published_at,
-        paused_by, paused_at, pause_reason, unpublished_by, unpublished_at, unpublish_reason,
-        created_at, updated_at
+        datasource_code, status, rule_version, runtime_rule_version, activated_by, activated_at,
+        paused_by, paused_at, pause_reason, created_at, updated_at
     </sql>
 
     <select id="selectByRuntimeBindingId" resultMap="RuntimeRewriteBindingRecordMap">
@@ -75,15 +71,13 @@
         INSERT INTO runtime_rewrite_binding (
             runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
             source_kind, source_id, sql_fingerprint, original_sql_digest, recommended_sql_text,
-            datasource_code, status, rule_version, runtime_rule_version, published_by, published_at,
-            paused_by, paused_at, pause_reason, unpublished_by, unpublished_at, unpublish_reason,
-            created_at, updated_at
+            datasource_code, status, rule_version, runtime_rule_version, activated_by, activated_at,
+            paused_by, paused_at, pause_reason, created_at, updated_at
         ) VALUES (
             #{runtimeBindingId}, #{tenantId}, #{rewriteRecordId}, #{recommendationId}, #{sourceType},
             #{sourceKind}, #{sourceId}, #{sqlFingerprint}, #{originalSqlDigest}, #{recommendedSqlText},
-            #{datasourceCode}, #{status}, #{ruleVersion}, #{runtimeRuleVersion}, #{publishedBy}, #{publishedAt},
-            #{pausedBy}, #{pausedAt}, #{pauseReason}, #{unpublishedBy}, #{unpublishedAt}, #{unpublishReason},
-            #{createdAt}, #{updatedAt}
+            #{datasourceCode}, #{status}, #{ruleVersion}, #{runtimeRuleVersion}, #{activatedBy}, #{activatedAt},
+            #{pausedBy}, #{pausedAt}, #{pauseReason}, #{createdAt}, #{updatedAt}
         )
     </insert>
 
@@ -102,14 +96,11 @@
             status = #{status},
             rule_version = #{ruleVersion},
             runtime_rule_version = #{runtimeRuleVersion},
-            published_by = #{publishedBy},
-            published_at = #{publishedAt},
+            activated_by = #{activatedBy},
+            activated_at = #{activatedAt},
             paused_by = #{pausedBy},
             paused_at = #{pausedAt},
             pause_reason = #{pauseReason},
-            unpublished_by = #{unpublishedBy},
-            unpublished_at = #{unpublishedAt},
-            unpublish_reason = #{unpublishReason},
             created_at = #{createdAt},
             updated_at = #{updatedAt}
         WHERE runtime_binding_id = #{runtimeBindingId}

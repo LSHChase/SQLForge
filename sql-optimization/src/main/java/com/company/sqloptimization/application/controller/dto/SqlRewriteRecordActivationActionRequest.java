@@ -1,6 +1,6 @@
 package com.company.sqloptimization.application.controller.dto;
 
-public class SqlRewriteRecordPublishActionRequest {
+public class SqlRewriteRecordActivationActionRequest {
 
     private String tenantId;
     private String reason;

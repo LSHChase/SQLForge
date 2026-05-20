@@ -18,7 +18,6 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
 import com.company.sqloptimization.application.controller.dto.AccelerationPlanActionRequest;
-import com.company.sqloptimization.application.controller.dto.AccelerationPlanApprovalRequest;
 import com.company.sqloptimization.application.controller.dto.AccelerationPlanSubmitRequest;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
@@ -52,12 +51,11 @@ class AccelerationPlanApplicationServiceTest {
     }
 
     @Test
-    void shouldSubmitApproveApplyVerifyAndRollbackGovernedPlan() {
+    void shouldSubmitActivateAndPauseGovernedPlan() {
         GovernanceCapabilityClient governanceClient = mockGovernanceClient();
         QueryExecutionAccelerationPlanClient runtimeClient = mock(QueryExecutionAccelerationPlanClient.class);
-        when(runtimeClient.apply(any())).thenReturn(runtimeResponse("APPLIED", true, "binding is active"));
-        when(runtimeClient.verify(any())).thenReturn(runtimeResponse("VERIFIED", true, "binding verified"));
-        when(runtimeClient.rollback(any())).thenReturn(runtimeResponse("ROLLED_BACK", false, "binding removed"));
+        when(runtimeClient.activate(any())).thenReturn(runtimeResponse("ACTIVE", true, "binding is active"));
+        when(runtimeClient.pause(any())).thenReturn(runtimeResponse("PAUSED", false, "binding paused"));
 
         InMemoryOptimizationTaskRepository taskRepository = new InMemoryOptimizationTaskRepository();
         OptimizationTask sourceTask = succeededAccelerationTask("task-001");
@@ -74,39 +72,29 @@ class AccelerationPlanApplicationServiceTest {
 
         AccelerationPlanSubmitResponse submitResponse = service.submitPlan(submitRequest(sourceTask.getTaskId()));
         assertNotNull(submitResponse.getPlanId());
-        assertEquals("PENDING_APPROVAL", submitResponse.getStatus().name());
+        assertEquals("READY", submitResponse.getStatus().name());
         assertEquals("ACCELERATION_PLAN_GOVERNANCE_BASELINE", submitResponse.getImplementationStage());
 
-        AccelerationPlanApprovalRequest approvalRequest = new AccelerationPlanApprovalRequest();
-        approvalRequest.setApprove(Boolean.TRUE);
-        approvalRequest.setReviewNote("ready for runtime gating");
-        AccelerationPlanStatusResponse approved = service.reviewPlan(submitResponse.getPlanId(), approvalRequest);
-        assertEquals("APPROVED", approved.getStatus().name());
-        assertEquals("operator-001", approved.getApprovedBy());
-        assertEquals("cfg-plan-001", approved.getConfigSnapshotId());
-
         AccelerationPlanActionRequest actionRequest = new AccelerationPlanActionRequest();
-        actionRequest.setReason("activate approved plan");
-        AccelerationPlanStatusResponse applied = service.applyPlan(submitResponse.getPlanId(), actionRequest);
-        assertEquals("APPLIED", applied.getStatus().name());
-        assertEquals("operator-001", applied.getRuntimeBindingBy());
+        actionRequest.setReason("activate ready plan");
+        AccelerationPlanStatusResponse activated = service.activatePlan(submitResponse.getPlanId(), actionRequest);
+        assertEquals("ACTIVE", activated.getStatus().name());
+        assertEquals("operator-001", activated.getActivatedBy());
+        assertEquals("cfg-plan-001", activated.getConfigSnapshotId());
+        assertTrue(activated.getActivationEvidenceJson().contains("\"runtimeStatus\":\"ACTIVE\""));
 
-        AccelerationPlanStatusResponse verified = service.verifyPlan(submitResponse.getPlanId(), actionRequest);
-        assertEquals("VERIFIED", verified.getStatus().name());
-        assertEquals("operator-001", verified.getVerifiedBy());
-
-        AccelerationPlanStatusResponse rolledBack = service.rollbackPlan(submitResponse.getPlanId(), actionRequest);
-        assertEquals("ROLLED_BACK", rolledBack.getStatus().name());
-        assertEquals("operator-001", rolledBack.getRolledBackBy());
+        AccelerationPlanStatusResponse paused = service.pausePlan(submitResponse.getPlanId(), actionRequest);
+        assertEquals("PAUSED", paused.getStatus().name());
+        assertEquals("operator-001", paused.getPausedBy());
+        assertTrue(paused.getPauseEvidenceJson().contains("\"runtimeStatus\":\"PAUSED\""));
 
         verify(governanceClient).assertAuthorization("tenant-a", DataSourceTypeEnum.HETU, "SQL_ACCELERATION_PLAN", submitResponse.getPlanId(), "ACCELERATION_PLAN_SUBMIT");
-        verify(runtimeClient).apply(any());
-        verify(runtimeClient).verify(any());
-        verify(runtimeClient).rollback(any());
+        verify(runtimeClient).activate(any());
+        verify(runtimeClient).pause(any());
     }
 
     @Test
-    void shouldRejectApplyBeforeApprovalWithoutCallingRuntime() {
+    void shouldRejectPauseBeforeActivationWithoutCallingRuntime() {
         GovernanceCapabilityClient governanceClient = mockGovernanceClient();
         QueryExecutionAccelerationPlanClient runtimeClient = mock(QueryExecutionAccelerationPlanClient.class);
         InMemoryOptimizationTaskRepository taskRepository = new InMemoryOptimizationTaskRepository();
@@ -124,15 +112,15 @@ class AccelerationPlanApplicationServiceTest {
 
         AccelerationPlanSubmitResponse submitResponse = service.submitPlan(submitRequest(sourceTask.getTaskId()));
         AccelerationPlanActionRequest actionRequest = new AccelerationPlanActionRequest();
-        actionRequest.setReason("skip approval");
+        actionRequest.setReason("pause before activation");
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> service.applyPlan(submitResponse.getPlanId(), actionRequest)
+            () -> service.pausePlan(submitResponse.getPlanId(), actionRequest)
         );
 
         assertEquals(22006, ex.getCode());
-        verify(runtimeClient, never()).apply(any());
+        verify(runtimeClient, never()).pause(any());
     }
 
     @Test
@@ -213,11 +201,10 @@ class AccelerationPlanApplicationServiceTest {
     }
 
     @Test
-    void shouldMarkVerifyFailedWhenRuntimeCannotConfirmBinding() {
+    void shouldMarkActivateFailedWhenRuntimeCannotConfirmBinding() {
         GovernanceCapabilityClient governanceClient = mockGovernanceClient();
         QueryExecutionAccelerationPlanClient runtimeClient = mock(QueryExecutionAccelerationPlanClient.class);
-        when(runtimeClient.apply(any())).thenReturn(runtimeResponse("APPLIED", true, "binding is active"));
-        when(runtimeClient.verify(any())).thenReturn(runtimeResponse("MISSING", false, "binding missing"));
+        when(runtimeClient.activate(any())).thenReturn(runtimeResponse("MISSING", false, "binding missing"));
 
         InMemoryOptimizationTaskRepository taskRepository = new InMemoryOptimizationTaskRepository();
         OptimizationTask sourceTask = succeededAccelerationTask("task-003");
@@ -233,16 +220,14 @@ class AccelerationPlanApplicationServiceTest {
         setRequestContext("tenant-a");
 
         AccelerationPlanSubmitResponse submitResponse = service.submitPlan(submitRequest(sourceTask.getTaskId()));
-        AccelerationPlanApprovalRequest approvalRequest = new AccelerationPlanApprovalRequest();
-        approvalRequest.setApprove(Boolean.TRUE);
-        approvalRequest.setReviewNote("approve for verify-failure test");
-        service.reviewPlan(submitResponse.getPlanId(), approvalRequest);
-        service.applyPlan(submitResponse.getPlanId(), null);
 
-        AccelerationPlanStatusResponse verifyResponse = service.verifyPlan(submitResponse.getPlanId(), null);
+        BizException ex = assertThrows(BizException.class, () -> service.activatePlan(submitResponse.getPlanId(), null));
+        AccelerationPlanStatusResponse activateResponse = service.getPlanStatus(submitResponse.getPlanId());
 
-        assertEquals("VERIFY_FAILED", verifyResponse.getStatus().name());
-        assertEquals(Integer.valueOf(13008), verifyResponse.getLastErrorCode());
+        assertEquals(13007, ex.getCode());
+        assertEquals("ACTIVATE_FAILED", activateResponse.getStatus().name());
+        assertEquals(Integer.valueOf(13007), activateResponse.getLastErrorCode());
+        assertTrue(activateResponse.getActivationEvidenceJson().contains("\"runtimeStatus\":\"MISSING\""));
     }
 
     private GovernanceCapabilityClient mockGovernanceClient() {
@@ -268,7 +253,7 @@ class AccelerationPlanApplicationServiceTest {
         response.setRuntimeSummary(summary);
         response.setRuntimeDetailsJson("{\"bindingState\":\"" + status + "\"}");
         response.setContractStage("LONG_TERM_BASELINE");
-        response.setImplementationStage("APPROVED_ACCELERATION_RUNTIME_BASELINE");
+        response.setImplementationStage("ACTIVE_ACCELERATION_RUNTIME_BASELINE");
         return response;
     }
 

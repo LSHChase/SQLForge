@@ -487,7 +487,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals("rwb-001", detail.getRewriteAudit().get("runtimeBindingId"));
         assertEquals(Long.valueOf(3L), detail.getRewriteAudit().get("ruleVersion"));
         assertEquals("runtime-rewrite-v3", detail.getRewriteAudit().get("runtimeRuleVersion"));
-        assertEquals("PUBLISHED", detail.getRewriteAudit().get("publishStatusSnapshot"));
+        assertEquals("ACTIVE", detail.getRewriteAudit().get("activationStatusSnapshot"));
         assertEquals("BUSINESS_VIEW", detail.getLogicalObjectHits().get(0).getObjectType());
         assertEquals("BUSINESS_VIEW:vw_sales_daily", detail.getLogicalObjectHits().get(0).getObjectKey());
         assertNotNull(detail.getTraceDetail());
@@ -651,7 +651,7 @@ class GovernanceHistoryApplicationServiceTest {
         assertEquals(Boolean.TRUE, response.getPayload().contains("SELECT * FROM sales.orders"));
         assertEquals(Boolean.TRUE, response.getPayload().contains("logical_object_keys=BUSINESS_VIEW:vw_sales_daily"));
         assertEquals(Boolean.TRUE, response.getPayload().contains("rewrite_record_id=rewrite-001"));
-        assertEquals(Boolean.TRUE, response.getPayload().contains("publish_status_snapshot=PUBLISHED"));
+        assertEquals(Boolean.TRUE, response.getPayload().contains("activation_status_snapshot=ACTIVE"));
         verify(protectedPersistenceService).saveExportRecord(any(ExportRecord.class));
         verify(protectedPersistenceService).saveAuditLog(any(AuditLogRecord.class));
     }
@@ -694,7 +694,7 @@ class GovernanceHistoryApplicationServiceTest {
         row.setRewriteRuleVersion(null);
         row.setRuntimeRuleVersion(null);
         row.setRuntimeRewriteStatus(null);
-        row.setRewritePublishStatusSnapshot(null);
+        row.setRewriteActivationStatusSnapshot(null);
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-legacy-rewrite")).thenReturn(row);
         when(queryHistoryMapper.selectById("history-legacy-rewrite"))
             .thenReturn(buildHistoryRecord("history-legacy-rewrite", "result-history-legacy-rewrite", "tenant-a"));
@@ -707,7 +707,7 @@ class GovernanceHistoryApplicationServiceTest {
 
         assertEquals(Boolean.FALSE, detail.getExecutionSummary().get("rewriteApplied"));
         assertEquals(Boolean.FALSE, detail.getRewriteAudit().get("rewriteApplied"));
-        assertEquals("UNPUBLISHED", detail.getRewriteAudit().get("publishStatusSnapshot"));
+        assertEquals("INACTIVE", detail.getRewriteAudit().get("activationStatusSnapshot"));
     }
 
     @Test
@@ -1606,7 +1606,7 @@ class GovernanceHistoryApplicationServiceTest {
         row.setRewriteRuleVersion(Long.valueOf(3L));
         row.setRuntimeRuleVersion("runtime-rewrite-v3");
         row.setRuntimeRewriteStatus("ACTIVE");
-        row.setRewritePublishStatusSnapshot("PUBLISHED");
+        row.setRewriteActivationStatusSnapshot("ACTIVE");
         row.setHitTableSummary("[\"sales.orders\"]");
         row.setResultSummary("{\"cacheSummary\":{\"cacheHit\":true},\"routeSummary\":{\"selectedEngine\":\"HETU\"}}");
         row.setErrorCode("12000");
@@ -1644,7 +1644,7 @@ class GovernanceHistoryApplicationServiceTest {
         record.setSourceKind("QUERY_HISTORY");
         record.setSourceId(historyId);
         record.setEvidenceLevel("RUNTIME_HISTORY");
-        record.setStatus("APPLIED");
+        record.setStatus("ACTIVE");
         record.setValidationStatus(validationStatus);
         record.setAutoApplyAllowed(Boolean.FALSE);
         record.setManualReviewRequired(Boolean.TRUE);

@@ -548,7 +548,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                     "capacityRemainingForPolicy", Integer.valueOf(Math.max(0, binding.getMaxEntries() - cachedEntryCount)),
                     "capacityRemainingForTenant", Integer.valueOf(Math.max(0, defaultMaxEntriesPerTenant - countTenantEntries(binding.getTenantId()))),
                     "evictionSummary", evictionSummary(binding),
-                    "appliedAt", binding.getAppliedAt().toString(),
+                    "activatedAt", binding.getActivatedAt().toString(),
                     "policyReason", binding.getPolicyReason()
                     ),
                     cacheBackend.verify().getProviderEvidence()
@@ -872,7 +872,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
         private final String policyReason;
         private final int maxEntries;
         private final long ttlSeconds;
-        private final Instant appliedAt;
+        private final Instant activatedAt;
 
         private CachePolicyBinding(String tenantId,
                                    String policyId,
@@ -883,7 +883,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                                    String policyReason,
                                    int maxEntries,
                                    long ttlSeconds,
-                                   Instant appliedAt) {
+                                   Instant activatedAt) {
             this.tenantId = tenantId;
             this.policyId = policyId;
             this.sqlFingerprint = sqlFingerprint;
@@ -893,7 +893,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             this.policyReason = policyReason;
             this.maxEntries = maxEntries;
             this.ttlSeconds = ttlSeconds;
-            this.appliedAt = appliedAt;
+            this.activatedAt = activatedAt;
         }
 
         private String getTenantId() {
@@ -932,8 +932,8 @@ public class QueryExecutionCacheGovernanceRuntimeService {
             return ttlSeconds;
         }
 
-        private Instant getAppliedAt() {
-            return appliedAt;
+        private Instant getActivatedAt() {
+            return activatedAt;
         }
 
         private CachePolicyBinding withSchemaVersion(String newSchemaVersion) {
@@ -947,7 +947,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 policyReason,
                 maxEntries,
                 ttlSeconds,
-                appliedAt
+                activatedAt
             );
         }
     }
@@ -1034,7 +1034,7 @@ public class QueryExecutionCacheGovernanceRuntimeService {
                 fallback == null ? null : fallback.getPolicyReason(),
                 fallback == null ? 1 : fallback.getMaxEntries(),
                 fallback == null ? 0L : fallback.getTtlSeconds(),
-                fallback == null ? createdAt : fallback.getAppliedAt()
+                fallback == null ? createdAt : fallback.getActivatedAt()
             );
         }
 

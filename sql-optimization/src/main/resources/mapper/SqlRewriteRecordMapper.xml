@@ -25,12 +25,12 @@
         <result property="reviewNote" column="review_note"/>
         <result property="reviewedBy" column="reviewed_by"/>
         <result property="reviewedAt" column="reviewed_at"/>
-        <result property="publishStatus" column="publish_status"/>
+        <result property="activationStatus" column="activation_status"/>
         <result property="runtimeBindingId" column="runtime_binding_id"/>
         <result property="runtimeBindingAt" column="runtime_binding_at"/>
         <result property="runtimeBindingBy" column="runtime_binding_by"/>
         <result property="runtimeBindingScope" column="runtime_binding_scope"/>
-        <result property="publishedSqlFingerprint" column="published_sql_fingerprint"/>
+        <result property="activatedSqlFingerprint" column="activated_sql_fingerprint"/>
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
         <result property="validationPolicyId" column="validation_policy_id"/>
         <result property="lastValidationRunId" column="last_validation_run_id"/>
@@ -52,8 +52,8 @@
         rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
         source_kind, source_id, evidence_level, history_id, parse_history_id, sql_fingerprint,
         datasource_code, status, validation_status, auto_apply_allowed, manual_review_required,
-        review_status, review_note, reviewed_by, reviewed_at, publish_status, runtime_binding_id,
-        runtime_binding_at, runtime_binding_by, runtime_binding_scope, published_sql_fingerprint,
+        review_status, review_note, reviewed_by, reviewed_at, activation_status, runtime_binding_id,
+        runtime_binding_at, runtime_binding_by, runtime_binding_scope, activated_sql_fingerprint,
         runtime_rule_version, validation_policy_id, last_validation_run_id, last_compared_at,
         alert_status, original_sql_text, recommended_sql_text, executed_sql_text, created_by,
         created_at, updated_at, rule_chain_json, diff_summary_json, risk_json, trace_refs_json
@@ -84,8 +84,8 @@
         SELECT <include refid="BaseColumns"/>
         FROM sql_rewrite_record
         WHERE auto_apply_allowed = 1
-          AND publish_status = 'PUBLISHED'
-          AND status IN ('APPROVED', 'APPLIED')
+          AND activation_status = 'ACTIVE'
+          AND status IN ('READY', 'ACTIVE')
           AND validation_status IN ('NOT_VALIDATED', 'EXPIRED', 'EQUIVALENT')
           AND (last_compared_at IS NULL OR last_compared_at &lt;= #{dueBefore})
         ORDER BY COALESCE(last_compared_at, created_at) ASC
@@ -97,8 +97,8 @@
             rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
             source_kind, source_id, evidence_level, history_id, parse_history_id, sql_fingerprint,
             datasource_code, status, validation_status, auto_apply_allowed, manual_review_required,
-            review_status, review_note, reviewed_by, reviewed_at, publish_status, runtime_binding_id,
-            runtime_binding_at, runtime_binding_by, runtime_binding_scope, published_sql_fingerprint,
+            review_status, review_note, reviewed_by, reviewed_at, activation_status, runtime_binding_id,
+            runtime_binding_at, runtime_binding_by, runtime_binding_scope, activated_sql_fingerprint,
             runtime_rule_version, validation_policy_id, last_validation_run_id, last_compared_at,
             alert_status, original_sql_text, recommended_sql_text, executed_sql_text, created_by,
             created_at, updated_at, rule_chain_json, diff_summary_json, risk_json, trace_refs_json
@@ -106,8 +106,8 @@
             #{rewriteRecordId}, #{tenantId}, #{recommendationId}, #{optimizationTaskId}, #{sourceType},
             #{sourceKind}, #{sourceId}, #{evidenceLevel}, #{historyId}, #{parseHistoryId}, #{sqlFingerprint},
             #{datasourceCode}, #{status}, #{validationStatus}, #{autoApplyAllowed}, #{manualReviewRequired},
-            #{reviewStatus}, #{reviewNote}, #{reviewedBy}, #{reviewedAt}, #{publishStatus}, #{runtimeBindingId},
-            #{runtimeBindingAt}, #{runtimeBindingBy}, #{runtimeBindingScope}, #{publishedSqlFingerprint},
+            #{reviewStatus}, #{reviewNote}, #{reviewedBy}, #{reviewedAt}, #{activationStatus}, #{runtimeBindingId},
+            #{runtimeBindingAt}, #{runtimeBindingBy}, #{runtimeBindingScope}, #{activatedSqlFingerprint},
             #{runtimeRuleVersion}, #{validationPolicyId}, #{lastValidationRunId}, #{lastComparedAt},
             #{alertStatus}, #{originalSqlText}, #{recommendedSqlText}, #{executedSqlText}, #{createdBy},
             #{createdAt}, #{updatedAt}, #{ruleChainJson}, #{diffSummaryJson}, #{riskJson}, #{traceRefsJson}
@@ -135,12 +135,12 @@
             review_note = #{reviewNote},
             reviewed_by = #{reviewedBy},
             reviewed_at = #{reviewedAt},
-            publish_status = #{publishStatus},
+            activation_status = #{activationStatus},
             runtime_binding_id = #{runtimeBindingId},
             runtime_binding_at = #{runtimeBindingAt},
             runtime_binding_by = #{runtimeBindingBy},
             runtime_binding_scope = #{runtimeBindingScope},
-            published_sql_fingerprint = #{publishedSqlFingerprint},
+            activated_sql_fingerprint = #{activatedSqlFingerprint},
             runtime_rule_version = #{runtimeRuleVersion},
             validation_policy_id = #{validationPolicyId},
             last_validation_run_id = #{lastValidationRunId},

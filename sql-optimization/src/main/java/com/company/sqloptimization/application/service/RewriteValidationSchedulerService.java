@@ -273,14 +273,14 @@ public class RewriteValidationSchedulerService {
     }
 
     private String resolvePauseAuditResultStatus(SqlRewriteRecord latest) {
-        if (latest != null && "PAUSED".equals(latest.getPublishStatus().name())) {
+        if (latest != null && "PAUSED".equals(latest.getActivationStatus().name())) {
             return "SUCCESS";
         }
-        Map<String, Object> publishStatusTrace = latest == null
+        Map<String, Object> activationStatusTrace = latest == null
             ? null
-            : asMap(latest.getTraceRefs().get("lastPublishStatusTrace"));
-        if (publishStatusTrace != null
-            && (publishStatusTrace.get("errorType") != null || publishStatusTrace.get("failureType") != null)) {
+            : asMap(latest.getTraceRefs().get("lastActivationStatusTrace"));
+        if (activationStatusTrace != null
+            && (activationStatusTrace.get("errorType") != null || activationStatusTrace.get("failureType") != null)) {
             return "FAILED";
         }
         return "UNKNOWN";
@@ -295,7 +295,7 @@ public class RewriteValidationSchedulerService {
         payload.put("sqlFingerprint", run.getSqlFingerprint());
         payload.put("comparisonStatus", run.getComparisonStatus());
         payload.put("differenceType", run.getDifferenceType());
-        payload.put("publishStatusBefore", candidate.getPublishStatus().name());
+        payload.put("activationStatusBefore", candidate.getActivationStatus().name());
         payload.put("runtimeBindingIdBefore", candidate.getRuntimeBindingId());
         payload.put("requestId", RequestContext.getRequestId());
         payload.put("traceId", RequestContext.getTraceId());
@@ -309,11 +309,11 @@ public class RewriteValidationSchedulerService {
         payload.put("validationRunId", run.getValidationRunId());
         payload.put("recordStatus", latest.getStatus().name());
         payload.put("validationStatus", latest.getValidationStatus().name());
-        payload.put("publishStatusAfter", latest.getPublishStatus().name());
+        payload.put("activationStatusAfter", latest.getActivationStatus().name());
         payload.put("alertStatus", latest.getAlertStatus().name());
         payload.put("autoApplyAllowed", Boolean.valueOf(latest.isAutoApplyAllowed()));
         payload.put("runtimeBindingIdAfter", latest.getRuntimeBindingId());
-        payload.put("lastPublishStatusTrace", latest.getTraceRefs().get("lastPublishStatusTrace"));
+        payload.put("lastActivationStatusTrace", latest.getTraceRefs().get("lastActivationStatusTrace"));
         payload.put("divergenceAlert", latest.getTraceRefs().get("divergenceAlert"));
         return payload;
     }

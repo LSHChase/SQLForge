@@ -777,50 +777,26 @@ export const getAccelerationPlan = (tenantId, planId, requestOptions = {}) =>
     }
   })
 
-export const reviewAccelerationPlan = (tenantId, planId, payload, requestOptions = {}) =>
+export const activateAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
   request({
     method: 'post',
-    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/approval`,
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/activate`,
     data: payload,
     tenantId,
     requestOptions: {
-      requestPrefix: 'frontend-acceleration-plan-review',
+      requestPrefix: 'frontend-acceleration-plan-activate',
       ...requestOptions
     }
   })
 
-export const applyAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
+export const pauseAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
   request({
     method: 'post',
-    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/apply`,
+    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/pause`,
     data: payload,
     tenantId,
     requestOptions: {
-      requestPrefix: 'frontend-acceleration-plan-apply',
-      ...requestOptions
-    }
-  })
-
-export const verifyAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
-  request({
-    method: 'post',
-    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/verify`,
-    data: payload,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-acceleration-plan-verify',
-      ...requestOptions
-    }
-  })
-
-export const rollbackAccelerationPlan = (tenantId, planId, payload = {}, requestOptions = {}) =>
-  request({
-    method: 'post',
-    url: `/api/sql-optimization/acceleration-plans/${encodeURIComponent(planId)}/rollback`,
-    data: payload,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-acceleration-plan-rollback',
+      requestPrefix: 'frontend-acceleration-plan-pause',
       ...requestOptions
     }
   })
@@ -859,37 +835,25 @@ export const getSqlRewriteRecord = (tenantId, rewriteRecordId, requestOptions = 
     }
   })
 
-export const reviewSqlRewriteRecord = (tenantId, rewriteRecordId, payload, requestOptions = {}) =>
-  request({
-    method: 'post',
-    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/review`,
-    data: payload,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-rewrite-record-review',
-      ...requestOptions
-    }
-  })
-
-export const getRewritePublishEligibility = (tenantId, rewriteRecordId, requestOptions = {}) =>
+export const getRewriteActivationEligibility = (tenantId, rewriteRecordId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/publish-eligibility`,
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/activation-eligibility`,
     tenantId,
     requestOptions: {
-      requestPrefix: 'frontend-rewrite-record-publish-eligibility',
+      requestPrefix: 'frontend-rewrite-record-activation-eligibility',
       ...requestOptions
     }
   })
 
-export const publishSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
+export const activateSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
   request({
     method: 'post',
-    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/publish`,
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/activate`,
     data: payload,
     tenantId,
     requestOptions: {
-      requestPrefix: 'frontend-rewrite-record-publish',
+      requestPrefix: 'frontend-rewrite-record-activate',
       ...requestOptions
     }
   })
@@ -902,18 +866,6 @@ export const pauseSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, r
     tenantId,
     requestOptions: {
       requestPrefix: 'frontend-rewrite-record-pause',
-      ...requestOptions
-    }
-  })
-
-export const unpublishSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
-  request({
-    method: 'post',
-    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/unpublish`,
-    data: payload,
-    tenantId,
-    requestOptions: {
-      requestPrefix: 'frontend-rewrite-record-unpublish',
       ...requestOptions
     }
   })

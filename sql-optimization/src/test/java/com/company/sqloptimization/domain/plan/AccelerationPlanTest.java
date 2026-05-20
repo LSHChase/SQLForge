@@ -23,8 +23,8 @@ class AccelerationPlanTest {
             "fp-001",
             DataSourceTypeEnum.HETU,
             Arrays.asList(AccelerationSuggestionType.PRECOMPUTE, AccelerationSuggestionType.PARTITION),
-            "approved plan",
-            "use governed runtime apply",
+            "ready plan",
+            "use governed runtime activation",
             "{\"PRECOMPUTE\":\"mv_orders\",\"PARTITION\":\"dt\"}",
             Collections.emptyList(),
             Collections.emptyList(),
@@ -32,24 +32,20 @@ class AccelerationPlanTest {
             baseTime
         );
 
-        plan.approve("looks safe", "approver-001", baseTime.plusSeconds(10));
-        plan.markApplied("{\"runtimeStatus\":\"APPLIED\"}", "operator-001", baseTime.plusSeconds(20));
-        plan.markVerified("{\"runtimeStatus\":\"VERIFIED\"}", "operator-001", baseTime.plusSeconds(30));
-        plan.markRolledBack("{\"runtimeStatus\":\"ROLLED_BACK\"}", "operator-001", baseTime.plusSeconds(40));
+        plan.markActivated("{\"runtimeStatus\":\"ACTIVE\"}", "operator-001", baseTime.plusSeconds(20));
+        plan.markPaused("{\"runtimeStatus\":\"PAUSED\"}", "operator-001", baseTime.plusSeconds(40));
 
-        assertEquals(AccelerationPlanStatus.ROLLED_BACK, plan.getStatus());
-        assertEquals("approver-001", plan.getApprovedBy());
-        assertEquals("operator-001", plan.getRolledBackBy());
-        assertEquals(5, plan.getStatusHistory().size());
+        assertEquals(AccelerationPlanStatus.PAUSED, plan.getStatus());
+        assertEquals("operator-001", plan.getActivatedBy());
+        assertEquals("operator-001", plan.getPausedBy());
+        assertEquals(3, plan.getStatusHistory().size());
         assertEquals("PLAN_SUBMITTED", plan.getStatusHistory().get(0).getNote());
-        assertEquals("PLAN_APPROVED", plan.getStatusHistory().get(1).getNote());
-        assertEquals("PLAN_APPLIED", plan.getStatusHistory().get(2).getNote());
-        assertEquals("PLAN_VERIFIED", plan.getStatusHistory().get(3).getNote());
-        assertEquals("PLAN_ROLLED_BACK", plan.getStatusHistory().get(4).getNote());
+        assertEquals("PLAN_ACTIVATED", plan.getStatusHistory().get(1).getNote());
+        assertEquals("PLAN_PAUSED", plan.getStatusHistory().get(2).getNote());
     }
 
     @Test
-    void shouldRejectVerificationBeforeApply() {
+    void shouldRejectPauseBeforeActivation() {
         Instant baseTime = Instant.parse("2026-04-25T00:00:00Z");
         AccelerationPlan plan = AccelerationPlan.submit(
             "plan-002",
@@ -59,8 +55,8 @@ class AccelerationPlanTest {
             "fp-002",
             DataSourceTypeEnum.HETU,
             Collections.singletonList(AccelerationSuggestionType.PRECOMPUTE),
-            "approved plan",
-            "use governed runtime apply",
+            "ready plan",
+            "use governed runtime activation",
             "{\"PRECOMPUTE\":\"mv_orders\"}",
             Collections.emptyList(),
             Collections.emptyList(),
@@ -68,13 +64,11 @@ class AccelerationPlanTest {
             baseTime
         );
 
-        plan.approve("looks safe", "approver-001", baseTime.plusSeconds(10));
-
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> plan.markVerified("{\"runtimeStatus\":\"VERIFIED\"}", "operator-001", baseTime.plusSeconds(20))
+            () -> plan.markPaused("{\"runtimeStatus\":\"PAUSED\"}", "operator-001", baseTime.plusSeconds(20))
         );
 
-        assertEquals("加速方案校验前必须已应用。", ex.getMessage());
+        assertEquals("加速方案暂停前必须处于 ACTIVE、PAUSED 或 PAUSE_FAILED 状态。", ex.getMessage());
     }
 }

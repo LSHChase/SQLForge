@@ -26,7 +26,7 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS sql_rewrite_record");
         assertContains(schema, "original_sql_text MEDIUMTEXT NOT NULL");
         assertContains(schema, "review_status VARCHAR(32) NOT NULL DEFAULT 'PENDING_REVIEW'");
-        assertContains(schema, "publish_status VARCHAR(32) NOT NULL DEFAULT 'UNPUBLISHED'");
+        assertContains(schema, "activation_status VARCHAR(32) NOT NULL DEFAULT 'INACTIVE'");
         assertContains(schema, "runtime_binding_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "runtime_rule_version VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "rule_chain_json JSON DEFAULT NULL");
@@ -56,7 +56,7 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(migration, "idx_validation_run_rewrite_started");
         assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration 不得新增物理外键约束");
         assertContains(reviewPublishMigration, "ADD COLUMN review_status VARCHAR(32) NOT NULL DEFAULT 'PENDING_REVIEW'");
-        assertContains(reviewPublishMigration, "ADD COLUMN publish_status VARCHAR(32) NOT NULL DEFAULT 'UNPUBLISHED'");
+        assertContains(reviewPublishMigration, "ADD COLUMN activation_status VARCHAR(32) NOT NULL DEFAULT 'INACTIVE'");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_binding_id VARCHAR(64) DEFAULT NULL");
         assertContains(reviewPublishMigration, "ADD COLUMN runtime_rule_version VARCHAR(64) DEFAULT NULL");
         String trialMigration = readRepositoryFile(
@@ -67,7 +67,7 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(trialMigration, "ADD COLUMN source_problems_json JSON DEFAULT NULL");
         assertFalse(
             reviewPublishMigration.toUpperCase().contains("FOREIGN KEY"),
-            "review/publish migration 不得新增物理外键约束"
+            "review/activation migration 不得新增物理外键约束"
         );
         assertFalse(
             trialMigration.toUpperCase().contains("FOREIGN KEY"),
@@ -88,7 +88,7 @@ class AccelerationRewriteGovernancePersistenceSchemaMappingTest {
         assertContains(rewriteMapper, "FROM sql_rewrite_record");
         assertContains(rewriteMapper, "rule_chain_json");
         assertContains(rewriteMapper, "review_status");
-        assertContains(rewriteMapper, "publish_status");
+        assertContains(rewriteMapper, "activation_status");
         assertContains(rewriteMapper, "runtime_binding_id");
         assertContains(rewriteMapper, "runtime_rule_version");
         assertContains(rewriteMapper, "last_validation_run_id");

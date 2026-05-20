@@ -70,7 +70,7 @@ query-execution:
       max-rows: ${QUERY_EXECUTION_HETU_CLIENT_MAX_ROWS:200}
       max-pages: ${QUERY_EXECUTION_HETU_CLIENT_MAX_PAGES:10}
   acceleration:
-    ownership-mode: APPLY_APPROVED_RUNTIME_CONFIG_ONLY
+    ownership-mode: APPLY_ACTIVE_RUNTIME_CONFIG_ONLY
   cache:
     backend:
       type: ${QUERY_EXECUTION_CACHE_BACKEND_TYPE:IN_MEMORY}

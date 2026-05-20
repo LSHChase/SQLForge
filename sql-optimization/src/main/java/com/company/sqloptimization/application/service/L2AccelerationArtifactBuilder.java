@@ -424,8 +424,8 @@ final class L2AccelerationArtifactBuilder {
             "执行只读 explain / 成本评估",
             "创建或刷新物化视图",
             "对比原 SQL 与 MV 查询结果",
-            "审批通过后发布 runtime rewrite binding",
-            "异常时暂停绑定并回滚"
+            "激活 runtime rewrite binding",
+            "异常时暂停绑定并保留恢复证据"
         );
     }
 

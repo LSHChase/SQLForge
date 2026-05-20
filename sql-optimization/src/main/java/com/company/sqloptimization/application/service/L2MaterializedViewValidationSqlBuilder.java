@@ -32,7 +32,7 @@ final class L2MaterializedViewValidationSqlBuilder {
         if (input == null) {
             blockingReasons.add(reason(
                 "VALIDATION_INPUT_REQUIRED",
-                "缺少验证 SQL 生成输入，不能输出可发布物化视图产物。"
+                "缺少验证 SQL 生成输入，不能输出可激活物化视图产物。"
             ));
             return ValidationSqlResult.blocked(blockingReasons);
         }

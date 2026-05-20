@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class RewritePublishEligibility {
+public class RewriteActivationEligibility {
 
     private final String rewriteRecordId;
     private final String tenantId;
@@ -12,41 +12,41 @@ public class RewritePublishEligibility {
     private final boolean eligible;
     private final String reviewStatus;
     private final String validationStatus;
-    private final String publishStatus;
+    private final String activationStatus;
     private final String alertStatus;
     private final Boolean autoApplyAllowed;
     private final String lastValidationRunId;
-    private final List<RewritePublishEligibilityReason> refusalReasons;
+    private final List<RewriteActivationEligibilityReason> refusalReasons;
 
-    public RewritePublishEligibility(String rewriteRecordId,
+    public RewriteActivationEligibility(String rewriteRecordId,
                                      String tenantId,
                                      String policyId,
                                      boolean eligible,
                                      String reviewStatus,
                                      String validationStatus,
-                                     String publishStatus,
+                                     String activationStatus,
                                      String alertStatus,
                                      Boolean autoApplyAllowed,
                                      String lastValidationRunId,
-                                     List<RewritePublishEligibilityReason> refusalReasons) {
+                                     List<RewriteActivationEligibilityReason> refusalReasons) {
         this.rewriteRecordId = rewriteRecordId;
         this.tenantId = tenantId;
         this.policyId = policyId;
         this.eligible = eligible;
         this.reviewStatus = reviewStatus;
         this.validationStatus = validationStatus;
-        this.publishStatus = publishStatus;
+        this.activationStatus = activationStatus;
         this.alertStatus = alertStatus;
         this.autoApplyAllowed = autoApplyAllowed;
         this.lastValidationRunId = lastValidationRunId;
         this.refusalReasons = immutableReasons(refusalReasons);
     }
 
-    private List<RewritePublishEligibilityReason> immutableReasons(List<RewritePublishEligibilityReason> reasons) {
+    private List<RewriteActivationEligibilityReason> immutableReasons(List<RewriteActivationEligibilityReason> reasons) {
         if (reasons == null || reasons.isEmpty()) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(new ArrayList<RewritePublishEligibilityReason>(reasons));
+        return Collections.unmodifiableList(new ArrayList<RewriteActivationEligibilityReason>(reasons));
     }
 
     public String getRewriteRecordId() { return rewriteRecordId; }
@@ -55,9 +55,9 @@ public class RewritePublishEligibility {
     public boolean isEligible() { return eligible; }
     public String getReviewStatus() { return reviewStatus; }
     public String getValidationStatus() { return validationStatus; }
-    public String getPublishStatus() { return publishStatus; }
+    public String getActivationStatus() { return activationStatus; }
     public String getAlertStatus() { return alertStatus; }
     public Boolean getAutoApplyAllowed() { return autoApplyAllowed; }
     public String getLastValidationRunId() { return lastValidationRunId; }
-    public List<RewritePublishEligibilityReason> getRefusalReasons() { return refusalReasons; }
+    public List<RewriteActivationEligibilityReason> getRefusalReasons() { return refusalReasons; }
 }

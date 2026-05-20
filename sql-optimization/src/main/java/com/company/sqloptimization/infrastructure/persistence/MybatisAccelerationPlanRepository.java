@@ -72,22 +72,14 @@ public class MybatisAccelerationPlanRepository implements AccelerationPlanReposi
         record.setConfigSnapshotId(plan.getConfigSnapshotId());
         record.setResultId(plan.getResultId());
         record.setHistoryId(plan.getHistoryId());
-        record.setReviewNote(plan.getReviewNote());
-        record.setApprovedBy(plan.getApprovedBy());
-        record.setApprovedAt(toLocalDateTime(plan.getApprovedAt()));
-        record.setRejectedBy(plan.getRejectedBy());
-        record.setRejectedAt(toLocalDateTime(plan.getRejectedAt()));
         record.setLastErrorCode(plan.getLastErrorCode());
         record.setLastErrorMessage(plan.getLastErrorMessage());
-        record.setRuntimeBindingJson(plan.getRuntimeBindingJson());
-        record.setRuntimeBindingAt(toLocalDateTime(plan.getRuntimeBindingAt()));
-        record.setRuntimeBindingBy(plan.getRuntimeBindingBy());
-        record.setVerificationEvidenceJson(plan.getVerificationEvidenceJson());
-        record.setVerifiedAt(toLocalDateTime(plan.getVerifiedAt()));
-        record.setVerifiedBy(plan.getVerifiedBy());
-        record.setRollbackEvidenceJson(plan.getRollbackEvidenceJson());
-        record.setRolledBackAt(toLocalDateTime(plan.getRolledBackAt()));
-        record.setRolledBackBy(plan.getRolledBackBy());
+        record.setActivationEvidenceJson(plan.getActivationEvidenceJson());
+        record.setActivatedAt(toLocalDateTime(plan.getActivatedAt()));
+        record.setActivatedBy(plan.getActivatedBy());
+        record.setPauseEvidenceJson(plan.getPauseEvidenceJson());
+        record.setPausedAt(toLocalDateTime(plan.getPausedAt()));
+        record.setPausedBy(plan.getPausedBy());
         record.setStatusHistoryJson(JsonUtils.toJson(plan.getStatusHistory()));
         record.setCreatedAt(toLocalDateTime(plan.getCreatedAt()));
         record.setUpdatedAt(toLocalDateTime(plan.getUpdatedAt()));
@@ -115,22 +107,14 @@ public class MybatisAccelerationPlanRepository implements AccelerationPlanReposi
             record.getResultId(),
             record.getHistoryId(),
             record.getPlanStatus() == null ? null : AccelerationPlanStatus.valueOf(record.getPlanStatus()),
-            record.getReviewNote(),
-            record.getApprovedBy(),
-            toInstant(record.getApprovedAt()),
-            record.getRejectedBy(),
-            toInstant(record.getRejectedAt()),
             record.getLastErrorCode(),
             record.getLastErrorMessage(),
-            record.getRuntimeBindingJson(),
-            toInstant(record.getRuntimeBindingAt()),
-            record.getRuntimeBindingBy(),
-            record.getVerificationEvidenceJson(),
-            toInstant(record.getVerifiedAt()),
-            record.getVerifiedBy(),
-            record.getRollbackEvidenceJson(),
-            toInstant(record.getRolledBackAt()),
-            record.getRolledBackBy(),
+            record.getActivationEvidenceJson(),
+            toInstant(record.getActivatedAt()),
+            record.getActivatedBy(),
+            record.getPauseEvidenceJson(),
+            toInstant(record.getPausedAt()),
+            record.getPausedBy(),
             toInstant(record.getUpdatedAt())
         );
     }

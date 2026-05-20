@@ -16,12 +16,12 @@ import org.junit.jupiter.api.Test;
 class RedisJdbcAgentRewriteRuleSyncAdapterTest {
 
     @Test
-    void shouldWriteTenantScopedRewriteAndMetadataOnPublish() {
+    void shouldWriteTenantScopedRewriteAndMetadataOnActivate() {
         QueryExecutionJdbcAgentRedisProperties properties = enabledProperties();
         RecordingRedisRewriteRuleClient client = new RecordingRedisRewriteRuleClient(properties);
         RedisJdbcAgentRewriteRuleSyncAdapter adapter = new RedisJdbcAgentRewriteRuleSyncAdapter(properties, client);
 
-        JdbcAgentRewriteRuleSyncResult result = adapter.publish(binding().build());
+        JdbcAgentRewriteRuleSyncResult result = adapter.activate(binding().build());
 
         assertEquals("SYNCED", result.getSyncStatus());
         assertEquals("SELECT id FROM orders", client.values.get(
@@ -65,7 +65,7 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
         };
         RedisJdbcAgentRewriteRuleSyncAdapter adapter = new RedisJdbcAgentRewriteRuleSyncAdapter(properties, client);
 
-        JdbcAgentRewriteRuleSyncResult result = adapter.publish(binding().build());
+        JdbcAgentRewriteRuleSyncResult result = adapter.activate(binding().build());
 
         assertEquals("FAILED", result.getSyncStatus());
         assertTrue(result.isAlertRequired());
@@ -80,7 +80,7 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
             new RecordingRedisRewriteRuleClient(properties)
         );
 
-        JdbcAgentRewriteRuleSyncResult result = adapter.publish(binding().build());
+        JdbcAgentRewriteRuleSyncResult result = adapter.activate(binding().build());
 
         assertEquals("SKIPPED", result.getSyncStatus());
     }
@@ -109,8 +109,8 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
             .datasourceCode("hetu_main")
             .ruleVersion(1L)
             .runtimeRuleVersion("runtime-rewrite-v1")
-            .publishedBy("publisher-001")
-            .publishedAt(Instant.now())
+            .activatedBy("publisher-001")
+            .activatedAt(Instant.now())
             .createdAt(Instant.now())
             .updatedAt(Instant.now());
     }

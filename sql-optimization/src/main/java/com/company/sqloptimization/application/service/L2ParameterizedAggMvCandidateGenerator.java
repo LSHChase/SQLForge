@@ -107,7 +107,7 @@ final class L2ParameterizedAggMvCandidateGenerator {
         if (!"AVAILABLE".equals(text(advancedStructureProfile.get("profileStatus")))) {
             reasons.add(reason(
                 "ADVANCED_STRUCTURE_PROFILE_REQUIRED",
-                "高级结构画像未完整可用，不能生成可发布的 PARAMETERIZED_AGG_MV SQL。"
+                "高级结构画像未完整可用，不能生成可激活的 PARAMETERIZED_AGG_MV SQL。"
             ));
         }
         if (grainMeasureDerivation == null
@@ -143,7 +143,7 @@ final class L2ParameterizedAggMvCandidateGenerator {
         if (hasOrPredicate(predicateClassification)) {
             reasons.add(reason(
                 "OR_PREDICATE_REWRITE_UNSUPPORTED",
-                "OR 谓词需要保持原逻辑分组，AMV-005 暂不生成可发布 rewrite。"
+                "OR 谓词需要保持原逻辑分组，AMV-005 暂不生成可激活 rewrite。"
             ));
         }
         List<Map<String, Object>> baseTables = baseTables(mapList(advancedStructureProfile.get("tables")));

@@ -8,10 +8,9 @@ import com.company.queryexecution.application.service.QueryExecutionCacheGoverna
 import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
 import com.company.queryexecution.application.service.QueryExecutionRuntimeRewriteBindingService;
 import com.company.queryexecution.domain.query.HetuRouteCalibrationSnapshot;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanActivationRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanRollbackRequest;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanPauseRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApplyRequest;
@@ -20,7 +19,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyRespo
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyVerifyRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
@@ -67,11 +66,11 @@ public class QueryExecutionInternalController {
         return queryExecutionResultDigestService.executeDigest(request);
     }
 
-    @PostMapping("/rewrite-bindings/publish")
-    public RuntimeRewriteBindingResponse publishRuntimeRewriteBinding(
-        @RequestBody RuntimeRewriteBindingPublishRequest request
+    @PostMapping("/rewrite-bindings/activate")
+    public RuntimeRewriteBindingResponse activateRuntimeRewriteBinding(
+        @RequestBody RuntimeRewriteBindingActivationRequest request
     ) {
-        return queryExecutionRuntimeRewriteBindingService.publish(request);
+        return queryExecutionRuntimeRewriteBindingService.activate(request);
     }
 
     @PostMapping("/rewrite-bindings/resolve-active")
@@ -86,13 +85,6 @@ public class QueryExecutionInternalController {
         @RequestBody RuntimeRewriteBindingStateChangeRequest request
     ) {
         return queryExecutionRuntimeRewriteBindingService.pause(request);
-    }
-
-    @PostMapping("/rewrite-bindings/unpublish")
-    public RuntimeRewriteBindingResponse unpublishRuntimeRewriteBinding(
-        @RequestBody RuntimeRewriteBindingStateChangeRequest request
-    ) {
-        return queryExecutionRuntimeRewriteBindingService.unpublish(request);
     }
 
     @GetMapping("/hetu/route-calibration")
@@ -115,25 +107,18 @@ public class QueryExecutionInternalController {
         );
     }
 
-    @PostMapping("/acceleration-plans/apply")
-    public QueryExecutionAccelerationPlanResponse applyAccelerationPlan(
-        @RequestBody QueryExecutionAccelerationPlanApplyRequest request
+    @PostMapping("/acceleration-plans/activate")
+    public QueryExecutionAccelerationPlanResponse activateAccelerationPlan(
+        @RequestBody QueryExecutionAccelerationPlanActivationRequest request
     ) {
-        return queryExecutionAccelerationRuntimeService.apply(request);
+        return queryExecutionAccelerationRuntimeService.activate(request);
     }
 
-    @PostMapping("/acceleration-plans/verify")
-    public QueryExecutionAccelerationPlanResponse verifyAccelerationPlan(
-        @RequestBody QueryExecutionAccelerationPlanVerifyRequest request
+    @PostMapping("/acceleration-plans/pause")
+    public QueryExecutionAccelerationPlanResponse pauseAccelerationPlan(
+        @RequestBody QueryExecutionAccelerationPlanPauseRequest request
     ) {
-        return queryExecutionAccelerationRuntimeService.verify(request);
-    }
-
-    @PostMapping("/acceleration-plans/rollback")
-    public QueryExecutionAccelerationPlanResponse rollbackAccelerationPlan(
-        @RequestBody QueryExecutionAccelerationPlanRollbackRequest request
-    ) {
-        return queryExecutionAccelerationRuntimeService.rollback(request);
+        return queryExecutionAccelerationRuntimeService.pause(request);
     }
 
     @PostMapping("/cache-policies/apply")

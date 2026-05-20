@@ -104,12 +104,12 @@ COLUMN_DEFINITIONS = [
         "ADD COLUMN runtime_rewrite_status VARCHAR(32) DEFAULT NULL COMMENT '运行时改写绑定解析状态快照' AFTER runtime_rule_version",
     ),
     (
-        "rewrite_publish_status_snapshot",
-        "ADD COLUMN rewrite_publish_status_snapshot VARCHAR(32) DEFAULT NULL COMMENT '根据后端运行时证据生成的发布状态快照' AFTER runtime_rewrite_status",
+        "rewrite_activation_status_snapshot",
+        "ADD COLUMN rewrite_activation_status_snapshot VARCHAR(32) DEFAULT NULL COMMENT '根据后端运行时证据生成的激活状态快照' AFTER runtime_rewrite_status",
     ),
     (
         "rewrite_fallback_reason",
-        "ADD COLUMN rewrite_fallback_reason VARCHAR(128) DEFAULT NULL COMMENT '自动改写回退到原始 SQL 的原因' AFTER rewrite_publish_status_snapshot",
+        "ADD COLUMN rewrite_fallback_reason VARCHAR(128) DEFAULT NULL COMMENT '自动改写回退到原始 SQL 的原因' AFTER rewrite_activation_status_snapshot",
     ),
     (
         "logical_object_hits",

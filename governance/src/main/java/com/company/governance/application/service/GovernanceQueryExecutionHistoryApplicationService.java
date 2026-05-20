@@ -257,7 +257,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         record.setRewriteRuleVersion(request.getRewriteRuleVersion());
         record.setRuntimeRuleVersion(request.getRuntimeRuleVersion());
         record.setRuntimeRewriteStatus(request.getRuntimeRewriteStatus());
-        record.setRewritePublishStatusSnapshot(request.getRewritePublishStatusSnapshot());
+        record.setRewriteActivationStatusSnapshot(request.getRewriteActivationStatusSnapshot());
         record.setRewriteFallbackReason(request.getRewriteFallbackReason());
         record.setLogicalObjectHits(request.getLogicalObjectHits());
         record.setRouteSummary(request.getRouteSummary());
@@ -328,7 +328,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("rewriteRuleVersion", request.getRewriteRuleVersion());
         payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
         payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
-        payload.put("rewritePublishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("rewriteActivationStatusSnapshot", request.getRewriteActivationStatusSnapshot());
         payload.put("queryContext", parseJsonMap(request.getQueryContext()));
         return payload;
     }
@@ -345,7 +345,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("rewriteRuleVersion", request.getRewriteRuleVersion());
         payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
         payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
-        payload.put("rewritePublishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("rewriteActivationStatusSnapshot", request.getRewriteActivationStatusSnapshot());
         payload.put("rewriteFallbackReason", request.getRewriteFallbackReason());
         payload.put("accelerationApplied", request.getAccelerationApplied());
         payload.put("elapsedMs", request.getElapsedMs());
@@ -394,7 +394,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("rewriteRuleVersion", request.getRewriteRuleVersion());
         payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
         payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
-        payload.put("rewritePublishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("rewriteActivationStatusSnapshot", request.getRewriteActivationStatusSnapshot());
         payload.put("rewriteFallbackReason", request.getRewriteFallbackReason());
         payload.put("accelerationApplied", request.getAccelerationApplied());
         payload.put("elapsedMs", request.getElapsedMs());
@@ -411,7 +411,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
         payload.put("ruleVersion", request.getRewriteRuleVersion());
         payload.put("runtimeRuleVersion", request.getRuntimeRuleVersion());
         payload.put("runtimeRewriteStatus", request.getRuntimeRewriteStatus());
-        payload.put("publishStatusSnapshot", request.getRewritePublishStatusSnapshot());
+        payload.put("activationStatusSnapshot", request.getRewriteActivationStatusSnapshot());
         payload.put("rewriteFallbackReason", request.getRewriteFallbackReason());
         return payload;
     }

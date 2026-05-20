@@ -34,7 +34,7 @@
         <result property="rewriteRuleVersion" column="rewrite_rule_version"/>
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
         <result property="runtimeRewriteStatus" column="runtime_rewrite_status"/>
-        <result property="rewritePublishStatusSnapshot" column="rewrite_publish_status_snapshot"/>
+        <result property="rewriteActivationStatusSnapshot" column="rewrite_activation_status_snapshot"/>
         <result property="rewriteFallbackReason" column="rewrite_fallback_reason"/>
         <result property="logicalObjectHits" column="logical_object_hits"/>
         <result property="routeSummary" column="history_route_summary"/>
@@ -90,7 +90,7 @@
         <result property="rewriteRuleVersion" column="rewrite_rule_version"/>
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
         <result property="runtimeRewriteStatus" column="runtime_rewrite_status"/>
-        <result property="rewritePublishStatusSnapshot" column="rewrite_publish_status_snapshot"/>
+        <result property="rewriteActivationStatusSnapshot" column="rewrite_activation_status_snapshot"/>
         <result property="rewriteFallbackReason" column="rewrite_fallback_reason"/>
         <result property="logicalObjectHits" column="logical_object_hits"/>
         <result property="routeSummary" column="route_summary"/>
@@ -134,7 +134,7 @@
         rewrite_rule_version,
         runtime_rule_version,
         runtime_rewrite_status,
-        rewrite_publish_status_snapshot,
+        rewrite_activation_status_snapshot,
         rewrite_fallback_reason,
         logical_object_hits,
         route_summary,
@@ -175,7 +175,7 @@
         qh.rewrite_rule_version,
         qh.runtime_rule_version,
         qh.runtime_rewrite_status,
-        qh.rewrite_publish_status_snapshot,
+        qh.rewrite_activation_status_snapshot,
         qh.rewrite_fallback_reason,
         qh.logical_object_hits,
         qh.route_summary AS history_route_summary,
@@ -428,7 +428,7 @@
             rewrite_rule_version,
             runtime_rule_version,
             runtime_rewrite_status,
-            rewrite_publish_status_snapshot,
+            rewrite_activation_status_snapshot,
             rewrite_fallback_reason,
             logical_object_hits,
             route_summary,
@@ -470,7 +470,7 @@
             #{rewriteRuleVersion},
             #{runtimeRuleVersion},
             #{runtimeRewriteStatus},
-            #{rewritePublishStatusSnapshot},
+            #{rewriteActivationStatusSnapshot},
             #{rewriteFallbackReason},
             #{logicalObjectHits},
             #{routeSummary},
@@ -516,7 +516,7 @@
             rewrite_rule_version = #{rewriteRuleVersion},
             runtime_rule_version = #{runtimeRuleVersion},
             runtime_rewrite_status = #{runtimeRewriteStatus},
-            rewrite_publish_status_snapshot = #{rewritePublishStatusSnapshot},
+            rewrite_activation_status_snapshot = #{rewriteActivationStatusSnapshot},
             rewrite_fallback_reason = #{rewriteFallbackReason},
             logical_object_hits = #{logicalObjectHits},
             route_summary = #{routeSummary},

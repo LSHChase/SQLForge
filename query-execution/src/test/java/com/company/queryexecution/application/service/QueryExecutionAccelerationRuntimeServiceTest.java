@@ -7,10 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanActivationRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanRollbackRequest;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanPauseRequest;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -23,39 +22,31 @@ class QueryExecutionAccelerationRuntimeServiceTest {
     }
 
     @Test
-    void shouldApplyVerifyAndRollbackApprovedBinding() {
+    void shouldActivateAndPauseRuntimeBinding() {
         setRequestContext();
         QueryExecutionAccelerationRuntimeService service = new QueryExecutionAccelerationRuntimeService();
-        QueryExecutionAccelerationPlanApplyRequest applyRequest = new QueryExecutionAccelerationPlanApplyRequest();
-        applyRequest.setTenantId("tenant-a");
-        applyRequest.setPlanId("plan-001");
-        applyRequest.setSqlFingerprint("fp-001");
-        applyRequest.setDatasourceType("HETU");
-        applyRequest.setSelectedSuggestionTypes(Arrays.asList("PRECOMPUTE", "PARTITION"));
-        applyRequest.setPlanSummary("approved plan");
-        applyRequest.setPrimaryRecommendation("use approved runtime config");
+        QueryExecutionAccelerationPlanActivationRequest activationRequest = new QueryExecutionAccelerationPlanActivationRequest();
+        activationRequest.setTenantId("tenant-a");
+        activationRequest.setPlanId("plan-001");
+        activationRequest.setSqlFingerprint("fp-001");
+        activationRequest.setDatasourceType("HETU");
+        activationRequest.setSelectedSuggestionTypes(Arrays.asList("PRECOMPUTE", "PARTITION"));
+        activationRequest.setPlanSummary("activated plan");
+        activationRequest.setPrimaryRecommendation("use activated runtime config");
 
-        QueryExecutionAccelerationPlanResponse applyResponse = service.apply(applyRequest);
+        QueryExecutionAccelerationPlanResponse activationResponse = service.activate(activationRequest);
 
-        assertEquals("APPLIED", applyResponse.getStatus());
-        assertTrue(applyResponse.isActive());
+        assertEquals("ACTIVE", activationResponse.getStatus());
+        assertTrue(activationResponse.isActive());
         assertNotNull(service.resolveActiveBinding("tenant-a", "fp-001", "HETU"));
 
-        QueryExecutionAccelerationPlanVerifyRequest verifyRequest = new QueryExecutionAccelerationPlanVerifyRequest();
-        verifyRequest.setTenantId("tenant-a");
-        verifyRequest.setPlanId("plan-001");
-        verifyRequest.setSqlFingerprint("fp-001");
-        QueryExecutionAccelerationPlanResponse verifyResponse = service.verify(verifyRequest);
-        assertEquals("VERIFIED", verifyResponse.getStatus());
-        assertTrue(verifyResponse.isActive());
-
-        QueryExecutionAccelerationPlanRollbackRequest rollbackRequest = new QueryExecutionAccelerationPlanRollbackRequest();
-        rollbackRequest.setTenantId("tenant-a");
-        rollbackRequest.setPlanId("plan-001");
-        rollbackRequest.setSqlFingerprint("fp-001");
-        QueryExecutionAccelerationPlanResponse rollbackResponse = service.rollback(rollbackRequest);
-        assertEquals("ROLLED_BACK", rollbackResponse.getStatus());
-        assertFalse(rollbackResponse.isActive());
+        QueryExecutionAccelerationPlanPauseRequest pauseRequest = new QueryExecutionAccelerationPlanPauseRequest();
+        pauseRequest.setTenantId("tenant-a");
+        pauseRequest.setPlanId("plan-001");
+        pauseRequest.setSqlFingerprint("fp-001");
+        QueryExecutionAccelerationPlanResponse pauseResponse = service.pause(pauseRequest);
+        assertEquals("PAUSED", pauseResponse.getStatus());
+        assertFalse(pauseResponse.isActive());
         assertNull(service.resolveActiveBinding("tenant-a", "fp-001", "HETU"));
     }
 

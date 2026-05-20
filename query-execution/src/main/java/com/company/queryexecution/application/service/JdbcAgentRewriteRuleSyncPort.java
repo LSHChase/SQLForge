@@ -4,7 +4,7 @@ import com.company.queryexecution.domain.rewrite.RuntimeRewriteBinding;
 
 public interface JdbcAgentRewriteRuleSyncPort {
 
-    JdbcAgentRewriteRuleSyncResult publish(RuntimeRewriteBinding binding);
+    JdbcAgentRewriteRuleSyncResult activate(RuntimeRewriteBinding binding);
 
     JdbcAgentRewriteRuleSyncResult disable(RuntimeRewriteBinding binding);
 }

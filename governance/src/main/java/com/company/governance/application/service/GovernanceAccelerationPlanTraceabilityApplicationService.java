@@ -208,12 +208,10 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
     }
 
     private boolean isTerminalStatus(String status) {
-        return "REJECTED".equals(status)
-            || "VERIFIED".equals(status)
-            || "ROLLED_BACK".equals(status)
-            || "APPLY_FAILED".equals(status)
-            || "VERIFY_FAILED".equals(status)
-            || "ROLLBACK_FAILED".equals(status);
+        return "ACTIVE".equals(status)
+            || "PAUSED".equals(status)
+            || "ACTIVATE_FAILED".equals(status)
+            || "PAUSE_FAILED".equals(status);
     }
 
     private String requireContext(String fieldName, String value) {

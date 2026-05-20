@@ -1,6 +1,6 @@
 package com.company.sqloptimization.domain.rewrite.policy;
 
-public class RewritePublishEligibilityReason {
+public class RewriteActivationEligibilityReason {
 
     private final String code;
     private final String message;
@@ -8,7 +8,7 @@ public class RewritePublishEligibilityReason {
     private final String field;
     private final String evidenceRef;
 
-    public RewritePublishEligibilityReason(String code,
+    public RewriteActivationEligibilityReason(String code,
                                            String message,
                                            boolean blocking,
                                            String field,

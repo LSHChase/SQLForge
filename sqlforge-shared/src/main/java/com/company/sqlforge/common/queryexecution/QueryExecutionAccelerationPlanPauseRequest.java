@@ -1,6 +1,6 @@
 package com.company.sqlforge.common.queryexecution;
 
-public class QueryExecutionAccelerationPlanVerifyRequest {
+public class QueryExecutionAccelerationPlanPauseRequest {
 
     private String tenantId;
     private String planId;

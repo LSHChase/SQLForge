@@ -701,10 +701,10 @@ const rewriteAuditCards = computed(() => {
       testId: 'sql-history-rewrite-audit-runtime-status'
     },
     {
-      key: 'publishStatusSnapshot',
-      label: t('sqlHistory.rewriteAudit.publishStatusSnapshot'),
-      value: firstValue(audit.publishStatusSnapshot, audit.rewritePublishStatusSnapshot),
-      testId: 'sql-history-rewrite-audit-publish-status'
+      key: 'activationStatusSnapshot',
+      label: t('sqlHistory.rewriteAudit.activationStatusSnapshot'),
+      value: firstValue(audit.activationStatusSnapshot, audit.rewriteActivationStatusSnapshot),
+      testId: 'sql-history-rewrite-audit-activation-status'
     },
     {
       key: 'rewriteFallbackReason',

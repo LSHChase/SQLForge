@@ -824,7 +824,7 @@ public class RewriteTrialApplicationService {
             .expectedGain(firstBenefitSummary(suggestion))
             .benefitLevel(BenefitLevel.LOW)
             .riskLevel(RiskLevel.MEDIUM)
-            .riskSummary("试算候选仅作为推荐证据，发布前必须通过改写记录审批与结果校验。")
+            .riskSummary("试算候选仅作为推荐证据，激活前必须通过改写记录资格检查与结果校验。")
             .requiresDispatch(false)
             .status(RecommendationStatus.RECOMMENDED)
             .sourceType(GovernanceSourceType.PARSE)

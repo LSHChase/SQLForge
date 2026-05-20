@@ -13,7 +13,7 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqloptimization.config.OptimizationQueryExecutionProperties;
@@ -35,12 +35,12 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
     }
 
     @Test
-    void shouldPostPublishPauseAndUnpublishWithProtectedHeaders() {
+    void shouldPostActivateAndPauseWithProtectedHeaders() {
         QueryExecutionRuntimeRewriteBindingHttpClient client = createClient();
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setRequestContext();
-        server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/publish"))
+        server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/activate"))
             .andExpect(method(HttpMethod.POST))
             .andExpect(header(RequestHeaderConstants.TENANT_ID, "tenant-a"))
             .andExpect(header(RequestHeaderConstants.USER_ID, "operator-001"))
@@ -50,18 +50,11 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
             .andExpect(method(HttpMethod.POST))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"runtimeBindingId\":\"rwb-001\"")))
             .andRespond(withSuccess(pausedResponse(), MediaType.APPLICATION_JSON));
-        server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/unpublish"))
-            .andExpect(method(HttpMethod.POST))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"reason\":\"operator rollback\"")))
-            .andRespond(withSuccess(unpublishedResponse(), MediaType.APPLICATION_JSON));
-
-        RuntimeRewriteBindingResponse published = client.publish(publishRequest());
+        RuntimeRewriteBindingResponse activated = client.activate(activationRequest());
         RuntimeRewriteBindingResponse paused = client.pause(stateChangeRequest("validation divergence"));
-        RuntimeRewriteBindingResponse unpublished = client.unpublish(stateChangeRequest("operator rollback"));
 
-        assertEquals("ACTIVE", published.getStatus());
+        assertEquals("ACTIVE", activated.getStatus());
         assertEquals("PAUSED", paused.getStatus());
-        assertEquals("UNPUBLISHED", unpublished.getStatus());
         server.verify();
     }
 
@@ -71,10 +64,10 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setRequestContext();
-        server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/publish"))
+        server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/activate"))
             .andRespond(withServerError());
 
-        BizException ex = assertThrows(BizException.class, () -> client.publish(publishRequest()));
+        BizException ex = assertThrows(BizException.class, () -> client.activate(activationRequest()));
 
         assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE, ex.getCode());
         server.verify();
@@ -86,8 +79,8 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         return new QueryExecutionRuntimeRewriteBindingHttpClient(new RestTemplateBuilder(), properties);
     }
 
-    private RuntimeRewriteBindingPublishRequest publishRequest() {
-        RuntimeRewriteBindingPublishRequest request = new RuntimeRewriteBindingPublishRequest();
+    private RuntimeRewriteBindingActivationRequest activationRequest() {
+        RuntimeRewriteBindingActivationRequest request = new RuntimeRewriteBindingActivationRequest();
         request.setTenantId("tenant-a");
         request.setRewriteRecordId("rewrite-001");
         request.setRecommendationId("recommendation-001");
@@ -98,7 +91,7 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         request.setOriginalSqlDigest("fp-001");
         request.setRecommendedSqlText("SELECT id FROM orders");
         request.setDatasourceCode("hetu_main");
-        request.setPublishedBy("operator-001");
+        request.setActivatedBy("operator-001");
         return request;
     }
 
@@ -123,13 +116,6 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         return "{\"tenantId\":\"tenant-a\",\"runtimeBindingId\":\"rwb-001\","
             + "\"rewriteRecordId\":\"rewrite-001\",\"sqlFingerprint\":\"fp-001\","
             + "\"status\":\"PAUSED\",\"active\":false,\"ruleVersion\":1,"
-            + "\"runtimeRuleVersion\":\"runtime-rewrite-v1\"}";
-    }
-
-    private String unpublishedResponse() {
-        return "{\"tenantId\":\"tenant-a\",\"runtimeBindingId\":\"rwb-001\","
-            + "\"rewriteRecordId\":\"rewrite-001\",\"sqlFingerprint\":\"fp-001\","
-            + "\"status\":\"UNPUBLISHED\",\"active\":false,\"ruleVersion\":1,"
             + "\"runtimeRuleVersion\":\"runtime-rewrite-v1\"}";
     }
 

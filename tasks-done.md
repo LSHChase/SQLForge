@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520: 折叠审批发布撤销回滚流程为激活暂停模型
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520: collapse lifecycle to activate/pause`
+- Priority: 1
+- Depends on: N/A
+- Scope: 深入盘点文档、规则、产品规格、前后端代码、脚本、验证入口中审批/发布/撤销/回滚相关语义；将非核心破坏性复杂流程简化为 activate/pause 两个核心动作，更新一致命名、契约、UI、脚本、验证与文档；若发现会改变核心运行时安全、审计、历史留痕、回滚恢复或兼容契约的影响，先记录问题、解决方案与推荐路径，转入人工决定，不直接破坏核心功能。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-20: repo-wide lifecycle inventory found core-impact changes across SQL rewrite review/publish contracts, query-execution runtime binding compatibility, acceleration plan apply/verify/rollback evidence, DB status values, frontend actions, and smoke/contract scripts; impact analysis recorded in `docs/plans/lifecycle-activation-pause-impact-analysis-2026-05-20.md`.
+  - 2026-05-20: raw user requirement archived at `docs/references/raw-requirements/USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520.md`.
+  - 2026-05-20: human selected full breaking state-machine migration (Option C) and confirmed approval is not a mandatory gate behind activate; explanation of `unpublish` and acceleration plan `apply/verify/rollback` added to the impact analysis.
+  - 2026-05-20: human confirmed `unpublish` fully folds into `pause`; acceleration plan `apply/verify/rollback` are included in this migration, while their existing evidence is preserved as `activationEvidence` / `pauseEvidence`.
+  - 2026-05-20: implemented activate/pause lifecycle across SQL rewrite records, runtime rewrite bindings, acceleration plans, query-execution acceleration binding terminology, SQL schema/migrations, recommendation frontend, dashboard/history/validation UI copy, contract scripts, smoke scripts, product docs, and architecture docs.
+  - 2026-05-20: validation passed for `mvn -q clean test`, `node scripts/check-recommendation-page-contract.mjs`, `node scripts/check-production-rewrite-closed-loop-browser-smoke.mjs`, `node scripts/check-dev-frontend.mjs`, `npm run lint`, `npm run build`, `node scripts/lint-repository-knowledge.js`, `git diff --check`, `python3 scripts/foreman.py validate USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520`, and `python3 scripts/task_audit.py --check --phase pre-closeout`; closeout and post-closeout audit remain pending.
+- Context closeout:
+  - Completed scope: Collapsed SQL rewrite, runtime binding, acceleration plan, schema, frontend, scripts, and docs from approval/publish/apply/rollback lifecycle terms to activate/pause semantics.
+  - Validation evidence: mvn -q clean test; node scripts/check-recommendation-page-contract.mjs; node scripts/check-production-rewrite-closed-loop-browser-smoke.mjs; node scripts/check-dev-frontend.mjs; npm run lint; npm run build; node scripts/lint-repository-knowledge.js; git diff --check; python3 scripts/foreman.py validate USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Breaking API/status/schema migration requires downstream clients and existing environment data to move to activation naming; repository-side validation is complete.
+  - Next step: Monitor downstream/environment-backed consumers for activation naming adoption; no additional repository follow-up is required for this task.
+
 ### USER-CN-REMOVE-ACCELERATION-GOVERNANCE-WORKBENCH-20260520: 去除加速治理工作台参考功能与文档
 
 - Status: done

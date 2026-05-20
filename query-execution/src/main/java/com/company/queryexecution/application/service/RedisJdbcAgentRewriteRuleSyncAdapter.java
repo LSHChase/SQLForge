@@ -32,9 +32,9 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
     }
 
     @Override
-    public JdbcAgentRewriteRuleSyncResult publish(RuntimeRewriteBinding binding) {
+    public JdbcAgentRewriteRuleSyncResult activate(RuntimeRewriteBinding binding) {
         if (!isEnabled()) {
-            return JdbcAgentRewriteRuleSyncResult.skipped("PUBLISH", "JDBC Agent Redis 同步已禁用");
+            return JdbcAgentRewriteRuleSyncResult.skipped("ACTIVATE", "JDBC Agent Redis 同步已禁用");
         }
         String rewriteKey = rewriteKey(binding);
         String metadataKey = metadataKey(binding);
@@ -43,14 +43,14 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
             redisRewriteRuleClient.set(metadataKey, metadataJson(binding, "ACTIVE"), properties.getTtlSeconds());
             return JdbcAgentRewriteRuleSyncResult.builder()
                 .syncStatus("SYNCED")
-                .syncAction("PUBLISH")
+                .syncAction("ACTIVATE")
                 .redisRewriteKey(rewriteKey)
                 .redisMetadataKey(metadataKey)
                 .retryable(false)
                 .alertRequired(false)
                 .build();
         } catch (RuntimeException ex) {
-            return failed("PUBLISH", rewriteKey, metadataKey, ex);
+            return failed("ACTIVATE", rewriteKey, metadataKey, ex);
         }
     }
 

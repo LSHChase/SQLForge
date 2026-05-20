@@ -1833,11 +1833,11 @@ public class GovernanceHistoryApplicationService {
             readText(queryContext, "runtimeRewriteStatus"),
             readText(nestedAudit, "runtimeRewriteStatus")
         ));
-        audit.put("publishStatusSnapshot", firstNonBlank(
-            row.getRewritePublishStatusSnapshot(),
-            readText(bindingSummary, "rewritePublishStatusSnapshot"),
-            readText(queryContext, "rewritePublishStatusSnapshot"),
-            readText(nestedAudit, "publishStatusSnapshot")
+        audit.put("activationStatusSnapshot", firstNonBlank(
+            row.getRewriteActivationStatusSnapshot(),
+            readText(bindingSummary, "rewriteActivationStatusSnapshot"),
+            readText(queryContext, "rewriteActivationStatusSnapshot"),
+            readText(nestedAudit, "activationStatusSnapshot")
         ));
         audit.put("rewriteFallbackReason", firstNonBlank(
             row.getRewriteFallbackReason(),
@@ -1845,9 +1845,9 @@ public class GovernanceHistoryApplicationService {
             readText(queryContext, "rewriteFallbackReason"),
             readText(nestedAudit, "rewriteFallbackReason")
         ));
-        if (!StringUtils.hasText(String.valueOf(audit.get("publishStatusSnapshot")))
-            || "null".equals(String.valueOf(audit.get("publishStatusSnapshot")))) {
-            audit.put("publishStatusSnapshot", StringUtils.hasText(rewriteRecordId) ? "UNKNOWN" : "UNPUBLISHED");
+        if (!StringUtils.hasText(String.valueOf(audit.get("activationStatusSnapshot")))
+            || "null".equals(String.valueOf(audit.get("activationStatusSnapshot")))) {
+            audit.put("activationStatusSnapshot", StringUtils.hasText(rewriteRecordId) ? "UNKNOWN" : "INACTIVE");
         }
         return audit;
     }
@@ -1950,7 +1950,7 @@ public class GovernanceHistoryApplicationService {
             builder.append("-- 运行时绑定 ID runtime_binding_id=").append(rewriteAuditText(detail, "runtimeBindingId", "-")).append('\n');
             builder.append("-- 规则版本 rule_version=").append(rewriteAuditText(detail, "ruleVersion", "-")).append('\n');
             builder.append("-- 运行时规则版本 runtime_rule_version=").append(rewriteAuditText(detail, "runtimeRuleVersion", "-")).append('\n');
-            builder.append("-- 发布状态快照 publish_status_snapshot=").append(rewriteAuditText(detail, "publishStatusSnapshot", "-")).append('\n');
+            builder.append("-- 激活状态快照 activation_status_snapshot=").append(rewriteAuditText(detail, "activationStatusSnapshot", "-")).append('\n');
             builder.append('\n').append("-- SQL 文本 sql_text").append('\n').append(firstNonBlank(detail.getSqlText(), "-- 不可用"));
             builder.append('\n').append('\n').append("-- SQL 模板文本 sql_template_text").append('\n')
                 .append(firstNonBlank(detail.getSqlTemplateText(), "-- 不可用"));
@@ -1959,7 +1959,7 @@ public class GovernanceHistoryApplicationService {
             return builder.toString();
         }
         if ("CSV".equals(exportFormat)) {
-            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,rewriteRecordId,runtimeBindingId,ruleVersion,runtimeRuleVersion,publishStatusSnapshot,rewriteFallbackReason,accelerationApplied,logicalObjectKeys\n"
+            return "historyId,reportCode,datasourceCode,stageCode,resultStatus,targetEngine,returnedRowCount,cacheHit,rewriteApplied,rewriteRecordId,runtimeBindingId,ruleVersion,runtimeRuleVersion,activationStatusSnapshot,rewriteFallbackReason,accelerationApplied,logicalObjectKeys\n"
                 + csvCell(detail.getHistoryId()) + ","
                 + csvCell(detail.getReportCode()) + ","
                 + csvCell(detail.getDatasourceCode()) + ","
@@ -1973,13 +1973,13 @@ public class GovernanceHistoryApplicationService {
                 + csvCell(rewriteAuditText(detail, "runtimeBindingId", "")) + ","
                 + csvCell(rewriteAuditText(detail, "ruleVersion", "")) + ","
                 + csvCell(rewriteAuditText(detail, "runtimeRuleVersion", "")) + ","
-                + csvCell(rewriteAuditText(detail, "publishStatusSnapshot", "")) + ","
+                + csvCell(rewriteAuditText(detail, "activationStatusSnapshot", "")) + ","
                 + csvCell(rewriteAuditText(detail, "rewriteFallbackReason", "")) + ","
                 + csvCell(String.valueOf(detail.getExecutionSummary().get("accelerationApplied"))) + ","
                 + csvCell(logicalObjectSummary);
         }
         if ("EXCEL".equals(exportFormat)) {
-            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\trewriteRecordId\truntimeBindingId\truleVersion\truntimeRuleVersion\tpublishStatusSnapshot\trewriteFallbackReason\taccelerationApplied\tlogicalObjectKeys\n"
+            return "historyId\treportCode\tdatasourceCode\tstageCode\tresultStatus\ttargetEngine\treturnedRowCount\tcacheHit\trewriteApplied\trewriteRecordId\truntimeBindingId\truleVersion\truntimeRuleVersion\tactivationStatusSnapshot\trewriteFallbackReason\taccelerationApplied\tlogicalObjectKeys\n"
                 + firstNonBlank(detail.getHistoryId(), "") + "\t"
                 + firstNonBlank(detail.getReportCode(), "") + "\t"
                 + firstNonBlank(detail.getDatasourceCode(), "") + "\t"
@@ -1993,7 +1993,7 @@ public class GovernanceHistoryApplicationService {
                 + rewriteAuditText(detail, "runtimeBindingId", "") + "\t"
                 + rewriteAuditText(detail, "ruleVersion", "") + "\t"
                 + rewriteAuditText(detail, "runtimeRuleVersion", "") + "\t"
-                + rewriteAuditText(detail, "publishStatusSnapshot", "") + "\t"
+                + rewriteAuditText(detail, "activationStatusSnapshot", "") + "\t"
                 + rewriteAuditText(detail, "rewriteFallbackReason", "") + "\t"
                 + firstNonBlank(String.valueOf(detail.getExecutionSummary().get("accelerationApplied")), "") + "\t"
                 + firstNonBlank(logicalObjectSummary, "");
@@ -2009,7 +2009,7 @@ public class GovernanceHistoryApplicationService {
             + "运行时绑定 ID runtimeBindingId: " + rewriteAuditText(detail, "runtimeBindingId", "-") + "\n"
             + "规则版本 ruleVersion: " + rewriteAuditText(detail, "ruleVersion", "-") + "\n"
             + "运行时规则版本 runtimeRuleVersion: " + rewriteAuditText(detail, "runtimeRuleVersion", "-") + "\n"
-            + "发布状态快照 publishStatusSnapshot: " + rewriteAuditText(detail, "publishStatusSnapshot", "-") + "\n"
+            + "激活状态快照 activationStatusSnapshot: " + rewriteAuditText(detail, "activationStatusSnapshot", "-") + "\n"
             + "逻辑对象键 logicalObjectKeys: " + firstNonBlank(logicalObjectSummary, "-") + "\n"
             + "查询日期状态 queryDateStatus: " + firstNonBlank(String.valueOf(detail.getQueryDateSummary().get("queryDateStatus")), "-") + "\n"
             + "备注：阶段 1 的 PDF 基线以内联文本证据载荷形式输出。\n";

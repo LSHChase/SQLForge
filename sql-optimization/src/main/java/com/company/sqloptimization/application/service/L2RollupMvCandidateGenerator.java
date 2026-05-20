@@ -126,7 +126,7 @@ final class L2RollupMvCandidateGenerator {
         if (!"AVAILABLE".equals(text(advancedStructureProfile.get("profileStatus")))) {
             reasons.add(reason(
                 "ADVANCED_STRUCTURE_PROFILE_REQUIRED",
-                "高级结构画像未完整可用，不能生成可发布的 ROLLUP_MV SQL。"
+                "高级结构画像未完整可用，不能生成可激活的 ROLLUP_MV SQL。"
             ));
         }
         if (grainMeasureDerivation == null
@@ -162,7 +162,7 @@ final class L2RollupMvCandidateGenerator {
         if (hasOrPredicate(predicateClassification)) {
             reasons.add(reason(
                 "OR_PREDICATE_REWRITE_UNSUPPORTED",
-                "OR 谓词需要保持原逻辑分组，AMV-008 暂不生成可发布 Rollup rewrite。"
+                "OR 谓词需要保持原逻辑分组，AMV-008 暂不生成可激活 Rollup rewrite。"
             ));
         }
         List<Map<String, Object>> baseTables = baseTables(mapList(advancedStructureProfile.get("tables")));

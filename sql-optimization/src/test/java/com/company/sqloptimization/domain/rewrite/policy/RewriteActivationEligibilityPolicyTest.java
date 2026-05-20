@@ -8,7 +8,7 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
-import com.company.sqloptimization.domain.governance.RewritePublishStatus;
+import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
@@ -21,34 +21,33 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class RewritePublishEligibilityPolicyTest {
+class RewriteActivationEligibilityPolicyTest {
 
-    private final RewritePublishEligibilityPolicy policy = new RewritePublishEligibilityPolicy();
+    private final RewriteActivationEligibilityPolicy policy = new RewriteActivationEligibilityPolicy();
 
     @Test
-    void shouldPassWhenAllPublishEligibilityGatesAreSatisfied() {
+    void shouldPassWhenAllActivationEligibilityGatesAreSatisfied() {
         SqlRewriteRecord record = eligibleRecordBuilder()
             .build();
         RewriteValidationRun run = equivalentRun("validation-001", "rewrite-001", false);
 
-        RewritePublishEligibility eligibility = policy.evaluate(record, Collections.singletonList(run));
+        RewriteActivationEligibility eligibility = policy.evaluate(record, Collections.singletonList(run));
 
         assertTrue(eligibility.isEligible());
         assertTrue(eligibility.getRefusalReasons().isEmpty());
     }
 
     @Test
-    void shouldRejectReviewValidationAndAutoApplyGateFailures() {
+    void shouldRejectValidationAndAutoApplyGateFailures() {
         SqlRewriteRecord record = eligibleRecordBuilder()
             .reviewStatus(RewriteReviewStatus.PENDING_REVIEW)
             .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
             .autoApplyAllowed(false)
             .build();
 
-        RewritePublishEligibility eligibility = policy.evaluate(record, Collections.<RewriteValidationRun>emptyList());
+        RewriteActivationEligibility eligibility = policy.evaluate(record, Collections.<RewriteValidationRun>emptyList());
 
         assertFalse(eligibility.isEligible());
-        assertTrue(hasReason(eligibility, "REVIEW_NOT_APPROVED"));
         assertTrue(hasReason(eligibility, "VALIDATION_STATUS_NOT_EQUIVALENT"));
         assertTrue(hasReason(eligibility, "EQUIVALENT_VALIDATION_RUN_MISSING"));
         assertTrue(hasReason(eligibility, "AUTO_APPLY_NOT_ALLOWED"));
@@ -62,7 +61,7 @@ class RewritePublishEligibilityPolicyTest {
             .build();
         RewriteValidationRun run = equivalentRun("validation-001", "rewrite-001", false);
 
-        RewritePublishEligibility eligibility = policy.evaluate(record, Collections.singletonList(run));
+        RewriteActivationEligibility eligibility = policy.evaluate(record, Collections.singletonList(run));
 
         assertFalse(eligibility.isEligible());
         assertTrue(hasReason(eligibility, "SQL_FINGERPRINT_MISSING"));
@@ -72,7 +71,7 @@ class RewritePublishEligibilityPolicyTest {
     @Test
     void shouldRejectOpenAlertPauseMarkerAndClosedRecordStatus() {
         SqlRewriteRecord record = eligibleRecordBuilder()
-            .status(RewriteRecordStatus.PAUSED)
+            .status(RewriteRecordStatus.DEPRECATED)
             .alertStatus(RewriteAlertStatus.OPEN)
             .lastValidationRunId("validation-paused")
             .build();
@@ -87,26 +86,26 @@ class RewritePublishEligibilityPolicyTest {
             .finishedAt(Instant.parse("2026-05-11T00:00:01Z"))
             .build();
 
-        RewritePublishEligibility eligibility = policy.evaluate(record, Collections.singletonList(pausedRun));
+        RewriteActivationEligibility eligibility = policy.evaluate(record, Collections.singletonList(pausedRun));
 
         assertFalse(eligibility.isEligible());
         assertTrue(hasReason(eligibility, "LATEST_VALIDATION_NOT_PASSED"));
         assertTrue(hasReason(eligibility, "REWRITE_ALERT_UNRESOLVED"));
-        assertTrue(hasReason(eligibility, "REWRITE_RECORD_PAUSED_OR_CLOSED"));
+        assertTrue(hasReason(eligibility, "REWRITE_RECORD_CLOSED"));
         assertTrue(hasReason(eligibility, "VALIDATION_PAUSE_MARKER_PRESENT"));
     }
 
     @Test
-    void shouldRejectAlreadyPublishedStatus() {
+    void shouldRejectAlreadyActiveStatus() {
         SqlRewriteRecord record = eligibleRecordBuilder()
-            .publishStatus(RewritePublishStatus.PUBLISHED)
+            .activationStatus(RewriteActivationStatus.ACTIVE)
             .build();
         RewriteValidationRun run = equivalentRun("validation-001", "rewrite-001", false);
 
-        RewritePublishEligibility eligibility = policy.evaluate(record, Collections.singletonList(run));
+        RewriteActivationEligibility eligibility = policy.evaluate(record, Collections.singletonList(run));
 
         assertFalse(eligibility.isEligible());
-        assertTrue(hasReason(eligibility, "PUBLISH_STATUS_NOT_READY"));
+        assertTrue(hasReason(eligibility, "ACTIVATION_STATUS_NOT_READY"));
     }
 
     @Test
@@ -116,9 +115,9 @@ class RewritePublishEligibilityPolicyTest {
         RewriteValidationRun missingBenefitRun = equivalentRunWithoutBenefit("validation-missing", "rewrite-001");
         RewriteValidationRun regressedRun = equivalentRun("validation-regressed", "rewrite-001", false, "REGRESSED");
 
-        RewritePublishEligibility missingEligibility =
+        RewriteActivationEligibility missingEligibility =
             policy.evaluate(record, Collections.singletonList(missingBenefitRun));
-        RewritePublishEligibility regressedEligibility =
+        RewriteActivationEligibility regressedEligibility =
             policy.evaluate(record, Collections.singletonList(regressedRun));
 
         assertFalse(missingEligibility.isEligible());
@@ -138,12 +137,12 @@ class RewritePublishEligibilityPolicyTest {
             .historyId("history-001")
             .sqlFingerprint("fp-001")
             .datasourceCode("HETU")
-            .status(RewriteRecordStatus.APPROVED)
+            .status(RewriteRecordStatus.READY)
             .validationStatus(RewriteValidationStatus.EQUIVALENT)
             .autoApplyAllowed(true)
             .manualReviewRequired(true)
             .reviewStatus(RewriteReviewStatus.APPROVED)
-            .publishStatus(RewritePublishStatus.UNPUBLISHED)
+            .activationStatus(RewriteActivationStatus.INACTIVE)
             .alertStatus(RewriteAlertStatus.NONE)
             .originalSqlText("SELECT * FROM orders")
             .recommendedSqlText("SELECT id FROM orders")
@@ -197,8 +196,8 @@ class RewritePublishEligibilityPolicyTest {
         return evidence;
     }
 
-    private boolean hasReason(RewritePublishEligibility eligibility, String code) {
-        for (RewritePublishEligibilityReason reason : eligibility.getRefusalReasons()) {
+    private boolean hasReason(RewriteActivationEligibility eligibility, String code) {
+        for (RewriteActivationEligibilityReason reason : eligibility.getRefusalReasons()) {
             if (code.equals(reason.getCode())) {
                 return true;
             }

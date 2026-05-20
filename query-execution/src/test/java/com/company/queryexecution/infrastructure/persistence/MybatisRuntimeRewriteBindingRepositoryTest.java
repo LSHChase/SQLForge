@@ -38,7 +38,7 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals("ACTIVE", record.getStatus());
         assertEquals(Long.valueOf(3), record.getRuleVersion());
         assertEquals("runtime-rewrite-v3", record.getRuntimeRuleVersion());
-        assertEquals(LocalDateTime.of(2026, 5, 11, 14, 0), record.getPublishedAt());
+        assertEquals(LocalDateTime.of(2026, 5, 11, 14, 0), record.getActivatedAt());
     }
 
     @Test
@@ -72,8 +72,8 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
             .datasourceCode("hetu_main")
             .ruleVersion(3L)
             .runtimeRuleVersion("runtime-rewrite-v3")
-            .publishedBy("publisher-001")
-            .publishedAt(Instant.parse("2026-05-11T14:00:00Z"))
+            .activatedBy("publisher-001")
+            .activatedAt(Instant.parse("2026-05-11T14:00:00Z"))
             .createdAt(Instant.parse("2026-05-11T14:00:00Z"))
             .updatedAt(Instant.parse("2026-05-11T14:00:00Z"))
             .build();
@@ -95,8 +95,8 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         record.setStatus("PAUSED");
         record.setRuleVersion(Long.valueOf(4));
         record.setRuntimeRuleVersion("runtime-rewrite-v4");
-        record.setPublishedBy("publisher-002");
-        record.setPublishedAt(LocalDateTime.of(2026, 5, 11, 14, 0));
+        record.setActivatedBy("publisher-002");
+        record.setActivatedAt(LocalDateTime.of(2026, 5, 11, 14, 0));
         record.setPausedBy("validator");
         record.setPausedAt(LocalDateTime.of(2026, 5, 11, 14, 5));
         record.setPauseReason("validation divergence");

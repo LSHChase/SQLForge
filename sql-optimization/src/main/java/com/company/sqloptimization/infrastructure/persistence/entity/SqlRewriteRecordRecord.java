@@ -24,12 +24,12 @@ public class SqlRewriteRecordRecord {
     private String reviewNote;
     private String reviewedBy;
     private LocalDateTime reviewedAt;
-    private String publishStatus;
+    private String activationStatus;
     private String runtimeBindingId;
     private LocalDateTime runtimeBindingAt;
     private String runtimeBindingBy;
     private String runtimeBindingScope;
-    private String publishedSqlFingerprint;
+    private String activatedSqlFingerprint;
     private String runtimeRuleVersion;
     private String validationPolicyId;
     private String lastValidationRunId;
@@ -86,8 +86,8 @@ public class SqlRewriteRecordRecord {
     public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
-    public String getPublishStatus() { return publishStatus; }
-    public void setPublishStatus(String publishStatus) { this.publishStatus = publishStatus; }
+    public String getActivationStatus() { return activationStatus; }
+    public void setActivationStatus(String activationStatus) { this.activationStatus = activationStatus; }
     public String getRuntimeBindingId() { return runtimeBindingId; }
     public void setRuntimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; }
     public LocalDateTime getRuntimeBindingAt() { return runtimeBindingAt; }
@@ -96,8 +96,8 @@ public class SqlRewriteRecordRecord {
     public void setRuntimeBindingBy(String runtimeBindingBy) { this.runtimeBindingBy = runtimeBindingBy; }
     public String getRuntimeBindingScope() { return runtimeBindingScope; }
     public void setRuntimeBindingScope(String runtimeBindingScope) { this.runtimeBindingScope = runtimeBindingScope; }
-    public String getPublishedSqlFingerprint() { return publishedSqlFingerprint; }
-    public void setPublishedSqlFingerprint(String publishedSqlFingerprint) { this.publishedSqlFingerprint = publishedSqlFingerprint; }
+    public String getActivatedSqlFingerprint() { return activatedSqlFingerprint; }
+    public void setActivatedSqlFingerprint(String activatedSqlFingerprint) { this.activatedSqlFingerprint = activatedSqlFingerprint; }
     public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
     public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
     public String getValidationPolicyId() { return validationPolicyId; }

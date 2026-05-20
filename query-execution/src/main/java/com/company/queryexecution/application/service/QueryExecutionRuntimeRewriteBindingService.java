@@ -6,7 +6,7 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
@@ -49,7 +49,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
     }
 
     @Transactional
-    public RuntimeRewriteBindingResponse publish(RuntimeRewriteBindingPublishRequest request) {
+    public RuntimeRewriteBindingResponse activate(RuntimeRewriteBindingActivationRequest request) {
         String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
         requireProtectedTenant(tenantId);
         String rewriteRecordId = requireText(request.getRewriteRecordId(), "rewriteRecordId");
@@ -58,7 +58,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
         if (active != null) {
             if (rewriteRecordId.equals(active.getRewriteRecordId())) {
-                JdbcAgentRewriteRuleSyncResult syncResult = syncPublish(active);
+                JdbcAgentRewriteRuleSyncResult syncResult = syncActivate(active);
                 return responseFrom(
                     active,
                     "该改写记录的运行时改写绑定已处于生效状态。",
@@ -90,13 +90,13 @@ public class QueryExecutionRuntimeRewriteBindingService {
             .datasourceCode(requireText(request.getDatasourceCode(), "datasourceCode"))
             .ruleVersion(nextRuleVersion)
             .runtimeRuleVersion(RULE_VERSION_PREFIX + nextRuleVersion)
-            .publishedBy(resolveOperator(request.getPublishedBy()))
-            .publishedAt(now)
+            .activatedBy(resolveOperator(request.getActivatedBy()))
+            .activatedAt(now)
             .createdAt(now)
             .updatedAt(now)
             .build();
         runtimeRewriteBindingRepository.save(binding);
-        JdbcAgentRewriteRuleSyncResult syncResult = syncPublish(binding);
+        JdbcAgentRewriteRuleSyncResult syncResult = syncActivate(binding);
         return responseFrom(
             binding,
             "运行时改写绑定已生效，可用于生产自动改写查找。",
@@ -120,26 +120,6 @@ public class QueryExecutionRuntimeRewriteBindingService {
         return responseFrom(
             paused,
             "运行时改写绑定已暂停，不再参与自动改写。",
-            syncResult
-        );
-    }
-
-    @Transactional
-    public RuntimeRewriteBindingResponse unpublish(RuntimeRewriteBindingStateChangeRequest request) {
-        String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
-        requireProtectedTenant(tenantId);
-        RuntimeRewriteBinding binding = resolveMutationTarget(request);
-        if (binding == null) {
-            return missingResponse(tenantId, request == null ? null : request.getSqlFingerprint(),
-                "没有可下线的运行时改写绑定。");
-        }
-        RuntimeRewriteBinding unpublished =
-            binding.unpublish(resolveOperator(request.getOperatorId()), request.getReason(), Instant.now());
-        runtimeRewriteBindingRepository.save(unpublished);
-        JdbcAgentRewriteRuleSyncResult syncResult = syncDisable(unpublished);
-        return responseFrom(
-            unpublished,
-            "运行时改写绑定已下线，并保留用于版本追踪。",
             syncResult
         );
     }
@@ -222,18 +202,13 @@ public class QueryExecutionRuntimeRewriteBindingService {
             "runtimeBindingId", binding.getRuntimeBindingId(),
             "runtimeRuleVersion", binding.getRuntimeRuleVersion(),
             "ruleVersion", Long.valueOf(binding.getRuleVersion()),
-            "publishedAt", binding.getPublishedAt() == null ? null : binding.getPublishedAt().toString(),
-            "publishedBy", binding.getPublishedBy()
+            "activatedAt", binding.getActivatedAt() == null ? null : binding.getActivatedAt().toString(),
+            "activatedBy", binding.getActivatedBy()
         );
         if (binding.getPausedAt() != null) {
             details.put("pausedAt", binding.getPausedAt().toString());
             details.put("pausedBy", binding.getPausedBy());
             details.put("pauseReason", binding.getPauseReason());
-        }
-        if (binding.getUnpublishedAt() != null) {
-            details.put("unpublishedAt", binding.getUnpublishedAt().toString());
-            details.put("unpublishedBy", binding.getUnpublishedBy());
-            details.put("unpublishReason", binding.getUnpublishReason());
         }
         if (syncResult != null) {
             details.put("jdbcAgentRedisSync", syncResult.toDetails());
@@ -241,11 +216,11 @@ public class QueryExecutionRuntimeRewriteBindingService {
         return details;
     }
 
-    private JdbcAgentRewriteRuleSyncResult syncPublish(RuntimeRewriteBinding binding) {
+    private JdbcAgentRewriteRuleSyncResult syncActivate(RuntimeRewriteBinding binding) {
         try {
-            return jdbcAgentRewriteRuleSyncPort.publish(binding);
+            return jdbcAgentRewriteRuleSyncPort.activate(binding);
         } catch (RuntimeException ex) {
-            return syncFailed("PUBLISH", binding, ex);
+            return syncFailed("ACTIVATE", binding, ex);
         }
     }
 

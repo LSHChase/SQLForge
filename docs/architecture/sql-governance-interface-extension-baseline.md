@@ -787,18 +787,18 @@ repo-side 基线：
 - `mvType=EXACT_QUERY_MV` 非法，接口不得返回该值，也不得把原 SQL 原样物化描述为默认、兜底或低阶推荐。
 - `artifactStatus` 允许 `GENERATED`、`BLOCKED`、`REVIEW_REQUIRED`。
 - `GENERATED` 必须返回 `mvName`、`targetEngine`、`targetDatasource`、`dialect`、`grain[]`、`dimensions[]`、`measures[]`、`coverage`、`ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql` 和 `governanceBoundary=PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE`。
-- `BLOCKED` 必须返回 `blockingReasons[]`，不得生成可发布 runtime binding 草案。
-- `REVIEW_REQUIRED` 必须返回 `reviewWarnings[]`，只能进入人工复核，不能自动发布。
+- `BLOCKED` 必须返回 `blockingReasons[]`，不得生成可激活 runtime binding 草案。
+- `REVIEW_REQUIRED` 必须返回 `reviewWarnings[]`，只能进入人工复核，不能自动激活。
 - 高级证据字段包括 `joinGraph[]`、`externalizedPredicates[]`、`retainedPredicates[]`、`securityPredicates[]`、`blockedPredicates[]`；`coverage` 至少覆盖 `coversProjection`、`coversFilters`、`coversGrouping`、`coversMeasures`、`coversSecurity`。
 - 谓词分类中 `tenant_id` 按普通参数过滤进入 `externalizedPredicates[]`；`securityPredicates[]` 只承载 SQL 中显式出现的非租户安全边界过滤（权限域、数据域、访问域等）。缺少显式非租户安全谓词不得单独阻断 `GENERATED`，但已出现的安全谓词不得在 MV 产物或 rewrite 过滤中丢失。
 - `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
-- `runtimeRewriteBinding` 在 L2 产物中默认为 `NOT_CREATED`；L2 产物本身不表示已建 MV、已刷新、已验证、已审批或 runtime 已生效。
+- `runtimeRewriteBinding` 在 L2 产物中默认为 `NOT_CREATED`；L2 产物本身不表示已建 MV、已刷新、已验证或 runtime 已生效。
 
 高级 MV runtime 生效接口路径：
 
 1. 外部完成 `ddlSql`、`refreshSql` 和 `validationSql` 或等价验证。
 2. 创建 SQL 改写记录时，`recommendedSqlText` 必须来自 `accelerationArtifact.rewriteSql`，`traceRefs` 应包含 `mvType`、`mvName` 与 `accelerationArtifact` 摘要。
-3. 改写记录经过 review / publish 状态机。
+3. 改写记录经过 activate / pause 状态机。
 4. query-execution runtime binding 返回 `ACTIVE` 后，页面和历史才能展示运行时已生效。
 5. 后续执行是否真正改写，只能由执行历史中的 `rewriteApplied`、实际执行 SQL、改写记录和 runtime binding 追踪字段证明。
 
@@ -821,7 +821,7 @@ repo-side 基线：
 - `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/validation-runs` 由 `sql-optimization` 触发后端只读摘要比对；request 只允许提供 policy override、`datasourceType` 和触发原因等上下文，不把客户端提交的 digest 或 `comparisonStatus` 当作权威结论。
 - `query-execution` 内部只读摘要执行契约为 `POST /api/query-execution/internal/result-digests/execute`，返回 `resultDigest`、`limitedSample` 与 `executionEvidence`，不跨服务传递完整 rows。
 - 发现 `DIVERGED` 时必须暂停自动应用，并触发 `SQL_REWRITE_RESULT_DIVERGENCE` 告警事件。
-- 默认运行时优先应用门槛为 `planStatus=VERIFIED|ACTIVE`、`validationStatus=EQUIVALENT`、`benefitStatus=POSITIVE`、`schemaVersion` 未过期；`APPLIED` 仅表示已写入配置或绑定，不得等同于生效。
+- 默认运行时优先应用门槛为 `planStatus=ACTIVE`、`validationStatus=EQUIVALENT`、`benefitStatus=POSITIVE`、`schemaVersion` 未过期；`APPLIED` 仅表示普通规则或候选项已写入配置，不得等同于生效。
 
 治理事件载荷至少包括：
 

@@ -1,6 +1,6 @@
 package com.company.sqloptimization.application.controller.vo;
 
-public class RewritePublishEligibilityReasonVO {
+public class RewriteActivationEligibilityReasonVO {
 
     private String code;
     private String message;

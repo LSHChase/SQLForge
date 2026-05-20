@@ -19,7 +19,7 @@ public final class QueryExecutionBoundaryDefinition {
         RESULT_AGGREGATION,
         LIGHTWEIGHT_SQL_PARSING,
         LIGHTWEIGHT_SQL_REWRITE,
-        APPROVED_ACCELERATION_APPLICATION
+        ACTIVE_ACCELERATION_APPLICATION
     }
 
     /**
@@ -69,7 +69,7 @@ public final class QueryExecutionBoundaryDefinition {
      * ADR-013 定义的加速能力归属边界。
      */
     public enum AccelerationOwnershipMode {
-        APPLY_APPROVED_RUNTIME_CONFIG_ONLY
+        APPLY_ACTIVE_RUNTIME_CONFIG_ONLY
     }
 
     private final List<Capability> ownedCapabilities;
@@ -108,7 +108,7 @@ public final class QueryExecutionBoundaryDefinition {
                     Capability.RESULT_AGGREGATION,
                     Capability.LIGHTWEIGHT_SQL_PARSING,
                     Capability.LIGHTWEIGHT_SQL_REWRITE,
-                    Capability.APPROVED_ACCELERATION_APPLICATION
+                    Capability.ACTIVE_ACCELERATION_APPLICATION
                 )
             ),
             Collections.unmodifiableList(
@@ -136,7 +136,7 @@ public final class QueryExecutionBoundaryDefinition {
             ),
             ParserBoundaryMode.OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH,
             ReadonlyPolicy.READONLY_FIRST,
-            AccelerationOwnershipMode.APPLY_APPROVED_RUNTIME_CONFIG_ONLY
+            AccelerationOwnershipMode.APPLY_ACTIVE_RUNTIME_CONFIG_ONLY
         );
     }
 

@@ -307,7 +307,7 @@ class GovernanceCapabilityApplicationServiceTest {
         request.setSourceTaskId("task-001");
         request.setSqlFingerprint("fp-001");
         request.setDatasourceType("HETU");
-        request.setPlanStatus("PENDING_APPROVAL");
+        request.setPlanStatus("READY");
         GovernanceAccelerationPlanTraceResponse traceResponse = new GovernanceAccelerationPlanTraceResponse();
         traceResponse.setConfigSnapshotId("cfg-acceleration-plan-plan-001");
         when(accelerationPlanTraceabilityApplicationService.writeAccelerationPlanTrace(request)).thenReturn(traceResponse);

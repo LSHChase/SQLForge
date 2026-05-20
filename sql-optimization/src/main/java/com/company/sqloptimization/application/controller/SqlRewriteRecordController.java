@@ -2,9 +2,8 @@ package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
-import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordPublishActionRequest;
-import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
-import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordActivationActionRequest;
+import com.company.sqloptimization.application.controller.vo.RewriteActivationEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.application.service.SqlRewriteRecordApplicationService;
@@ -52,37 +51,24 @@ public class SqlRewriteRecordController {
         return sqlRewriteRecordApplicationService.getRewriteRecord(rewriteRecordId);
     }
 
-    @PostMapping("/{rewriteRecordId}/review")
-    public SqlRewriteRecordVO reviewRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
-                                                  @Valid @RequestBody SqlRewriteRecordReviewRequest request) {
-        return sqlRewriteRecordApplicationService.reviewRewriteRecord(rewriteRecordId, request);
-    }
-
-    @GetMapping("/{rewriteRecordId}/publish-eligibility")
-    public RewritePublishEligibilityVO getPublishEligibility(
+    @GetMapping("/{rewriteRecordId}/activation-eligibility")
+    public RewriteActivationEligibilityVO getActivationEligibility(
         @PathVariable("rewriteRecordId") String rewriteRecordId) {
-        return sqlRewriteRecordApplicationService.getPublishEligibility(rewriteRecordId);
+        return sqlRewriteRecordApplicationService.getActivationEligibility(rewriteRecordId);
     }
 
-    @PostMapping("/{rewriteRecordId}/publish")
-    public SqlRewriteRecordVO publishRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
+    @PostMapping("/{rewriteRecordId}/activate")
+    public SqlRewriteRecordVO activateRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
                                                    @RequestBody(required = false)
-                                                   SqlRewriteRecordPublishActionRequest request) {
-        return sqlRewriteRecordApplicationService.publishRewriteRecord(rewriteRecordId, request);
+                                                   SqlRewriteRecordActivationActionRequest request) {
+        return sqlRewriteRecordApplicationService.activateRewriteRecord(rewriteRecordId, request);
     }
 
     @PostMapping("/{rewriteRecordId}/pause")
     public SqlRewriteRecordVO pauseRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
                                                  @RequestBody(required = false)
-                                                 SqlRewriteRecordPublishActionRequest request) {
+                                                 SqlRewriteRecordActivationActionRequest request) {
         return sqlRewriteRecordApplicationService.pauseRewriteRecord(rewriteRecordId, request);
-    }
-
-    @PostMapping("/{rewriteRecordId}/unpublish")
-    public SqlRewriteRecordVO unpublishRewriteRecord(@PathVariable("rewriteRecordId") String rewriteRecordId,
-                                                     @RequestBody(required = false)
-                                                     SqlRewriteRecordPublishActionRequest request) {
-        return sqlRewriteRecordApplicationService.unpublishRewriteRecord(rewriteRecordId, request);
     }
 
     @PostMapping("/{rewriteRecordId}/validation-runs")

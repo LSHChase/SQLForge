@@ -485,8 +485,7 @@ const runBrowserSmoke = async baseUrl => {
         sourceId: 'manual-rewrite-validation',
         evidenceLevel: 'STATIC_PARSE',
         validationStatus: 'NOT_VALIDATED',
-        reviewStatus: 'PENDING_REVIEW',
-        publishStatus: 'UNPUBLISHED',
+        activationStatus: 'INACTIVE',
         alertStatus: 'NONE',
         autoApplyAllowed: false,
         manualReviewRequired: true,
@@ -847,8 +846,7 @@ const runBrowserSmoke = async baseUrl => {
           rewriteRecordId: 'rewrite-dev-1',
           tenantId: 'tenant-a',
           recommendationId: 'rec-dev-1',
-          reviewStatus: 'APPROVED',
-          publishStatus: 'PUBLISHED',
+          activationStatus: 'ACTIVE',
           validationStatus: 'DIVERGED',
           alertStatus: 'OPEN',
           lastValidationRunId: 'validation-rec-dev-1',
@@ -880,15 +878,14 @@ const runBrowserSmoke = async baseUrl => {
     }
 
     if (
-      pathname === '/api/sql-optimization/rewrite-records/rewrite-dev-1/publish-eligibility' &&
-      requestPrefix === 'frontend-recommendation-rewrite-publish-eligibility'
+      pathname === '/api/sql-optimization/rewrite-records/rewrite-dev-1/activation-eligibility' &&
+      requestPrefix === 'frontend-recommendation-rewrite-activation-eligibility'
     ) {
       await fulfillJson(route, {
         eligible: false,
         policyId: 'policy-dev-1',
-        reviewStatus: 'APPROVED',
         validationStatus: 'DIVERGED',
-        publishStatus: 'PUBLISHED',
+        activationStatus: 'ACTIVE',
         alertStatus: 'OPEN',
         autoApplyAllowed: false,
         lastValidationRunId: 'validation-rec-dev-1',
@@ -902,10 +899,7 @@ const runBrowserSmoke = async baseUrl => {
         rewriteRecordId: 'rewrite-dev-1',
         tenantId: 'tenant-a',
         recommendationId: 'rec-dev-1',
-        reviewStatus: 'APPROVED',
-        reviewedBy: 'dev-smoke',
-        reviewedAt: '2026-05-16T09:55:00',
-        publishStatus: 'PUBLISHED',
+        activationStatus: 'ACTIVE',
         validationStatus: 'DIVERGED',
         alertStatus: 'OPEN',
         lastValidationRunId: 'validation-rec-dev-1',
@@ -1120,7 +1114,7 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByRole('tab', { name: /SQL 证据|SQL evidence/ }).click()
     await expectTextInLocator(page.getByTestId('recommendation-recommended-sql'), '-- report_code=DEV_RPT_REWRITE')
     await expectTextInLocator(page.getByTestId('recommendation-recommended-sql'), 'SELECT')
-    await page.getByRole('tab', { name: /改写复核与发布|Rewrite review and publish/ }).click()
+    await page.getByRole('tab', { name: /改写激活与暂停|Rewrite activation and pause/ }).click()
     await expectTextInLocator(page.getByTestId('recommendation-rewrite-validation-run-table'), 'validation-rec-dev-1')
     await page.keyboard.press('Escape')
     await page.getByTestId('recommendation-detail-drawer').waitFor({ state: 'hidden', timeout: defaultTimeoutMs })

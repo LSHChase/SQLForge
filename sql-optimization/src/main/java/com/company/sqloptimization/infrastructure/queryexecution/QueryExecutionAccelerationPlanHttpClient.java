@@ -3,10 +3,9 @@ package com.company.sqloptimization.infrastructure.queryexecution;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanActivationRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanRollbackRequest;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanPauseRequest;
 import com.company.sqloptimization.config.OptimizationQueryExecutionProperties;
 import java.time.Duration;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -36,9 +35,9 @@ public class QueryExecutionAccelerationPlanHttpClient implements QueryExecutionA
     }
 
     @Override
-    public QueryExecutionAccelerationPlanResponse apply(QueryExecutionAccelerationPlanApplyRequest request) {
+    public QueryExecutionAccelerationPlanResponse activate(QueryExecutionAccelerationPlanActivationRequest request) {
         return post(
-            "/apply",
+            "/activate",
             request,
             QueryExecutionAccelerationPlanResponse.class,
             ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_APPLY_FAILURE
@@ -46,19 +45,9 @@ public class QueryExecutionAccelerationPlanHttpClient implements QueryExecutionA
     }
 
     @Override
-    public QueryExecutionAccelerationPlanResponse verify(QueryExecutionAccelerationPlanVerifyRequest request) {
+    public QueryExecutionAccelerationPlanResponse pause(QueryExecutionAccelerationPlanPauseRequest request) {
         return post(
-            "/verify",
-            request,
-            QueryExecutionAccelerationPlanResponse.class,
-            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_VERIFY_FAILURE
-        );
-    }
-
-    @Override
-    public QueryExecutionAccelerationPlanResponse rollback(QueryExecutionAccelerationPlanRollbackRequest request) {
-        return post(
-            "/rollback",
+            "/pause",
             request,
             QueryExecutionAccelerationPlanResponse.class,
             ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_ROLLBACK_FAILURE

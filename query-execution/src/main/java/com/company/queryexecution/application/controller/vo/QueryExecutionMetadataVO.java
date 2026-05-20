@@ -27,7 +27,7 @@ public class QueryExecutionMetadataVO {
     private final Long ruleVersion;
     private final String runtimeRuleVersion;
     private final String runtimeRewriteStatus;
-    private final String rewritePublishStatusSnapshot;
+    private final String rewriteActivationStatusSnapshot;
     private final String rewriteFallbackReason;
 
     public QueryExecutionMetadataVO(String targetEngine,
@@ -210,7 +210,7 @@ public class QueryExecutionMetadataVO {
                                     Long ruleVersion,
                                     String runtimeRuleVersion,
                                     String runtimeRewriteStatus,
-                                    String rewritePublishStatusSnapshot,
+                                    String rewriteActivationStatusSnapshot,
                                     String rewriteFallbackReason) {
         this.targetEngine = targetEngine;
         this.actualSql = actualSql;
@@ -234,7 +234,7 @@ public class QueryExecutionMetadataVO {
         this.ruleVersion = ruleVersion;
         this.runtimeRuleVersion = runtimeRuleVersion;
         this.runtimeRewriteStatus = runtimeRewriteStatus;
-        this.rewritePublishStatusSnapshot = rewritePublishStatusSnapshot;
+        this.rewriteActivationStatusSnapshot = rewriteActivationStatusSnapshot;
         this.rewriteFallbackReason = rewriteFallbackReason;
     }
 
@@ -326,8 +326,8 @@ public class QueryExecutionMetadataVO {
         return runtimeRewriteStatus;
     }
 
-    public String getRewritePublishStatusSnapshot() {
-        return rewritePublishStatusSnapshot;
+    public String getRewriteActivationStatusSnapshot() {
+        return rewriteActivationStatusSnapshot;
     }
 
     public String getRewriteFallbackReason() {

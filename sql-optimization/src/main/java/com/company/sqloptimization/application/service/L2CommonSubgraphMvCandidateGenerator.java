@@ -77,7 +77,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
             missing.removeAll(outputColumns.normalizedColumns);
             Map<String, Object> reason = reason(
                 "SUBGRAPH_OUTPUT_NOT_COVERED",
-                "公共子图输出字段不能覆盖上层投影、过滤或分组，不能生成可发布 rewrite。"
+                "公共子图输出字段不能覆盖上层投影、过滤或分组，不能生成可激活 rewrite。"
             );
             reason.put("missingColumns", new ArrayList<String>(missing));
             reason.put("requiredColumns", new ArrayList<String>(requiredColumns));
@@ -179,7 +179,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
         if (!"AVAILABLE".equals(text(advancedStructureProfile.get("profileStatus")))) {
             reasons.add(reason(
                 "ADVANCED_STRUCTURE_PROFILE_REQUIRED",
-                "高级结构画像未完整可用，不能生成可发布的 COMMON_SUBGRAPH_MV SQL。"
+                "高级结构画像未完整可用，不能生成可激活的 COMMON_SUBGRAPH_MV SQL。"
             ));
         }
         if (profile != null && profile.getWindowFunctionCount() > 0) {

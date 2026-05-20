@@ -21,9 +21,8 @@ class AccelerationPlanPersistenceSchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS acceleration_plan");
         assertContains(schema, "selected_suggestion_types_json JSON NOT NULL");
         assertContains(schema, "plan_status VARCHAR(32) NOT NULL");
-        assertContains(schema, "runtime_binding_json JSON");
-        assertContains(schema, "verification_evidence_json JSON");
-        assertContains(schema, "rollback_evidence_json JSON");
+        assertContains(schema, "activation_evidence_json JSON");
+        assertContains(schema, "pause_evidence_json JSON");
         assertContains(schema, "status_history_json JSON NOT NULL");
         assertContains(schema, "idx_acceleration_plan_status_created");
         assertContains(schema, "SQL_ACCELERATION_PLAN");
@@ -35,7 +34,8 @@ class AccelerationPlanPersistenceSchemaMappingTest {
 
         assertContains(migration, "CREATE TABLE IF NOT EXISTS acceleration_plan");
         assertContains(migration, "plan_status VARCHAR(32) NOT NULL");
-        assertContains(migration, "runtime_binding_json JSON");
+        assertContains(migration, "activation_evidence_json JSON");
+        assertContains(migration, "pause_evidence_json JSON");
         assertContains(migration, "status_history_json JSON NOT NULL");
         assertContains(migration, "DELETE FROM governance_history_lookup_index");
         assertContains(migration, "SQL_ACCELERATION_PLAN");
@@ -49,9 +49,8 @@ class AccelerationPlanPersistenceSchemaMappingTest {
         assertContains(mapper, "FROM acceleration_plan");
         assertContains(mapper, "selected_suggestion_types_json");
         assertContains(mapper, "plan_status");
-        assertContains(mapper, "runtime_binding_json");
-        assertContains(mapper, "verification_evidence_json");
-        assertContains(mapper, "rollback_evidence_json");
+        assertContains(mapper, "activation_evidence_json");
+        assertContains(mapper, "pause_evidence_json");
         assertContains(mapper, "status_history_json");
     }
 

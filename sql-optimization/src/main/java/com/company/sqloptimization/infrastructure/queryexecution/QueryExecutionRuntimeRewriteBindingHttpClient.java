@@ -3,7 +3,7 @@ package com.company.sqloptimization.infrastructure.queryexecution;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqloptimization.config.OptimizationQueryExecutionProperties;
@@ -38,18 +38,13 @@ public class QueryExecutionRuntimeRewriteBindingHttpClient implements QueryExecu
     }
 
     @Override
-    public RuntimeRewriteBindingResponse publish(RuntimeRewriteBindingPublishRequest request) {
-        return post("/publish", request);
+    public RuntimeRewriteBindingResponse activate(RuntimeRewriteBindingActivationRequest request) {
+        return post("/activate", request);
     }
 
     @Override
     public RuntimeRewriteBindingResponse pause(RuntimeRewriteBindingStateChangeRequest request) {
         return post("/pause", request);
-    }
-
-    @Override
-    public RuntimeRewriteBindingResponse unpublish(RuntimeRewriteBindingStateChangeRequest request) {
-        return post("/unpublish", request);
     }
 
     private RuntimeRewriteBindingResponse post(String path, Object request) {

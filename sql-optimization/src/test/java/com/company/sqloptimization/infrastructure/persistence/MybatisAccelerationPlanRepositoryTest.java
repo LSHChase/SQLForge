@@ -29,7 +29,7 @@ class MybatisAccelerationPlanRepositoryTest {
         AccelerationPlan plan = samplePlan("plan-db-001");
 
         plan.attachGovernanceTrace("cfg-001", "result-001", "history-001");
-        plan.approve("approve", "approver-001", Instant.parse("2026-04-25T05:00:10Z"));
+        plan.markActivated("{\"runtimeStatus\":\"ACTIVE\"}", "operator-001", Instant.parse("2026-04-25T05:00:10Z"));
 
         repository.save(plan);
 
@@ -37,9 +37,9 @@ class MybatisAccelerationPlanRepositoryTest {
         verify(mapper).insert(captor.capture());
         AccelerationPlanRecord record = captor.getValue();
         assertEquals(LocalDateTime.of(2026, 4, 25, 5, 0, 0), record.getCreatedAt());
-        assertEquals(LocalDateTime.of(2026, 4, 25, 5, 0, 10), record.getApprovedAt());
+        assertEquals(LocalDateTime.of(2026, 4, 25, 5, 0, 10), record.getActivatedAt());
         assertEquals("cfg-001", record.getConfigSnapshotId());
-        assertTrue(record.getStatusHistoryJson().contains("PLAN_APPROVED"));
+        assertTrue(record.getStatusHistoryJson().contains("PLAN_ACTIVATED"));
     }
 
     @Test
@@ -53,9 +53,9 @@ class MybatisAccelerationPlanRepositoryTest {
         record.setSqlFingerprint("fp-001");
         record.setDatasourceType("HETU");
         record.setSelectedSuggestionTypesJson("[\"PRECOMPUTE\",\"PARTITION\"]");
-        record.setPlanStatus("VERIFIED");
-        record.setPlanSummary("approved plan");
-        record.setPrimaryRecommendation("apply governed runtime binding");
+        record.setPlanStatus("PAUSED");
+        record.setPlanSummary("active plan");
+        record.setPrimaryRecommendation("activate governed runtime binding");
         record.setPlanPayloadJson("{\"PRECOMPUTE\":\"mv_orders\",\"PARTITION\":\"dt\"}");
         record.setBenefitsJson("[{\"category\":\"PLAN_SIMPLIFICATION\",\"estimatedImprovementPercent\":35,\"summary\":\"smaller plan\"}]");
         record.setCostsJson("[{\"category\":\"VALIDATION\",\"level\":\"MEDIUM\",\"summary\":\"verify output\"}]");
@@ -63,20 +63,16 @@ class MybatisAccelerationPlanRepositoryTest {
         record.setConfigSnapshotId("cfg-002");
         record.setResultId("result-002");
         record.setHistoryId("history-002");
-        record.setReviewNote("approve");
-        record.setApprovedBy("approver-001");
-        record.setApprovedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 10));
-        record.setRuntimeBindingJson("{\"runtimeStatus\":\"APPLIED\"}");
-        record.setRuntimeBindingAt(LocalDateTime.of(2026, 4, 25, 5, 0, 20));
-        record.setRuntimeBindingBy("operator-001");
-        record.setVerificationEvidenceJson("{\"runtimeStatus\":\"VERIFIED\"}");
-        record.setVerifiedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 30));
-        record.setVerifiedBy("operator-001");
+        record.setActivationEvidenceJson("{\"runtimeStatus\":\"ACTIVE\"}");
+        record.setActivatedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 20));
+        record.setActivatedBy("operator-001");
+        record.setPauseEvidenceJson("{\"runtimeStatus\":\"PAUSED\"}");
+        record.setPausedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 30));
+        record.setPausedBy("operator-001");
         record.setStatusHistoryJson("["
-            + "{\"previousStatus\":null,\"currentStatus\":\"PENDING_APPROVAL\",\"occurredAt\":\"2026-04-25T05:00:00Z\",\"note\":\"PLAN_SUBMITTED\"},"
-            + "{\"previousStatus\":\"PENDING_APPROVAL\",\"currentStatus\":\"APPROVED\",\"occurredAt\":\"2026-04-25T05:00:10Z\",\"note\":\"PLAN_APPROVED\"},"
-            + "{\"previousStatus\":\"APPROVED\",\"currentStatus\":\"APPLIED\",\"occurredAt\":\"2026-04-25T05:00:20Z\",\"note\":\"PLAN_APPLIED\"},"
-            + "{\"previousStatus\":\"APPLIED\",\"currentStatus\":\"VERIFIED\",\"occurredAt\":\"2026-04-25T05:00:30Z\",\"note\":\"PLAN_VERIFIED\"}"
+            + "{\"previousStatus\":null,\"currentStatus\":\"READY\",\"occurredAt\":\"2026-04-25T05:00:00Z\",\"note\":\"PLAN_SUBMITTED\"},"
+            + "{\"previousStatus\":\"READY\",\"currentStatus\":\"ACTIVE\",\"occurredAt\":\"2026-04-25T05:00:20Z\",\"note\":\"PLAN_ACTIVATED\"},"
+            + "{\"previousStatus\":\"ACTIVE\",\"currentStatus\":\"PAUSED\",\"occurredAt\":\"2026-04-25T05:00:30Z\",\"note\":\"PLAN_PAUSED\"}"
             + "]");
         record.setCreatedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 0));
         record.setUpdatedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 30));
@@ -89,8 +85,8 @@ class MybatisAccelerationPlanRepositoryTest {
         assertEquals(Instant.parse("2026-04-25T05:00:00Z"), restored.getCreatedAt());
         assertEquals(DataSourceTypeEnum.HETU, restored.getDatasourceType());
         assertEquals(AccelerationSuggestionType.PRECOMPUTE, restored.getSelectedSuggestionTypes().get(0));
-        assertEquals("operator-001", restored.getVerifiedBy());
-        assertEquals("PLAN_VERIFIED", restored.getStatusHistory().get(3).getNote());
+        assertEquals("operator-001", restored.getPausedBy());
+        assertEquals("PLAN_PAUSED", restored.getStatusHistory().get(2).getNote());
     }
 
     private AccelerationPlan samplePlan(String planId) {
@@ -102,8 +98,8 @@ class MybatisAccelerationPlanRepositoryTest {
             "fp-001",
             DataSourceTypeEnum.HETU,
             Arrays.asList(AccelerationSuggestionType.PRECOMPUTE, AccelerationSuggestionType.PARTITION),
-            "approved plan",
-            "apply governed runtime binding",
+            "ready plan",
+            "activate governed runtime binding",
             "{\"PRECOMPUTE\":\"mv_orders\",\"PARTITION\":\"dt\"}",
             Collections.emptyList(),
             Collections.emptyList(),

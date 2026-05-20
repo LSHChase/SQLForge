@@ -18,14 +18,11 @@ public class RuntimeRewriteBindingRecord {
     private String status;
     private Long ruleVersion;
     private String runtimeRuleVersion;
-    private String publishedBy;
-    private LocalDateTime publishedAt;
+    private String activatedBy;
+    private LocalDateTime activatedAt;
     private String pausedBy;
     private LocalDateTime pausedAt;
     private String pauseReason;
-    private String unpublishedBy;
-    private LocalDateTime unpublishedAt;
-    private String unpublishReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -57,22 +54,16 @@ public class RuntimeRewriteBindingRecord {
     public void setRuleVersion(Long ruleVersion) { this.ruleVersion = ruleVersion; }
     public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
     public void setRuntimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; }
-    public String getPublishedBy() { return publishedBy; }
-    public void setPublishedBy(String publishedBy) { this.publishedBy = publishedBy; }
-    public LocalDateTime getPublishedAt() { return publishedAt; }
-    public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
+    public String getActivatedBy() { return activatedBy; }
+    public void setActivatedBy(String activatedBy) { this.activatedBy = activatedBy; }
+    public LocalDateTime getActivatedAt() { return activatedAt; }
+    public void setActivatedAt(LocalDateTime activatedAt) { this.activatedAt = activatedAt; }
     public String getPausedBy() { return pausedBy; }
     public void setPausedBy(String pausedBy) { this.pausedBy = pausedBy; }
     public LocalDateTime getPausedAt() { return pausedAt; }
     public void setPausedAt(LocalDateTime pausedAt) { this.pausedAt = pausedAt; }
     public String getPauseReason() { return pauseReason; }
     public void setPauseReason(String pauseReason) { this.pauseReason = pauseReason; }
-    public String getUnpublishedBy() { return unpublishedBy; }
-    public void setUnpublishedBy(String unpublishedBy) { this.unpublishedBy = unpublishedBy; }
-    public LocalDateTime getUnpublishedAt() { return unpublishedAt; }
-    public void setUnpublishedAt(LocalDateTime unpublishedAt) { this.unpublishedAt = unpublishedAt; }
-    public String getUnpublishReason() { return unpublishReason; }
-    public void setUnpublishReason(String unpublishReason) { this.unpublishReason = unpublishReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

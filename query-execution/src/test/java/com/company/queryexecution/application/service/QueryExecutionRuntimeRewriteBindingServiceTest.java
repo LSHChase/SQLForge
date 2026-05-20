@@ -10,7 +10,7 @@ import com.company.queryexecution.domain.rewrite.RuntimeRewriteBindingStatus;
 import com.company.queryexecution.domain.rewrite.repository.RuntimeRewriteBindingRepository;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
@@ -31,22 +31,22 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
     }
 
     @Test
-    void shouldPublishPauseUnpublishAndTrackRuleVersion() {
+    void shouldActivatePauseAndTrackRuleVersion() {
         setRequestContext();
         InMemoryRuntimeRewriteBindingRepository repository = new InMemoryRuntimeRewriteBindingRepository();
         RecordingJdbcAgentRewriteRuleSyncPort syncPort = new RecordingJdbcAgentRewriteRuleSyncPort();
         QueryExecutionRuntimeRewriteBindingService service =
             new QueryExecutionRuntimeRewriteBindingService(repository, syncPort);
 
-        RuntimeRewriteBindingResponse published = service.publish(publishRequest("rewrite-001"));
+        RuntimeRewriteBindingResponse activated = service.activate(activationRequest("rewrite-001"));
 
-        assertEquals("ACTIVE", published.getStatus());
-        assertTrue(published.isActive());
-        assertEquals(Long.valueOf(1), published.getRuleVersion());
-        assertEquals("runtime-rewrite-v1", published.getRuntimeRuleVersion());
-        assertEquals("SELECT id FROM orders", published.getRecommendedSqlText());
-        assertTrue(published.getRuntimeDetailsJson().contains("\"syncStatus\":\"SYNCED\""));
-        assertEquals(1, syncPort.publishedBindings.size());
+        assertEquals("ACTIVE", activated.getStatus());
+        assertTrue(activated.isActive());
+        assertEquals(Long.valueOf(1), activated.getRuleVersion());
+        assertEquals("runtime-rewrite-v1", activated.getRuntimeRuleVersion());
+        assertEquals("SELECT id FROM orders", activated.getRecommendedSqlText());
+        assertTrue(activated.getRuntimeDetailsJson().contains("\"syncStatus\":\"SYNCED\""));
+        assertEquals(1, syncPort.activatedBindings.size());
 
         RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
         resolveRequest.setTenantId("tenant-a");
@@ -56,7 +56,7 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
 
         RuntimeRewriteBindingStateChangeRequest pauseRequest = new RuntimeRewriteBindingStateChangeRequest();
         pauseRequest.setTenantId("tenant-a");
-        pauseRequest.setRuntimeBindingId(published.getRuntimeBindingId());
+        pauseRequest.setRuntimeBindingId(activated.getRuntimeBindingId());
         pauseRequest.setReason("scheduled validation divergence");
         RuntimeRewriteBindingResponse paused = service.pause(pauseRequest);
         assertEquals("PAUSED", paused.getStatus());
@@ -64,32 +64,32 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         assertTrue(paused.getRuntimeDetailsJson().contains("\"syncAction\":\"DISABLE\""));
         assertEquals("MISSING", service.resolveActive(resolveRequest).getStatus());
 
-        RuntimeRewriteBindingResponse second = service.publish(publishRequest("rewrite-002"));
+        RuntimeRewriteBindingResponse second = service.activate(activationRequest("rewrite-002"));
         assertEquals(Long.valueOf(2), second.getRuleVersion());
         assertEquals("runtime-rewrite-v2", second.getRuntimeRuleVersion());
 
-        BizException conflict = assertThrows(BizException.class, () -> service.publish(publishRequest("rewrite-003")));
+        BizException conflict = assertThrows(BizException.class, () -> service.activate(activationRequest("rewrite-003")));
         assertEquals(HttpStatus.CONFLICT, conflict.getHttpStatus());
 
-        RuntimeRewriteBindingStateChangeRequest unpublishRequest = new RuntimeRewriteBindingStateChangeRequest();
-        unpublishRequest.setTenantId("tenant-a");
-        unpublishRequest.setRuntimeBindingId(second.getRuntimeBindingId());
-        unpublishRequest.setReason("operator rollback");
-        RuntimeRewriteBindingResponse unpublished = service.unpublish(unpublishRequest);
-        assertEquals("UNPUBLISHED", unpublished.getStatus());
-        assertFalse(unpublished.isActive());
+        RuntimeRewriteBindingStateChangeRequest secondPauseRequest = new RuntimeRewriteBindingStateChangeRequest();
+        secondPauseRequest.setTenantId("tenant-a");
+        secondPauseRequest.setRuntimeBindingId(second.getRuntimeBindingId());
+        secondPauseRequest.setReason("operator pause");
+        RuntimeRewriteBindingResponse secondPaused = service.pause(secondPauseRequest);
+        assertEquals("PAUSED", secondPaused.getStatus());
+        assertFalse(secondPaused.isActive());
         assertEquals(2, syncPort.disabledBindings.size());
     }
 
     @Test
-    void shouldRejectPublishForTenantMismatch() {
+    void shouldRejectActivateForTenantMismatch() {
         setRequestContext();
         QueryExecutionRuntimeRewriteBindingService service =
             new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository());
-        RuntimeRewriteBindingPublishRequest request = publishRequest("rewrite-001");
+        RuntimeRewriteBindingActivationRequest request = activationRequest("rewrite-001");
         request.setTenantId("tenant-b");
 
-        assertThrows(com.company.sqlforge.common.exception.AccessDeniedException.class, () -> service.publish(request));
+        assertThrows(com.company.sqlforge.common.exception.AccessDeniedException.class, () -> service.activate(request));
     }
 
     @Test
@@ -101,31 +101,31 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
                 new FailingJdbcAgentRewriteRuleSyncPort()
             );
 
-        RuntimeRewriteBindingResponse published = service.publish(publishRequest("rewrite-001"));
+        RuntimeRewriteBindingResponse activated = service.activate(activationRequest("rewrite-001"));
 
-        assertEquals("ACTIVE", published.getStatus());
-        assertTrue(published.isActive());
-        assertTrue(published.getRuntimeDetailsJson().contains("\"syncStatus\":\"FAILED\""));
-        assertTrue(published.getRuntimeDetailsJson().contains("\"alertRequired\":true"));
-        assertTrue(published.getRuntimeDetailsJson().contains("\"retryable\":true"));
+        assertEquals("ACTIVE", activated.getStatus());
+        assertTrue(activated.isActive());
+        assertTrue(activated.getRuntimeDetailsJson().contains("\"syncStatus\":\"FAILED\""));
+        assertTrue(activated.getRuntimeDetailsJson().contains("\"alertRequired\":true"));
+        assertTrue(activated.getRuntimeDetailsJson().contains("\"retryable\":true"));
     }
 
     @Test
-    void shouldRetryRedisSyncForIdempotentPublishOfExistingActiveBinding() {
+    void shouldRetryRedisSyncForIdempotentActivateOfExistingActiveBinding() {
         setRequestContext();
         RecordingJdbcAgentRewriteRuleSyncPort syncPort = new RecordingJdbcAgentRewriteRuleSyncPort();
         QueryExecutionRuntimeRewriteBindingService service =
             new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository(), syncPort);
 
-        RuntimeRewriteBindingResponse first = service.publish(publishRequest("rewrite-001"));
-        RuntimeRewriteBindingResponse retried = service.publish(publishRequest("rewrite-001"));
+        RuntimeRewriteBindingResponse first = service.activate(activationRequest("rewrite-001"));
+        RuntimeRewriteBindingResponse retried = service.activate(activationRequest("rewrite-001"));
 
         assertEquals(first.getRuntimeBindingId(), retried.getRuntimeBindingId());
-        assertEquals(2, syncPort.publishedBindings.size());
+        assertEquals(2, syncPort.activatedBindings.size());
     }
 
-    private RuntimeRewriteBindingPublishRequest publishRequest(String rewriteRecordId) {
-        RuntimeRewriteBindingPublishRequest request = new RuntimeRewriteBindingPublishRequest();
+    private RuntimeRewriteBindingActivationRequest activationRequest(String rewriteRecordId) {
+        RuntimeRewriteBindingActivationRequest request = new RuntimeRewriteBindingActivationRequest();
         request.setTenantId("tenant-a");
         request.setRewriteRecordId(rewriteRecordId);
         request.setRecommendationId("recommendation-001");
@@ -136,7 +136,7 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         request.setOriginalSqlDigest("digest-original-001");
         request.setRecommendedSqlText("SELECT id FROM orders");
         request.setDatasourceCode("hetu_main");
-        request.setPublishedBy("publisher-001");
+        request.setActivatedBy("publisher-001");
         return request;
     }
 
@@ -207,15 +207,15 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
     }
 
     private static final class RecordingJdbcAgentRewriteRuleSyncPort implements JdbcAgentRewriteRuleSyncPort {
-        private final List<RuntimeRewriteBinding> publishedBindings = new ArrayList<RuntimeRewriteBinding>();
+        private final List<RuntimeRewriteBinding> activatedBindings = new ArrayList<RuntimeRewriteBinding>();
         private final List<RuntimeRewriteBinding> disabledBindings = new ArrayList<RuntimeRewriteBinding>();
 
         @Override
-        public JdbcAgentRewriteRuleSyncResult publish(RuntimeRewriteBinding binding) {
-            publishedBindings.add(binding);
+        public JdbcAgentRewriteRuleSyncResult activate(RuntimeRewriteBinding binding) {
+            activatedBindings.add(binding);
             return JdbcAgentRewriteRuleSyncResult.builder()
                 .syncStatus("SYNCED")
-                .syncAction("PUBLISH")
+                .syncAction("ACTIVATE")
                 .redisRewriteKey("sqlforge:jdbc-agent:tenant:" + binding.getTenantId()
                     + ":rewrite:" + binding.getSqlFingerprint())
                 .redisMetadataKey("sqlforge:jdbc-agent:tenant:" + binding.getTenantId()
@@ -239,10 +239,10 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
 
     private static final class FailingJdbcAgentRewriteRuleSyncPort implements JdbcAgentRewriteRuleSyncPort {
         @Override
-        public JdbcAgentRewriteRuleSyncResult publish(RuntimeRewriteBinding binding) {
+        public JdbcAgentRewriteRuleSyncResult activate(RuntimeRewriteBinding binding) {
             return JdbcAgentRewriteRuleSyncResult.builder()
                 .syncStatus("FAILED")
-                .syncAction("PUBLISH")
+                .syncAction("ACTIVATE")
                 .failureReason("redis 不可用")
                 .retryable(true)
                 .alertRequired(true)
@@ -251,7 +251,13 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
 
         @Override
         public JdbcAgentRewriteRuleSyncResult disable(RuntimeRewriteBinding binding) {
-            return publish(binding);
+            return JdbcAgentRewriteRuleSyncResult.builder()
+                .syncStatus("FAILED")
+                .syncAction("DISABLE")
+                .failureReason("redis 不可用")
+                .retryable(true)
+                .alertRequired(true)
+                .build();
         }
     }
 }

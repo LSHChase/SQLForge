@@ -62,7 +62,7 @@
 - `process-flow-and-governance-audit-2026-04-20.md`
   基于当前仓库文档全量扫描形成的正式流程说明与治理审计文档。
 - `production-rewrite-auto-apply-task-plan.md`
-  基于当前生产闭环缺口，将改写审批、发布、运行时自动改写、历史留痕、差异暂停和页面追溯拆成多个可执行任务。
+  基于当前生产闭环缺口，将改写复核、激活、运行时自动改写、历史留痕、差异暂停和页面追溯拆成多个可执行任务。
 - `l2-advanced-materialized-view-task-plan.md`
   基于当前 L2 物化视图能力缺口，将参数外提聚合、预 Join、星型聚合、Rollup、公共子图 MV 推荐拆成多个可执行任务，并明确不实现 `EXACT_QUERY_MV`。
 - `frontend-core-workflow-refocus-task-pack.md`

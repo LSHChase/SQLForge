@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
@@ -19,10 +19,10 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqloptimization.application.controller.dto.AccelerationCandidateCreateRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
-import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordPublishActionRequest;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordActivationActionRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationCandidateVO;
-import com.company.sqloptimization.application.controller.vo.RewritePublishEligibilityVO;
+import com.company.sqloptimization.application.controller.vo.RewriteActivationEligibilityVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.CandidateType;
@@ -31,7 +31,7 @@ import com.company.sqloptimization.domain.governance.DifferenceType;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
-import com.company.sqloptimization.domain.governance.RewritePublishStatus;
+import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
@@ -244,7 +244,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setEvidenceLevel(EvidenceLevel.RUNTIME_HISTORY);
         request.setHistoryId("history-001");
         request.setSqlFingerprint("fp-001");
-        request.setStatus(RewriteRecordStatus.APPLIED);
+        request.setStatus(RewriteRecordStatus.READY);
         request.setValidationStatus(RewriteValidationStatus.NOT_VALIDATED);
         request.setAutoApplyAllowed(Boolean.TRUE);
         request.setManualReviewRequired(Boolean.TRUE);
@@ -252,12 +252,12 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setRecommendedSqlText("SELECT id FROM orders");
 
         SqlRewriteRecordVO created = service.createRewriteRecord(request);
-        assertEquals("APPLIED", created.getStatus());
+        assertEquals("READY", created.getStatus());
         assertEquals("NOT_VALIDATED", created.getValidationStatus());
         assertEquals(Boolean.TRUE, created.getAutoApplyAllowed());
         assertEquals(Boolean.TRUE, created.getManualReviewRequired());
         assertEquals("PENDING_REVIEW", created.getReviewStatus());
-        assertEquals("UNPUBLISHED", created.getPublishStatus());
+        assertEquals("INACTIVE", created.getActivationStatus());
 
         RewriteValidationRunCreateRequest runRequest = new RewriteValidationRunCreateRequest();
         runRequest.setStatus(ValidationRunStatus.SUCCEEDED);
@@ -279,9 +279,8 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("OPEN", updated.getAlertStatus());
         assertEquals(Boolean.FALSE, updated.getAutoApplyAllowed());
         assertEquals("PENDING_REVIEW", updated.getReviewStatus());
-        assertEquals("UNPUBLISHED", updated.getPublishStatus());
+        assertEquals("INACTIVE", updated.getActivationStatus());
         assertEquals(1, runs.size());
-        assertFalse(enumContainsActive(), "rewrite record status 在 HARN-128 中不得暴露 ACTIVE");
         assertEquals(2, digestClient.getRequestCount());
     }
 
@@ -316,12 +315,12 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setReviewNote("needs indexed predicate proof");
         request.setReviewedBy("reviewer-001");
         request.setReviewedAt(Instant.parse("2026-05-10T12:00:00Z"));
-        request.setPublishStatus(RewritePublishStatus.PUBLISH_FAILED);
+        request.setActivationStatus(RewriteActivationStatus.ACTIVATE_FAILED);
         request.setRuntimeBindingId("binding-003");
         request.setRuntimeBindingAt(Instant.parse("2026-05-10T12:01:00Z"));
         request.setRuntimeBindingBy("operator-003");
         request.setRuntimeBindingScope("tenant-a:fp-003");
-        request.setPublishedSqlFingerprint("fp-published-003");
+        request.setActivatedSqlFingerprint("fp-published-003");
         request.setRuntimeRuleVersion("rule-v3");
 
         SqlRewriteRecordVO created = service.createRewriteRecord(request);
@@ -331,12 +330,12 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertNull(detail.getReviewNote());
         assertNull(detail.getReviewedBy());
         assertNull(detail.getReviewedAt());
-        assertEquals("PUBLISH_FAILED", detail.getPublishStatus());
+        assertEquals("ACTIVATE_FAILED", detail.getActivationStatus());
         assertEquals("binding-003", detail.getRuntimeBindingId());
         assertEquals(Instant.parse("2026-05-10T12:01:00Z"), detail.getRuntimeBindingAt());
         assertEquals("operator-003", detail.getRuntimeBindingBy());
         assertEquals("tenant-a:fp-003", detail.getRuntimeBindingScope());
-        assertEquals("fp-published-003", detail.getPublishedSqlFingerprint());
+        assertEquals("fp-published-003", detail.getActivatedSqlFingerprint());
         assertEquals("rule-v3", detail.getRuntimeRuleVersion());
     }
 
@@ -348,7 +347,7 @@ class AccelerationRewriteContractApplicationServiceTest {
 
         SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-004");
         request.setManualReviewRequired(Boolean.TRUE);
-        request.setPublishStatus(RewritePublishStatus.UNPUBLISHED);
+        request.setActivationStatus(RewriteActivationStatus.INACTIVE);
         request.setRuntimeBindingId("binding-should-stay");
         SqlRewriteRecordVO created = service.createRewriteRecord(request);
 
@@ -364,7 +363,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertNotNull(approved.getReviewedAt());
         assertEquals(Boolean.TRUE, approved.getAutoApplyAllowed());
         assertEquals(Boolean.TRUE, approved.getManualReviewRequired());
-        assertEquals("UNPUBLISHED", approved.getPublishStatus());
+        assertEquals("INACTIVE", approved.getActivationStatus());
         assertEquals("binding-should-stay", approved.getRuntimeBindingId());
         assertEquals("APPROVED", ((Map<?, ?>) approved.getTraceRefs().get("lastReviewTrace")).get("reviewStatus"));
         assertEquals("trace-001", ((Map<?, ?>) approved.getTraceRefs().get("lastReviewTrace")).get("traceId"));
@@ -393,13 +392,13 @@ class AccelerationRewriteContractApplicationServiceTest {
         runRequest.setExecutionEvidence(positiveRuntimeExecutionEvidence());
         service.createValidationRun(created.getRewriteRecordId(), runRequest);
 
-        RewritePublishEligibilityVO eligibility = service.getPublishEligibility(created.getRewriteRecordId());
+        RewriteActivationEligibilityVO eligibility = service.getActivationEligibility(created.getRewriteRecordId());
 
         assertEquals(Boolean.TRUE, eligibility.getEligible());
-        assertEquals("DEFAULT_REWRITE_PUBLISH_ELIGIBILITY", eligibility.getPolicyId());
+        assertEquals("DEFAULT_REWRITE_ACTIVATION_ELIGIBILITY", eligibility.getPolicyId());
         assertEquals("APPROVED", eligibility.getReviewStatus());
         assertEquals("EQUIVALENT", eligibility.getValidationStatus());
-        assertEquals("UNPUBLISHED", eligibility.getPublishStatus());
+        assertEquals("INACTIVE", eligibility.getActivationStatus());
         assertTrue(eligibility.getRefusalReasons().isEmpty());
     }
 
@@ -416,24 +415,24 @@ class AccelerationRewriteContractApplicationServiceTest {
         setTenant("tenant-a");
         SqlRewriteRecordVO ready = createPublishableRewriteRecord(service, "history-publish", "fp-publish");
 
-        SqlRewriteRecordVO published = service.publishRewriteRecord(
+        SqlRewriteRecordVO published = service.activateRewriteRecord(
             ready.getRewriteRecordId(),
             publishActionRequest("release approved rewrite")
         );
 
-        assertEquals("PUBLISHED", published.getPublishStatus());
+        assertEquals("ACTIVE", published.getActivationStatus());
         assertEquals("rwb-001", published.getRuntimeBindingId());
         assertEquals("runtime-rewrite-v1", published.getRuntimeRuleVersion());
         assertEquals("tenant-a:fp-publish", published.getRuntimeBindingScope());
-        assertEquals("fp-publish", published.getPublishedSqlFingerprint());
-        assertEquals(1, runtimeClient.publishCount);
-        Map<?, ?> publishTrace = (Map<?, ?>) published.getTraceRefs().get("lastPublishStatusTrace");
-        assertEquals("PUBLISH", publishTrace.get("action"));
-        assertEquals("PUBLISHED", publishTrace.get("publishStatus"));
+        assertEquals("fp-publish", published.getActivatedSqlFingerprint());
+        assertEquals(1, runtimeClient.activateCount);
+        Map<?, ?> publishTrace = (Map<?, ?>) published.getTraceRefs().get("activationEvidence");
+        assertEquals("ACTIVATE", publishTrace.get("action"));
+        assertEquals("ACTIVE", publishTrace.get("activationStatus"));
         assertEquals(Boolean.TRUE, publishTrace.get("runtimeBinding"));
         assertEquals("ACTIVE", publishTrace.get("runtimeStatus"));
         assertEquals("rwb-001", publishTrace.get("runtimeBindingId"));
-        assertEquals("fp-publish", runtimeClient.lastPublishRequest.getSqlFingerprint());
+        assertEquals("fp-publish", runtimeClient.lastActivateRequest.getSqlFingerprint());
     }
 
     @Test
@@ -451,19 +450,19 @@ class AccelerationRewriteContractApplicationServiceTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> service.publishRewriteRecord(created.getRewriteRecordId(), publishActionRequest("too early"))
+            () -> service.activateRewriteRecord(created.getRewriteRecordId(), publishActionRequest("too early"))
         );
 
         assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID, ex.getCode());
         assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
-        assertEquals(0, runtimeClient.publishCount);
+        assertEquals(0, runtimeClient.activateCount);
     }
 
     @Test
     void shouldFailPublishWhenRuntimeBindingFails() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
-        runtimeClient.failPublish = true;
+        runtimeClient.failActivate = true;
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
             repository,
             null,
@@ -475,7 +474,7 @@ class AccelerationRewriteContractApplicationServiceTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> service.publishRewriteRecord(
+            () -> service.activateRewriteRecord(
                 ready.getRewriteRecordId(),
                 publishActionRequest("runtime outage must block publish")
             )
@@ -483,9 +482,9 @@ class AccelerationRewriteContractApplicationServiceTest {
         SqlRewriteRecordVO failed = service.getRewriteRecord(ready.getRewriteRecordId());
 
         assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE, ex.getCode());
-        assertEquals("PUBLISH_FAILED", failed.getPublishStatus());
-        assertEquals(1, runtimeClient.publishCount);
-        assertEquals("PUBLISH_FAILED", ((Map<?, ?>) failed.getTraceRefs().get("lastPublishStatusTrace")).get("publishStatus"));
+        assertEquals("ACTIVATE_FAILED", failed.getActivationStatus());
+        assertEquals(1, runtimeClient.activateCount);
+        assertEquals("ACTIVATE_FAILED", ((Map<?, ?>) failed.getTraceRefs().get("activationEvidence")).get("activationStatus"));
     }
 
     @Test
@@ -500,7 +499,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         );
         setTenant("tenant-a");
         SqlRewriteRecordVO ready = createPublishableRewriteRecord(service, "history-lifecycle", "fp-lifecycle");
-        SqlRewriteRecordVO published = service.publishRewriteRecord(
+        SqlRewriteRecordVO published = service.activateRewriteRecord(
             ready.getRewriteRecordId(),
             publishActionRequest("release")
         );
@@ -509,23 +508,22 @@ class AccelerationRewriteContractApplicationServiceTest {
             published.getRewriteRecordId(),
             publishActionRequest("scheduled validation divergence")
         );
-        SqlRewriteRecordVO republished = service.publishRewriteRecord(
+        SqlRewriteRecordVO republished = service.activateRewriteRecord(
             paused.getRewriteRecordId(),
             publishActionRequest("resume")
         );
-        SqlRewriteRecordVO unpublished = service.unpublishRewriteRecord(
+        SqlRewriteRecordVO pausedAgain = service.pauseRewriteRecord(
             republished.getRewriteRecordId(),
-            publishActionRequest("operator rollback")
+            publishActionRequest("operator pause")
         );
 
-        assertEquals("PAUSED", paused.getPublishStatus());
-        assertEquals("PUBLISHED", republished.getPublishStatus());
-        assertEquals("UNPUBLISHED", unpublished.getPublishStatus());
-        assertEquals(2, runtimeClient.publishCount);
+        assertEquals("PAUSED", paused.getActivationStatus());
+        assertEquals("ACTIVE", republished.getActivationStatus());
+        assertEquals("PAUSED", pausedAgain.getActivationStatus());
+        assertEquals(2, runtimeClient.activateCount);
         assertEquals("rwb-001", runtimeClient.lastPauseRequest.getRuntimeBindingId());
-        assertEquals("rwb-001", runtimeClient.lastUnpublishRequest.getRuntimeBindingId());
-        assertEquals("UNPUBLISH", ((Map<?, ?>) unpublished.getTraceRefs().get("lastPublishStatusTrace")).get("action"));
-        assertEquals(Boolean.TRUE, ((Map<?, ?>) unpublished.getTraceRefs().get("lastPublishStatusTrace")).get("runtimeBinding"));
+        assertEquals("PAUSE", ((Map<?, ?>) pausedAgain.getTraceRefs().get("pauseEvidence")).get("action"));
+        assertEquals(Boolean.TRUE, ((Map<?, ?>) pausedAgain.getTraceRefs().get("pauseEvidence")).get("runtimeBinding"));
     }
 
     @Test
@@ -736,12 +734,12 @@ class AccelerationRewriteContractApplicationServiceTest {
             .historyId("history-mv-drift")
             .sqlFingerprint("fp-mv-drift")
             .datasourceCode("hetu_main")
-            .status(RewriteRecordStatus.APPLIED)
+            .status(RewriteRecordStatus.READY)
             .validationStatus(RewriteValidationStatus.EQUIVALENT)
             .autoApplyAllowed(true)
             .manualReviewRequired(true)
             .reviewStatus(RewriteReviewStatus.APPROVED)
-            .publishStatus(RewritePublishStatus.UNPUBLISHED)
+            .activationStatus(RewriteActivationStatus.INACTIVE)
             .originalSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
             .recommendedSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
             .createdBy("operator-001")
@@ -755,11 +753,11 @@ class AccelerationRewriteContractApplicationServiceTest {
 
         BizException exception = assertThrows(
             BizException.class,
-            () -> service.publishRewriteRecord("rewrite-mv-drift", publishActionRequest("release mv rewrite"))
+            () -> service.activateRewriteRecord("rewrite-mv-drift", publishActionRequest("release mv rewrite"))
         );
 
         assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, exception.getCode());
-        assertEquals(0, runtimeClient.publishCount);
+        assertEquals(0, runtimeClient.activateCount);
     }
 
     @Test
@@ -871,8 +869,8 @@ class AccelerationRewriteContractApplicationServiceTest {
             .build();
     }
 
-    private SqlRewriteRecordPublishActionRequest publishActionRequest(String reason) {
-        SqlRewriteRecordPublishActionRequest request = new SqlRewriteRecordPublishActionRequest();
+    private SqlRewriteRecordActivationActionRequest publishActionRequest(String reason) {
+        SqlRewriteRecordActivationActionRequest request = new SqlRewriteRecordActivationActionRequest();
         request.setTenantId("tenant-a");
         request.setReason(reason);
         return request;
@@ -886,15 +884,6 @@ class AccelerationRewriteContractApplicationServiceTest {
         request.setReviewStatus(status);
         request.setReviewNote(note);
         return request;
-    }
-
-    private boolean enumContainsActive() {
-        for (RewriteRecordStatus status : RewriteRecordStatus.values()) {
-            if ("ACTIVE".equals(status.name())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private QueryExecutionResultDigestResponse digest(String schemaDigest,
@@ -950,25 +939,24 @@ class AccelerationRewriteContractApplicationServiceTest {
 
     private static final class StubRuntimeRewriteBindingClient implements QueryExecutionRuntimeRewriteBindingClient {
 
-        private int publishCount;
-        private boolean failPublish;
-        private RuntimeRewriteBindingPublishRequest lastPublishRequest;
+        private int activateCount;
+        private boolean failActivate;
+        private RuntimeRewriteBindingActivationRequest lastActivateRequest;
         private RuntimeRewriteBindingStateChangeRequest lastPauseRequest;
-        private RuntimeRewriteBindingStateChangeRequest lastUnpublishRequest;
-        private String publishedRewriteRecordId;
+        private String activatedRewriteRecordId;
 
         @Override
-        public RuntimeRewriteBindingResponse publish(RuntimeRewriteBindingPublishRequest request) {
-            publishCount++;
-            lastPublishRequest = request;
-            if (failPublish) {
+        public RuntimeRewriteBindingResponse activate(RuntimeRewriteBindingActivationRequest request) {
+            activateCount++;
+            lastActivateRequest = request;
+            if (failActivate) {
                 throw new BizException(
                     ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_REWRITE_FAILURE,
                     HttpStatus.SERVICE_UNAVAILABLE,
                     "runtime route 不可用"
                 );
             }
-            publishedRewriteRecordId = request.getRewriteRecordId();
+            activatedRewriteRecordId = request.getRewriteRecordId();
             RuntimeRewriteBindingResponse response = baseResponse(request.getTenantId(), request.getSqlFingerprint());
             response.setRuntimeBindingId("rwb-001");
             response.setRewriteRecordId(request.getRewriteRecordId());
@@ -992,26 +980,12 @@ class AccelerationRewriteContractApplicationServiceTest {
             lastPauseRequest = request;
             RuntimeRewriteBindingResponse response = baseResponse(request.getTenantId(), request.getSqlFingerprint());
             response.setRuntimeBindingId(request.getRuntimeBindingId());
-            response.setRewriteRecordId(publishedRewriteRecordId);
+            response.setRewriteRecordId(activatedRewriteRecordId);
             response.setStatus("PAUSED");
             response.setActive(false);
             response.setRuleVersion(Long.valueOf(1L));
             response.setRuntimeRuleVersion("runtime-rewrite-v1");
             response.setRuntimeSummary("paused");
-            return response;
-        }
-
-        @Override
-        public RuntimeRewriteBindingResponse unpublish(RuntimeRewriteBindingStateChangeRequest request) {
-            lastUnpublishRequest = request;
-            RuntimeRewriteBindingResponse response = baseResponse(request.getTenantId(), request.getSqlFingerprint());
-            response.setRuntimeBindingId(request.getRuntimeBindingId());
-            response.setRewriteRecordId(publishedRewriteRecordId);
-            response.setStatus("UNPUBLISHED");
-            response.setActive(false);
-            response.setRuleVersion(Long.valueOf(1L));
-            response.setRuntimeRuleVersion("runtime-rewrite-v1");
-            response.setRuntimeSummary("unpublished");
             return response;
         }
 

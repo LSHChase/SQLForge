@@ -1,6 +1,6 @@
 package com.company.sqlforge.common.queryexecution;
 
-public class RuntimeRewriteBindingPublishRequest {
+public class RuntimeRewriteBindingActivationRequest {
 
     private String tenantId;
     private String rewriteRecordId;
@@ -12,7 +12,7 @@ public class RuntimeRewriteBindingPublishRequest {
     private String originalSqlDigest;
     private String recommendedSqlText;
     private String datasourceCode;
-    private String publishedBy;
+    private String activatedBy;
 
     public String getTenantId() { return tenantId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
@@ -34,6 +34,6 @@ public class RuntimeRewriteBindingPublishRequest {
     public void setRecommendedSqlText(String recommendedSqlText) { this.recommendedSqlText = recommendedSqlText; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
-    public String getPublishedBy() { return publishedBy; }
-    public void setPublishedBy(String publishedBy) { this.publishedBy = publishedBy; }
+    public String getActivatedBy() { return activatedBy; }
+    public void setActivatedBy(String activatedBy) { this.activatedBy = activatedBy; }
 }

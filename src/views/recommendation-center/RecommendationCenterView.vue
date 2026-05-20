@@ -15,15 +15,13 @@ import {
   getRecommendationTrace,
   getRewriteValidationRuns,
   getSqlParseHistoryPage,
-  getRewritePublishEligibility,
+  activateSqlRewriteRecord,
+  getRewriteActivationEligibility,
   getSqlRewriteRecord,
   getSqlRewriteRecords,
   listParseBatches,
   listReportBatches,
-  pauseSqlRewriteRecord,
-  publishSqlRewriteRecord,
-  reviewSqlRewriteRecord,
-  unpublishSqlRewriteRecord
+  pauseSqlRewriteRecord
 } from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
@@ -60,7 +58,6 @@ const form = reactive({
 })
 
 const rewriteActionForm = reactive({
-  reviewNote: '',
   actionReason: 'frontend recommendation rewrite lifecycle'
 })
 
@@ -95,7 +92,7 @@ const recommendationTrace = ref(null)
 const rewriteRecords = ref([])
 const selectedRewriteRecordId = ref(normalizeQueryValue(route.query.rewriteRecordId))
 const selectedRewriteRecord = ref(null)
-const rewritePublishEligibility = ref(null)
+const rewriteActivationEligibility = ref(null)
 const rewriteValidationRuns = ref([])
 const errorMessage = ref('')
 const diffErrorMessage = ref('')
@@ -257,13 +254,11 @@ const rewriteRecordOptions = computed(() =>
   rewriteRecords.value.map(item => ({
     label: item.rewriteRecordId,
     value: item.rewriteRecordId,
-    status: `${displayValue(item.reviewStatus)} / ${displayValue(item.publishStatus)}`
+    status: `${displayValue(item.activationStatus)} / ${displayValue(item.validationStatus)}`
   }))
 )
 
-const selectedReviewStatus = computed(() => String(selectedRewriteRecord.value?.reviewStatus || '').toUpperCase())
-
-const selectedPublishStatus = computed(() => String(selectedRewriteRecord.value?.publishStatus || '').toUpperCase())
+const selectedActivationStatus = computed(() => String(selectedRewriteRecord.value?.activationStatus || '').toUpperCase())
 
 const rewriteLifecycleState = computed(() => {
   if (!selectedRewriteRecord.value) {
@@ -272,33 +267,33 @@ const rewriteLifecycleState = computed(() => {
       label: t('recommendationCenter.states.noRewriteRecord')
     }
   }
-  if (selectedPublishStatus.value === 'PUBLISHED') {
+  if (selectedActivationStatus.value === 'ACTIVE') {
     return {
       type: 'success',
       label: t('recommendationCenter.states.runtimeActive')
     }
   }
-  if (selectedReviewStatus.value === 'APPROVED' && ['UNPUBLISHED', 'PUBLISH_FAILED'].includes(selectedPublishStatus.value)) {
+  if (selectedActivationStatus.value === 'INACTIVE') {
     return {
       type: 'warning',
-      label: t('recommendationCenter.states.approvedNotPublished')
+      label: t('recommendationCenter.states.readyForActivation')
     }
   }
-  if (selectedPublishStatus.value === 'PAUSED') {
+  if (selectedActivationStatus.value === 'PAUSED') {
     return {
       type: 'warning',
       label: t('recommendationCenter.states.runtimePaused')
     }
   }
-  if (selectedReviewStatus.value === 'REJECTED') {
+  if (['ACTIVATE_FAILED', 'PAUSE_FAILED'].includes(selectedActivationStatus.value)) {
     return {
       type: 'danger',
-      label: t('recommendationCenter.states.reviewRejected')
+      label: t('recommendationCenter.states.runtimeActionFailed')
     }
   }
   return {
     type: 'info',
-    label: t('recommendationCenter.states.awaitingRewriteReview')
+    label: t('recommendationCenter.states.awaitingRewriteActivation')
   }
 })
 
@@ -515,10 +510,7 @@ const rewriteLifecycleCards = computed(() => {
     return []
   }
   return [
-    field('reviewStatus', t('recommendationCenter.fields.reviewStatus'), record.reviewStatus),
-    field('reviewedBy', t('recommendationCenter.fields.reviewedBy'), record.reviewedBy),
-    field('reviewedAt', t('recommendationCenter.fields.reviewedAt'), record.reviewedAt),
-    field('publishStatus', t('recommendationCenter.fields.publishStatus'), record.publishStatus),
+    field('activationStatus', t('recommendationCenter.fields.activationStatus'), record.activationStatus),
     field('validationStatus', t('recommendationCenter.fields.validationStatus'), record.validationStatus),
     field('alertStatus', t('recommendationCenter.fields.alertStatus'), record.alertStatus),
     field('lastValidationRunId', t('recommendationCenter.fields.lastValidationRunId'), record.lastValidationRunId),
@@ -531,44 +523,35 @@ const rewriteLifecycleCards = computed(() => {
   ]
 })
 
-const publishEligibilityCards = computed(() => {
-  const eligibility = rewritePublishEligibility.value
+const activationEligibilityCards = computed(() => {
+  const eligibility = rewriteActivationEligibility.value
   if (!eligibility) {
     return []
   }
   return [
-    field('eligible', t('recommendationCenter.fields.publishEligible'), boolText(eligibility.eligible)),
+    field('eligible', t('recommendationCenter.fields.activationEligible'), boolText(eligibility.eligible)),
     field('policyId', t('recommendationCenter.fields.policyId'), eligibility.policyId),
-    field('reviewStatus', t('recommendationCenter.fields.reviewStatus'), eligibility.reviewStatus),
     field('validationStatus', t('recommendationCenter.fields.validationStatus'), eligibility.validationStatus),
-    field('publishStatus', t('recommendationCenter.fields.publishStatus'), eligibility.publishStatus),
+    field('activationStatus', t('recommendationCenter.fields.activationStatus'), eligibility.activationStatus),
     field('alertStatus', t('recommendationCenter.fields.alertStatus'), eligibility.alertStatus),
     field('autoApplyAllowed', t('recommendationCenter.fields.autoApplyAllowed'), boolText(eligibility.autoApplyAllowed)),
     field('lastValidationRunId', t('recommendationCenter.fields.lastValidationRunId'), eligibility.lastValidationRunId)
   ]
 })
 
-const publishRefusalReasons = computed(() => normalizeArray(rewritePublishEligibility.value?.refusalReasons))
+const activationRefusalReasons = computed(() => normalizeArray(rewriteActivationEligibility.value?.refusalReasons))
 
-const canApproveRewrite = computed(() => selectedReviewStatus.value === 'PENDING_REVIEW')
-
-const canRejectRewrite = computed(() => selectedReviewStatus.value === 'PENDING_REVIEW')
-
-const canPublishRewrite = computed(
-  () =>
-    selectedReviewStatus.value === 'APPROVED' &&
-    ['UNPUBLISHED', 'PUBLISH_FAILED', 'PAUSED'].includes(selectedPublishStatus.value)
+const canActivateRewrite = computed(() =>
+  ['INACTIVE', 'ACTIVATE_FAILED', 'PAUSED'].includes(selectedActivationStatus.value)
 )
 
-const canPauseRewrite = computed(() => selectedPublishStatus.value === 'PUBLISHED')
-
-const canUnpublishRewrite = computed(() => ['PUBLISHED', 'PAUSED'].includes(selectedPublishStatus.value))
+const canPauseRewrite = computed(() => selectedActivationStatus.value === 'ACTIVE')
 
 const resetRewriteLifecycle = () => {
   rewriteRecords.value = []
   selectedRewriteRecordId.value = ''
   selectedRewriteRecord.value = null
-  rewritePublishEligibility.value = null
+  rewriteActivationEligibility.value = null
   rewriteValidationRuns.value = []
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
@@ -624,8 +607,8 @@ const fetchRewriteRecordLifecycle = async rewriteRecordId => {
   })
   selectedRewriteRecord.value = record
   selectedRewriteRecordId.value = record?.rewriteRecordId || rewriteRecordId
-  rewritePublishEligibility.value = await getRewritePublishEligibility(form.tenantId, rewriteRecordId, {
-    requestPrefix: 'frontend-recommendation-rewrite-publish-eligibility'
+  rewriteActivationEligibility.value = await getRewriteActivationEligibility(form.tenantId, rewriteRecordId, {
+    requestPrefix: 'frontend-recommendation-rewrite-activation-eligibility'
   })
   await loadRewriteValidationRuns(rewriteRecordId)
 }
@@ -634,7 +617,7 @@ const loadRewriteRecordLifecycle = async rewriteRecordId => {
   if (!rewriteRecordId) {
     selectedRewriteRecordId.value = ''
     selectedRewriteRecord.value = null
-    rewritePublishEligibility.value = null
+    rewriteActivationEligibility.value = null
     rewriteValidationRuns.value = []
     validationRunErrorMessage.value = ''
     return
@@ -647,7 +630,7 @@ const loadRewriteRecordLifecycle = async rewriteRecordId => {
     await fetchRewriteRecordLifecycle(rewriteRecordId)
   } catch (error) {
     selectedRewriteRecord.value = null
-    rewritePublishEligibility.value = null
+    rewriteActivationEligibility.value = null
     rewriteValidationRuns.value = []
     lifecycleErrorMessage.value = formatRuntimeError(error)
   } finally {
@@ -685,14 +668,14 @@ const loadRewriteRecordsForRecommendation = async (recommendationId, preferredRe
     } else {
       selectedRewriteRecordId.value = ''
       selectedRewriteRecord.value = null
-      rewritePublishEligibility.value = null
+      rewriteActivationEligibility.value = null
       rewriteValidationRuns.value = []
       validationRunErrorMessage.value = ''
     }
   } catch (error) {
     rewriteRecords.value = []
     selectedRewriteRecord.value = null
-    rewritePublishEligibility.value = null
+    rewriteActivationEligibility.value = null
     rewriteValidationRuns.value = []
     lifecycleErrorMessage.value = formatRuntimeError(error)
   } finally {
@@ -1036,44 +1019,13 @@ const performRewriteLifecycleAction = async action => {
     lifecycleErrorMessage.value = t('recommendationCenter.states.noRewriteRecord')
     return
   }
-  const reviewNote = String(rewriteActionForm.reviewNote || '').trim()
-  if (action === 'REJECT' && !reviewNote) {
-    lifecycleErrorMessage.value = t('recommendationCenter.states.reviewNoteRequired')
-    return
-  }
   loading.lifecycleAction = action
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
   try {
     let updatedRecord = null
-    if (action === 'APPROVE') {
-      updatedRecord = await reviewSqlRewriteRecord(
-        form.tenantId,
-        rewriteRecordId,
-        {
-          tenantId: form.tenantId,
-          reviewStatus: 'APPROVED',
-          reviewNote
-        },
-        {
-          requestPrefix: 'frontend-recommendation-rewrite-review-approve'
-        }
-      )
-    } else if (action === 'REJECT') {
-      updatedRecord = await reviewSqlRewriteRecord(
-        form.tenantId,
-        rewriteRecordId,
-        {
-          tenantId: form.tenantId,
-          reviewStatus: 'REJECTED',
-          reviewNote
-        },
-        {
-          requestPrefix: 'frontend-recommendation-rewrite-review-reject'
-        }
-      )
-    } else if (action === 'PUBLISH') {
-      updatedRecord = await publishSqlRewriteRecord(
+    if (action === 'ACTIVATE') {
+      updatedRecord = await activateSqlRewriteRecord(
         form.tenantId,
         rewriteRecordId,
         {
@@ -1081,7 +1033,7 @@ const performRewriteLifecycleAction = async action => {
           reason: rewriteActionForm.actionReason
         },
         {
-          requestPrefix: 'frontend-recommendation-rewrite-publish'
+          requestPrefix: 'frontend-recommendation-rewrite-activate'
         }
       )
     } else if (action === 'PAUSE') {
@@ -1094,18 +1046,6 @@ const performRewriteLifecycleAction = async action => {
         },
         {
           requestPrefix: 'frontend-recommendation-rewrite-pause'
-        }
-      )
-    } else if (action === 'UNPUBLISH') {
-      updatedRecord = await unpublishSqlRewriteRecord(
-        form.tenantId,
-        rewriteRecordId,
-        {
-          tenantId: form.tenantId,
-          reason: rewriteActionForm.actionReason
-        },
-        {
-          requestPrefix: 'frontend-recommendation-rewrite-unpublish'
         }
       )
     }
@@ -1205,7 +1145,7 @@ const buildRewriteRecordCreatePayload = () => {
     datasourceCode: firstDisplayValue(runtimeRewriteSelection.accelerationArtifact?.targetDatasource, recommendation.targetDatasource),
     status: 'DRAFT',
     validationStatus,
-    publishStatus: 'UNPUBLISHED',
+    activationStatus: 'INACTIVE',
     autoApplyAllowed: false,
     manualReviewRequired: firstDefined(recommendation.manualReviewRequired, diffSummary.manualReviewRequired, true),
     alertStatus: firstDisplayValue(recommendation.alertStatus, trace.alertStatus, 'NONE'),
@@ -2067,15 +2007,6 @@ watch(
 
                   <div class="rewrite-action-grid" data-testid="recommendation-rewrite-lifecycle-actions">
                     <label class="field-block">
-                      <span class="field-label">{{ t('recommendationCenter.fields.reviewNote') }}</span>
-                      <el-input
-                        v-model="rewriteActionForm.reviewNote"
-                        type="textarea"
-                        :rows="3"
-                        data-testid="recommendation-rewrite-review-note"
-                      />
-                    </label>
-                    <label class="field-block">
                       <span class="field-label">{{ t('recommendationCenter.fields.actionReason') }}</span>
                       <el-input
                         v-model="rewriteActionForm.actionReason"
@@ -2085,30 +2016,12 @@ watch(
                     <div class="pane-actions">
                       <el-button
                         type="success"
-                        :disabled="!canApproveRewrite"
-                        :loading="loading.lifecycleAction === 'APPROVE'"
-                        data-testid="recommendation-rewrite-approve"
-                        @click="performRewriteLifecycleAction('APPROVE')"
+                        :disabled="!canActivateRewrite"
+                        :loading="loading.lifecycleAction === 'ACTIVATE'"
+                        data-testid="recommendation-rewrite-activate"
+                        @click="performRewriteLifecycleAction('ACTIVATE')"
                       >
-                        {{ t('recommendationCenter.actions.approveRewrite') }}
-                      </el-button>
-                      <el-button
-                        type="danger"
-                        :disabled="!canRejectRewrite"
-                        :loading="loading.lifecycleAction === 'REJECT'"
-                        data-testid="recommendation-rewrite-reject"
-                        @click="performRewriteLifecycleAction('REJECT')"
-                      >
-                        {{ t('recommendationCenter.actions.rejectRewrite') }}
-                      </el-button>
-                      <el-button
-                        type="primary"
-                        :disabled="!canPublishRewrite"
-                        :loading="loading.lifecycleAction === 'PUBLISH'"
-                        data-testid="recommendation-rewrite-publish"
-                        @click="performRewriteLifecycleAction('PUBLISH')"
-                      >
-                        {{ t('recommendationCenter.actions.publishRewrite') }}
+                        {{ t('recommendationCenter.actions.activateRewrite') }}
                       </el-button>
                       <el-button
                         :disabled="!canPauseRewrite"
@@ -2118,33 +2031,25 @@ watch(
                       >
                         {{ t('recommendationCenter.actions.pauseRewrite') }}
                       </el-button>
-                      <el-button
-                        :disabled="!canUnpublishRewrite"
-                        :loading="loading.lifecycleAction === 'UNPUBLISH'"
-                        data-testid="recommendation-rewrite-unpublish"
-                        @click="performRewriteLifecycleAction('UNPUBLISH')"
-                      >
-                        {{ t('recommendationCenter.actions.unpublishRewrite') }}
-                      </el-button>
                     </div>
                   </div>
 
-                  <section class="evidence-table" data-testid="recommendation-rewrite-publish-eligibility">
+                  <section class="evidence-table" data-testid="recommendation-rewrite-activation-eligibility">
                     <div class="evidence-heading">
-                      <h3>{{ t('recommendationCenter.sections.publishEligibility') }}</h3>
-                      <el-tag :type="rewritePublishEligibility?.eligible ? 'success' : 'warning'">
-                        {{ displayValue(boolText(rewritePublishEligibility?.eligible)) }}
+                      <h3>{{ t('recommendationCenter.sections.activationEligibility') }}</h3>
+                      <el-tag :type="rewriteActivationEligibility?.eligible ? 'success' : 'warning'">
+                        {{ displayValue(boolText(rewriteActivationEligibility?.eligible)) }}
                       </el-tag>
                     </div>
                     <dl class="description-grid">
-                      <div v-for="item in publishEligibilityCards" :key="item.key" class="description-item">
+                      <div v-for="item in activationEligibilityCards" :key="item.key" class="description-item">
                         <dt>{{ item.label }}</dt>
                         <dd>{{ displayValue(item.value) }}</dd>
                       </div>
                     </dl>
                     <el-table
-                      v-if="publishRefusalReasons.length"
-                      :data="publishRefusalReasons"
+                      v-if="activationRefusalReasons.length"
+                      :data="activationRefusalReasons"
                       row-key="code"
                       data-testid="recommendation-rewrite-refusal-reasons"
                     >

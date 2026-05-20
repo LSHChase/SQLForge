@@ -51,9 +51,8 @@ class AccelerationPlanControllerTest {
         traceResponse.setResultId("result-plan-001");
         traceResponse.setHistoryId("history-plan-001");
         when(governanceCapabilityClient.writeAccelerationPlanTrace(any())).thenReturn(traceResponse);
-        when(queryExecutionAccelerationPlanClient.apply(any())).thenReturn(runtimeResponse("APPLIED", true));
-        when(queryExecutionAccelerationPlanClient.verify(any())).thenReturn(runtimeResponse("VERIFIED", true));
-        when(queryExecutionAccelerationPlanClient.rollback(any())).thenReturn(runtimeResponse("ROLLED_BACK", false));
+        when(queryExecutionAccelerationPlanClient.activate(any())).thenReturn(runtimeResponse("ACTIVE", true));
+        when(queryExecutionAccelerationPlanClient.pause(any())).thenReturn(runtimeResponse("PAUSED", false));
 
         String taskId = createSucceededAccelerationTask();
 
@@ -62,7 +61,7 @@ class AccelerationPlanControllerTest {
                 .content("{\"tenantId\":\"tenant-a\",\"sourceTaskId\":\"" + taskId + "\"}"))
             .andExpect(status().isOk())
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
-            .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"))
+            .andExpect(jsonPath("$.status").value("READY"))
             .andExpect(jsonPath("$.implementationStage").value("ACCELERATION_PLAN_GOVERNANCE_BASELINE"))
             .andReturn();
 
@@ -73,37 +72,23 @@ class AccelerationPlanControllerTest {
             .andExpect(jsonPath("$.configSnapshotId").value("cfg-plan-001"))
             .andExpect(jsonPath("$.selectedSuggestionTypes").isArray());
 
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/approval", planId))
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/activate", planId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"approve\":true,\"reviewNote\":\"approve for runtime activation\"}"))
+                .content("{\"reason\":\"activate ready binding\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("APPROVED"))
-            .andExpect(jsonPath("$.approvedBy").value("operator-001"));
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.activatedBy").value("operator-001"));
 
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/apply", planId))
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/pause", planId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reason\":\"activate approved binding\"}"))
+                .content("{\"reason\":\"pause binding\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("APPLIED"))
-            .andExpect(jsonPath("$.runtimeBindingBy").value("operator-001"));
-
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/verify", planId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reason\":\"verify runtime state\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("VERIFIED"))
-            .andExpect(jsonPath("$.verifiedBy").value("operator-001"));
-
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/rollback", planId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reason\":\"deactivate binding\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ROLLED_BACK"))
-            .andExpect(jsonPath("$.rolledBackBy").value("operator-001"));
+            .andExpect(jsonPath("$.status").value("PAUSED"))
+            .andExpect(jsonPath("$.pausedBy").value("operator-001"));
     }
 
     @Test
-    void shouldRejectApplyBeforeApproval() throws Exception {
+    void shouldRejectPauseBeforeActivation() throws Exception {
         doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         GovernanceAccelerationPlanTraceResponse traceResponse = new GovernanceAccelerationPlanTraceResponse();
@@ -120,9 +105,9 @@ class AccelerationPlanControllerTest {
             .andReturn();
         String planId = JsonTestUtils.readValue(submitResult.getResponse().getContentAsString(), "$.planId");
 
-        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/apply", planId))
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/pause", planId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reason\":\"skip approval\"}"))
+                .content("{\"reason\":\"pause before activation\"}"))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").value(22006));
     }
@@ -164,7 +149,7 @@ class AccelerationPlanControllerTest {
         response.setRuntimeSummary(status + " runtime response");
         response.setRuntimeDetailsJson("{\"bindingState\":\"" + status + "\"}");
         response.setContractStage("LONG_TERM_BASELINE");
-        response.setImplementationStage("APPROVED_ACCELERATION_RUNTIME_BASELINE");
+        response.setImplementationStage("ACTIVE_ACCELERATION_RUNTIME_BASELINE");
         return response;
     }
 

@@ -4,7 +4,7 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
-import com.company.sqloptimization.domain.governance.RewritePublishStatus;
+import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
@@ -37,12 +37,12 @@ public class SqlRewriteRecord {
     private final String reviewNote;
     private final String reviewedBy;
     private final Instant reviewedAt;
-    private final RewritePublishStatus publishStatus;
+    private final RewriteActivationStatus activationStatus;
     private final String runtimeBindingId;
     private final Instant runtimeBindingAt;
     private final String runtimeBindingBy;
     private final String runtimeBindingScope;
-    private final String publishedSqlFingerprint;
+    private final String activatedSqlFingerprint;
     private final String runtimeRuleVersion;
     private final String validationPolicyId;
     private final String lastValidationRunId;
@@ -82,12 +82,12 @@ public class SqlRewriteRecord {
         this.reviewNote = builder.reviewNote;
         this.reviewedBy = builder.reviewedBy;
         this.reviewedAt = builder.reviewedAt;
-        this.publishStatus = builder.publishStatus == null ? RewritePublishStatus.UNPUBLISHED : builder.publishStatus;
+        this.activationStatus = builder.activationStatus == null ? RewriteActivationStatus.INACTIVE : builder.activationStatus;
         this.runtimeBindingId = builder.runtimeBindingId;
         this.runtimeBindingAt = builder.runtimeBindingAt;
         this.runtimeBindingBy = builder.runtimeBindingBy;
         this.runtimeBindingScope = builder.runtimeBindingScope;
-        this.publishedSqlFingerprint = builder.publishedSqlFingerprint;
+        this.activatedSqlFingerprint = builder.activatedSqlFingerprint;
         this.runtimeRuleVersion = builder.runtimeRuleVersion;
         this.validationPolicyId = builder.validationPolicyId;
         this.lastValidationRunId = builder.lastValidationRunId;
@@ -126,32 +126,22 @@ public class SqlRewriteRecord {
         return false;
     }
 
-    public void requirePublishableRuntimeState() {
-        if (reviewStatus != RewriteReviewStatus.APPROVED) {
-            throw new IllegalStateException("只有 APPROVED 状态的改写记录才能发布");
-        }
-        if (publishStatus == RewritePublishStatus.UNPUBLISHED
-            || publishStatus == RewritePublishStatus.PUBLISH_FAILED
-            || publishStatus == RewritePublishStatus.PAUSED) {
+    public void requireActivatableRuntimeState() {
+        if (activationStatus == RewriteActivationStatus.INACTIVE
+            || activationStatus == RewriteActivationStatus.ACTIVATE_FAILED
+            || activationStatus == RewriteActivationStatus.PAUSED) {
             return;
         }
-        throw new IllegalStateException("只有 UNPUBLISHED、PUBLISH_FAILED 或 PAUSED 状态的改写记录才能发布");
+        throw new IllegalStateException("只有 INACTIVE、ACTIVATE_FAILED 或 PAUSED 状态的改写记录才能激活");
     }
 
     public void requirePauseableRuntimeState() {
-        if (publishStatus == RewritePublishStatus.PUBLISHED) {
+        if (activationStatus == RewriteActivationStatus.ACTIVE
+            || activationStatus == RewriteActivationStatus.PAUSED
+            || activationStatus == RewriteActivationStatus.PAUSE_FAILED) {
             return;
         }
-        throw new IllegalStateException("只有 PUBLISHED 状态的改写记录才能执行 pause");
-    }
-
-    public void requireUnpublishableRuntimeState() {
-        if (publishStatus == RewritePublishStatus.PUBLISHED
-            || publishStatus == RewritePublishStatus.PAUSED
-            || publishStatus == RewritePublishStatus.UNPUBLISH_FAILED) {
-            return;
-        }
-        throw new IllegalStateException("只有 PUBLISHED、PAUSED 或 UNPUBLISH_FAILED 状态的改写记录才能下线");
+        throw new IllegalStateException("只有 ACTIVE、PAUSED 或 PAUSE_FAILED 状态的改写记录才能暂停");
     }
 
     public SqlRewriteRecord withReview(RewriteReviewStatus nextReviewStatus,
@@ -180,12 +170,12 @@ public class SqlRewriteRecord {
             .reviewNote(nextReviewNote)
             .reviewedBy(nextReviewedBy)
             .reviewedAt(nextReviewedAt)
-            .publishStatus(publishStatus)
+            .activationStatus(activationStatus)
             .runtimeBindingId(runtimeBindingId)
             .runtimeBindingAt(runtimeBindingAt)
             .runtimeBindingBy(runtimeBindingBy)
             .runtimeBindingScope(runtimeBindingScope)
-            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .activatedSqlFingerprint(activatedSqlFingerprint)
             .runtimeRuleVersion(runtimeRuleVersion)
             .validationPolicyId(validationPolicyId)
             .lastValidationRunId(lastValidationRunId)
@@ -219,7 +209,7 @@ public class SqlRewriteRecord {
             .parseHistoryId(parseHistoryId)
             .sqlFingerprint(sqlFingerprint)
             .datasourceCode(datasourceCode)
-            .status(Boolean.TRUE.equals(run.isAutoApplyPaused()) ? RewriteRecordStatus.PAUSED : status)
+            .status(nextStatusAfterValidation(run))
             .validationStatus(nextValidationStatus)
             .autoApplyAllowed(autoApplyAllowed && !Boolean.TRUE.equals(run.isAutoApplyPaused()))
             .manualReviewRequired(manualReviewRequired)
@@ -227,12 +217,12 @@ public class SqlRewriteRecord {
             .reviewNote(reviewNote)
             .reviewedBy(reviewedBy)
             .reviewedAt(reviewedAt)
-            .publishStatus(publishStatus)
+            .activationStatus(activationStatus)
             .runtimeBindingId(runtimeBindingId)
             .runtimeBindingAt(runtimeBindingAt)
             .runtimeBindingBy(runtimeBindingBy)
             .runtimeBindingScope(runtimeBindingScope)
-            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .activatedSqlFingerprint(activatedSqlFingerprint)
             .runtimeRuleVersion(runtimeRuleVersion)
             .validationPolicyId(validationPolicyId)
             .lastValidationRunId(run.getValidationRunId())
@@ -273,12 +263,12 @@ public class SqlRewriteRecord {
             .reviewNote(reviewNote)
             .reviewedBy(reviewedBy)
             .reviewedAt(reviewedAt)
-            .publishStatus(publishStatus)
+            .activationStatus(activationStatus)
             .runtimeBindingId(runtimeBindingId)
             .runtimeBindingAt(runtimeBindingAt)
             .runtimeBindingBy(runtimeBindingBy)
             .runtimeBindingScope(runtimeBindingScope)
-            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .activatedSqlFingerprint(activatedSqlFingerprint)
             .runtimeRuleVersion(runtimeRuleVersion)
             .validationPolicyId(validationPolicyId)
             .lastValidationRunId(lastValidationRunId)
@@ -297,29 +287,30 @@ public class SqlRewriteRecord {
             .build();
     }
 
-    public SqlRewriteRecord withPublishedRuntimeBinding(String nextRuntimeBindingId,
+    public SqlRewriteRecord withActivatedRuntimeBinding(String nextRuntimeBindingId,
                                                         String nextRuntimeRuleVersion,
-                                                        String nextPublishedSqlFingerprint,
+                                                        String nextActivatedSqlFingerprint,
                                                         String nextRuntimeBindingScope,
                                                         String operator,
                                                         Instant updatedAt,
                                                         Map<String, Object> nextTraceRefs) {
         return copyBuilder(updatedAt, nextTraceRefs)
-            .publishStatus(RewritePublishStatus.PUBLISHED)
+            .status(RewriteRecordStatus.ACTIVE)
+            .activationStatus(RewriteActivationStatus.ACTIVE)
             .runtimeBindingId(nextRuntimeBindingId)
             .runtimeBindingAt(updatedAt)
             .runtimeBindingBy(operator)
             .runtimeBindingScope(nextRuntimeBindingScope)
-            .publishedSqlFingerprint(nextPublishedSqlFingerprint)
+            .activatedSqlFingerprint(nextActivatedSqlFingerprint)
             .runtimeRuleVersion(nextRuntimeRuleVersion)
             .build();
     }
 
-    public SqlRewriteRecord withPublishFailed(String operator,
-                                              Instant updatedAt,
-                                              Map<String, Object> nextTraceRefs) {
+    public SqlRewriteRecord withActivateFailed(String operator,
+                                               Instant updatedAt,
+                                               Map<String, Object> nextTraceRefs) {
         return copyBuilder(updatedAt, nextTraceRefs)
-            .publishStatus(RewritePublishStatus.PUBLISH_FAILED)
+            .activationStatus(RewriteActivationStatus.ACTIVATE_FAILED)
             .runtimeBindingAt(updatedAt)
             .runtimeBindingBy(operator)
             .build();
@@ -329,27 +320,18 @@ public class SqlRewriteRecord {
                                                     Instant updatedAt,
                                                     Map<String, Object> nextTraceRefs) {
         return copyBuilder(updatedAt, nextTraceRefs)
-            .publishStatus(RewritePublishStatus.PAUSED)
+            .status(RewriteRecordStatus.PAUSED)
+            .activationStatus(RewriteActivationStatus.PAUSED)
             .runtimeBindingAt(updatedAt)
             .runtimeBindingBy(operator)
             .build();
     }
 
-    public SqlRewriteRecord withUnpublishedRuntimeBinding(String operator,
-                                                         Instant updatedAt,
-                                                         Map<String, Object> nextTraceRefs) {
+    public SqlRewriteRecord withPauseFailed(String operator,
+                                            Instant updatedAt,
+                                            Map<String, Object> nextTraceRefs) {
         return copyBuilder(updatedAt, nextTraceRefs)
-            .publishStatus(RewritePublishStatus.UNPUBLISHED)
-            .runtimeBindingAt(updatedAt)
-            .runtimeBindingBy(operator)
-            .build();
-    }
-
-    public SqlRewriteRecord withUnpublishFailed(String operator,
-                                                Instant updatedAt,
-                                                Map<String, Object> nextTraceRefs) {
-        return copyBuilder(updatedAt, nextTraceRefs)
-            .publishStatus(RewritePublishStatus.UNPUBLISH_FAILED)
+            .activationStatus(RewriteActivationStatus.PAUSE_FAILED)
             .runtimeBindingAt(updatedAt)
             .runtimeBindingBy(operator)
             .build();
@@ -377,12 +359,12 @@ public class SqlRewriteRecord {
             .reviewNote(reviewNote)
             .reviewedBy(reviewedBy)
             .reviewedAt(reviewedAt)
-            .publishStatus(publishStatus)
+            .activationStatus(activationStatus)
             .runtimeBindingId(runtimeBindingId)
             .runtimeBindingAt(runtimeBindingAt)
             .runtimeBindingBy(runtimeBindingBy)
             .runtimeBindingScope(runtimeBindingScope)
-            .publishedSqlFingerprint(publishedSqlFingerprint)
+            .activatedSqlFingerprint(activatedSqlFingerprint)
             .runtimeRuleVersion(runtimeRuleVersion)
             .validationPolicyId(validationPolicyId)
             .lastValidationRunId(lastValidationRunId)
@@ -417,6 +399,16 @@ public class SqlRewriteRecord {
             default:
                 return RewriteValidationStatus.VALIDATING;
         }
+    }
+
+    private RewriteRecordStatus nextStatusAfterValidation(RewriteValidationRun run) {
+        if (Boolean.TRUE.equals(run.isAutoApplyPaused())) {
+            return RewriteRecordStatus.PAUSED;
+        }
+        if (activationStatus == RewriteActivationStatus.ACTIVE) {
+            return RewriteRecordStatus.ACTIVE;
+        }
+        return status;
     }
 
     private void validate() {
@@ -483,12 +475,12 @@ public class SqlRewriteRecord {
     public String getReviewNote() { return reviewNote; }
     public String getReviewedBy() { return reviewedBy; }
     public Instant getReviewedAt() { return reviewedAt; }
-    public RewritePublishStatus getPublishStatus() { return publishStatus; }
+    public RewriteActivationStatus getActivationStatus() { return activationStatus; }
     public String getRuntimeBindingId() { return runtimeBindingId; }
     public Instant getRuntimeBindingAt() { return runtimeBindingAt; }
     public String getRuntimeBindingBy() { return runtimeBindingBy; }
     public String getRuntimeBindingScope() { return runtimeBindingScope; }
-    public String getPublishedSqlFingerprint() { return publishedSqlFingerprint; }
+    public String getActivatedSqlFingerprint() { return activatedSqlFingerprint; }
     public String getRuntimeRuleVersion() { return runtimeRuleVersion; }
     public String getValidationPolicyId() { return validationPolicyId; }
     public String getLastValidationRunId() { return lastValidationRunId; }
@@ -526,12 +518,12 @@ public class SqlRewriteRecord {
         private String reviewNote;
         private String reviewedBy;
         private Instant reviewedAt;
-        private RewritePublishStatus publishStatus;
+        private RewriteActivationStatus activationStatus;
         private String runtimeBindingId;
         private Instant runtimeBindingAt;
         private String runtimeBindingBy;
         private String runtimeBindingScope;
-        private String publishedSqlFingerprint;
+        private String activatedSqlFingerprint;
         private String runtimeRuleVersion;
         private String validationPolicyId;
         private String lastValidationRunId;
@@ -571,12 +563,12 @@ public class SqlRewriteRecord {
         public Builder reviewNote(String reviewNote) { this.reviewNote = reviewNote; return this; }
         public Builder reviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; return this; }
         public Builder reviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; return this; }
-        public Builder publishStatus(RewritePublishStatus publishStatus) { this.publishStatus = publishStatus; return this; }
+        public Builder activationStatus(RewriteActivationStatus activationStatus) { this.activationStatus = activationStatus; return this; }
         public Builder runtimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; return this; }
         public Builder runtimeBindingAt(Instant runtimeBindingAt) { this.runtimeBindingAt = runtimeBindingAt; return this; }
         public Builder runtimeBindingBy(String runtimeBindingBy) { this.runtimeBindingBy = runtimeBindingBy; return this; }
         public Builder runtimeBindingScope(String runtimeBindingScope) { this.runtimeBindingScope = runtimeBindingScope; return this; }
-        public Builder publishedSqlFingerprint(String publishedSqlFingerprint) { this.publishedSqlFingerprint = publishedSqlFingerprint; return this; }
+        public Builder activatedSqlFingerprint(String activatedSqlFingerprint) { this.activatedSqlFingerprint = activatedSqlFingerprint; return this; }
         public Builder runtimeRuleVersion(String runtimeRuleVersion) { this.runtimeRuleVersion = runtimeRuleVersion; return this; }
         public Builder validationPolicyId(String validationPolicyId) { this.validationPolicyId = validationPolicyId; return this; }
         public Builder lastValidationRunId(String lastValidationRunId) { this.lastValidationRunId = lastValidationRunId; return this; }

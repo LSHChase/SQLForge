@@ -20,17 +20,17 @@
 5. 系统对每个候选生成结构化证据、阻断原因、DDL 草案、刷新 SQL、验证 SQL、回滚 SQL 和 rewrite SQL。
 6. 页面展示“为什么该 MV 可复用、覆盖哪些参数、保留哪些业务过滤、哪些谓词被外提、原 SQL 如何改写到 MV”。
 7. SQLForge 仍保持 `PULL_ONLY` 边界，不直接执行生产建表、刷新、删除或真实数据改写。
-8. 若外部完成建 MV、刷新和验证，后续 runtime 生效必须走现有 SQL 改写记录审批与发布链路；发布后的正常 SQL 执行是否生效，只能由 query-execution runtime binding 与执行历史审计证明。
+8. 若外部完成建 MV、刷新和验证，后续 runtime 生效必须走现有 SQL 改写记录复核与激活链路；激活后的正常 SQL 执行是否生效，只能由 query-execution runtime binding 与执行历史审计证明。
 
 ## 非目标
 
 - 不实现 `EXACT_QUERY_MV`。
 - 不把 Redis 结果缓存替代成 MV 推荐。
 - 不直接执行生产 DDL、刷新、回滚或数据装载。
-- 不在缺少验证时自动发布 runtime rewrite binding。
+- 不在缺少验证时自动激活 runtime rewrite binding。
 - 不承诺所有 SQL 都能生成 MV；不能证明可复用或可改写时必须给出阻断原因。
-- 不把 `manualReviewRequired` 当作审批通过。
-- 不把加速计划审批页等同于 SQL 改写发布入口。
+- 不把 `manualReviewRequired` 当作复核通过。
+- 不把加速计划审批页等同于 SQL 改写激活入口。
 - 不在本计划中引入基于元数据、唯一性、分区、真实频次、成本模型的强收益判断；这些只作为后续增强，不作为本批任务的前置条件。
 
 ## 当前事实基线
@@ -38,9 +38,9 @@
 - 当前 L2 规则已经能通过静态解析发现 `PRECOMPUTE_MV`、`PARTITION_PRUNING`、`BUCKET_JOIN`、`RESULT_CACHE`、`TOPN_PUSHDOWN` 等候选。
 - 当前 `PRECOMPUTE_MV` 可由聚合函数、`GROUP BY`、CTE、派生表或子查询公共子图信号触发；缺少可证明高级 MV 子图时必须结构化阻断。
 - 当前物化视图产物生成依赖明确目标引擎，支持 `HETU`、`HIVE`、`SPARK`，缺失或为 `AUTO` 时会返回 `TARGET_ENGINE_REQUIRED`。
-- 当前 `PARAMETERIZED_AGG_MV`、`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV` 与 `COMMON_SUBGRAPH_MV` 已分别由 AMV-005 至 AMV-009 接入专用 DDL/rewrite 生成路径；已覆盖类型的 `GENERATED` 产物必须查询 MV，不能退回 exact-query-like 草案，无法证明覆盖时必须结构化阻断且不输出可发布 SQL。
-- 当前推荐中心/加速治理页面能展示 `accelerationArtifact`，但不会自动把 `accelerationArtifact.rewriteSql` 发布为运行时改写绑定。
-- 当前 runtime 自动生效路径属于 SQL 改写记录的审批、发布和 runtime binding，不属于 L2 加速产物展示本身。
+- 当前 `PARAMETERIZED_AGG_MV`、`PREJOIN_MV`、`STAR_AGG_MV`、`ROLLUP_MV` 与 `COMMON_SUBGRAPH_MV` 已分别由 AMV-005 至 AMV-009 接入专用 DDL/rewrite 生成路径；已覆盖类型的 `GENERATED` 产物必须查询 MV，不能退回 exact-query-like 草案，无法证明覆盖时必须结构化阻断且不输出可激活 SQL。
+- 当前推荐中心/加速治理页面能展示 `accelerationArtifact`，但不会自动把 `accelerationArtifact.rewriteSql` 激活为运行时改写绑定。
+- 当前 runtime 自动生效路径属于 SQL 改写记录的复核、激活和 runtime binding，不属于 L2 加速产物展示本身。
 
 ## 高级 MV 类型
 
@@ -153,7 +153,7 @@ GROUP BY customer_level, category
 默认阻断：
 
 - `CROSS JOIN`、非等值 Join、复杂表达式 Join。
-- `OUTER JOIN` 需要人工复核，默认不直接生成可发布 rewrite。
+- `OUTER JOIN` 需要人工复核，默认不直接生成可激活 rewrite。
 - 疑似多对多 Join 或行数放大风险无法解释。
 - Join 后字段别名冲突不能自动消解。
 
@@ -294,7 +294,7 @@ MV 粒度必须由以下字段组成：
 - 显式非租户安全谓词没有被丢失；缺少显式非租户安全谓词不得单独阻断 `GENERATED`。
 - 推荐 SQL 仍是只读 SQL。
 
-不满足时，候选仍可展示为 `BLOCKED` 或 `REVIEW_REQUIRED`，但不得生成可发布 runtime binding 草案。
+不满足时，候选仍可展示为 `BLOCKED` 或 `REVIEW_REQUIRED`，但不得生成可激活 runtime binding 草案。
 
 ## 产物契约
 
@@ -348,7 +348,7 @@ MV 粒度必须由以下字段组成：
 - `mvType` 必填，且不能为 `EXACT_QUERY_MV`。
 - `artifactStatus=GENERATED` 时必须有 `ddlSql`、`refreshSql`、`validationSql`、`rollbackSql`、`rewriteSql`。
 - `artifactStatus=BLOCKED` 时必须有 `blockingReasons`。
-- `artifactStatus=REVIEW_REQUIRED` 时必须有 `reviewWarnings`，且不得自动发布。
+- `artifactStatus=REVIEW_REQUIRED` 时必须有 `reviewWarnings`，且不得自动激活。
 - `rewriteSql` 必须查询 MV，不能仍指向原始基表。
 - `governanceBoundary` 必须继续声明 SQLForge 不执行生产 DDL。
 
@@ -370,8 +370,8 @@ MV 粒度必须由以下字段组成：
 2. 外部执行 `refreshSql`。
 3. 执行 `validationSql` 或等价验证。
 4. 创建 SQL 改写记录，且 `recommendedSqlText` 必须来自 `accelerationArtifact.rewriteSql`。
-5. 审批改写记录。
-6. 发布改写记录。
+5. 复核改写记录。
+6. 激活改写记录。
 7. query-execution runtime binding 返回 `ACTIVE`。
 8. 后续同租户、同 SQL 指纹、同数据源证据的正常 SQL 执行命中 binding，执行历史记录 `rewriteApplied=true`。
 
@@ -387,14 +387,14 @@ MV 粒度必须由以下字段组成：
 
 - 更新产品或架构文档，引用本文的 MV 类型、产物字段和非目标。
 - 明确 `EXACT_QUERY_MV` 不允许作为本项目推荐类型。
-- 明确 L2 产物不是运行时生效，运行时生效必须通过 SQL 改写记录发布链路。
+- 明确 L2 产物不是运行时生效，运行时生效必须通过 SQL 改写记录激活链路。
 - 不修改业务代码。
 
 **验收**：
 
 - 文档中不存在把原 SQL 原样物化作为兜底推荐的描述。
 - 文档必须显式说明当前 V1 exact-query-like MV 草案行为是后续 AMV 实现任务待修正缺口，不是高级 MV 已完成事实。
-- 文档明确 `recommendedSqlText` 若要生效必须取自 `accelerationArtifact.rewriteSql` 并经过审批发布。
+- 文档明确 `recommendedSqlText` 若要生效必须取自 `accelerationArtifact.rewriteSql` 并经过复核激活。
 - 执行 `node scripts/lint-repository-knowledge.js`、`git diff --check`、`python3 scripts/task_audit.py --check --phase pre-closeout`、`python3 scripts/foreman.py validate <TASK_ID>`。
 - closeout 后继续执行 `python3 scripts/task_audit.py --check --phase post-closeout`。
 
@@ -448,7 +448,7 @@ MV 粒度必须由以下字段组成：
 **验收**：
 
 - 日/月 rollup、普通聚合、AVG 拆解、比例指标均有测试。
-- 不可合并指标不会生成可发布 rewrite。
+- 不可合并指标不会生成可激活 rewrite。
 - 产物中清楚展示指标来源表达式与 rewrite 表达式。
 
 ### AMV-005：实现 PARAMETERIZED_AGG_MV 候选生成
@@ -595,7 +595,7 @@ MV 粒度必须由以下字段组成：
 
 - 推荐中心展示 MV 类型、粒度、维度、指标、谓词分类、Join 图、覆盖证明、阻断原因。
 - 展示 `rewriteSql` 可作为 SQL 改写记录的 `recommendedSqlText` 来源。
-- 页面文案明确 SQLForge 不执行 DDL，runtime 生效需要审批发布。
+- 页面文案明确 SQLForge 不执行 DDL，runtime 生效需要复核激活。
 
 **验收**：
 
@@ -605,7 +605,7 @@ MV 粒度必须由以下字段组成：
 
 ### AMV-014：打通从 MV rewriteSql 创建改写记录的治理入口
 
-**目标**：让高级 MV 产物能进入现有 SQL 改写记录审批发布链路，但不绕过审批。
+**目标**：让高级 MV 产物能进入现有 SQL 改写记录复核激活链路，但不绕过激活资格检查。
 
 **范围**：
 
@@ -614,12 +614,12 @@ MV 粒度必须由以下字段组成：
   - `originalSqlText` 来自原 SQL。
   - `recommendedSqlText` 来自 `accelerationArtifact.rewriteSql`。
   - `traceRefs` 包含 `mvType`、`mvName`、`accelerationArtifact` 摘要。
-- 后续审批、发布、暂停、撤销仍走现有改写记录接口。
+- 后续复核、激活、暂停仍走现有改写记录接口。
 
 **验收**：
 
-- 创建出的改写记录可进入审批流程。
-- 未执行外部验证或未审批时不能自动发布。
+- 创建出的改写记录可进入复核流程。
+- 未执行外部验证或未满足激活资格时不能自动激活。
 - 运行时生效仍以 query-execution binding `ACTIVE` 为准。
 
 ### AMV-015：增强验证 SQL 与等价验证证据
@@ -676,4 +676,4 @@ MV 粒度必须由以下字段组成：
 - `GENERATED` 候选必须提供 DDL、刷新、验证、回滚和 rewrite SQL。
 - `rewriteSql` 必须查询 MV，并能解释原 SQL 是如何由 MV 子集或二次聚合得到。
 - 页面不得把产物生成展示成生产生效。
-- 生产生效仍必须通过 SQL 改写记录审批发布和 query-execution runtime binding。
+- 生产生效仍必须通过 SQL 改写记录复核激活和 query-execution runtime binding。

@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
-public class ApprovedAccelerationBinding {
+public class ActivatedAccelerationBinding {
 
     private final String tenantId;
     private final String planId;
@@ -13,16 +13,16 @@ public class ApprovedAccelerationBinding {
     private final List<String> selectedSuggestionTypes;
     private final String planSummary;
     private final String primaryRecommendation;
-    private final Instant appliedAt;
+    private final Instant activatedAt;
 
-    public ApprovedAccelerationBinding(String tenantId,
+    public ActivatedAccelerationBinding(String tenantId,
                                        String planId,
                                        String sqlFingerprint,
                                        String datasourceType,
                                        List<String> selectedSuggestionTypes,
                                        String planSummary,
                                        String primaryRecommendation,
-                                       Instant appliedAt) {
+                                       Instant activatedAt) {
         this.tenantId = tenantId;
         this.planId = planId;
         this.sqlFingerprint = sqlFingerprint;
@@ -32,7 +32,7 @@ public class ApprovedAccelerationBinding {
             : Collections.unmodifiableList(selectedSuggestionTypes);
         this.planSummary = planSummary;
         this.primaryRecommendation = primaryRecommendation;
-        this.appliedAt = appliedAt;
+        this.activatedAt = activatedAt;
     }
 
     public String getTenantId() {
@@ -63,7 +63,7 @@ public class ApprovedAccelerationBinding {
         return primaryRecommendation;
     }
 
-    public Instant getAppliedAt() {
-        return appliedAt;
+    public Instant getActivatedAt() {
+        return activatedAt;
     }
 }

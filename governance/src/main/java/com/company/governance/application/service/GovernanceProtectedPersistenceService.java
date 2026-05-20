@@ -354,12 +354,12 @@ public class GovernanceProtectedPersistenceService {
                 readText(rewriteAudit, "runtimeRewriteStatus")
             ));
         }
-        if (!StringUtils.hasText(record.getRewritePublishStatusSnapshot())) {
-            record.setRewritePublishStatusSnapshot(firstText(
-                readText(bindingSummary, "rewritePublishStatusSnapshot"),
-                readText(queryContext, "rewritePublishStatusSnapshot"),
-                readText(rewriteAudit, "publishStatusSnapshot"),
-                readText(rewriteAudit, "rewritePublishStatusSnapshot")
+        if (!StringUtils.hasText(record.getRewriteActivationStatusSnapshot())) {
+            record.setRewriteActivationStatusSnapshot(firstText(
+                readText(bindingSummary, "rewriteActivationStatusSnapshot"),
+                readText(queryContext, "rewriteActivationStatusSnapshot"),
+                readText(rewriteAudit, "activationStatusSnapshot"),
+                readText(rewriteAudit, "rewriteActivationStatusSnapshot")
             ));
         }
         if (!StringUtils.hasText(record.getRewriteFallbackReason())) {

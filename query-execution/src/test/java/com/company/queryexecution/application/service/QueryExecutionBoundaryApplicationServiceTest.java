@@ -17,7 +17,7 @@ class QueryExecutionBoundaryApplicationServiceTest {
         assertEquals(7, definition.getOwnedCapabilities().size());
         assertTrue(
             definition.getOwnedCapabilities().contains(
-                QueryExecutionBoundaryDefinition.Capability.APPROVED_ACCELERATION_APPLICATION
+                QueryExecutionBoundaryDefinition.Capability.ACTIVE_ACCELERATION_APPLICATION
             )
         );
         assertTrue(
@@ -51,7 +51,7 @@ class QueryExecutionBoundaryApplicationServiceTest {
         );
         assertEquals(QueryExecutionBoundaryDefinition.ReadonlyPolicy.READONLY_FIRST, definition.getReadonlyPolicy());
         assertEquals(
-            QueryExecutionBoundaryDefinition.AccelerationOwnershipMode.APPLY_APPROVED_RUNTIME_CONFIG_ONLY,
+            QueryExecutionBoundaryDefinition.AccelerationOwnershipMode.APPLY_ACTIVE_RUNTIME_CONFIG_ONLY,
             definition.getAccelerationOwnershipMode()
         );
         assertEquals(3, definition.getHetuAccessModes().size());

@@ -54,9 +54,9 @@ class GovernanceAccelerationPlanTraceabilityApplicationServiceTest {
         request.setSqlFingerprint("fp-001");
         request.setDatasourceType("HETU");
         request.setSqlText("SELECT * FROM orders");
-        request.setPlanStatus("PENDING_APPROVAL");
+        request.setPlanStatus("READY");
         request.setSnapshotPayloadJson("{\"selectedSuggestionTypes\":[\"PRECOMPUTE\"]}");
-        request.setResultSummaryJson("{\"status\":\"PENDING_APPROVAL\"}");
+        request.setResultSummaryJson("{\"status\":\"READY\"}");
         request.setResultPayloadJson("{\"planPayload\":{\"PRECOMPUTE\":\"reason\"}}");
         request.setQueryContextJson("{\"sourceTaskId\":\"task-001\"}");
         request.setCreatedAt("2026-04-25T10:00:00Z");
@@ -78,7 +78,7 @@ class GovernanceAccelerationPlanTraceabilityApplicationServiceTest {
         verify(protectedPersistenceService).saveExecutionResult(resultCaptor.capture());
         assertEquals("ACCELERATION_PLAN", resultCaptor.getValue().getTaskType());
         Map resultSummary = JsonUtils.fromJson(resultCaptor.getValue().getResultSummary(), Map.class);
-        assertEquals("PENDING_APPROVAL", resultSummary.get("status"));
+        assertEquals("READY", resultSummary.get("status"));
 
         ArgumentCaptor<QueryHistoryRecord> historyCaptor = ArgumentCaptor.forClass(QueryHistoryRecord.class);
         verify(protectedPersistenceService).saveQueryHistoryWithSqlText(historyCaptor.capture(), org.mockito.Mockito.eq("SELECT * FROM orders"));
@@ -110,10 +110,10 @@ class GovernanceAccelerationPlanTraceabilityApplicationServiceTest {
         request.setSqlFingerprint("fp-002");
         request.setDatasourceType("HETU");
         request.setSqlText("SELECT 1");
-        request.setPlanStatus("VERIFIED");
+        request.setPlanStatus("ACTIVE");
         request.setSnapshotPayloadJson("{\"selectedSuggestionTypes\":[\"PARTITION\"]}");
-        request.setResultSummaryJson("{\"status\":\"VERIFIED\"}");
-        request.setResultPayloadJson("{\"verificationEvidenceJson\":{\"runtimeStatus\":\"VERIFIED\"}}");
+        request.setResultSummaryJson("{\"status\":\"ACTIVE\"}");
+        request.setResultPayloadJson("{\"activationEvidenceJson\":{\"runtimeStatus\":\"ACTIVE\"}}");
         request.setQueryContextJson("{\"sourceTaskId\":\"task-002\"}");
         request.setCreatedAt("2026-04-25T10:00:00Z");
         request.setUpdatedAt("2026-04-25T10:05:00Z");

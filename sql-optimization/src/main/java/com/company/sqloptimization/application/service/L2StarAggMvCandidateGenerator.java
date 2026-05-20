@@ -138,7 +138,7 @@ final class L2StarAggMvCandidateGenerator {
         if (!"AVAILABLE".equals(text(advancedStructureProfile.get("profileStatus")))) {
             reasons.add(reason(
                 "ADVANCED_STRUCTURE_PROFILE_REQUIRED",
-                "高级结构画像未完整可用，不能生成可发布的 STAR_AGG_MV SQL。"
+                "高级结构画像未完整可用，不能生成可激活的 STAR_AGG_MV SQL。"
             ));
         }
         if (grainMeasureDerivation == null
@@ -155,7 +155,7 @@ final class L2StarAggMvCandidateGenerator {
             "coversSecurity"))) {
             reasons.add(reason(
                 "STAR_AGG_SECURITY_PREDICATE_NOT_COVERED",
-                "安全谓词字段未进入 MV 粒度，不能生成可发布 STAR_AGG_MV rewrite。"
+                "安全谓词字段未进入 MV 粒度，不能生成可激活 STAR_AGG_MV rewrite。"
             ));
         }
         if (mapList(advancedStructureProfile.get("joinGraph")).size() < 2) {
@@ -181,7 +181,7 @@ final class L2StarAggMvCandidateGenerator {
         if (hasOrPredicate(predicateClassification)) {
             reasons.add(reason(
                 "OR_PREDICATE_REWRITE_UNSUPPORTED",
-                "OR 谓词需要保持原逻辑分组，AMV-007 暂不生成可发布 STAR_AGG_MV rewrite。"
+                "OR 谓词需要保持原逻辑分组，AMV-007 暂不生成可激活 STAR_AGG_MV rewrite。"
             ));
         }
         if (baseTables(mapList(advancedStructureProfile.get("tables"))).size() < 3) {
@@ -414,7 +414,7 @@ final class L2StarAggMvCandidateGenerator {
         if (!securityPredicatesCovered(predicateClassification, dimensions)) {
             reasons.add(reason(
                 "STAR_AGG_SECURITY_PREDICATE_NOT_COVERED",
-                "安全谓词字段未保留为 MV 维度，不能生成可发布 rewrite。"
+                "安全谓词字段未保留为 MV 维度，不能生成可激活 rewrite。"
             ));
         }
         if (!reasons.isEmpty()) {

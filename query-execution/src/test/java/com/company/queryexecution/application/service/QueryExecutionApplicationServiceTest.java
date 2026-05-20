@@ -17,14 +17,14 @@ import com.company.queryexecution.application.controller.dto.QueryExecuteRequest
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
-import com.company.queryexecution.domain.query.ApprovedAccelerationBinding;
+import com.company.queryexecution.domain.query.ActivatedAccelerationBinding;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.adapter.DeterministicQueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailableException;
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanActivationRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApplyRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
@@ -145,19 +145,19 @@ class QueryExecutionApplicationServiceTest {
     }
 
     @Test
-    void shouldApplyAccelerationOnlyWhenApprovedBindingExists() {
+    void shouldApplyAccelerationOnlyWhenActiveBindingExists() {
         setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         QueryExecutionAccelerationRuntimeService runtimeService = new QueryExecutionAccelerationRuntimeService();
-        QueryExecutionAccelerationPlanApplyRequest applyRequest = new QueryExecutionAccelerationPlanApplyRequest();
-        applyRequest.setTenantId("tenant-a");
-        applyRequest.setPlanId("plan-001");
-        applyRequest.setSqlFingerprint(com.company.sqlforge.common.utils.SqlFingerprintUtils.fingerprint("SELECT * FROM orders"));
-        applyRequest.setDatasourceType("HETU");
-        applyRequest.setSelectedSuggestionTypes(java.util.Collections.singletonList("PRECOMPUTE"));
-        applyRequest.setPlanSummary("approved plan");
-        applyRequest.setPrimaryRecommendation("use approved runtime config");
-        runtimeService.apply(applyRequest);
+        QueryExecutionAccelerationPlanActivationRequest activationRequest = new QueryExecutionAccelerationPlanActivationRequest();
+        activationRequest.setTenantId("tenant-a");
+        activationRequest.setPlanId("plan-001");
+        activationRequest.setSqlFingerprint(com.company.sqlforge.common.utils.SqlFingerprintUtils.fingerprint("SELECT * FROM orders"));
+        activationRequest.setDatasourceType("HETU");
+        activationRequest.setSelectedSuggestionTypes(java.util.Collections.singletonList("PRECOMPUTE"));
+        activationRequest.setPlanSummary("active plan");
+        activationRequest.setPrimaryRecommendation("use active runtime config");
+        runtimeService.activate(activationRequest);
 
         QueryExecutionApplicationService service = new QueryExecutionApplicationService(
             new DeterministicQueryExecutionAdapter(),
@@ -225,9 +225,9 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(Long.valueOf(3L), historyRequest.getRewriteRuleVersion());
         assertEquals("runtime-rewrite-v3", historyRequest.getRuntimeRuleVersion());
         assertEquals("ACTIVE", historyRequest.getRuntimeRewriteStatus());
-        assertEquals("PUBLISHED", historyRequest.getRewritePublishStatusSnapshot());
+        assertEquals("ACTIVE", historyRequest.getRewriteActivationStatusSnapshot());
         assertTrue(historyRequest.getBindingSummary().contains("\"runtimeBindingId\":\"rwb-001\""));
-        assertTrue(historyRequest.getBindingSummary().contains("\"rewritePublishStatusSnapshot\":\"PUBLISHED\""));
+        assertTrue(historyRequest.getBindingSummary().contains("\"rewriteActivationStatusSnapshot\":\"ACTIVE\""));
         assertTrue(historyRequest.getQueryContext().contains("\"runtimeRuleVersion\":\"runtime-rewrite-v3\""));
     }
 

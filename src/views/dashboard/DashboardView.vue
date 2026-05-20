@@ -154,18 +154,17 @@ const rewriteStats = computed(() => {
   }
   rewriteRecords.value.forEach(item => {
     const validationStatus = String(item.validationStatus || item.rewriteValidationStatus || '').toUpperCase()
-    const publishStatus = String(item.publishStatus || item.runtimeRewriteStatus || '').toUpperCase()
-    const reviewStatus = String(item.reviewStatus || '').toUpperCase()
-    const paused = item.autoApplyPaused === true || ['PAUSED', 'SUSPENDED'].includes(publishStatus)
+    const activationStatus = String(item.activationStatus || item.runtimeRewriteStatus || '').toUpperCase()
+    const paused = item.autoApplyPaused === true || ['PAUSED', 'SUSPENDED'].includes(activationStatus)
     const validationRisk = ['FAILED', 'FAIL', 'DIVERGED', 'SQL_REWRITE_RESULT_DIVERGENCE'].includes(validationStatus)
-    const needsReview = ['PENDING', 'REVIEWING', 'REJECTED'].includes(reviewStatus)
+    const activationRisk = ['ACTIVATE_FAILED', 'PAUSE_FAILED'].includes(activationStatus)
     if (paused) {
       stats.paused += 1
     }
     if (validationRisk) {
       stats.validationRisk += 1
     }
-    if (paused || validationRisk || needsReview) {
+    if (paused || validationRisk || activationRisk) {
       stats.attention += 1
     }
   })
@@ -444,8 +443,8 @@ const nextStepItems = computed(() => {
       tone: 'warning',
       title: t('inline.viewsDashboardDashboardView.text038'),
       description: isChinese.value
-        ? `${rewriteStats.value.attention} 条改写记录样本需要关注 review、publish、paused 或 validation 状态。`
-        : `${rewriteStats.value.attention} rewrite-record samples need review, publish, paused, or validation attention.`,
+        ? `${rewriteStats.value.attention} 条改写记录样本需要关注 activation、paused 或 validation 状态。`
+        : `${rewriteStats.value.attention} rewrite-record samples need activation, paused, or validation attention.`,
       path: rewriteHistoryTarget()
     })
   }
@@ -508,7 +507,7 @@ const activityItems = computed(() => {
     key: `rewrite-${item.rewriteRecordId || item.recommendationId || item.sqlFingerprint}`,
     type: t('inline.viewsDashboardDashboardView.text045'),
     target: item.rewriteRecordId || item.recommendationId || item.sqlFingerprint || '-',
-    status: item.validationStatus || item.publishStatus || item.reviewStatus || 'UNKNOWN',
+    status: item.validationStatus || item.activationStatus || 'UNKNOWN',
     time: formatTimestamp(item.updatedAt || item.lastComparedAt || item.createdAt),
     path: rewriteRecordTarget(item),
     sortValue: toEpoch(item.updatedAt || item.lastComparedAt || item.createdAt)

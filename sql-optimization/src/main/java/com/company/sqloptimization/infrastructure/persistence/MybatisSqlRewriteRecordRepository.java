@@ -7,7 +7,7 @@ import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.domain.governance.RewriteAlertStatus;
-import com.company.sqloptimization.domain.governance.RewritePublishStatus;
+import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
@@ -145,12 +145,12 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
         record.setReviewNote(rewriteRecord.getReviewNote());
         record.setReviewedBy(rewriteRecord.getReviewedBy());
         record.setReviewedAt(toLocalDateTime(rewriteRecord.getReviewedAt()));
-        record.setPublishStatus(rewriteRecord.getPublishStatus().name());
+        record.setActivationStatus(rewriteRecord.getActivationStatus().name());
         record.setRuntimeBindingId(rewriteRecord.getRuntimeBindingId());
         record.setRuntimeBindingAt(toLocalDateTime(rewriteRecord.getRuntimeBindingAt()));
         record.setRuntimeBindingBy(rewriteRecord.getRuntimeBindingBy());
         record.setRuntimeBindingScope(rewriteRecord.getRuntimeBindingScope());
-        record.setPublishedSqlFingerprint(rewriteRecord.getPublishedSqlFingerprint());
+        record.setActivatedSqlFingerprint(rewriteRecord.getActivatedSqlFingerprint());
         record.setRuntimeRuleVersion(rewriteRecord.getRuntimeRuleVersion());
         record.setValidationPolicyId(rewriteRecord.getValidationPolicyId());
         record.setLastValidationRunId(rewriteRecord.getLastValidationRunId());
@@ -193,12 +193,12 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
             .reviewNote(record.getReviewNote())
             .reviewedBy(record.getReviewedBy())
             .reviewedAt(toInstant(record.getReviewedAt()))
-            .publishStatus(record.getPublishStatus() == null ? null : RewritePublishStatus.valueOf(record.getPublishStatus()))
+            .activationStatus(record.getActivationStatus() == null ? null : RewriteActivationStatus.valueOf(record.getActivationStatus()))
             .runtimeBindingId(record.getRuntimeBindingId())
             .runtimeBindingAt(toInstant(record.getRuntimeBindingAt()))
             .runtimeBindingBy(record.getRuntimeBindingBy())
             .runtimeBindingScope(record.getRuntimeBindingScope())
-            .publishedSqlFingerprint(record.getPublishedSqlFingerprint())
+            .activatedSqlFingerprint(record.getActivatedSqlFingerprint())
             .runtimeRuleVersion(record.getRuntimeRuleVersion())
             .validationPolicyId(record.getValidationPolicyId())
             .lastValidationRunId(record.getLastValidationRunId())

@@ -25,7 +25,7 @@ import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWri
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
-import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingPublishRequest;
+import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
@@ -33,7 +33,7 @@ import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
-import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordPublishActionRequest;
+import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordActivationActionRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
@@ -41,7 +41,7 @@ import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
 import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
-import com.company.sqloptimization.domain.governance.RewritePublishStatus;
+import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
@@ -118,7 +118,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
         );
         RewriteValidationRunVO equivalentRun =
             rewriteRecordService.createValidationRun(approved.getRewriteRecordId(), validationRequest());
-        SqlRewriteRecordVO published = rewriteRecordService.publishRewriteRecord(
+        SqlRewriteRecordVO published = rewriteRecordService.activateRewriteRecord(
             approved.getRewriteRecordId(),
             publishRequest("release approved production rewrite")
         );
@@ -145,26 +145,26 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertEquals(recommendation.getRecommendationId(), rewriteRecord.getRecommendationId());
         assertEquals("APPROVED", approved.getReviewStatus());
         assertEquals("EQUIVALENT", equivalentRun.getComparisonStatus());
-        assertEquals("PUBLISHED", published.getPublishStatus());
+        assertEquals("ACTIVE", published.getActivationStatus());
         assertNotNull(published.getRuntimeBindingId());
         assertEquals("runtime-rewrite-v1", published.getRuntimeRuleVersion());
-        assertEquals("PUBLISH", lastPublishStatusAction(published));
-        assertEquals("PUBLISHED", lastPublishStatus(published));
+        assertEquals("ACTIVATE", lastActivationStatusAction(published));
+        assertEquals("ACTIVE", lastActivationStatus(published));
         assertEquals(QueryExecutionStatus.SUCCESS, executionResponse.getStatus());
         assertEquals(RECOMMENDED_SQL, queryAdapter.getActualSql());
         assertTrue(executionResponse.getMetadata().isRewriteApplied());
         assertEquals(published.getRewriteRecordId(), executionResponse.getMetadata().getRewriteRecordId());
         assertEquals(published.getRuntimeBindingId(), executionResponse.getMetadata().getRuntimeBindingId());
-        assertEquals("PUBLISHED", executionResponse.getMetadata().getRewritePublishStatusSnapshot());
+        assertEquals("ACTIVE", executionResponse.getMetadata().getRewriteActivationStatusSnapshot());
         assertEquals(Boolean.TRUE, governanceClient.getLastHistoryRequest().getRewriteApplied());
         assertEquals(ORIGINAL_SQL, governanceClient.getLastHistoryRequest().getSqlTemplate());
         assertEquals(RECOMMENDED_SQL, governanceClient.getLastHistoryRequest().getBoundSql());
         assertEquals(published.getRewriteRecordId(), governanceClient.getLastHistoryRequest().getRewriteRecordId());
         assertEquals("DIVERGED", divergedRun.getComparisonStatus());
         assertEquals(Boolean.TRUE, divergedRun.getAutoApplyPaused());
-        assertEquals("PAUSED", paused.getPublishStatus());
-        assertEquals("AUTO_PAUSE", lastPublishStatusAction(paused));
-        assertEquals("PAUSED", lastPublishStatus(paused));
+        assertEquals("PAUSED", paused.getActivationStatus());
+        assertEquals("AUTO_PAUSE", lastActivationStatusAction(paused));
+        assertEquals("PAUSED", lastActivationStatus(paused));
         assertEquals("MISSING", runtimeBindingService.resolveActive(resolveRequest()).getStatus());
         assertEquals(4, digestClient.getRequestCount());
     }
@@ -200,7 +200,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
         );
         RewriteValidationRunVO equivalentRun =
             rewriteRecordService.createValidationRun(approved.getRewriteRecordId(), validationRequest());
-        SqlRewriteRecordVO published = rewriteRecordService.publishRewriteRecord(
+        SqlRewriteRecordVO published = rewriteRecordService.activateRewriteRecord(
             approved.getRewriteRecordId(),
             publishRequest("release MV runtime rewrite binding")
         );
@@ -225,7 +225,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertEquals("APPROVED", approved.getReviewStatus());
         assertEquals(Boolean.TRUE, approved.getAutoApplyAllowed());
         assertEquals("EQUIVALENT", equivalentRun.getComparisonStatus());
-        assertEquals("PUBLISHED", published.getPublishStatus());
+        assertEquals("ACTIVE", published.getActivationStatus());
         assertNotNull(published.getRuntimeBindingId());
         assertEquals("ACTIVE", activeBinding.getStatus());
         assertEquals(published.getRuntimeBindingId(), activeBinding.getRuntimeBindingId());
@@ -279,9 +279,9 @@ class ProductionRewriteClosedLoopEndToEndTest {
         request.setHistoryId(HISTORY_ID);
         request.setSqlFingerprint(SQL_FINGERPRINT);
         request.setDatasourceCode("hetu_main");
-        request.setStatus(RewriteRecordStatus.APPLIED);
+        request.setStatus(RewriteRecordStatus.READY);
         request.setValidationStatus(RewriteValidationStatus.NOT_VALIDATED);
-        request.setPublishStatus(RewritePublishStatus.UNPUBLISHED);
+        request.setActivationStatus(RewriteActivationStatus.INACTIVE);
         request.setAutoApplyAllowed(Boolean.TRUE);
         request.setManualReviewRequired(Boolean.TRUE);
         request.setValidationPolicyId("PRW_012_READONLY_DIGEST_POLICY");
@@ -319,9 +319,9 @@ class ProductionRewriteClosedLoopEndToEndTest {
         request.setHistoryId("history-mv-runtime");
         request.setSqlFingerprint(MV_SQL_FINGERPRINT);
         request.setDatasourceCode("hetu_main");
-        request.setStatus(RewriteRecordStatus.APPLIED);
+        request.setStatus(RewriteRecordStatus.READY);
         request.setValidationStatus(RewriteValidationStatus.NOT_VALIDATED);
-        request.setPublishStatus(RewritePublishStatus.UNPUBLISHED);
+        request.setActivationStatus(RewriteActivationStatus.INACTIVE);
         request.setAutoApplyAllowed(Boolean.FALSE);
         request.setManualReviewRequired(Boolean.TRUE);
         request.setValidationPolicyId("MV_RUNTIME_READONLY_DIGEST_POLICY");
@@ -372,8 +372,8 @@ class ProductionRewriteClosedLoopEndToEndTest {
         return request;
     }
 
-    private SqlRewriteRecordPublishActionRequest publishRequest(String reason) {
-        SqlRewriteRecordPublishActionRequest request = new SqlRewriteRecordPublishActionRequest();
+    private SqlRewriteRecordActivationActionRequest publishRequest(String reason) {
+        SqlRewriteRecordActivationActionRequest request = new SqlRewriteRecordActivationActionRequest();
         request.setTenantId(TENANT_ID);
         request.setReason(reason);
         return request;
@@ -415,16 +415,20 @@ class ProductionRewriteClosedLoopEndToEndTest {
         );
     }
 
-    private String lastPublishStatusAction(SqlRewriteRecordVO record) {
-        return String.valueOf(lastPublishStatusTrace(record).get("action"));
+    private String lastActivationStatusAction(SqlRewriteRecordVO record) {
+        return String.valueOf(lastActivationStatusTrace(record).get("action"));
     }
 
-    private String lastPublishStatus(SqlRewriteRecordVO record) {
-        return String.valueOf(lastPublishStatusTrace(record).get("publishStatus"));
+    private String lastActivationStatus(SqlRewriteRecordVO record) {
+        return String.valueOf(lastActivationStatusTrace(record).get("activationStatus"));
     }
 
-    private Map<?, ?> lastPublishStatusTrace(SqlRewriteRecordVO record) {
-        return (Map<?, ?>) record.getTraceRefs().get("lastPublishStatusTrace");
+    private Map<?, ?> lastActivationStatusTrace(SqlRewriteRecordVO record) {
+        Object pauseEvidence = record.getTraceRefs().get("pauseEvidence");
+        if (pauseEvidence != null) {
+            return (Map<?, ?>) pauseEvidence;
+        }
+        return (Map<?, ?>) record.getTraceRefs().get("activationEvidence");
     }
 
     private QueryExecutionResultDigestResponse digest(String schemaDigest,
@@ -470,8 +474,8 @@ class ProductionRewriteClosedLoopEndToEndTest {
         }
 
         @Override
-        public RuntimeRewriteBindingResponse publish(RuntimeRewriteBindingPublishRequest request) {
-            return runtimeBindingService.publish(request);
+        public RuntimeRewriteBindingResponse activate(RuntimeRewriteBindingActivationRequest request) {
+            return runtimeBindingService.activate(request);
         }
 
         @Override
@@ -479,10 +483,6 @@ class ProductionRewriteClosedLoopEndToEndTest {
             return runtimeBindingService.pause(request);
         }
 
-        @Override
-        public RuntimeRewriteBindingResponse unpublish(RuntimeRewriteBindingStateChangeRequest request) {
-            return runtimeBindingService.unpublish(request);
-        }
     }
 
     private static final class SequencedResultDigestClient implements QueryExecutionResultDigestClient {

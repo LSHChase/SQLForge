@@ -32,22 +32,14 @@ public class AccelerationPlan {
     private String resultId;
     private String historyId;
     private AccelerationPlanStatus status;
-    private String reviewNote;
-    private String approvedBy;
-    private Instant approvedAt;
-    private String rejectedBy;
-    private Instant rejectedAt;
     private Integer lastErrorCode;
     private String lastErrorMessage;
-    private String runtimeBindingJson;
-    private Instant runtimeBindingAt;
-    private String runtimeBindingBy;
-    private String verificationEvidenceJson;
-    private Instant verifiedAt;
-    private String verifiedBy;
-    private String rollbackEvidenceJson;
-    private Instant rolledBackAt;
-    private String rolledBackBy;
+    private String activationEvidenceJson;
+    private Instant activatedAt;
+    private String activatedBy;
+    private String pauseEvidenceJson;
+    private Instant pausedAt;
+    private String pausedBy;
     private Instant updatedAt;
 
     private AccelerationPlan(String planId,
@@ -64,7 +56,8 @@ public class AccelerationPlan {
                              List<OptimizationTaskCost> costs,
                              List<OptimizationTaskRisk> risks,
                              Instant createdAt,
-                             List<AccelerationPlanStatusTransition> statusHistory) {
+                             List<AccelerationPlanStatusTransition> statusHistory,
+                             AccelerationPlanStatus status) {
         this.planId = planId;
         this.tenantId = tenantId;
         this.sourceTaskId = sourceTaskId;
@@ -81,81 +74,7 @@ public class AccelerationPlan {
         this.createdAt = createdAt;
         this.updatedAt = createdAt;
         this.statusHistory = history(statusHistory);
-        this.status = AccelerationPlanStatus.PENDING_APPROVAL;
-    }
-
-    private AccelerationPlan(String planId,
-                             String tenantId,
-                             String sourceTaskId,
-                             String sqlText,
-                             String sqlFingerprint,
-                             DataSourceTypeEnum datasourceType,
-                             List<AccelerationSuggestionType> selectedSuggestionTypes,
-                             String planSummary,
-                             String primaryRecommendation,
-                             String planPayloadJson,
-                             List<OptimizationTaskBenefit> benefits,
-                             List<OptimizationTaskCost> costs,
-                             List<OptimizationTaskRisk> risks,
-                             Instant createdAt,
-                             List<AccelerationPlanStatusTransition> statusHistory,
-                             String configSnapshotId,
-                             String resultId,
-                             String historyId,
-                             AccelerationPlanStatus status,
-                             String reviewNote,
-                             String approvedBy,
-                             Instant approvedAt,
-                             String rejectedBy,
-                             Instant rejectedAt,
-                             Integer lastErrorCode,
-                             String lastErrorMessage,
-                             String runtimeBindingJson,
-                             Instant runtimeBindingAt,
-                             String runtimeBindingBy,
-                             String verificationEvidenceJson,
-                             Instant verifiedAt,
-                             String verifiedBy,
-                             String rollbackEvidenceJson,
-                             Instant rolledBackAt,
-                             String rolledBackBy,
-                             Instant updatedAt) {
-        this.planId = planId;
-        this.tenantId = tenantId;
-        this.sourceTaskId = sourceTaskId;
-        this.sqlText = sqlText;
-        this.sqlFingerprint = sqlFingerprint;
-        this.datasourceType = datasourceType;
-        this.selectedSuggestionTypes = immutable(selectedSuggestionTypes);
-        this.planSummary = planSummary;
-        this.primaryRecommendation = primaryRecommendation;
-        this.planPayloadJson = planPayloadJson;
-        this.benefits = immutable(benefits);
-        this.costs = immutable(costs);
-        this.risks = immutable(risks);
-        this.createdAt = createdAt;
-        this.statusHistory = history(statusHistory);
-        this.configSnapshotId = configSnapshotId;
-        this.resultId = resultId;
-        this.historyId = historyId;
-        this.status = status == null ? AccelerationPlanStatus.PENDING_APPROVAL : status;
-        this.reviewNote = reviewNote;
-        this.approvedBy = approvedBy;
-        this.approvedAt = approvedAt;
-        this.rejectedBy = rejectedBy;
-        this.rejectedAt = rejectedAt;
-        this.lastErrorCode = lastErrorCode;
-        this.lastErrorMessage = lastErrorMessage;
-        this.runtimeBindingJson = runtimeBindingJson;
-        this.runtimeBindingAt = runtimeBindingAt;
-        this.runtimeBindingBy = runtimeBindingBy;
-        this.verificationEvidenceJson = verificationEvidenceJson;
-        this.verifiedAt = verifiedAt;
-        this.verifiedBy = verifiedBy;
-        this.rollbackEvidenceJson = rollbackEvidenceJson;
-        this.rolledBackAt = rolledBackAt;
-        this.rolledBackBy = rolledBackBy;
-        this.updatedAt = updatedAt == null ? createdAt : updatedAt;
+        this.status = status == null ? AccelerationPlanStatus.READY : status;
     }
 
     public static AccelerationPlan submit(String planId,
@@ -173,7 +92,7 @@ public class AccelerationPlan {
                                           List<OptimizationTaskRisk> risks,
                                           Instant createdAt) {
         List<AccelerationPlanStatusTransition> history = new ArrayList<AccelerationPlanStatusTransition>();
-        history.add(new AccelerationPlanStatusTransition(null, AccelerationPlanStatus.PENDING_APPROVAL, createdAt, "PLAN_SUBMITTED"));
+        history.add(new AccelerationPlanStatusTransition(null, AccelerationPlanStatus.READY, createdAt, "PLAN_SUBMITTED"));
         return new AccelerationPlan(
             planId,
             tenantId,
@@ -189,7 +108,8 @@ public class AccelerationPlan {
             costs,
             risks,
             createdAt,
-            history
+            history,
+            AccelerationPlanStatus.READY
         );
     }
 
@@ -212,24 +132,16 @@ public class AccelerationPlan {
                                            String resultId,
                                            String historyId,
                                            AccelerationPlanStatus status,
-                                           String reviewNote,
-                                           String approvedBy,
-                                           Instant approvedAt,
-                                           String rejectedBy,
-                                           Instant rejectedAt,
                                            Integer lastErrorCode,
                                            String lastErrorMessage,
-                                           String runtimeBindingJson,
-                                           Instant runtimeBindingAt,
-                                           String runtimeBindingBy,
-                                           String verificationEvidenceJson,
-                                           Instant verifiedAt,
-                                           String verifiedBy,
-                                           String rollbackEvidenceJson,
-                                           Instant rolledBackAt,
-                                           String rolledBackBy,
+                                           String activationEvidenceJson,
+                                           Instant activatedAt,
+                                           String activatedBy,
+                                           String pauseEvidenceJson,
+                                           Instant pausedAt,
+                                           String pausedBy,
                                            Instant updatedAt) {
-        return new AccelerationPlan(
+        AccelerationPlan plan = new AccelerationPlan(
             planId,
             tenantId,
             sourceTaskId,
@@ -245,28 +157,21 @@ public class AccelerationPlan {
             risks,
             createdAt,
             statusHistory,
-            configSnapshotId,
-            resultId,
-            historyId,
-            status,
-            reviewNote,
-            approvedBy,
-            approvedAt,
-            rejectedBy,
-            rejectedAt,
-            lastErrorCode,
-            lastErrorMessage,
-            runtimeBindingJson,
-            runtimeBindingAt,
-            runtimeBindingBy,
-            verificationEvidenceJson,
-            verifiedAt,
-            verifiedBy,
-            rollbackEvidenceJson,
-            rolledBackAt,
-            rolledBackBy,
-            updatedAt
+            status
         );
+        plan.configSnapshotId = configSnapshotId;
+        plan.resultId = resultId;
+        plan.historyId = historyId;
+        plan.lastErrorCode = lastErrorCode;
+        plan.lastErrorMessage = lastErrorMessage;
+        plan.activationEvidenceJson = activationEvidenceJson;
+        plan.activatedAt = activatedAt;
+        plan.activatedBy = activatedBy;
+        plan.pauseEvidenceJson = pauseEvidenceJson;
+        plan.pausedAt = pausedAt;
+        plan.pausedBy = pausedBy;
+        plan.updatedAt = updatedAt == null ? createdAt : updatedAt;
+        return plan;
     }
 
     public void attachGovernanceTrace(String configSnapshotId, String resultId, String historyId) {
@@ -275,113 +180,62 @@ public class AccelerationPlan {
         this.historyId = historyId;
     }
 
-    public void approve(String reviewNote, String operator, Instant occurredAt) {
-        requireStatus(AccelerationPlanStatus.PENDING_APPROVAL, "加速方案必须处于待审批状态。");
-        transitionTo(AccelerationPlanStatus.APPROVED, occurredAt, "PLAN_APPROVED");
-        this.reviewNote = reviewNote;
-        this.approvedBy = operator;
-        this.approvedAt = occurredAt;
-        this.rejectedBy = null;
-        this.rejectedAt = null;
+    public void markActivated(String activationEvidenceJson, String operator, Instant occurredAt) {
+        requireActivateEligible();
+        transitionTo(AccelerationPlanStatus.ACTIVE, occurredAt, "PLAN_ACTIVATED");
+        this.activationEvidenceJson = activationEvidenceJson;
+        this.activatedBy = operator;
+        this.activatedAt = occurredAt;
         this.lastErrorCode = null;
         this.lastErrorMessage = null;
     }
 
-    public void reject(String reviewNote, String operator, Instant occurredAt) {
-        requireStatus(AccelerationPlanStatus.PENDING_APPROVAL, "加速方案必须处于待审批状态。");
-        transitionTo(AccelerationPlanStatus.REJECTED, occurredAt, "PLAN_REJECTED");
-        this.reviewNote = reviewNote;
-        this.rejectedBy = operator;
-        this.rejectedAt = occurredAt;
-        this.lastErrorCode = null;
-        this.lastErrorMessage = null;
-    }
-
-    public void markApplied(String runtimeBindingJson, String operator, Instant occurredAt) {
-        requireApplyEligible();
-        transitionTo(AccelerationPlanStatus.APPLIED, occurredAt, "PLAN_APPLIED");
-        this.runtimeBindingJson = runtimeBindingJson;
-        this.runtimeBindingBy = operator;
-        this.runtimeBindingAt = occurredAt;
-        this.lastErrorCode = null;
-        this.lastErrorMessage = null;
-    }
-
-    public void markApplyFailed(Integer errorCode, String errorMessage, String runtimeBindingJson, String operator, Instant occurredAt) {
-        requireApplyEligible();
-        transitionTo(AccelerationPlanStatus.APPLY_FAILED, occurredAt, "PLAN_APPLY_FAILED");
+    public void markActivateFailed(Integer errorCode, String errorMessage, String activationEvidenceJson, String operator, Instant occurredAt) {
+        requireActivateEligible();
+        transitionTo(AccelerationPlanStatus.ACTIVATE_FAILED, occurredAt, "PLAN_ACTIVATE_FAILED");
         this.lastErrorCode = errorCode;
         this.lastErrorMessage = errorMessage;
-        this.runtimeBindingJson = runtimeBindingJson;
-        this.runtimeBindingBy = operator;
-        this.runtimeBindingAt = occurredAt;
+        this.activationEvidenceJson = activationEvidenceJson;
+        this.activatedBy = operator;
+        this.activatedAt = occurredAt;
     }
 
-    public void markVerified(String verificationEvidenceJson, String operator, Instant occurredAt) {
-        if (!(status == AccelerationPlanStatus.APPLIED || status == AccelerationPlanStatus.VERIFY_FAILED)) {
-            throw new IllegalStateException("加速方案校验前必须已应用。");
-        }
-        transitionTo(AccelerationPlanStatus.VERIFIED, occurredAt, "PLAN_VERIFIED");
-        this.verificationEvidenceJson = verificationEvidenceJson;
-        this.verifiedBy = operator;
-        this.verifiedAt = occurredAt;
+    public void markPaused(String pauseEvidenceJson, String operator, Instant occurredAt) {
+        requirePauseEligible();
+        transitionTo(AccelerationPlanStatus.PAUSED, occurredAt, "PLAN_PAUSED");
+        this.pauseEvidenceJson = pauseEvidenceJson;
+        this.pausedBy = operator;
+        this.pausedAt = occurredAt;
         this.lastErrorCode = null;
         this.lastErrorMessage = null;
     }
 
-    public void markVerificationFailed(Integer errorCode, String errorMessage, String verificationEvidenceJson, String operator, Instant occurredAt) {
-        if (!(status == AccelerationPlanStatus.APPLIED || status == AccelerationPlanStatus.VERIFY_FAILED)) {
-            throw new IllegalStateException("加速方案校验前必须已应用。");
-        }
-        transitionTo(AccelerationPlanStatus.VERIFY_FAILED, occurredAt, "PLAN_VERIFY_FAILED");
+    public void markPauseFailed(Integer errorCode, String errorMessage, String pauseEvidenceJson, String operator, Instant occurredAt) {
+        requirePauseEligible();
+        transitionTo(AccelerationPlanStatus.PAUSE_FAILED, occurredAt, "PLAN_PAUSE_FAILED");
         this.lastErrorCode = errorCode;
         this.lastErrorMessage = errorMessage;
-        this.verificationEvidenceJson = verificationEvidenceJson;
-        this.verifiedBy = operator;
-        this.verifiedAt = occurredAt;
+        this.pauseEvidenceJson = pauseEvidenceJson;
+        this.pausedBy = operator;
+        this.pausedAt = occurredAt;
     }
 
-    public void markRolledBack(String rollbackEvidenceJson, String operator, Instant occurredAt) {
-        requireRollbackEligible();
-        transitionTo(AccelerationPlanStatus.ROLLED_BACK, occurredAt, "PLAN_ROLLED_BACK");
-        this.rollbackEvidenceJson = rollbackEvidenceJson;
-        this.rolledBackBy = operator;
-        this.rolledBackAt = occurredAt;
-        this.lastErrorCode = null;
-        this.lastErrorMessage = null;
-    }
-
-    public void markRollbackFailed(Integer errorCode, String errorMessage, String rollbackEvidenceJson, String operator, Instant occurredAt) {
-        requireRollbackEligible();
-        transitionTo(AccelerationPlanStatus.ROLLBACK_FAILED, occurredAt, "PLAN_ROLLBACK_FAILED");
-        this.lastErrorCode = errorCode;
-        this.lastErrorMessage = errorMessage;
-        this.rollbackEvidenceJson = rollbackEvidenceJson;
-        this.rolledBackBy = operator;
-        this.rolledBackAt = occurredAt;
-    }
-
-    private void requireStatus(AccelerationPlanStatus expectedStatus, String message) {
-        if (status != expectedStatus) {
-            throw new IllegalStateException(message);
+    private void requireActivateEligible() {
+        if (status == AccelerationPlanStatus.READY
+            || status == AccelerationPlanStatus.ACTIVATE_FAILED
+            || status == AccelerationPlanStatus.PAUSED) {
+            return;
         }
+        throw new IllegalStateException("加速方案激活前必须处于 READY、ACTIVATE_FAILED 或 PAUSED 状态。");
     }
 
-    private void requireApplyEligible() {
-        if (!(status == AccelerationPlanStatus.APPROVED
-            || status == AccelerationPlanStatus.APPLY_FAILED
-            || status == AccelerationPlanStatus.ROLLED_BACK)) {
-            throw new IllegalStateException("加速方案应用前必须已批准。");
+    private void requirePauseEligible() {
+        if (status == AccelerationPlanStatus.ACTIVE
+            || status == AccelerationPlanStatus.PAUSED
+            || status == AccelerationPlanStatus.PAUSE_FAILED) {
+            return;
         }
-    }
-
-    private void requireRollbackEligible() {
-        if (!(status == AccelerationPlanStatus.APPLIED
-            || status == AccelerationPlanStatus.VERIFIED
-            || status == AccelerationPlanStatus.VERIFY_FAILED
-            || status == AccelerationPlanStatus.ROLLBACK_FAILED)) {
-            throw new IllegalStateException("加速方案回滚前必须已应用。");
-        }
+        throw new IllegalStateException("加速方案暂停前必须处于 ACTIVE、PAUSED 或 PAUSE_FAILED 状态。");
     }
 
     private void transitionTo(AccelerationPlanStatus nextStatus, Instant occurredAt, String note) {
@@ -404,147 +258,32 @@ public class AccelerationPlan {
         return new ArrayList<AccelerationPlanStatusTransition>(values);
     }
 
-    public String getPlanId() {
-        return planId;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public String getSourceTaskId() {
-        return sourceTaskId;
-    }
-
-    public String getSqlText() {
-        return sqlText;
-    }
-
-    public String getSqlFingerprint() {
-        return sqlFingerprint;
-    }
-
-    public DataSourceTypeEnum getDatasourceType() {
-        return datasourceType;
-    }
-
-    public List<AccelerationSuggestionType> getSelectedSuggestionTypes() {
-        return selectedSuggestionTypes;
-    }
-
-    public String getPlanSummary() {
-        return planSummary;
-    }
-
-    public String getPrimaryRecommendation() {
-        return primaryRecommendation;
-    }
-
-    public String getPlanPayloadJson() {
-        return planPayloadJson;
-    }
-
-    public List<OptimizationTaskBenefit> getBenefits() {
-        return benefits;
-    }
-
-    public List<OptimizationTaskCost> getCosts() {
-        return costs;
-    }
-
-    public List<OptimizationTaskRisk> getRisks() {
-        return risks;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public String getConfigSnapshotId() {
-        return configSnapshotId;
-    }
-
-    public String getResultId() {
-        return resultId;
-    }
-
-    public String getHistoryId() {
-        return historyId;
-    }
-
-    public AccelerationPlanStatus getStatus() {
-        return status;
-    }
-
-    public String getReviewNote() {
-        return reviewNote;
-    }
-
-    public String getApprovedBy() {
-        return approvedBy;
-    }
-
-    public Instant getApprovedAt() {
-        return approvedAt;
-    }
-
-    public String getRejectedBy() {
-        return rejectedBy;
-    }
-
-    public Instant getRejectedAt() {
-        return rejectedAt;
-    }
-
-    public Integer getLastErrorCode() {
-        return lastErrorCode;
-    }
-
-    public String getLastErrorMessage() {
-        return lastErrorMessage;
-    }
-
-    public String getRuntimeBindingJson() {
-        return runtimeBindingJson;
-    }
-
-    public Instant getRuntimeBindingAt() {
-        return runtimeBindingAt;
-    }
-
-    public String getRuntimeBindingBy() {
-        return runtimeBindingBy;
-    }
-
-    public String getVerificationEvidenceJson() {
-        return verificationEvidenceJson;
-    }
-
-    public Instant getVerifiedAt() {
-        return verifiedAt;
-    }
-
-    public String getVerifiedBy() {
-        return verifiedBy;
-    }
-
-    public String getRollbackEvidenceJson() {
-        return rollbackEvidenceJson;
-    }
-
-    public Instant getRolledBackAt() {
-        return rolledBackAt;
-    }
-
-    public String getRolledBackBy() {
-        return rolledBackBy;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public List<AccelerationPlanStatusTransition> getStatusHistory() {
-        return Collections.unmodifiableList(statusHistory);
-    }
+    public String getPlanId() { return planId; }
+    public String getTenantId() { return tenantId; }
+    public String getSourceTaskId() { return sourceTaskId; }
+    public String getSqlText() { return sqlText; }
+    public String getSqlFingerprint() { return sqlFingerprint; }
+    public DataSourceTypeEnum getDatasourceType() { return datasourceType; }
+    public List<AccelerationSuggestionType> getSelectedSuggestionTypes() { return selectedSuggestionTypes; }
+    public String getPlanSummary() { return planSummary; }
+    public String getPrimaryRecommendation() { return primaryRecommendation; }
+    public String getPlanPayloadJson() { return planPayloadJson; }
+    public List<OptimizationTaskBenefit> getBenefits() { return benefits; }
+    public List<OptimizationTaskCost> getCosts() { return costs; }
+    public List<OptimizationTaskRisk> getRisks() { return risks; }
+    public Instant getCreatedAt() { return createdAt; }
+    public String getConfigSnapshotId() { return configSnapshotId; }
+    public String getResultId() { return resultId; }
+    public String getHistoryId() { return historyId; }
+    public AccelerationPlanStatus getStatus() { return status; }
+    public Integer getLastErrorCode() { return lastErrorCode; }
+    public String getLastErrorMessage() { return lastErrorMessage; }
+    public String getActivationEvidenceJson() { return activationEvidenceJson; }
+    public Instant getActivatedAt() { return activatedAt; }
+    public String getActivatedBy() { return activatedBy; }
+    public String getPauseEvidenceJson() { return pauseEvidenceJson; }
+    public Instant getPausedAt() { return pausedAt; }
+    public String getPausedBy() { return pausedBy; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public List<AccelerationPlanStatusTransition> getStatusHistory() { return Collections.unmodifiableList(statusHistory); }
 }

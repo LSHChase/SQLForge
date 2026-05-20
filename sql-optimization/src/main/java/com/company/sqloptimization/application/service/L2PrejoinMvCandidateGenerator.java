@@ -104,7 +104,7 @@ final class L2PrejoinMvCandidateGenerator {
         if (!"AVAILABLE".equals(text(advancedStructureProfile.get("profileStatus")))) {
             reasons.add(reason(
                 "ADVANCED_STRUCTURE_PROFILE_REQUIRED",
-                "高级结构画像未完整可用，不能生成可发布的 PREJOIN_MV SQL。"
+                "高级结构画像未完整可用，不能生成可激活的 PREJOIN_MV SQL。"
             ));
         }
         if (grainMeasureDerivation == null
@@ -137,7 +137,7 @@ final class L2PrejoinMvCandidateGenerator {
         if (hasOrPredicate(predicateClassification)) {
             reasons.add(reason(
                 "OR_PREDICATE_REWRITE_UNSUPPORTED",
-                "OR 谓词需要保持原逻辑分组，AMV-006 暂不生成可发布 PREJOIN_MV rewrite。"
+                "OR 谓词需要保持原逻辑分组，AMV-006 暂不生成可激活 PREJOIN_MV rewrite。"
             ));
         }
         List<Map<String, Object>> baseTables = baseTables(mapList(advancedStructureProfile.get("tables")));
@@ -173,7 +173,7 @@ final class L2PrejoinMvCandidateGenerator {
             if ("CROSS".equals(joinType)) {
                 blockingReasons.add(reason(
                     "CROSS_JOIN_PREJOIN_UNSUPPORTED",
-                    "CROSS JOIN 可能产生笛卡尔积，AMV-006 不生成可发布 PREJOIN_MV。"
+                    "CROSS JOIN 可能产生笛卡尔积，AMV-006 不生成可激活 PREJOIN_MV。"
                 ));
                 continue;
             }

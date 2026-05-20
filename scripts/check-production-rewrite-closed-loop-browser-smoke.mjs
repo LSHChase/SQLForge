@@ -224,7 +224,7 @@ const recommendation = {
   summary: 'PRW-012 production rewrite candidate',
   reason: 'projection pruning',
   expectedGain: 'lower scanned bytes',
-  riskSummary: 'requires SQL rewrite approval',
+  riskSummary: 'requires SQL rewrite activation evidence',
   requiresDispatch: false,
   sourceType: 'QUERY',
   sourceKind: 'QUERY_HISTORY',
@@ -259,8 +259,7 @@ let rewriteRecord = {
   sqlFingerprint,
   datasourceCode: 'hetu_main',
   status: 'APPLIED',
-  reviewStatus: 'PENDING_REVIEW',
-  publishStatus: 'UNPUBLISHED',
+  activationStatus: 'INACTIVE',
   validationStatus: 'EQUIVALENT',
   alertStatus: 'NONE',
   lastValidationRunId: 'validation-equivalent-prw-012',
@@ -286,24 +285,22 @@ let rewriteRecord = {
 
 const clone = value => JSON.parse(JSON.stringify(value))
 
-const publishEligibility = () => ({
+const activationEligibility = () => ({
   rewriteRecordId,
   tenantId,
   eligible:
-    rewriteRecord.reviewStatus === 'APPROVED' &&
     rewriteRecord.validationStatus === 'EQUIVALENT' &&
-    ['UNPUBLISHED', 'PUBLISH_FAILED'].includes(rewriteRecord.publishStatus),
-  policyId: 'DEFAULT_REWRITE_PUBLISH_ELIGIBILITY',
-  reviewStatus: rewriteRecord.reviewStatus,
+    ['INACTIVE', 'ACTIVATE_FAILED', 'PAUSED'].includes(rewriteRecord.activationStatus),
+  policyId: 'DEFAULT_REWRITE_ACTIVATION_ELIGIBILITY',
   validationStatus: rewriteRecord.validationStatus,
-  publishStatus: rewriteRecord.publishStatus,
+  activationStatus: rewriteRecord.activationStatus,
   alertStatus: rewriteRecord.alertStatus,
   autoApplyAllowed: rewriteRecord.autoApplyAllowed,
   lastValidationRunId: rewriteRecord.lastValidationRunId,
   refusalReasons:
-    rewriteRecord.reviewStatus === 'APPROVED'
+    ['INACTIVE', 'ACTIVATE_FAILED', 'PAUSED'].includes(rewriteRecord.activationStatus)
       ? []
-      : [{ code: 'REWRITE_REVIEW_NOT_APPROVED', message: 'SQL rewrite approval is required', blocking: true }]
+      : [{ code: 'ACTIVATION_STATUS_NOT_READY', message: 'Rewrite record is not ready for activation', blocking: true }]
 })
 
 const historyRow = () => ({
@@ -353,7 +350,7 @@ const historyDetail = () => ({
     ruleVersion: null,
     runtimeRuleVersion: '',
     runtimeRewriteStatus: 'MISSING',
-    rewritePublishStatusSnapshot: 'UNPUBLISHED',
+    rewriteActivationStatusSnapshot: 'INACTIVE',
     originalSql,
     actualSql: originalSql
   },
@@ -367,8 +364,7 @@ const historyDetail = () => ({
   traceDetail: {
     auditEventCount: 3,
     auditEvents: [
-      { action: 'REWRITE_APPROVED', subjectId: rewriteRecordId },
-      { action: 'REWRITE_PUBLISHED', subjectId: rewriteRecordId },
+      { action: 'REWRITE_ACTIVATED', subjectId: rewriteRecordId },
       { action: 'REWRITE_PAUSED', subjectId: rewriteRecordId }
     ]
   }
@@ -467,7 +463,7 @@ const runBrowserSmoke = async baseUrl => {
         alertStatus: 'OPEN',
         traceRefs: {
           rewriteRecordId,
-          auditRefs: ['rewrite-approved', 'rewrite-status-published']
+          auditRefs: ['rewrite-activated', 'rewrite-status-active']
         },
         alertRefs: [{ alertId: 'alert-prw-012', alertType: 'SQL_REWRITE_RESULT_DIVERGENCE' }]
       })
@@ -549,9 +545,9 @@ const runBrowserSmoke = async baseUrl => {
       return
     }
 
-    if (method === 'GET' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/publish-eligibility`) {
+    if (method === 'GET' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/activation-eligibility`) {
       seen.add(key)
-      await fulfillJson(route, publishEligibility())
+      await fulfillJson(route, activationEligibility())
       return
     }
 
@@ -573,38 +569,25 @@ const runBrowserSmoke = async baseUrl => {
       return
     }
 
-    if (method === 'POST' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/review`) {
+    if (method === 'POST' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/activate`) {
       const payload = parseJsonBody(request)
-      assert(payload.tenantId === tenantId, `Unexpected review tenant ${payload.tenantId}`)
-      assert(payload.reviewStatus === 'APPROVED', `Unexpected reviewStatus ${payload.reviewStatus}`)
-      assert(String(payload.reviewNote || '').trim(), 'Rewrite approval must submit a review note.')
+      assert(payload.tenantId === tenantId, `Unexpected activate tenant ${payload.tenantId}`)
+      assert(String(payload.reason || '').trim(), 'Rewrite activate must submit an action reason.')
       rewriteRecord = {
         ...rewriteRecord,
-        reviewStatus: 'APPROVED',
-        reviewedBy: 'operator-001',
-        reviewedAt: '2026-05-12T01:12:10Z',
-        reviewNote: payload.reviewNote
-      }
-      seen.add(key)
-      await fulfillJson(route, rewriteRecord)
-      return
-    }
-
-    if (method === 'POST' && pathname === `/api/sql-optimization/rewrite-records/${rewriteRecordId}/publish`) {
-      const payload = parseJsonBody(request)
-      assert(payload.tenantId === tenantId, `Unexpected publish tenant ${payload.tenantId}`)
-      assert(String(payload.reason || '').trim(), 'Rewrite publish must submit an action reason.')
-      rewriteRecord = {
-        ...rewriteRecord,
-        publishStatus: 'PUBLISHED',
+        activationStatus: 'ACTIVE',
+        runtimeBindingId,
+        runtimeRuleVersion,
+        runtimeBindingScope: 'TENANT_SQL_FINGERPRINT',
         runtimeBindingAt: '2026-05-12T01:12:20Z',
         runtimeBindingBy: 'operator-001',
         traceRefs: {
           ...rewriteRecord.traceRefs,
-          lastPublishStatusTrace: {
-            action: 'PUBLISH',
-            publishStatus: 'PUBLISHED',
-            statusOnly: true
+          activationEvidence: {
+            action: 'ACTIVATE',
+            activationStatus: 'ACTIVE',
+            runtimeBindingId,
+            runtimeRuleVersion
           }
         }
       }
@@ -619,7 +602,7 @@ const runBrowserSmoke = async baseUrl => {
       assert(String(payload.reason || '').trim(), 'Rewrite pause must submit an action reason.')
       rewriteRecord = {
         ...rewriteRecord,
-        publishStatus: 'PAUSED',
+        activationStatus: 'PAUSED',
         validationStatus: 'DIVERGED',
         alertStatus: 'OPEN',
         lastValidationRunId: 'validation-diverged-prw-012',
@@ -635,9 +618,9 @@ const runBrowserSmoke = async baseUrl => {
             alertType: 'SQL_REWRITE_RESULT_DIVERGENCE',
             linkages: [{ alertId: 'alert-prw-012' }]
           },
-          lastPublishStatusTrace: {
+          pauseEvidence: {
             action: 'PAUSE',
-            publishStatus: 'PAUSED',
+            activationStatus: 'PAUSED',
             statusOnly: true
           }
         }
@@ -733,20 +716,14 @@ const runBrowserSmoke = async baseUrl => {
       'Recommendation SQL evidence must carry source leading comments on the recommended display SQL.'
     )
 
-    await page.getByRole('tab', { name: /Rewrite review and publish|改写复核与发布/ }).click()
+    await page.getByRole('tab', { name: /Rewrite activation and pause|改写激活与暂停/ }).click()
     await page.getByTestId('recommendation-rewrite-lifecycle').waitFor({ timeout: defaultTimeoutMs })
-    await page.getByTestId('recommendation-rewrite-review-note').fill('PRW-012 approved equivalent production rewrite')
-    await page.getByTestId('recommendation-rewrite-approve').click()
+    await page.getByTestId('recommendation-rewrite-activate').click()
     await page.getByTestId('recommendation-rewrite-lifecycle-success').waitFor({ timeout: defaultTimeoutMs })
     let lifecycleText = await page.getByTestId('recommendation-rewrite-lifecycle').textContent()
-    assert(lifecycleText.includes('APPROVED'), 'Recommendation lifecycle must show approved rewrite status.')
-
-    await page.getByTestId('recommendation-rewrite-publish').click()
-    await page.getByTestId('recommendation-rewrite-lifecycle-success').waitFor({ timeout: defaultTimeoutMs })
-    lifecycleText = await page.getByTestId('recommendation-rewrite-lifecycle').textContent()
-    assert(lifecycleText.includes('PUBLISHED'), 'Recommendation lifecycle must show published rewrite status.')
-    assert(!lifecycleText.includes(runtimeBindingId), 'Recommendation lifecycle publish must not require runtime binding id.')
-    assert(!lifecycleText.includes(runtimeRuleVersion), 'Recommendation lifecycle publish must not require runtime rule version.')
+    assert(lifecycleText.includes('ACTIVE'), 'Recommendation lifecycle must show active rewrite status.')
+    assert(lifecycleText.includes(runtimeBindingId), 'Recommendation lifecycle activation must expose runtime binding id.')
+    assert(lifecycleText.includes(runtimeRuleVersion), 'Recommendation lifecycle activation must expose runtime rule version.')
 
     await page.getByTestId('recommendation-rewrite-pause').click()
     await page.getByTestId('recommendation-rewrite-lifecycle-success').waitFor({ timeout: defaultTimeoutMs })
@@ -786,8 +763,8 @@ const runBrowserSmoke = async baseUrl => {
       `GET /api/sql-optimization/recommendations/${recommendationId}/trace`,
       'GET /api/sql-optimization/rewrite-records?recommendationId',
       `GET /api/sql-optimization/rewrite-records/${rewriteRecordId}/validation-runs`,
-      `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/review`,
-      `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/publish`,
+      `GET /api/sql-optimization/rewrite-records/${rewriteRecordId}/activation-eligibility`,
+      `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/activate`,
       `POST /api/sql-optimization/rewrite-records/${rewriteRecordId}/pause`,
       'GET /api/governance/query-history',
       `GET /api/governance/query-history/${historyId}`,

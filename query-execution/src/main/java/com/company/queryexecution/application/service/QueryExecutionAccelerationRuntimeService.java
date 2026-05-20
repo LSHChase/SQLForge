@@ -1,14 +1,13 @@
 package com.company.queryexecution.application.service;
 
-import com.company.queryexecution.domain.query.ApprovedAccelerationBinding;
+import com.company.queryexecution.domain.query.ActivatedAccelerationBinding;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanActivationRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanRollbackRequest;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanPauseRequest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -22,25 +21,25 @@ import org.springframework.util.StringUtils;
 public class QueryExecutionAccelerationRuntimeService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "APPROVED_ACCELERATION_RUNTIME_BASELINE";
+    private static final String IMPLEMENTATION_STAGE = "ACCELERATION_RUNTIME_ACTIVATION_BASELINE";
     private static final String TARGET_ENGINE = "HETU";
 
-    private final Map<String, ApprovedAccelerationBinding> bindings = new ConcurrentHashMap<String, ApprovedAccelerationBinding>();
+    private final Map<String, ActivatedAccelerationBinding> bindings = new ConcurrentHashMap<String, ActivatedAccelerationBinding>();
 
-    public QueryExecutionAccelerationPlanResponse apply(QueryExecutionAccelerationPlanApplyRequest request) {
+    public QueryExecutionAccelerationPlanResponse activate(QueryExecutionAccelerationPlanActivationRequest request) {
         requireProtectedTenant(request == null ? null : request.getTenantId());
         String planId = requireText(request == null ? null : request.getPlanId(), "planId");
         String sqlFingerprint = requireText(request == null ? null : request.getSqlFingerprint(), "sqlFingerprint");
         String bindingKey = bindingKey(request.getTenantId(), sqlFingerprint);
-        ApprovedAccelerationBinding existing = bindings.get(bindingKey);
+        ActivatedAccelerationBinding existing = bindings.get(bindingKey);
         if (existing != null && !planId.equals(existing.getPlanId())) {
             throw new BizException(
                 ErrorCodeConstants.QUERY_EXECUTION_ROUTE_REJECTED,
                 HttpStatus.CONFLICT,
-                "该租户和 SQL 指纹已有已批准的加速方案在运行中"
+                "该租户和 SQL 指纹已有已激活的加速方案在运行中"
             );
         }
-        ApprovedAccelerationBinding binding = new ApprovedAccelerationBinding(
+        ActivatedAccelerationBinding binding = new ActivatedAccelerationBinding(
             request.getTenantId(),
             planId,
             sqlFingerprint,
@@ -53,69 +52,42 @@ public class QueryExecutionAccelerationRuntimeService {
         bindings.put(bindingKey, binding);
         return responseFrom(
             binding,
-            "APPLIED",
+            "ACTIVE",
             true,
-            "已批准加速方案已在运行时偏好门控中生效。"
+            "加速方案已在运行时偏好门控中激活。"
         );
     }
 
-    public QueryExecutionAccelerationPlanResponse verify(QueryExecutionAccelerationPlanVerifyRequest request) {
+    public QueryExecutionAccelerationPlanResponse pause(QueryExecutionAccelerationPlanPauseRequest request) {
         requireProtectedTenant(request == null ? null : request.getTenantId());
         String planId = requireText(request == null ? null : request.getPlanId(), "planId");
         String sqlFingerprint = requireText(request == null ? null : request.getSqlFingerprint(), "sqlFingerprint");
-        ApprovedAccelerationBinding binding = bindings.get(bindingKey(request.getTenantId(), sqlFingerprint));
-        if (binding == null || !planId.equals(binding.getPlanId())) {
-            QueryExecutionAccelerationPlanResponse response = new QueryExecutionAccelerationPlanResponse();
-            response.setTenantId(request.getTenantId());
-            response.setPlanId(planId);
-            response.setSqlFingerprint(sqlFingerprint);
-            response.setTargetEngine(TARGET_ENGINE);
-            response.setActive(false);
-            response.setStatus("MISSING");
-            response.setRuntimeSummary("当前没有可用于运行时校验的已批准加速绑定。");
-            response.setRuntimeDetailsJson(JsonUtils.toJson(details("bindingState", "MISSING", "verified", Boolean.FALSE)));
-            response.setContractStage(CONTRACT_STAGE);
-            response.setImplementationStage(IMPLEMENTATION_STAGE);
-            return response;
-        }
-        return responseFrom(
-            binding,
-            "VERIFIED",
-            true,
-            "已批准加速方案仍在运行时注册表中保持生效。"
-        );
-    }
-
-    public QueryExecutionAccelerationPlanResponse rollback(QueryExecutionAccelerationPlanRollbackRequest request) {
-        requireProtectedTenant(request == null ? null : request.getTenantId());
-        String planId = requireText(request == null ? null : request.getPlanId(), "planId");
-        String sqlFingerprint = requireText(request == null ? null : request.getSqlFingerprint(), "sqlFingerprint");
-        ApprovedAccelerationBinding binding = bindings.remove(bindingKey(request.getTenantId(), sqlFingerprint));
+        ActivatedAccelerationBinding binding = bindings.remove(bindingKey(request.getTenantId(), sqlFingerprint));
         QueryExecutionAccelerationPlanResponse response = new QueryExecutionAccelerationPlanResponse();
         response.setTenantId(request.getTenantId());
         response.setPlanId(planId);
         response.setSqlFingerprint(sqlFingerprint);
         response.setTargetEngine(TARGET_ENGINE);
         response.setActive(false);
-        response.setStatus("ROLLED_BACK");
+        response.setStatus("PAUSED");
         response.setRuntimeSummary(binding == null
-            ? "当前没有残留的活跃加速绑定，回滚已按幂等方式完成。"
-            : "已从运行时注册表移除已批准加速绑定。");
+            ? "当前没有残留的活跃加速绑定，暂停已按幂等方式完成。"
+            : "已从运行时注册表暂停加速绑定。");
         response.setRuntimeDetailsJson(
-            JsonUtils.toJson(details("bindingState", binding == null ? "ABSENT" : "REMOVED", "verified", Boolean.TRUE))
+            JsonUtils.toJson(details("bindingState", binding == null ? "ABSENT" : "PAUSED", "pauseConfirmed", Boolean.TRUE))
         );
         response.setContractStage(CONTRACT_STAGE);
         response.setImplementationStage(IMPLEMENTATION_STAGE);
         return response;
     }
 
-    public ApprovedAccelerationBinding resolveActiveBinding(String tenantId,
+    public ActivatedAccelerationBinding resolveActiveBinding(String tenantId,
                                                             String sqlFingerprint,
                                                             String datasourceType) {
         if (!StringUtils.hasText(tenantId) || !StringUtils.hasText(sqlFingerprint)) {
             return null;
         }
-        ApprovedAccelerationBinding binding = bindings.get(bindingKey(tenantId, sqlFingerprint));
+        ActivatedAccelerationBinding binding = bindings.get(bindingKey(tenantId, sqlFingerprint));
         if (binding == null) {
             return null;
         }
@@ -125,7 +97,7 @@ public class QueryExecutionAccelerationRuntimeService {
         return datasourceType.trim().equalsIgnoreCase(binding.getDatasourceType()) ? binding : null;
     }
 
-    private QueryExecutionAccelerationPlanResponse responseFrom(ApprovedAccelerationBinding binding,
+    private QueryExecutionAccelerationPlanResponse responseFrom(ActivatedAccelerationBinding binding,
                                                                 String status,
                                                                 boolean active,
                                                                 String summary) {
@@ -144,8 +116,8 @@ public class QueryExecutionAccelerationRuntimeService {
                     active ? "ACTIVE" : "INACTIVE",
                     "selectedSuggestionTypes",
                     binding.getSelectedSuggestionTypes(),
-                    "appliedAt",
-                    binding.getAppliedAt().toString()
+                    "activatedAt",
+                    binding.getActivatedAt().toString()
                 )
             )
         );

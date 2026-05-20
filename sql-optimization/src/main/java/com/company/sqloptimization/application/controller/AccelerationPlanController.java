@@ -1,7 +1,6 @@
 package com.company.sqloptimization.application.controller;
 
 import com.company.sqloptimization.application.controller.dto.AccelerationPlanActionRequest;
-import com.company.sqloptimization.application.controller.dto.AccelerationPlanApprovalRequest;
 import com.company.sqloptimization.application.controller.dto.AccelerationPlanSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationPlanStatusResponse;
 import com.company.sqloptimization.application.controller.vo.AccelerationPlanSubmitResponse;
@@ -34,27 +33,15 @@ public class AccelerationPlanController {
         return accelerationPlanApplicationService.getPlanStatus(planId);
     }
 
-    @PostMapping("/{planId}/approval")
-    public AccelerationPlanStatusResponse reviewPlan(@PathVariable("planId") String planId,
-                                                     @Valid @RequestBody AccelerationPlanApprovalRequest request) {
-        return accelerationPlanApplicationService.reviewPlan(planId, request);
-    }
-
-    @PostMapping("/{planId}/apply")
-    public AccelerationPlanStatusResponse applyPlan(@PathVariable("planId") String planId,
+    @PostMapping("/{planId}/activate")
+    public AccelerationPlanStatusResponse activatePlan(@PathVariable("planId") String planId,
                                                     @RequestBody(required = false) AccelerationPlanActionRequest request) {
-        return accelerationPlanApplicationService.applyPlan(planId, request);
+        return accelerationPlanApplicationService.activatePlan(planId, request);
     }
 
-    @PostMapping("/{planId}/verify")
-    public AccelerationPlanStatusResponse verifyPlan(@PathVariable("planId") String planId,
-                                                     @RequestBody(required = false) AccelerationPlanActionRequest request) {
-        return accelerationPlanApplicationService.verifyPlan(planId, request);
-    }
-
-    @PostMapping("/{planId}/rollback")
-    public AccelerationPlanStatusResponse rollbackPlan(@PathVariable("planId") String planId,
+    @PostMapping("/{planId}/pause")
+    public AccelerationPlanStatusResponse pausePlan(@PathVariable("planId") String planId,
                                                        @RequestBody(required = false) AccelerationPlanActionRequest request) {
-        return accelerationPlanApplicationService.rollbackPlan(planId, request);
+        return accelerationPlanApplicationService.pausePlan(planId, request);
     }
 }

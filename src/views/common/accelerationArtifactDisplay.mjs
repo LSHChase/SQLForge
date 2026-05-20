@@ -24,15 +24,15 @@ const MV_TYPE_DETAILS = {
 const STATUS_DETAILS = {
   GENERATED: {
     label: '已生成 SQL 产物',
-    description: '仅表示 SQLForge 生成了可审查的 MV SQL 五件套，不代表 MV 已创建、已刷新、已验证、已审批或 runtime 已生效。'
+    description: '仅表示 SQLForge 生成了可审查的 MV SQL 五件套，不代表 MV 已创建、已刷新、已验证或 runtime 已生效。'
   },
   BLOCKED: {
     label: '已阻断',
-    description: '当前产物不应进入发布链路；需要先处理 blockingReasons 或 blockedPredicates。'
+    description: '当前产物不应进入激活链路；需要先处理 blockingReasons 或 blockedPredicates。'
   },
   REVIEW_REQUIRED: {
     label: '需要人工复核',
-    description: '当前产物只能进入人工复核，不能自动发布；reviewWarnings 必须被单独阅读。'
+    description: '当前产物只能进入人工复核，不能自动激活；reviewWarnings 必须被单独阅读。'
   }
 }
 
@@ -319,9 +319,9 @@ export const buildRuntimeRewriteSqlSourceNotice = selection => {
   }
   if (selection.source === 'ACCELERATION_ARTIFACT_REWRITE_SQL') {
     const artifact = selection.accelerationArtifact || {}
-    return `recommendedSqlText 来源：来自 ${displayValue(artifact.mvName)} 的 accelerationArtifact.rewriteSql；创建改写记录后仍需审批、发布和 runtime binding ACTIVE 才能生效。`
+    return `recommendedSqlText 来源：来自 ${displayValue(artifact.mvName)} 的 accelerationArtifact.rewriteSql；创建改写记录后仍需激活且 runtime binding ACTIVE 才能生效。`
   }
-  return 'recommendedSqlText 来源：来自 recommendation.recommendedSqlText 或 diff.recommendedSql；创建改写记录后仍需审批、发布和 runtime binding ACTIVE 才能生效。'
+  return 'recommendedSqlText 来源：来自 recommendation.recommendedSqlText 或 diff.recommendedSql；创建改写记录后仍需激活且 runtime binding ACTIVE 才能生效。'
 }
 
 export const buildAccelerationArtifactDisplay = artifact => {

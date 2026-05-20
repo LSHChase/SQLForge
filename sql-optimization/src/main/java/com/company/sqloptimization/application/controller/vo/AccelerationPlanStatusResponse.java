@@ -20,22 +20,14 @@ public class AccelerationPlanStatusResponse {
     private final List<OptimizationBenefitVO> benefits;
     private final List<OptimizationCostVO> costs;
     private final List<OptimizationRiskVO> risks;
-    private final String reviewNote;
-    private final String approvedBy;
-    private final Instant approvedAt;
-    private final String rejectedBy;
-    private final Instant rejectedAt;
     private final Integer lastErrorCode;
     private final String lastErrorMessage;
-    private final String runtimeBindingJson;
-    private final Instant runtimeBindingAt;
-    private final String runtimeBindingBy;
-    private final String verificationEvidenceJson;
-    private final Instant verifiedAt;
-    private final String verifiedBy;
-    private final String rollbackEvidenceJson;
-    private final Instant rolledBackAt;
-    private final String rolledBackBy;
+    private final String activationEvidenceJson;
+    private final Instant activatedAt;
+    private final String activatedBy;
+    private final String pauseEvidenceJson;
+    private final Instant pausedAt;
+    private final String pausedBy;
     private final String configSnapshotId;
     private final String resultId;
     private final String historyId;
@@ -57,22 +49,14 @@ public class AccelerationPlanStatusResponse {
                                           List<OptimizationBenefitVO> benefits,
                                           List<OptimizationCostVO> costs,
                                           List<OptimizationRiskVO> risks,
-                                          String reviewNote,
-                                          String approvedBy,
-                                          Instant approvedAt,
-                                          String rejectedBy,
-                                          Instant rejectedAt,
                                           Integer lastErrorCode,
                                           String lastErrorMessage,
-                                          String runtimeBindingJson,
-                                          Instant runtimeBindingAt,
-                                          String runtimeBindingBy,
-                                          String verificationEvidenceJson,
-                                          Instant verifiedAt,
-                                          String verifiedBy,
-                                          String rollbackEvidenceJson,
-                                          Instant rolledBackAt,
-                                          String rolledBackBy,
+                                          String activationEvidenceJson,
+                                          Instant activatedAt,
+                                          String activatedBy,
+                                          String pauseEvidenceJson,
+                                          Instant pausedAt,
+                                          String pausedBy,
                                           String configSnapshotId,
                                           String resultId,
                                           String historyId,
@@ -93,22 +77,14 @@ public class AccelerationPlanStatusResponse {
         this.benefits = benefits;
         this.costs = costs;
         this.risks = risks;
-        this.reviewNote = reviewNote;
-        this.approvedBy = approvedBy;
-        this.approvedAt = approvedAt;
-        this.rejectedBy = rejectedBy;
-        this.rejectedAt = rejectedAt;
         this.lastErrorCode = lastErrorCode;
         this.lastErrorMessage = lastErrorMessage;
-        this.runtimeBindingJson = runtimeBindingJson;
-        this.runtimeBindingAt = runtimeBindingAt;
-        this.runtimeBindingBy = runtimeBindingBy;
-        this.verificationEvidenceJson = verificationEvidenceJson;
-        this.verifiedAt = verifiedAt;
-        this.verifiedBy = verifiedBy;
-        this.rollbackEvidenceJson = rollbackEvidenceJson;
-        this.rolledBackAt = rolledBackAt;
-        this.rolledBackBy = rolledBackBy;
+        this.activationEvidenceJson = activationEvidenceJson;
+        this.activatedAt = activatedAt;
+        this.activatedBy = activatedBy;
+        this.pauseEvidenceJson = pauseEvidenceJson;
+        this.pausedAt = pausedAt;
+        this.pausedBy = pausedBy;
         this.configSnapshotId = configSnapshotId;
         this.resultId = resultId;
         this.historyId = historyId;
@@ -119,147 +95,32 @@ public class AccelerationPlanStatusResponse {
         this.implementationStage = implementationStage;
     }
 
-    public String getPlanId() {
-        return planId;
-    }
-
-    public String getSourceTaskId() {
-        return sourceTaskId;
-    }
-
-    public AccelerationPlanStatus getStatus() {
-        return status;
-    }
-
-    public DataSourceTypeEnum getDatasourceType() {
-        return datasourceType;
-    }
-
-    public String getSqlFingerprint() {
-        return sqlFingerprint;
-    }
-
-    public List<AccelerationSuggestionType> getSelectedSuggestionTypes() {
-        return selectedSuggestionTypes;
-    }
-
-    public String getPlanSummary() {
-        return planSummary;
-    }
-
-    public String getPrimaryRecommendation() {
-        return primaryRecommendation;
-    }
-
-    public String getPlanPayloadJson() {
-        return planPayloadJson;
-    }
-
-    public List<OptimizationBenefitVO> getBenefits() {
-        return benefits;
-    }
-
-    public List<OptimizationCostVO> getCosts() {
-        return costs;
-    }
-
-    public List<OptimizationRiskVO> getRisks() {
-        return risks;
-    }
-
-    public String getReviewNote() {
-        return reviewNote;
-    }
-
-    public String getApprovedBy() {
-        return approvedBy;
-    }
-
-    public Instant getApprovedAt() {
-        return approvedAt;
-    }
-
-    public String getRejectedBy() {
-        return rejectedBy;
-    }
-
-    public Instant getRejectedAt() {
-        return rejectedAt;
-    }
-
-    public Integer getLastErrorCode() {
-        return lastErrorCode;
-    }
-
-    public String getLastErrorMessage() {
-        return lastErrorMessage;
-    }
-
-    public String getRuntimeBindingJson() {
-        return runtimeBindingJson;
-    }
-
-    public Instant getRuntimeBindingAt() {
-        return runtimeBindingAt;
-    }
-
-    public String getRuntimeBindingBy() {
-        return runtimeBindingBy;
-    }
-
-    public String getVerificationEvidenceJson() {
-        return verificationEvidenceJson;
-    }
-
-    public Instant getVerifiedAt() {
-        return verifiedAt;
-    }
-
-    public String getVerifiedBy() {
-        return verifiedBy;
-    }
-
-    public String getRollbackEvidenceJson() {
-        return rollbackEvidenceJson;
-    }
-
-    public Instant getRolledBackAt() {
-        return rolledBackAt;
-    }
-
-    public String getRolledBackBy() {
-        return rolledBackBy;
-    }
-
-    public String getConfigSnapshotId() {
-        return configSnapshotId;
-    }
-
-    public String getResultId() {
-        return resultId;
-    }
-
-    public String getHistoryId() {
-        return historyId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public List<AccelerationPlanStatusHistoryVO> getStatusHistory() {
-        return statusHistory;
-    }
-
-    public String getContractStage() {
-        return contractStage;
-    }
-
-    public String getImplementationStage() {
-        return implementationStage;
-    }
+    public String getPlanId() { return planId; }
+    public String getSourceTaskId() { return sourceTaskId; }
+    public AccelerationPlanStatus getStatus() { return status; }
+    public DataSourceTypeEnum getDatasourceType() { return datasourceType; }
+    public String getSqlFingerprint() { return sqlFingerprint; }
+    public List<AccelerationSuggestionType> getSelectedSuggestionTypes() { return selectedSuggestionTypes; }
+    public String getPlanSummary() { return planSummary; }
+    public String getPrimaryRecommendation() { return primaryRecommendation; }
+    public String getPlanPayloadJson() { return planPayloadJson; }
+    public List<OptimizationBenefitVO> getBenefits() { return benefits; }
+    public List<OptimizationCostVO> getCosts() { return costs; }
+    public List<OptimizationRiskVO> getRisks() { return risks; }
+    public Integer getLastErrorCode() { return lastErrorCode; }
+    public String getLastErrorMessage() { return lastErrorMessage; }
+    public String getActivationEvidenceJson() { return activationEvidenceJson; }
+    public Instant getActivatedAt() { return activatedAt; }
+    public String getActivatedBy() { return activatedBy; }
+    public String getPauseEvidenceJson() { return pauseEvidenceJson; }
+    public Instant getPausedAt() { return pausedAt; }
+    public String getPausedBy() { return pausedBy; }
+    public String getConfigSnapshotId() { return configSnapshotId; }
+    public String getResultId() { return resultId; }
+    public String getHistoryId() { return historyId; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public List<AccelerationPlanStatusHistoryVO> getStatusHistory() { return statusHistory; }
+    public String getContractStage() { return contractStage; }
+    public String getImplementationStage() { return implementationStage; }
 }

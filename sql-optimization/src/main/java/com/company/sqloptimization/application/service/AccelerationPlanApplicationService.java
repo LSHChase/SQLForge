@@ -7,13 +7,11 @@ import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanApplyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanActivationRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanResponse;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanRollbackRequest;
-import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlanPauseRequest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqloptimization.application.controller.dto.AccelerationPlanActionRequest;
-import com.company.sqloptimization.application.controller.dto.AccelerationPlanApprovalRequest;
 import com.company.sqloptimization.application.controller.dto.AccelerationPlanSubmitRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationPlanStatusResponse;
 import com.company.sqloptimization.application.controller.vo.AccelerationPlanSubmitResponse;
@@ -50,10 +48,8 @@ public class AccelerationPlanApplicationService {
     private static final String RESOURCE_TYPE_PLAN = "SQL_ACCELERATION_PLAN";
     private static final String SUBMIT_OPERATION = "ACCELERATION_PLAN_SUBMIT";
     private static final String QUERY_OPERATION = "ACCELERATION_PLAN_STATUS_QUERY";
-    private static final String REVIEW_OPERATION = "ACCELERATION_PLAN_REVIEW";
-    private static final String APPLY_OPERATION = "ACCELERATION_PLAN_APPLY";
-    private static final String VERIFY_OPERATION = "ACCELERATION_PLAN_VERIFY";
-    private static final String ROLLBACK_OPERATION = "ACCELERATION_PLAN_ROLLBACK";
+    private static final String ACTIVATE_OPERATION = "ACCELERATION_PLAN_ACTIVATE";
+    private static final String PAUSE_OPERATION = "ACCELERATION_PLAN_PAUSE";
 
     private final AccelerationPlanRepository accelerationPlanRepository;
     private final OptimizationTaskRepository optimizationTaskRepository;
@@ -173,44 +169,7 @@ public class AccelerationPlanApplicationService {
         }
     }
 
-    public AccelerationPlanStatusResponse reviewPlan(String planId, AccelerationPlanApprovalRequest request) {
-        long start = System.currentTimeMillis();
-        AccelerationPlan plan = requirePlan(planId);
-        verifyTenantAccess(plan.getTenantId());
-        try {
-            governanceCapabilityClient.assertAuthorization(
-                plan.getTenantId(),
-                plan.getDatasourceType(),
-                RESOURCE_TYPE_PLAN,
-                planId,
-                REVIEW_OPERATION
-            );
-            requirePendingApproval(plan);
-            Instant occurredAt = Instant.now();
-            if (Boolean.TRUE.equals(request.getApprove())) {
-                plan.approve(request.getReviewNote(), RequestContext.getUserId(), occurredAt);
-            } else {
-                plan.reject(request.getReviewNote(), RequestContext.getUserId(), occurredAt);
-            }
-            syncTrace(plan);
-            accelerationPlanRepository.save(plan);
-            AccelerationPlanStatusResponse response = accelerationPlanModelApplicationService.buildStatusResponse(plan);
-            writeAuditRecord(
-                REVIEW_OPERATION,
-                plan,
-                plan.getStatus().name(),
-                System.currentTimeMillis() - start,
-                buildReviewRequestParams(plan, request),
-                buildStatusResponseSummary(response, null)
-            );
-            return response;
-        } catch (RuntimeException ex) {
-            logFailure(REVIEW_OPERATION, planId, plan.getTenantId(), start, ex);
-            throw ex;
-        }
-    }
-
-    public AccelerationPlanStatusResponse applyPlan(String planId, AccelerationPlanActionRequest request) {
+    public AccelerationPlanStatusResponse activatePlan(String planId, AccelerationPlanActionRequest request) {
         long start = System.currentTimeMillis();
         AccelerationPlan plan = requirePlan(planId);
         verifyTenantAccess(plan.getTenantId());
@@ -221,23 +180,23 @@ public class AccelerationPlanApplicationService {
                 plan.getDatasourceType(),
                 RESOURCE_TYPE_PLAN,
                 planId,
-                APPLY_OPERATION
+                ACTIVATE_OPERATION
             );
-            requireApplyEligible(plan);
-            runtimeResponse = queryExecutionAccelerationPlanClient.apply(buildApplyRequest(plan));
-            if (runtimeResponse == null || !runtimeResponse.isActive() || !"APPLIED".equals(runtimeResponse.getStatus())) {
+            requireActivateEligible(plan);
+            runtimeResponse = queryExecutionAccelerationPlanClient.activate(buildActivationRequest(plan));
+            if (runtimeResponse == null || !runtimeResponse.isActive() || !"ACTIVE".equals(runtimeResponse.getStatus())) {
                 throw new BizException(
                     ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_APPLY_FAILURE,
                     HttpStatus.CONFLICT,
-                    "已批准加速方案未在查询执行运行时变为 active"
+                    "加速方案未在查询执行运行时变为 ACTIVE"
                 );
             }
-            plan.markApplied(buildRuntimeEvidence(request, runtimeResponse), RequestContext.getUserId(), Instant.now());
+            plan.markActivated(buildRuntimeEvidence(request, runtimeResponse), RequestContext.getUserId(), Instant.now());
             accelerationPlanRepository.save(plan);
             syncTrace(plan);
             AccelerationPlanStatusResponse response = accelerationPlanModelApplicationService.buildStatusResponse(plan);
             writeAuditRecord(
-                APPLY_OPERATION,
+                ACTIVATE_OPERATION,
                 plan,
                 plan.getStatus().name(),
                 System.currentTimeMillis() - start,
@@ -247,14 +206,14 @@ public class AccelerationPlanApplicationService {
             return response;
         } catch (RuntimeException ex) {
             if (!isPlanStateInvalid(ex)) {
-                compensateApplyFailure(plan, request, runtimeResponse, ex);
+                compensateActivateFailure(plan, request, runtimeResponse, ex);
             }
-            logFailure(APPLY_OPERATION, planId, plan.getTenantId(), start, ex);
+            logFailure(ACTIVATE_OPERATION, planId, plan.getTenantId(), start, ex);
             throw ex;
         }
     }
 
-    public AccelerationPlanStatusResponse verifyPlan(String planId, AccelerationPlanActionRequest request) {
+    public AccelerationPlanStatusResponse pausePlan(String planId, AccelerationPlanActionRequest request) {
         long start = System.currentTimeMillis();
         AccelerationPlan plan = requirePlan(planId);
         verifyTenantAccess(plan.getTenantId());
@@ -264,61 +223,17 @@ public class AccelerationPlanApplicationService {
                 plan.getDatasourceType(),
                 RESOURCE_TYPE_PLAN,
                 planId,
-                VERIFY_OPERATION
+                PAUSE_OPERATION
             );
-            requireVerifyEligible(plan);
+            requirePauseEligible(plan);
             QueryExecutionAccelerationPlanResponse runtimeResponse =
-                queryExecutionAccelerationPlanClient.verify(buildVerifyRequest(plan));
-            if (runtimeResponse != null && runtimeResponse.isActive() && "VERIFIED".equals(runtimeResponse.getStatus())) {
-                plan.markVerified(buildRuntimeEvidence(request, runtimeResponse), RequestContext.getUserId(), Instant.now());
+                queryExecutionAccelerationPlanClient.pause(buildPauseRequest(plan));
+            if (runtimeResponse != null && "PAUSED".equals(runtimeResponse.getStatus())) {
+                plan.markPaused(buildRuntimeEvidence(request, runtimeResponse), RequestContext.getUserId(), Instant.now());
             } else {
-                plan.markVerificationFailed(
-                    Integer.valueOf(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_VERIFY_FAILURE),
-                    "运行时校验未确认存在 active 的已批准加速绑定",
-                    buildRuntimeEvidence(request, runtimeResponse),
-                    RequestContext.getUserId(),
-                    Instant.now()
-                );
-            }
-            syncTrace(plan);
-            accelerationPlanRepository.save(plan);
-            AccelerationPlanStatusResponse response = accelerationPlanModelApplicationService.buildStatusResponse(plan);
-            writeAuditRecord(
-                VERIFY_OPERATION,
-                plan,
-                plan.getStatus().name(),
-                System.currentTimeMillis() - start,
-                buildActionRequestParams(plan, request),
-                buildStatusResponseSummary(response, null)
-            );
-            return response;
-        } catch (RuntimeException ex) {
-            logFailure(VERIFY_OPERATION, planId, plan.getTenantId(), start, ex);
-            throw ex;
-        }
-    }
-
-    public AccelerationPlanStatusResponse rollbackPlan(String planId, AccelerationPlanActionRequest request) {
-        long start = System.currentTimeMillis();
-        AccelerationPlan plan = requirePlan(planId);
-        verifyTenantAccess(plan.getTenantId());
-        try {
-            governanceCapabilityClient.assertAuthorization(
-                plan.getTenantId(),
-                plan.getDatasourceType(),
-                RESOURCE_TYPE_PLAN,
-                planId,
-                ROLLBACK_OPERATION
-            );
-            requireRollbackEligible(plan);
-            QueryExecutionAccelerationPlanResponse runtimeResponse =
-                queryExecutionAccelerationPlanClient.rollback(buildRollbackRequest(plan));
-            if (runtimeResponse != null && "ROLLED_BACK".equals(runtimeResponse.getStatus())) {
-                plan.markRolledBack(buildRuntimeEvidence(request, runtimeResponse), RequestContext.getUserId(), Instant.now());
-            } else {
-                plan.markRollbackFailed(
+                plan.markPauseFailed(
                     Integer.valueOf(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_ROLLBACK_FAILURE),
-                    "查询执行运行时未确认回滚完成",
+                    "查询执行运行时未确认暂停完成",
                     buildRuntimeEvidence(request, runtimeResponse),
                     RequestContext.getUserId(),
                     Instant.now()
@@ -328,7 +243,7 @@ public class AccelerationPlanApplicationService {
             accelerationPlanRepository.save(plan);
             AccelerationPlanStatusResponse response = accelerationPlanModelApplicationService.buildStatusResponse(plan);
             writeAuditRecord(
-                ROLLBACK_OPERATION,
+                PAUSE_OPERATION,
                 plan,
                 plan.getStatus().name(),
                 System.currentTimeMillis() - start,
@@ -337,28 +252,28 @@ public class AccelerationPlanApplicationService {
             );
             return response;
         } catch (RuntimeException ex) {
-            logFailure(ROLLBACK_OPERATION, planId, plan.getTenantId(), start, ex);
+            logFailure(PAUSE_OPERATION, planId, plan.getTenantId(), start, ex);
             throw ex;
         }
     }
 
-    private void compensateApplyFailure(AccelerationPlan plan,
+    private void compensateActivateFailure(AccelerationPlan plan,
                                         AccelerationPlanActionRequest request,
                                         QueryExecutionAccelerationPlanResponse runtimeResponse,
                                         RuntimeException ex) {
         String compensationPayload = buildRuntimeEvidence(request, runtimeResponse);
         if (runtimeResponse != null && runtimeResponse.isActive()) {
             try {
-                QueryExecutionAccelerationPlanResponse rollbackResponse =
-                    queryExecutionAccelerationPlanClient.rollback(buildRollbackRequest(plan));
-                compensationPayload = buildCompensationEvidence(compensationPayload, rollbackResponse);
-            } catch (RuntimeException rollbackEx) {
+                QueryExecutionAccelerationPlanResponse pauseResponse =
+                    queryExecutionAccelerationPlanClient.pause(buildPauseRequest(plan));
+                compensationPayload = buildCompensationEvidence(compensationPayload, pauseResponse);
+            } catch (RuntimeException pauseEx) {
                 LOGGER.error("操作日志 operation={} entity={} status=COMPENSATION_FAILED reason={}",
-                    APPLY_OPERATION, plan.getPlanId(), rollbackEx.getMessage(), rollbackEx);
+                    ACTIVATE_OPERATION, plan.getPlanId(), pauseEx.getMessage(), pauseEx);
             }
         }
         try {
-            plan.markApplyFailed(
+            plan.markActivateFailed(
                 Integer.valueOf(resolveErrorCode(ex, ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_ACCELERATION_PLAN_APPLY_FAILURE)),
                 ex.getMessage(),
                 compensationPayload,
@@ -368,7 +283,7 @@ public class AccelerationPlanApplicationService {
             accelerationPlanRepository.save(plan);
             syncTrace(plan);
             writeAuditRecord(
-                APPLY_OPERATION,
+                ACTIVATE_OPERATION,
                 plan,
                 plan.getStatus().name(),
                 0L,
@@ -377,7 +292,7 @@ public class AccelerationPlanApplicationService {
             );
         } catch (RuntimeException persistenceEx) {
             LOGGER.error("操作日志 operation={} entity={} status=FAILURE_PERSISTENCE_FAILED reason={}",
-                APPLY_OPERATION, plan.getPlanId(), persistenceEx.getMessage(), persistenceEx);
+                ACTIVATE_OPERATION, plan.getPlanId(), persistenceEx.getMessage(), persistenceEx);
         }
     }
 
@@ -535,21 +450,16 @@ public class AccelerationPlanApplicationService {
         payload.put("status", plan.getStatus().name());
         payload.put("selectedSuggestionTypeCount", Integer.valueOf(plan.getSelectedSuggestionTypes().size()));
         payload.put("lastErrorCode", plan.getLastErrorCode());
-        payload.put("approvedAt", plan.getApprovedAt());
-        payload.put("verifiedAt", plan.getVerifiedAt());
-        payload.put("rolledBackAt", plan.getRolledBackAt());
+        payload.put("activatedAt", plan.getActivatedAt());
+        payload.put("pausedAt", plan.getPausedAt());
         return JsonUtils.toJson(payload);
     }
 
     private String buildTraceResultPayload(AccelerationPlan plan) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("planPayload", JsonUtils.fromJson(plan.getPlanPayloadJson(), Map.class));
-        payload.put("reviewNote", plan.getReviewNote());
-        payload.put("approvedBy", plan.getApprovedBy());
-        payload.put("rejectedBy", plan.getRejectedBy());
-        payload.put("runtimeBindingJson", parseJsonString(plan.getRuntimeBindingJson()));
-        payload.put("verificationEvidenceJson", parseJsonString(plan.getVerificationEvidenceJson()));
-        payload.put("rollbackEvidenceJson", parseJsonString(plan.getRollbackEvidenceJson()));
+        payload.put("activationEvidence", parseJsonString(plan.getActivationEvidenceJson()));
+        payload.put("pauseEvidence", parseJsonString(plan.getPauseEvidenceJson()));
         return JsonUtils.toJson(payload);
     }
 
@@ -559,14 +469,13 @@ public class AccelerationPlanApplicationService {
         payload.put("sourceTaskId", plan.getSourceTaskId());
         payload.put("status", plan.getStatus().name());
         payload.put("selectedSuggestionTypes", plan.getSelectedSuggestionTypes());
-        payload.put("runtimeBindingBy", plan.getRuntimeBindingBy());
-        payload.put("verifiedBy", plan.getVerifiedBy());
-        payload.put("rolledBackBy", plan.getRolledBackBy());
+        payload.put("activatedBy", plan.getActivatedBy());
+        payload.put("pausedBy", plan.getPausedBy());
         return JsonUtils.toJson(payload);
     }
 
-    private QueryExecutionAccelerationPlanApplyRequest buildApplyRequest(AccelerationPlan plan) {
-        QueryExecutionAccelerationPlanApplyRequest request = new QueryExecutionAccelerationPlanApplyRequest();
+    private QueryExecutionAccelerationPlanActivationRequest buildActivationRequest(AccelerationPlan plan) {
+        QueryExecutionAccelerationPlanActivationRequest request = new QueryExecutionAccelerationPlanActivationRequest();
         request.setTenantId(plan.getTenantId());
         request.setPlanId(plan.getPlanId());
         request.setSqlFingerprint(plan.getSqlFingerprint());
@@ -577,16 +486,8 @@ public class AccelerationPlanApplicationService {
         return request;
     }
 
-    private QueryExecutionAccelerationPlanVerifyRequest buildVerifyRequest(AccelerationPlan plan) {
-        QueryExecutionAccelerationPlanVerifyRequest request = new QueryExecutionAccelerationPlanVerifyRequest();
-        request.setTenantId(plan.getTenantId());
-        request.setPlanId(plan.getPlanId());
-        request.setSqlFingerprint(plan.getSqlFingerprint());
-        return request;
-    }
-
-    private QueryExecutionAccelerationPlanRollbackRequest buildRollbackRequest(AccelerationPlan plan) {
-        QueryExecutionAccelerationPlanRollbackRequest request = new QueryExecutionAccelerationPlanRollbackRequest();
+    private QueryExecutionAccelerationPlanPauseRequest buildPauseRequest(AccelerationPlan plan) {
+        QueryExecutionAccelerationPlanPauseRequest request = new QueryExecutionAccelerationPlanPauseRequest();
         request.setTenantId(plan.getTenantId());
         request.setPlanId(plan.getPlanId());
         request.setSqlFingerprint(plan.getSqlFingerprint());
@@ -616,12 +517,12 @@ public class AccelerationPlanApplicationService {
         return JsonUtils.toJson(payload);
     }
 
-    private String buildCompensationEvidence(String applyEvidence, QueryExecutionAccelerationPlanResponse rollbackResponse) {
+    private String buildCompensationEvidence(String activationEvidence, QueryExecutionAccelerationPlanResponse pauseResponse) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("applyEvidence", parseJsonString(applyEvidence));
-        payload.put("compensationStatus", rollbackResponse == null ? null : rollbackResponse.getStatus());
-        payload.put("compensationSummary", rollbackResponse == null ? null : rollbackResponse.getRuntimeSummary());
-        payload.put("compensationDetails", rollbackResponse == null ? null : parseJsonString(rollbackResponse.getRuntimeDetailsJson()));
+        payload.put("activationEvidence", parseJsonString(activationEvidence));
+        payload.put("compensationStatus", pauseResponse == null ? null : pauseResponse.getStatus());
+        payload.put("compensationSummary", pauseResponse == null ? null : pauseResponse.getRuntimeSummary());
+        payload.put("compensationDetails", pauseResponse == null ? null : parseJsonString(pauseResponse.getRuntimeDetailsJson()));
         return JsonUtils.toJson(payload);
     }
 
@@ -677,34 +578,22 @@ public class AccelerationPlanApplicationService {
         }
     }
 
-    private void requirePendingApproval(AccelerationPlan plan) {
-        if (plan.getStatus() != com.company.sqloptimization.domain.plan.AccelerationPlanStatus.PENDING_APPROVAL) {
-            throw invalidPlanState("加速方案必须处于待审批状态。");
+    private void requireActivateEligible(AccelerationPlan plan) {
+        if (plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.READY
+            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.ACTIVATE_FAILED
+            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.PAUSED) {
+            return;
         }
+        throw invalidPlanState("加速方案激活前必须处于 READY、ACTIVATE_FAILED 或 PAUSED 状态。");
     }
 
-    private void requireApplyEligible(AccelerationPlan plan) {
-        if (!(plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPROVED
-            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPLY_FAILED
-            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.ROLLED_BACK)) {
-            throw invalidPlanState("加速方案应用前必须已批准。");
+    private void requirePauseEligible(AccelerationPlan plan) {
+        if (plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.ACTIVE
+            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.PAUSED
+            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.PAUSE_FAILED) {
+            return;
         }
-    }
-
-    private void requireVerifyEligible(AccelerationPlan plan) {
-        if (!(plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPLIED
-            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.VERIFY_FAILED)) {
-            throw invalidPlanState("加速方案校验前必须已应用。");
-        }
-    }
-
-    private void requireRollbackEligible(AccelerationPlan plan) {
-        if (!(plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.APPLIED
-            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.VERIFIED
-            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.VERIFY_FAILED
-            || plan.getStatus() == com.company.sqloptimization.domain.plan.AccelerationPlanStatus.ROLLBACK_FAILED)) {
-            throw invalidPlanState("加速方案回滚前必须已应用。");
-        }
+        throw invalidPlanState("加速方案暂停前必须处于 ACTIVE、PAUSED 或 PAUSE_FAILED 状态。");
     }
 
     private BizException invalidPlanState(String message) {
@@ -733,16 +622,6 @@ public class AccelerationPlanApplicationService {
         payload.put("tenantId", plan.getTenantId());
         payload.put("planId", plan.getPlanId());
         payload.put("status", plan.getStatus().name());
-        return JsonUtils.toJson(payload);
-    }
-
-    private String buildReviewRequestParams(AccelerationPlan plan, AccelerationPlanApprovalRequest request) {
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("serviceCode", ServiceCodeConstants.SQL_OPTIMIZATION);
-        payload.put("tenantId", plan.getTenantId());
-        payload.put("planId", plan.getPlanId());
-        payload.put("approve", request.getApprove());
-        payload.put("reviewNote", request.getReviewNote());
         return JsonUtils.toJson(payload);
     }
 
