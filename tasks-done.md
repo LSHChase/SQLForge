@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521: 修复改写激活授权策略缺失并补充 MV 测试 SQL
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `fix(governance): align rewrite activation policy`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL_REWRITE_RECORD_ACTIVATE 在治理授权默认策略与配置中缺失导致改写激活按钮返回 OPERATION_POLICY_MISSING；补充授权矩阵回归测试，并整理多类规范 SQL 用于验证 MV 生成场景。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 补齐 SQL_REWRITE_RECORD_ACTIVATE 治理授权默认策略与 application.yml 配置，移除旧 publish/unpublish rewrite record operation，并新增授权矩阵回归测试覆盖改写记录激活按钮所需 operation policy。
+  - Validation evidence: java -version 确认 1.8.0_112；mvn -q -pl governance -Dtest=GovernanceAuthorizationMatrixApplicationServiceTest test；git diff --check；python3 scripts/task_audit.py --check --phase pre-closeout；python3 scripts/foreman.py validate USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521。
+  - Residual risk: 未发现仓库内残余风险；受影响环境需部署本次 governance 配置后重试激活。
+  - Next step: 在目标环境发布后，用改写记录激活按钮重试原场景，并确认授权响应不再返回 OPERATION_POLICY_MISSING。
+
 ### USER-CN-REVERT-RULE-CLEANUP-20260520: 回退指定规则清理改动
 
 - Status: done

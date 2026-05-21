@@ -85,6 +85,32 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     }
 
     @Test
+    void shouldAllowRewriteRecordActivationForSubmitters() {
+        GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
+        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+            new GovernanceAccessProperties(),
+            auditTrailService
+        );
+        service.initializeRuntimeDatasourceMatrix();
+        RequestContext.set(
+            "tenant-a",
+            "operator-activate-001",
+            Arrays.asList("OPERATOR"),
+            "request-rewrite-record-activate",
+            "trace-rewrite-record-activate",
+            "header",
+            100L,
+            200L
+        );
+
+        GovernanceAuthorizationDecisionResponse response =
+            service.decideAuthorization(rewriteRecordActivationRequest("tenant-a"));
+
+        assertTrue(response.isAllowed());
+        assertEquals("ALLOWED", response.getReason());
+    }
+
+    @Test
     void shouldDenyWhenRolePermissionMissingAndAuditFailure() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
@@ -204,6 +230,17 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
         request.setResourceType("SQL_REWRITE_RECORD");
         request.setResourceId("history-001");
         request.setOperationCode("SQL_REWRITE_RECORD_LIST");
+        request.setDatasourceId("optimization-hetu");
+        return request;
+    }
+
+    private GovernanceAuthorizationDecisionRequest rewriteRecordActivationRequest(String tenantId) {
+        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+        request.setServiceCode("SQL_OPTIMIZATION");
+        request.setTenantId(tenantId);
+        request.setResourceType("SQL_REWRITE_RECORD");
+        request.setResourceId("rewrite-001");
+        request.setOperationCode("SQL_REWRITE_RECORD_ACTIVATE");
         request.setDatasourceId("optimization-hetu");
         return request;
     }

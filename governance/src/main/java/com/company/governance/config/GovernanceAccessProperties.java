@@ -65,9 +65,8 @@ public class GovernanceAccessProperties {
                 "SQL_REWRITE_RECORD_LIST", permissions("USE", "optimization.status.read", "governance.history.read"),
                 "SQL_REWRITE_RECORD_QUERY", permissions("USE", "optimization.status.read", "governance.history.read"),
                 "SQL_REWRITE_RECORD_REVIEW", permission("optimization.submit", "USE"),
-                "SQL_REWRITE_RECORD_PUBLISH", permission("optimization.submit", "USE"),
+                "SQL_REWRITE_RECORD_ACTIVATE", permission("optimization.submit", "USE"),
                 "SQL_REWRITE_RECORD_PAUSE", permission("optimization.submit", "USE"),
-                "SQL_REWRITE_RECORD_UNPUBLISH", permission("optimization.submit", "USE"),
                 "SQL_REWRITE_RECORD_VALIDATION_CREATE", permission("optimization.submit", "USE"),
                 "SQL_REWRITE_RECORD_VALIDATION_QUERY", permissions("USE", "optimization.status.read", "governance.history.read")
             )

@@ -117,15 +117,11 @@ governance:
             required-permissions:
               - optimization.submit
             datasource-action: USE
-          SQL_REWRITE_RECORD_PUBLISH:
+          SQL_REWRITE_RECORD_ACTIVATE:
             required-permissions:
               - optimization.submit
             datasource-action: USE
           SQL_REWRITE_RECORD_PAUSE:
-            required-permissions:
-              - optimization.submit
-            datasource-action: USE
-          SQL_REWRITE_RECORD_UNPUBLISH:
             required-permissions:
               - optimization.submit
             datasource-action: USE

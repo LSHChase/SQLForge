@@ -5103,3 +5103,10 @@
 2026-05-20T20:14:44-05:00 | USER-CN-REVERT-RULE-CLEANUP-20260520 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-20T20:14:44-05:00 | USER-CN-REVERT-RULE-CLEANUP-20260520 closeout commit | `R-168` | projected | `git commit -m 'revert(rules): USER-CN-REVERT-RULE-CLEANUP-20260520 revert rule cleanup' (projected-precommit)`
 2026-05-20T20:14:44-05:00 | USER-CN-REVERT-RULE-CLEANUP-20260520 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-20T20:35:47-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-20T20:35:48-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-20T20:35:48-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-20T20:36:39-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-20T20:36:39-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 closeout commit | `R-168` | projected | `git commit -m 'fix(governance): align rewrite activation policy' (projected-precommit)`
+2026-05-20T20:36:39-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-20T20:36:39-05:00 | USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
