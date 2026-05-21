@@ -310,3 +310,69 @@
 - 不调用 SMT Solver，不新增数据库 schema，不开放动态规则配置。
 - 不创建、激活或暂停 runtime rewrite binding。
 - 不把 `selectedRuleIds` 或 Beam Search 最优状态自动升级为生产改写。
+
+## Phase 4.1 / 4.2 / 4.3 Dual Parser Stack and Hetu Plan Adapter
+
+当前已在后端新增 Calcite / JSqlParser 双解析栈融合报告，用于把 JSqlParser 的方言与 BI 工具元数据标签注入 Calcite L4 改写规划，并输出 Hetu 专属计划适配建议。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.parser`
+- 融合分析器：`ParserStackFusionAnalyzer`
+- 应用入口：`SqlOptimizationPipelineService.buildParserStackFusionReport(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getParserStackFusionReport()`
+
+### Parser Stack Contract
+
+| 解析器 | 当前职责 | 边界 |
+|:---|:---|:---|
+| Calcite | 继续承担 QBDAG 的 L1-L3 查询块分解主路径，并把当前 L4 `RelationalAlgebraNode / RelationalRewritePlan` 作为 repo-closed 的 RelNode surrogate；报告中记录 `SQL_NODE`、`RELNODE_TREE`、`HEP_PLANNER`、`VOLCANO_PLANNER` 阶段。 | 当前不执行真实 `SqlToRelConverter`、`HepPlanner` 或 `VolcanoPlanner`，不把 L4 surrogate 写成真实 Calcite RelNode tree。 |
+| JSqlParser | 继续承担 L1 语法细节、方言模式、别名、谓词、函数、原始 SQL 文本扫描和 advanced structure profile；报告中检测 BI 工具生成模式。 | 当前不改变既有结构解析响应字段，不保留可执行 AST 对象，不开放页面配置。 |
+
+### Fusion Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 元数据标签 | `ParserMetadataTag` 当前识别帆软样式 `SubXX_分组和汇总` / `SubXX_*` 模式，输出 `{tool=FANRUAN, versionHint=ALIAS_PATTERN_SUBXX_GROUP_SUMMARY, nestedDepth, confidence}`。 | 标签来自静态文本和 advanced profile，不代表已确认的外部 BI 工具来源事实。 |
+| 改写约束注入 | `RewriteConstraint` 将 BI 工具重复块标签转成 `BI_GENERATED_REPEATED_BLOCK_AGGRESSIVE_MERGE_ALLOWED`，并在纵向聚合形态上输出 `BI_AGGREGATION_BLOCK_VERTICAL_FOLDING_PREFERRED`。 | 约束只影响后续候选排序和人工复核证据，不跳过语义验证和生产治理链。 |
+| Calcite planner 阶段 | 报告保留 `SQL_NODE`、`RELNODE_TREE`、`HEP_PLANNER` 和 `VOLCANO_PLANNER` 四段证据；HepPlanner 阶段声明子查询去关联、谓词下推，VolcanoPlanner 阶段引用抽象代价和规则冲突报告。 | `HEP_PLANNER` / `VOLCANO_PLANNER` 目前为 `PLANNED_NOT_EXECUTED`，用于记录集成策略和后续接入点。 |
+
+### Hetu Adapter Contract
+
+| 优化点 | 当前实现 | 边界 |
+|:---|:---|:---|
+| CTE 物化策略 | 对 QBDAG 重复结构或 CSE 候选输出 `HETU_MATERIALIZED_CTE`，建议优先生成 WITH 结构并验证 MATERIALIZED CTE 策略。 | 不生成生产 SQL，不验证具体 Hetu 语法。 |
+| Dynamic Filter | 对 JOIN 图或横向展开候选输出 `HETU_DYNAMIC_FILTER_PUSHDOWN`，保留 `dynamic_filter` 提示文本和 join evidence。 | 不调用 Hetu optimizer，不证明提示一定被目标集群采纳。 |
+| 分区裁剪 | 识别 `DTE / DT / BIZ_DATE / QUERY_DATE / DATE_DAY / DAY_ID` 等时间分区列及日期比较谓词，输出 `HETU_PARTITION_PRUNING`。 | 分区列识别是静态启发式，仍需表元数据确认。 |
+| 分布式聚合 | 对聚合或 GROUP BY 形态输出 `HETU_TWO_PHASE_DISTRIBUTED_AGGREGATION`，建议预聚合 + 最终聚合两阶段模式。 | 不改写为真实两阶段 SQL，不验证单节点瓶颈是否真实存在。 |
+
+### Report Schema
+
+`ParserStackFusionReport` 固化：
+
+- `schemaVersion = parser-stack-fusion/v1`
+- `sourceSchemaVersion`：当前引用 `query-block-dag/v1`
+- `fusionStatus`：`DUAL_STACK_REPORT_READY`、`HETU_HINTS_READY` 或 `METADATA_CONSTRAINTS_AND_HETU_HINTS_READY`
+- `parserRoles`：Calcite 与 JSqlParser 分工说明
+- `calcitePlannerStages`：SQL_NODE / RELNODE_TREE / HEP_PLANNER / VOLCANO_PLANNER 阶段证据
+- `metadataTags`：JSqlParser 方言与 BI 工具标签
+- `rewriteConstraints`：注入 Calcite L4 改写规划的静态约束
+- `hetuPlanHints`：Hetu CTE、dynamic filter、分区裁剪和两阶段聚合提示
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`hetuAdapterStatus=STATIC_PLAN_HINTS_ONLY`
+
+### Conflict / Choice
+
+本阶段没有需要暂停实现的产品冲突；存在两个保守实现选择：
+
+| 选择点 | 已采用方案 | 备选 |
+|:---|:---|:---|
+| 用户算法要求 Calcite `SqlNode -> RelNode`、HepPlanner 和 VolcanoPlanner。 | 当前先用已有 QBDAG + L4 关系代数候选 + 抽象代价报告作为 repo-closed surrogate，并把真实 planner 状态显式标为 `PLANNED_NOT_EXECUTED`。 | 直接接入真实 Calcite RelNode 需要 schema catalog、类型系统和规则集校准，容易引入环境依赖并扩大阶段边界。 |
+| Hetu 提示是否直接生成可执行 SQL。 | 当前只生成结构化 Hetu plan hints 和语法验证边界。 | 直接输出生产 SQL 会绕过完整 SQL 生成、语义验证、压测和治理链。 |
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不调用真实 Hetu EXPLAIN、Calcite `SqlToRelConverter`、HepPlanner 或 VolcanoPlanner。
+- 不新增数据库 schema，不创建、激活或暂停 runtime rewrite binding。
+- 不把静态 Hetu hints 写成真实执行计划或真实性能收益。

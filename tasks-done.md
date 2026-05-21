@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521: 实现双解析栈融合与 Hetu 计划适配
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521 implement parser stack fusion hetu adapter`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，在 sql-optimization 改写核心实现 Calcite/JSqlParser 双解析栈协同报告与 Hetu 执行计划适配第一版：固化 Calcite 与 JSqlParser 分工、JSqlParser 方言/BI 工具模式标签、Calcite L1-L4/RelNode/Planner 集成占位证据、融合层改写约束注入，以及 Hetu CTE 物化、Dynamic Filter、分区裁剪和两阶段分布式聚合适配建议；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 Calcite/JSqlParser 双解析栈融合与 Hetu 静态计划适配第一版：新增 parser stack fusion domain model/analyzer，固化 Calcite L1-L4/RelNode/Planner 占位证据、JSqlParser 方言/BI 工具模式标签、融合层改写约束注入，以及 Hetu MATERIALIZED CTE、dynamic_filter、时间分区裁剪和两阶段聚合 hints；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充回归测试、架构文档和原始需求归档；未改动页面、未执行真实 SQL、未自动应用生产改写。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test => 32 tests passed; mvn -pl sql-optimization -am test => 343 tests passed; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes changed Java paths => 0 violations; git diff --check; python3 scripts/foreman.py validate USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed.
+  - Residual risk: 当前 Calcite RelNode/HepPlanner/VolcanoPlanner 为静态融合报告和规划占位证据，不执行真实 SQL、不读取真实 schema/统计信息、不生成生产自动改写绑定；Hetu 适配为静态 hint/约束建议，dynamic filter、分区裁剪和两阶段聚合仍需后续接入真实执行计划、压测和治理审批后才能生产生效。
+  - Next step: 后续可在单独任务中接入真实 Calcite RelNode 构建、JSqlParser AST 精准定位、Hetu EXPLAIN/统计信息采集和受控 rewritten SQL 生成。
+
 ### USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521: 实现改写规则 DSL 与冲突消解
 
 - Status: done

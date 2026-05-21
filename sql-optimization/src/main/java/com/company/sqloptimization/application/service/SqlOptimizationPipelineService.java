@@ -16,6 +16,8 @@ import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelector;
 import com.company.sqloptimization.domain.rewrite.cost.CostSelectionStrategy;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrAssembler;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
+import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionAnalyzer;
+import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
@@ -700,6 +702,33 @@ public class SqlOptimizationPipelineService {
             semanticReport
         );
         return new RuleConflictResolver().resolve(plan, costReport);
+    }
+
+    public ParserStackFusionReport buildParserStackFusionReport(ParsedSqlProfile profile) {
+        if (profile == null) {
+            throw invalidTask(
+                "构建双解析栈融合报告需要有效 SQL 解析结果。",
+                "请先完成 SQL 结构解析，再生成 Calcite/JSqlParser 融合与 Hetu 适配报告。"
+            );
+        }
+        QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
+        RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
+        SemanticEquivalenceReport semanticReport = new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
+        CostBasedRewriteSelectionReport costReport = new CostBasedRewriteSelector().select(
+            queryBlockDag,
+            plan,
+            semanticReport
+        );
+        RuleConflictResolutionReport ruleReport = new RuleConflictResolver().resolve(plan, costReport);
+        return new ParserStackFusionAnalyzer().analyze(
+            profile.getNormalizedSql(),
+            profile.getParserEngine(),
+            profile.toAdvancedStructureProfile(),
+            queryBlockDag,
+            plan,
+            costReport,
+            ruleReport
+        );
     }
 
     public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {

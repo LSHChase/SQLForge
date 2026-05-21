@@ -2,6 +2,8 @@ package com.company.sqloptimization.domain.rewrite.ir;
 
 import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
 import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelector;
+import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionAnalyzer;
+import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
@@ -75,6 +77,15 @@ public class RewriteCoreIrAssembler {
             relationalRewritePlan,
             costBasedRewriteSelectionReport
         );
+        ParserStackFusionReport parserStackFusionReport = new ParserStackFusionAnalyzer().analyze(
+            normalizedSql,
+            parserEngine,
+            advancedProfile,
+            queryBlockDag,
+            relationalRewritePlan,
+            costBasedRewriteSelectionReport,
+            ruleConflictResolutionReport
+        );
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -100,6 +111,10 @@ public class RewriteCoreIrAssembler {
         attributes.put("rewriteRuleDslMatchedCount", Integer.valueOf(ruleConflictResolutionReport.getMatchedRules().size()));
         attributes.put("rewriteRuleConflictCount", Integer.valueOf(ruleConflictResolutionReport.getConflicts().size()));
         attributes.put("rewriteRuleSelectedRuleIds", ruleConflictResolutionReport.getSelectedRuleIds());
+        attributes.put("parserStackFusionStatus", parserStackFusionReport.getFusionStatus());
+        attributes.put("parserMetadataTagCount", Integer.valueOf(parserStackFusionReport.getMetadataTags().size()));
+        attributes.put("rewriteConstraintCount", Integer.valueOf(parserStackFusionReport.getRewriteConstraints().size()));
+        attributes.put("hetuPlanHintCount", Integer.valueOf(parserStackFusionReport.getHetuPlanHints().size()));
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -113,6 +128,7 @@ public class RewriteCoreIrAssembler {
             semanticEquivalenceReport,
             costBasedRewriteSelectionReport,
             ruleConflictResolutionReport,
+            parserStackFusionReport,
             businessIntent,
             architectureConflicts(),
             attributes

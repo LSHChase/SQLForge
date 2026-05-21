@@ -14,6 +14,9 @@ import com.company.sqloptimization.domain.rewrite.ir.RelationalOperator;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteIrConflict;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteIrLayer;
+import com.company.sqloptimization.domain.rewrite.parser.HetuPlanHint;
+import com.company.sqloptimization.domain.rewrite.parser.ParserMetadataTag;
+import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagIssue;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockEdge;
@@ -659,6 +662,76 @@ class SqlOptimizationPipelineServiceTest {
             snapshot.getAttributes().get("rewriteRuleConflictCount")
         );
         assertEquals(report.getSelectedRuleIds(), snapshot.getAttributes().get("rewriteRuleSelectedRuleIds"));
+    }
+
+    @Test
+    void shouldBuildDualParserFusionReportAndHetuAdapterHints() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            fanruanRepeatedAggregateSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        ParserStackFusionReport report = service.buildParserStackFusionReport(profile);
+
+        assertEquals(ParserStackFusionReport.SCHEMA_VERSION, report.getSchemaVersion());
+        assertEquals("NO_SQL_EXECUTION", report.getAttributes().get("runtimeBoundary"));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
+        assertEquals("JSQLPARSER_METADATA_PLUS_CALCITE_L4_SURROGATE", report.getAttributes().get("workflow"));
+        assertTrue(containsParserRole(report, "CALCITE"));
+        assertTrue(containsParserRole(report, "JSQLPARSER"));
+        assertTrue(containsPlannerStage(report, "SQL_NODE"));
+        assertTrue(containsPlannerStage(report, "RELNODE_TREE"));
+        assertTrue(containsPlannerStage(report, "HEP_PLANNER"));
+        assertTrue(containsPlannerStage(report, "VOLCANO_PLANNER"));
+
+        assertTrue(report.hasMetadataTag("FANRUAN"));
+        ParserMetadataTag tag = report.firstMetadataTag("FANRUAN");
+        assertNotNull(tag);
+        assertEquals("ALIAS_PATTERN_SUBXX_GROUP_SUMMARY", tag.getVersionHint());
+        assertEquals("SubXX_分组和汇总", tag.getPattern());
+        assertTrue(tag.getMatchedText().contains("Sub1_"));
+        assertTrue(tag.getConfidence() > 0.8);
+
+        assertTrue(report.hasRewriteConstraint("BI_GENERATED_REPEATED_BLOCK_AGGRESSIVE_MERGE_ALLOWED"));
+        assertTrue(report.hasRewriteConstraint("BI_AGGREGATION_BLOCK_VERTICAL_FOLDING_PREFERRED"));
+
+        assertTrue(report.hasHetuPlanHint("HETU_MATERIALIZED_CTE"));
+        assertTrue(report.hasHetuPlanHint("HETU_DYNAMIC_FILTER_PUSHDOWN"));
+        assertTrue(report.hasHetuPlanHint("HETU_PARTITION_PRUNING"));
+        assertTrue(report.hasHetuPlanHint("HETU_TWO_PHASE_DISTRIBUTED_AGGREGATION"));
+        HetuPlanHint dynamicFilter = report.firstHetuPlanHint("HETU_DYNAMIC_FILTER_PUSHDOWN");
+        assertNotNull(dynamicFilter);
+        assertTrue(dynamicFilter.getHintText().contains("dynamic_filter"));
+        assertEquals("HETU_ENVIRONMENT_VALIDATION_REQUIRED", dynamicFilter.getAttributes().get("syntaxBoundary"));
+    }
+
+    @Test
+    void shouldExposeParserStackFusionReportThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            fanruanRepeatedAggregateSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+        ParserStackFusionReport report = snapshot.getParserStackFusionReport();
+
+        assertNotNull(report);
+        assertTrue(report.hasMetadataTag("FANRUAN"));
+        assertTrue(report.hasHetuPlanHint("HETU_PARTITION_PRUNING"));
+        assertEquals(report.getFusionStatus(), snapshot.getAttributes().get("parserStackFusionStatus"));
+        assertEquals(
+            Integer.valueOf(report.getMetadataTags().size()),
+            snapshot.getAttributes().get("parserMetadataTagCount")
+        );
+        assertEquals(
+            Integer.valueOf(report.getRewriteConstraints().size()),
+            snapshot.getAttributes().get("rewriteConstraintCount")
+        );
+        assertEquals(
+            Integer.valueOf(report.getHetuPlanHints().size()),
+            snapshot.getAttributes().get("hetuPlanHintCount")
+        );
     }
 
     @Test
@@ -1337,6 +1410,24 @@ class SqlOptimizationPipelineServiceTest {
         return false;
     }
 
+    private boolean containsParserRole(ParserStackFusionReport report, String parser) {
+        for (Map<String, Object> role : report.getParserRoles()) {
+            if (parser.equals(role.get("parser"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsPlannerStage(ParserStackFusionReport report, String stage) {
+        for (Map<String, Object> item : report.getCalcitePlannerStages()) {
+            if (stage.equals(item.get("stage"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private String repeatedAggregateLeftJoinSql() {
         return "SELECT b.customer_id, s1.base_100, s2.current_100, s3.base_600 "
             + "FROM customers b "
@@ -1358,6 +1449,23 @@ class SqlOptimizationPipelineServiceTest {
             + "  WHERE dt = DATE '2026-04-30' AND avg_balance >= 6000000 "
             + "  GROUP BY customer_id"
             + ") s3 ON b.customer_id = s3.customer_id";
+    }
+
+    private String fanruanRepeatedAggregateSql() {
+        return "SELECT /* Sub1_分组和汇总 */ a.customer_id, a.total_amount AS base_amount, "
+            + "b.total_amount AS current_amount "
+            + "FROM ("
+            + "  SELECT customer_id, DTE, SUM(amount) AS total_amount "
+            + "  FROM orders "
+            + "  WHERE DTE = DATE '2026-05-01' "
+            + "  GROUP BY customer_id, DTE"
+            + ") a "
+            + "JOIN ("
+            + "  SELECT customer_id, DTE, SUM(amount) AS total_amount "
+            + "  FROM orders "
+            + "  WHERE DTE = DATE '2026-05-31' "
+            + "  GROUP BY customer_id, DTE"
+            + ") b ON a.customer_id = b.customer_id";
     }
 
     @SuppressWarnings("unchecked")
