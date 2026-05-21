@@ -3,9 +3,15 @@ spring:
     name: governance
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  servlet:
+    multipart:
+      max-file-size: ${GOVERNANCE_DATASOURCE_DRIVER_MAX_FILE_SIZE:50MB}
+      max-request-size: ${GOVERNANCE_DATASOURCE_DRIVER_MAX_REQUEST_SIZE:52MB}
 
 server:
   port: 8080
+  tomcat:
+    max-swallow-size: ${GOVERNANCE_TOMCAT_MAX_SWALLOW_SIZE:-1}
 
 management:
   endpoints:
@@ -206,3 +212,5 @@ governance:
           actions:
             - READ
             - MANAGE
+  datasource-driver:
+    max-file-size: ${GOVERNANCE_DATASOURCE_DRIVER_MAX_FILE_SIZE:50MB}

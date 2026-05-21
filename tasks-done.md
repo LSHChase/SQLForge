@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-JDBC-DRIVER-UPLOAD-SCHEMA-BOOTSTRAP-20260521: Fix JDBC driver upload schema bootstrap on reused environments
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `fix(governance): harden JDBC driver upload runtime`
+- Priority: 1
+- Depends on: N/A
+- Scope: Diagnose the /api/governance/datasource-drivers 500 seen on another machine, harden local/dev governance startup so uploaded-driver schema is bootstrapped without relying on one specific script path, and surface clearer runtime behavior for reused legacy MySQL volumes.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-JDBC-DRIVER-UPLOAD-SCHEMA-BOOTSTRAP-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Hardened governance JDBC driver upload runtime for reused environments by binding multipart upload size through DataSize-backed configuration, returning clearer upload-limit errors, and pinning governance log encoders to UTF-8 so dynamically loaded driver messages do not degrade into square-box placeholders.
+  - Validation evidence: mvn -q -pl governance -am -Dtest=LoggingConfigContractTest,DatasourceDriverArtifactControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate USER-CN-FIX-JDBC-DRIVER-UPLOAD-SCHEMA-BOOTSTRAP-20260521; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: The repository validation confirms configuration and controller behavior, but a live restarted governance process with the target uploaded driver should still be checked on the affected machine to verify the full terminal/container log pipeline is also UTF-8.
+  - Next step: Restart governance in the affected environment, re-upload or retest the target JDBC driver, and confirm both application.log and the runtime console no longer render square-box placeholders.
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260521: 按最新页面全量更新 dist-portable
 
 - Status: done

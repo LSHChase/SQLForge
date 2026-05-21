@@ -1,12 +1,13 @@
 package com.company.governance.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.unit.DataSize;
 
 @ConfigurationProperties(prefix = "governance.datasource-driver")
 public class GovernanceDatasourceDriverProperties {
 
     private String storagePath = "./runtime/governance-drivers";
-    private long maxFileSizeBytes = 52428800L;
+    private DataSize maxFileSize = DataSize.ofMegabytes(50);
 
     public String getStoragePath() {
         return storagePath;
@@ -17,10 +18,14 @@ public class GovernanceDatasourceDriverProperties {
     }
 
     public long getMaxFileSizeBytes() {
-        return maxFileSizeBytes;
+        return maxFileSize.toBytes();
     }
 
-    public void setMaxFileSizeBytes(long maxFileSizeBytes) {
-        this.maxFileSizeBytes = maxFileSizeBytes;
+    public DataSize getMaxFileSize() {
+        return maxFileSize;
+    }
+
+    public void setMaxFileSize(DataSize maxFileSize) {
+        this.maxFileSize = maxFileSize;
     }
 }
