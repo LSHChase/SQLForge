@@ -1,5 +1,6 @@
 package com.company.sqloptimization.domain.rewrite.ir;
 
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +13,7 @@ public class RewriteCoreIrSnapshot {
     private final AstNodeReference ast;
     private final List<TableReferenceIr> tableReferences;
     private final List<QueryBlockIr> queryBlocks;
+    private final QueryBlockDag queryBlockDag;
     private final List<RelationalAlgebraNode> relationalAlgebra;
     private final BusinessIntentIr businessIntent;
     private final List<RewriteIrConflict> architectureConflicts;
@@ -22,6 +24,7 @@ public class RewriteCoreIrSnapshot {
                                  AstNodeReference ast,
                                  List<TableReferenceIr> tableReferences,
                                  List<QueryBlockIr> queryBlocks,
+                                 QueryBlockDag queryBlockDag,
                                  List<RelationalAlgebraNode> relationalAlgebra,
                                  BusinessIntentIr businessIntent,
                                  List<RewriteIrConflict> architectureConflicts,
@@ -31,6 +34,7 @@ public class RewriteCoreIrSnapshot {
         this.ast = ast;
         this.tableReferences = IrCollections.immutableList(tableReferences);
         this.queryBlocks = IrCollections.immutableList(queryBlocks);
+        this.queryBlockDag = queryBlockDag;
         this.relationalAlgebra = IrCollections.immutableList(relationalAlgebra);
         this.businessIntent = businessIntent;
         this.architectureConflicts = IrCollections.immutableList(architectureConflicts);
@@ -59,6 +63,10 @@ public class RewriteCoreIrSnapshot {
 
     public List<QueryBlockIr> getQueryBlocks() {
         return queryBlocks;
+    }
+
+    public QueryBlockDag getQueryBlockDag() {
+        return queryBlockDag;
     }
 
     public List<RelationalAlgebraNode> getRelationalAlgebra() {

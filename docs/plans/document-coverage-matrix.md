@@ -28,7 +28,7 @@
 | `docs/architecture/service-interface-contract-baseline.md` | Authority | 统一身份、错误码、DTO/事件和审计契约基线 | Consumed | 服务实现前的接口级约束 |
 | `docs/architecture/sql-governance-interface-extension-baseline.md` | Authority | SQL 治理产品线的查询、历史、解析、推荐、压测、开放接入与告警接口扩展基线 | Consumed | `HARN-042` 与后续 D/E/F Story 的接口契约权威落点 |
 | `docs/architecture/sql-governance-data-model-extension.md` | Authority | SQL 治理产品线新增对象、扩表现状、落表策略与追溯键基线 | Consumed | `HARN-042` 与后续 D/E/F Story 的数据模型与持久化权威落点 |
-| `docs/architecture/sql-rewrite-core-ir-architecture.md` | Authority | SQL 改写核心 L1-L5 IR 架构骨架、层级契约与命名冲突处理 | Consumed | 约束 `USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521` 的改写核心 IR 层级、后端边界和与既有推荐规则等级的兼容方案 |
+| `docs/architecture/sql-rewrite-core-ir-architecture.md` | Authority | SQL 改写核心 L1-L5 IR 架构骨架、QBDAG 查询块分解、结构哈希、层级契约与命名冲突处理 | Consumed | 约束 `USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521` 与 `USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521` 的改写核心 IR 层级、QBDAG 分解、后端边界和与既有推荐规则等级的兼容方案 |
 | `docs/deliveries/init-completion.md` | Indexed | 阶段0交付记录 | Consumed | 阶段0真值、tag 回写、交付闭环 |
 | `docs/deliveries/phase-f-story-003-ops-closeout.md` | Indexed | Phase-F Story-003 运维、审计与恢复交付记录 | Consumed | `F-TASK-009` 的 commit/tag/write-back 闭环与模板权威落点 |
 | `docs/deployments/local-setup.md` | Authority | 本地部署与健康检查 | Consumed | 本地环境、smoke、脚本说明 |
@@ -110,6 +110,7 @@
 | `docs/references/raw-requirements/USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520.md` | Archive | USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520 raw requirement snapshot | Archived | 保存执行引擎纯化与运维治理面移除需求原文，供影响分析、`INBOX-007` 人工决策和后续实现追溯 |
 | `docs/references/raw-requirements/USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520.md` | Archive | USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520 raw requirement snapshot | Archived | 保存 MV 推荐改写准确性、大 SQL 支持与 50 类 SQL 测试需求原文，供本任务实现、验证和后续追溯 |
 | `docs/references/raw-requirements/USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521.md` | Archive | USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521 raw requirement snapshot | Archived | 保存 SQL 改写 L1-L5 核心 IR 架构骨架需求原文，供后续改写能力增强与冲突追溯 |
+| `docs/references/raw-requirements/USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521.md` | Archive | USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521 raw requirement snapshot | Archived | 保存查询块分解、QBDAG、结构哈希和子查询合并触发信号需求原文，供第一阶段实现、验证和后续语义等价验证追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/Java开发手册(黄山版).pdf` | Archive | Java 规范原始 PDF | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/README.snapshot.md` | Archive | Java 规范原始 README 快照 | Archived | `R-154` 来源追溯 |
 | `docs/references/raw-requirements/alibaba-java-guidelines/license.txt` | Archive | 原始资料许可证 | Archived | 归档保留，不作为执行基线 |

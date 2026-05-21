@@ -1,5 +1,8 @@
 package com.company.sqloptimization.domain.rewrite.ir;
 
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +33,7 @@ public class RewriteCoreIrAssembler {
         List<Map<String, Object>> subqueries = IrCollections.mapList(advancedProfile.get("subqueries"));
 
         List<TableReferenceIr> tableReferences = buildTableReferences(tables, predicates);
+        QueryBlockDag queryBlockDag = new QueryBlockDagBuilder().build(normalizedSql, advancedProfile);
         List<QueryBlockIr> queryBlocks = buildQueryBlocks(
             tableReferences,
             projections,
@@ -37,7 +41,8 @@ public class RewriteCoreIrAssembler {
             aggregations,
             groupBy,
             ctes,
-            subqueries
+            subqueries,
+            queryBlockDag
         );
         List<RelationalAlgebraNode> algebra = buildRelationalAlgebra(
             normalizedSql,
@@ -56,6 +61,9 @@ public class RewriteCoreIrAssembler {
         attributes.put("runtimeBoundary", "NO_SQL_EXECUTION");
         attributes.put("pageImpact", "NO_FRONTEND_PAGE_CHANGE");
         attributes.put("ruleLevelCompatibility", "IR 层码使用 L1_AST 至 L5_BUSINESS_INTENT，推荐规则等级继续使用 L0/L1/L2。");
+        attributes.put("queryBlockDagStatus", queryBlockDag.getAttributes().get("decompositionStatus"));
+        attributes.put("queryBlockDagBlockCount", Integer.valueOf(queryBlockDag.getBlocks().size()));
+        attributes.put("duplicateStructuralGroupCount", Integer.valueOf(queryBlockDag.getDuplicateStructuralGroups().size()));
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -63,6 +71,7 @@ public class RewriteCoreIrAssembler {
             ast,
             tableReferences,
             queryBlocks,
+            queryBlockDag,
             algebra,
             businessIntent,
             architectureConflicts(),
@@ -199,7 +208,11 @@ public class RewriteCoreIrAssembler {
                                                 List<Map<String, Object>> aggregations,
                                                 List<Map<String, Object>> groupBy,
                                                 List<Map<String, Object>> ctes,
-                                                List<Map<String, Object>> subqueries) {
+                                                List<Map<String, Object>> subqueries,
+                                                QueryBlockDag queryBlockDag) {
+        if (queryBlockDag != null && !queryBlockDag.getBlocks().isEmpty()) {
+            return buildQueryBlocksFromDag(queryBlockDag, tableReferences, projections, predicates, aggregations, groupBy);
+        }
         List<QueryBlockIr> result = new ArrayList<QueryBlockIr>();
         LinkedHashMap<String, Object> rootAttributes = new LinkedHashMap<String, Object>();
         rootAttributes.put("groupBy", groupBy);
@@ -228,6 +241,81 @@ public class RewriteCoreIrAssembler {
                 subquery
             ));
             index++;
+        }
+        return result;
+    }
+
+    private List<QueryBlockIr> buildQueryBlocksFromDag(QueryBlockDag queryBlockDag,
+                                                       List<TableReferenceIr> tableReferences,
+                                                       List<Map<String, Object>> projections,
+                                                       List<Map<String, Object>> predicates,
+                                                       List<Map<String, Object>> aggregations,
+                                                       List<Map<String, Object>> groupBy) {
+        List<QueryBlockIr> result = new ArrayList<QueryBlockIr>();
+        for (QueryBlockNode block : queryBlockDag.getBlocks()) {
+            LinkedHashMap<String, Object> attributes = new LinkedHashMap<String, Object>();
+            attributes.putAll(block.getAttributes());
+            attributes.put("parentBlockId", block.getParentBlockId());
+            attributes.put("name", block.getName());
+            attributes.put("alias", block.getAlias());
+            attributes.put("fromClause", block.getFromClause());
+            attributes.put("whereClause", block.getWhereClause());
+            attributes.put("havingClause", block.getHavingClause());
+            attributes.put("groupBy", block.getGroupBy());
+            attributes.put("outputColumns", block.getOutputColumns());
+            attributes.put("localAliases", block.getLocalAliases());
+            attributes.put("externalReferences", block.getExternalReferences());
+            attributes.put("structuralHash", block.getStructuralHash());
+            attributes.put("normalizedRelationalForm", block.getNormalizedRelationalForm());
+            attributes.put("representativeBlockId", block.getRepresentativeBlockId());
+            attributes.put("equivalentToRepresentative", Boolean.valueOf(block.isEquivalentToRepresentative()));
+            if (queryBlockDag.getRootBlockId().equals(block.getBlockId())) {
+                attributes.put("groupBy", groupBy);
+            }
+            result.add(new QueryBlockIr(
+                block.getBlockId(),
+                block.getBlockRole(),
+                queryBlockDag.getRootBlockId().equals(block.getBlockId())
+                    ? referenceIds(tableReferences)
+                    : Collections.<String>emptyList(),
+                queryBlockDag.getRootBlockId().equals(block.getBlockId())
+                    ? projections
+                    : stringMaps("expression", block.getSelectList()),
+                queryBlockDag.getRootBlockId().equals(block.getBlockId())
+                    ? predicates
+                    : predicateMaps(block),
+                queryBlockDag.getRootBlockId().equals(block.getBlockId())
+                    ? aggregations
+                    : Collections.<Map<String, Object>>emptyList(),
+                attributes
+            ));
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> stringMaps(String key, List<String> values) {
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (String value : values) {
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put(key, value);
+            result.add(item);
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> predicateMaps(QueryBlockNode block) {
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        if (hasText(block.getWhereClause())) {
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("clause", "WHERE");
+            item.put("expression", block.getWhereClause());
+            result.add(item);
+        }
+        if (hasText(block.getHavingClause())) {
+            LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("clause", "HAVING");
+            item.put("expression", block.getHavingClause());
+            result.add(item);
         }
         return result;
     }

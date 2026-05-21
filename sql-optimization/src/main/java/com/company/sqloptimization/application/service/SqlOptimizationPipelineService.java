@@ -13,6 +13,8 @@ import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrAssembler;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import io.trino.sql.parser.ParsingOptions;
 import io.trino.sql.parser.SqlParser;
 import io.trino.sql.tree.AstVisitor;
@@ -639,6 +641,19 @@ public class SqlOptimizationPipelineService {
         return new RewriteCoreIrAssembler().assemble(
             profile.getNormalizedSql(),
             profile.getParserEngine(),
+            profile.toAdvancedStructureProfile()
+        );
+    }
+
+    public QueryBlockDag buildQueryBlockDag(ParsedSqlProfile profile) {
+        if (profile == null) {
+            throw invalidTask(
+                "构建查询块 DAG 需要有效 SQL 解析结果。",
+                "请先完成 SQL 结构解析，再生成第一阶段 QBDAG。"
+            );
+        }
+        return new QueryBlockDagBuilder().build(
+            profile.getNormalizedSql(),
             profile.toAdvancedStructureProfile()
         );
     }

@@ -11,6 +11,10 @@ import com.company.sqloptimization.domain.rewrite.ir.RelationalOperator;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteIrConflict;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteIrLayer;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagIssue;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockEdge;
+import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.nio.charset.StandardCharsets;
@@ -296,6 +300,56 @@ class SqlOptimizationPipelineServiceTest {
         assertFalse(snapshot.getBusinessIntent().getFilters().isEmpty());
         assertTrue(containsConflict(snapshot, "IR_LAYER_RULE_LEVEL_NAME_OVERLAP"));
         assertEquals("NO_FRONTEND_PAGE_CHANGE", snapshot.getAttributes().get("pageImpact"));
+    }
+
+    @Test
+    void shouldDecomposeRepeatedCorrelatedSubqueriesIntoQueryBlockDag() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT c.customer_id, "
+                + "(SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id "
+                + "AND o.dt = DATE '2026-05-01') AS order_count_a, "
+                + "(SELECT COUNT(*) FROM orders x WHERE x.customer_id = c.customer_id "
+                + "AND x.dt = DATE '2026-05-31') AS order_count_b "
+                + "FROM customers c WHERE c.status = 'ACTIVE'",
+            DataSourceTypeEnum.HETU
+        );
+
+        QueryBlockDag dag = service.buildQueryBlockDag(profile);
+
+        assertEquals(QueryBlockDag.SCHEMA_VERSION, dag.getSchemaVersion());
+        assertEquals("APACHE_CALCITE", dag.getParserEngine());
+        assertEquals("AVAILABLE", dag.getAttributes().get("decompositionStatus"));
+        assertTrue(dag.getBlocks().size() >= 3, "blocks=" + dag.getBlocks().size());
+        assertFalse(dag.getTopologicalOrder().isEmpty());
+        assertTrue(dag.hasDuplicateStructuralBlocks(), dag.getStructuralHashGroups().toString());
+        assertTrue(dag.getDuplicateStructuralGroups().get(0).getBlockIds().size() >= 2);
+        assertTrue(containsDagEdge(dag, QueryBlockEdge.LATERAL_JOIN_PROMOTION));
+        assertTrue(containsDagIssue(dag, "QBDAG_CORRELATED_SUBQUERY_CYCLE_BROKEN"));
+        assertTrue(hasExternalReference(dag, "c.customer_id"));
+    }
+
+    @Test
+    void shouldExposeQueryBlockDagThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT a.customer_id, a.total_amount, b.total_amount AS total_amount_b "
+                + "FROM (SELECT customer_id, SUM(amount) AS total_amount FROM orders "
+                + "WHERE dt = DATE '2026-05-01' GROUP BY customer_id) a "
+                + "JOIN (SELECT customer_id, SUM(amount) AS total_amount FROM orders "
+                + "WHERE dt = DATE '2026-05-31' GROUP BY customer_id) b "
+                + "ON a.customer_id = b.customer_id",
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+
+        assertNotNull(snapshot.getQueryBlockDag());
+        assertTrue(snapshot.getQueryBlockDag().hasDuplicateStructuralBlocks());
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", snapshot.getQueryBlockDag().getAttributes().get("pageImpact"));
+        assertEquals(
+            Integer.valueOf(snapshot.getQueryBlockDag().getDuplicateStructuralGroups().size()),
+            snapshot.getAttributes().get("duplicateStructuralGroupCount")
+        );
+        assertTrue(hasEquivalentQueryBlock(snapshot));
     }
 
     @Test
@@ -883,6 +937,44 @@ class SqlOptimizationPipelineServiceTest {
     private boolean containsConflict(RewriteCoreIrSnapshot snapshot, String conflictCode) {
         for (RewriteIrConflict conflict : snapshot.getArchitectureConflicts()) {
             if (conflictCode.equals(conflict.getConflictCode())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsDagEdge(QueryBlockDag dag, String edgeType) {
+        for (QueryBlockEdge edge : dag.getEdges()) {
+            if (edgeType.equals(edge.getEdgeType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsDagIssue(QueryBlockDag dag, String issueCode) {
+        for (QueryBlockDagIssue issue : dag.getIssues()) {
+            if (issueCode.equals(issue.getCode())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasExternalReference(QueryBlockDag dag, String expected) {
+        for (QueryBlockNode block : dag.getBlocks()) {
+            for (String reference : block.getExternalReferences()) {
+                if (expected.equalsIgnoreCase(reference)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean hasEquivalentQueryBlock(RewriteCoreIrSnapshot snapshot) {
+        for (com.company.sqloptimization.domain.rewrite.ir.QueryBlockIr block : snapshot.getQueryBlocks()) {
+            if (Boolean.TRUE.equals(block.getAttributes().get("equivalentToRepresentative"))) {
                 return true;
             }
         }

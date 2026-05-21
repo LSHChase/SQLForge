@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521: 实现 SQL 改写第一阶段 QBDAG 分解与结构哈希
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `feat(rewrite): implement query block dag decomposition`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不改变运行时自动生效语义的前提下，在 sql-optimization 改写核心中实现第一阶段 Query Block Decomposition：识别查询块边界、构建查询块 DAG、提取外部引用、结构哈希去重等价块、记录环检测与 lateral join 提升建议，并补充最小单元测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 SQL 改写第一阶段 Query Block Decomposition：新增 QBDAG 领域模型与 Calcite AST 分解主路径，支持 advancedStructureProfile 降级、查询块边界识别、外部引用、引用图、拓扑排序、关联子查询 lateral join 提升信号、结构哈希等价块分组；接入 RewriteCoreIrSnapshot 和 SqlOptimizationPipelineService；补充测试、架构文档和原始需求归档；未改动页面。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521; python3 scripts/task_audit.py --check --phase pre-closeout; java -version = 1.8.0_112; mvn -pl sql-optimization -am test -DfailIfNoTests=false; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; git diff --check; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes='**/domain/rewrite/qbdag/*.java,**/domain/rewrite/ir/RewriteCoreIrAssembler.java,**/domain/rewrite/ir/RewriteCoreIrSnapshot.java,**/application/service/SqlOptimizationPipelineService.java,**/application/service/SqlOptimizationPipelineServiceTest.java'
+  - Residual risk: 本阶段只产出静态 QBDAG 与结构哈希候选信号，不执行真实 SQL、不自动合并子查询、不证明语义等价；全量 mvn -pl sql-optimization -am validate pmd:pmd checkstyle:check 受 query-execution 与 sql-optimization 存量未使用 import / 中文测试成员名 checkstyle 问题阻断，本次改动路径的 checkstyle 已通过。
+  - Next step: 基于 QBDAG duplicateStructuralGroups 接入子查询合并 rewrite rule，并按 2.3.2 增加语义等价验证。
+
 ### USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521: 搭建 SQL 改写 L1-L5 核心 IR 架构骨架
 
 - Status: done
