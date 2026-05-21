@@ -7,6 +7,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
+import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
+import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolver;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceVerifier;
 import java.util.ArrayList;
@@ -69,6 +71,10 @@ public class RewriteCoreIrAssembler {
             relationalRewritePlan,
             semanticEquivalenceReport
         );
+        RuleConflictResolutionReport ruleConflictResolutionReport = new RuleConflictResolver().resolve(
+            relationalRewritePlan,
+            costBasedRewriteSelectionReport
+        );
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -90,6 +96,10 @@ public class RewriteCoreIrAssembler {
             "costBasedParetoFrontierCount",
             Integer.valueOf(costBasedRewriteSelectionReport.getParetoFrontierCandidateIds().size())
         );
+        attributes.put("ruleConflictResolutionStatus", ruleConflictResolutionReport.getResolutionStatus());
+        attributes.put("rewriteRuleDslMatchedCount", Integer.valueOf(ruleConflictResolutionReport.getMatchedRules().size()));
+        attributes.put("rewriteRuleConflictCount", Integer.valueOf(ruleConflictResolutionReport.getConflicts().size()));
+        attributes.put("rewriteRuleSelectedRuleIds", ruleConflictResolutionReport.getSelectedRuleIds());
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -102,6 +112,7 @@ public class RewriteCoreIrAssembler {
             relationalRewritePlan,
             semanticEquivalenceReport,
             costBasedRewriteSelectionReport,
+            ruleConflictResolutionReport,
             businessIntent,
             architectureConflicts(),
             attributes

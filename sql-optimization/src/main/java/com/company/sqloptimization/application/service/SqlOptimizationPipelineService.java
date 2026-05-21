@@ -20,6 +20,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
+import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
+import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolver;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceVerifier;
 import io.trino.sql.parser.ParsingOptions;
@@ -686,6 +688,18 @@ public class SqlOptimizationPipelineService {
         RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
         SemanticEquivalenceReport semanticReport = new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
         return new CostBasedRewriteSelector().select(queryBlockDag, plan, semanticReport, strategy);
+    }
+
+    public RuleConflictResolutionReport resolveRewriteRuleConflicts(ParsedSqlProfile profile) {
+        QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
+        RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
+        SemanticEquivalenceReport semanticReport = new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
+        CostBasedRewriteSelectionReport costReport = new CostBasedRewriteSelector().select(
+            queryBlockDag,
+            plan,
+            semanticReport
+        );
+        return new RuleConflictResolver().resolve(plan, costReport);
     }
 
     public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {

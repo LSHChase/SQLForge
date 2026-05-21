@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521: 实现改写规则 DSL 与冲突消解
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521 implement rewrite rule engine dsl`
+- Priority: 1
+- Depends on: USER-CN-COST-BASED-REWRITE-PHASE4-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，在 sql-optimization 改写核心实现规则描述 DSL 和规则冲突消解第一版：固化 CSE-DEDUP-001 规则模板、规则前置条件/动作/验证/代价影响结构，构建规则依赖图并支持互斥、顺序依赖、代价矛盾检测，对有环/互斥场景输出宽度 3-5 的局部搜索/Beam Search 排序报告；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 SQL 改写规则引擎关键数据结构：新增静态规则 DSL 模型与默认规则目录，固化 CSE-DEDUP-001 模板、前置条件、动作、验证和代价影响；基于关系代数候选与代价报告生成规则依赖图，检测顺序依赖、互斥改写和扫描/内存代价矛盾，并在互斥场景下输出 Beam Search 宽度 4 的规则子集排序报告；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充测试、架构文档和原始需求归档；未改动页面、未执行真实 SQL、未自动应用生产改写。
+  - Validation evidence: java -version = 1.8.0_112; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am test; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes='**/domain/rewrite/rule/*.java,**/domain/rewrite/ir/RewriteCoreIrAssembler.java,**/domain/rewrite/ir/RewriteCoreIrSnapshot.java,**/application/service/SqlOptimizationPipelineService.java,**/application/service/SqlOptimizationPipelineServiceTest.java'; git diff --check; python3 scripts/foreman.py validate USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed
+  - Residual risk: 当前规则 DSL 是代码内静态目录，不是动态配置中心；SMT_SOLVER 仍为声明式 fallback，未接入 solver；Beam Search 输出规则排序建议，不生成完整 rewritten SQL，不绕过语义验证、人工复核、压测和生产治理链。
+  - Next step: 后续可在保持治理链的前提下继续扩展更多规则模板、规则版本发布和真实约束/solver 接入。
+
 ### USER-CN-COST-BASED-REWRITE-PHASE4-20260521: 实现 SQL 改写第四阶段代价模型与排序
 
 - Status: done

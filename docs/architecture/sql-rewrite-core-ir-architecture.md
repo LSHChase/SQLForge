@@ -249,3 +249,64 @@
 - 不创建、激活或暂停 runtime rewrite binding。
 - 不把抽象代价值写成真实收益、真实扫描量、真实 Shuffle 字节或真实内存占用。
 - 不把 `selectedCandidateId` 自动升级为生产改写；后续仍需完整语义验证、人工复核、压测和治理链。
+
+## Phase 3.1 / 3.2 Rewrite Rule Engine DSL and Conflict Resolution
+
+当前已在后端新增改写规则引擎关键数据结构，用于把第二阶段候选、第三阶段语义门禁和第四阶段代价排序继续组织为可审计的规则 DSL、规则依赖图和冲突消解报告。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.rule`
+- 规则目录：`RewriteRuleCatalog`
+- 冲突消解器：`RuleConflictResolver`
+- 应用入口：`SqlOptimizationPipelineService.resolveRewriteRuleConflicts(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getRuleConflictResolutionReport()`
+
+### Rule DSL Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 规则描述 DSL | 固化 `RewriteRuleDefinition`、`RewriteRulePattern`、`RewriteRulePrecondition`、`RewriteRuleAction`、`RewriteRuleVerification` 与 `RewriteRuleCostImpact`；默认目录包含 `CSE-DEDUP-001`、`AGG-VFOLD-001` 和 `JOIN-HUNNEST-001`。 | DSL 是后端静态规则描述，不是外部可编辑配置中心；当前不新增数据库 schema、不开放页面编辑。 |
+| `CSE-DEDUP-001` 模板 | 按用户规范落地 `CommonSubexpressionElimination`：`STRUCTURAL_REWRITE`、`HIGH`、`MULTIPLE_QUERY_BLOCKS`、`EQUIVALENT_HASH`、`SAME_PARENT_BLOCK`、输出列兼容、谓词可组合、聚合可分解、`MERGE_BLOCKS / PUSH_DOWN / DEDUPLICATE`、`STRUCTURAL_HASH`、`SMT_SOLVER` fallback 和 `IS_NOT_DISTINCT_FROM` NULL 语义。 | `SMT_SOLVER` 仍是声明式 fallback，当前不引入 solver 依赖、不执行证明器。 |
+| 候选绑定 | 规则目录通过 `RelationalRewriteRuleType` 绑定已有 `RelationalRewriteCandidate`，使 DSL 报告能引用 CSE、纵向折叠和横向展开候选。 | 没有关系代数候选时不伪造规则命中；未命中规则保持在目录中，不写成已应用。 |
+
+### Conflict Resolution Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 规则依赖图 RDG | 根据 DSL 中的 `mustRunAfterRuleIds` 与共享 QBDAG scope 构建 `RuleDependencyEdge`；使用 Kahn 拓扑排序输出 `topologicalOrder`，并把环检测结果写入报告。 | RDG 只组织静态规则顺序，不实际改写 SQL 文本。 |
+| 冲突识别 | 记录三类冲突：`MUTUALLY_EXCLUSIVE_REWRITE`、`ORDER_DEPENDENCY` 和 `COST_CONTRADICTION`；有环时额外记录 `RDG_CYCLE`。 | 冲突是规则规划信号，不代表候选语义已经失败；最终仍需语义验证、人工复核和治理链。 |
+| 局部搜索 | 对有环或互斥场景启动 `BEAM_SEARCH`，`beamWidth=4`，状态空间为已应用规则子集，转移为 `APPLY` / `SKIP`，目标函数为抽象预估代价 `C` 加依赖、冲突和语义门禁惩罚。 | Beam Search 只选择规则子集和排序建议，不自动应用生产改写。 |
+| 无冲突顺序 | 无环且无互斥冲突时按拓扑序输出 `selectedRuleIds`。 | `selectedRuleIds` 是排序建议，不绕过 `autoApplyAllowed=false`。 |
+
+### Report Schema
+
+`RuleConflictResolutionReport` 固化：
+
+- `schemaVersion = rewrite-rule-engine/v1`
+- `sourceSchemaVersion`：优先引用 `cost-based-rewrite-selection/v1`
+- `resolutionStatus`：`NO_RULE`、`TOPOLOGICAL_ORDER_READY`、`LOCAL_SEARCH_SELECTED_FOR_CONFLICT` 或 `LOCAL_SEARCH_SELECTED_FOR_RDG_CYCLE`
+- `matchedRules`：命中的规则 DSL 定义
+- `dependencyEdges`：RDG 边，包含 source / target / edge type / reason / evidence
+- `conflicts`：冲突类型、规则集合、信号、消解策略和证据
+- `topologicalOrder`：无环 RDG 的拓扑序
+- `searchStates`：Beam Search 候选状态、已应用/跳过规则、目标成本、排名和是否选中
+- `selectedRuleIds`：当前报告建议的规则子集或拓扑序
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`dslStatus=STATIC_RULE_DSL_V1`
+
+### Conflict / Choice
+
+本阶段没有需要暂停实现的产品冲突；存在两个保守实现选择：
+
+| 选择点 | 已采用方案 | 备选 |
+|:---|:---|:---|
+| 用户算法允许模拟退火或 Beam Search。 | 选择 Beam Search，宽度固定为 4，便于在单元测试和审计报告中保持确定性。 | 模拟退火可探索更多状态，但随机性会降低审计可复现性。 |
+| 规则 DSL 是否允许页面或数据库配置。 | 当前只在后端代码目录固化默认规则，保证与已实现候选类型、语义验证和代价报告一致。 | 直接做动态规则配置会牵涉权限、版本、发布、回滚和页面，不属于本阶段“关键数据结构”闭环。 |
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不调用 SMT Solver，不新增数据库 schema，不开放动态规则配置。
+- 不创建、激活或暂停 runtime rewrite binding。
+- 不把 `selectedRuleIds` 或 Beam Search 最优状态自动升级为生产改写。

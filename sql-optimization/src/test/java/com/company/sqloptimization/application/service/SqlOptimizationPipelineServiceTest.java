@@ -21,6 +21,10 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteCandidate;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteRuleType;
+import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
+import com.company.sqloptimization.domain.rewrite.rule.RuleDependencyEdge;
+import com.company.sqloptimization.domain.rewrite.rule.RuleSearchState;
+import com.company.sqloptimization.domain.rewrite.rule.RewriteRuleDefinition;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceCheck;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceCheckType;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
@@ -575,6 +579,86 @@ class SqlOptimizationPipelineServiceTest {
             snapshot.getAttributes().get("costBasedParetoFrontierCount")
         );
         assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+    }
+
+    @Test
+    void shouldBuildRewriteRuleDslAndResolveConflictsWithBeamSearch() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RuleConflictResolutionReport report = service.resolveRewriteRuleConflicts(profile);
+
+        assertEquals(RuleConflictResolutionReport.SCHEMA_VERSION, report.getSchemaVersion());
+        assertTrue(report.hasMatchedRule("CSE-DEDUP-001"));
+        assertTrue(report.hasMatchedRule("AGG-VFOLD-001"));
+        assertTrue(report.hasMatchedRule("JOIN-HUNNEST-001"));
+        assertEquals("NO_SQL_EXECUTION", report.getAttributes().get("runtimeBoundary"));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
+        assertEquals("STATIC_RULE_DSL_V1", report.getAttributes().get("dslStatus"));
+
+        RewriteRuleDefinition cse = report.matchedRule("CSE-DEDUP-001");
+        assertNotNull(cse);
+        assertEquals("CommonSubexpressionElimination", cse.getName());
+        assertEquals("STRUCTURAL_REWRITE", cse.getCategory().name());
+        assertEquals("HIGH", cse.getSeverity().name());
+        assertEquals("MULTIPLE_QUERY_BLOCKS", cse.getPattern().getType());
+        assertEquals("EQUIVALENT_HASH", cse.getPattern().getRelation());
+        assertEquals(2, cse.getPattern().getMinCount());
+        assertEquals("SAME_PARENT_BLOCK", cse.getPattern().getContext());
+        assertEquals("output_columns_compatible", cse.getPreconditions().get(0).getCheck());
+        assertTrue(cse.getPreconditions().get(0).getParams().contains("IGNORE_ALIAS"));
+        assertTrue(cse.hasActionType("MERGE_BLOCKS"));
+        assertTrue(cse.hasActionType("PUSH_DOWN"));
+        assertTrue(cse.hasActionType("DEDUPLICATE"));
+        assertEquals("STRUCTURAL_HASH", cse.getVerification().getMethod());
+        assertEquals("SMT_SOLVER", cse.getVerification().getFallback());
+        assertEquals("IS_NOT_DISTINCT_FROM", cse.getVerification().getNullSemantics());
+        assertEquals("MULTIPLICATIVE", cse.getCostImpact().getScanReduction());
+        assertEquals("ADDITIVE", cse.getCostImpact().getMemoryIncrease());
+        assertEquals("LOW", cse.getCostImpact().getRisk());
+
+        assertTrue(report.hasConflictType("ORDER_DEPENDENCY"));
+        assertTrue(report.hasConflictType("MUTUALLY_EXCLUSIVE_REWRITE"));
+        assertTrue(report.hasConflictType("COST_CONTRADICTION"));
+        assertTrue(containsDependency(report, "CSE-DEDUP-001", "AGG-VFOLD-001"));
+        assertFalse(report.getTopologicalOrder().isEmpty());
+        assertEquals(Boolean.TRUE, report.getAttributes().get("localSearchRequired"));
+        assertEquals("BEAM_SEARCH", report.getAttributes().get("localSearchAlgorithm"));
+        assertEquals(Integer.valueOf(4), report.getAttributes().get("beamWidth"));
+
+        RuleSearchState selected = report.selectedState();
+        assertNotNull(selected);
+        assertFalse(selected.getAppliedRuleIds().isEmpty());
+        assertEquals(report.getSelectedRuleIds(), selected.getAppliedRuleIds());
+        assertTrue(selected.getObjectiveCost() > 0.0);
+        assertEquals("RANKING_ONLY_NO_AUTO_APPLY", selected.getAttributes().get("selectionBoundary"));
+    }
+
+    @Test
+    void shouldExposeRewriteRuleConflictReportThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+        RuleConflictResolutionReport report = snapshot.getRuleConflictResolutionReport();
+
+        assertNotNull(report);
+        assertTrue(report.hasMatchedRule("CSE-DEDUP-001"));
+        assertEquals(report.getResolutionStatus(), snapshot.getAttributes().get("ruleConflictResolutionStatus"));
+        assertEquals(
+            Integer.valueOf(report.getMatchedRules().size()),
+            snapshot.getAttributes().get("rewriteRuleDslMatchedCount")
+        );
+        assertEquals(
+            Integer.valueOf(report.getConflicts().size()),
+            snapshot.getAttributes().get("rewriteRuleConflictCount")
+        );
+        assertEquals(report.getSelectedRuleIds(), snapshot.getAttributes().get("rewriteRuleSelectedRuleIds"));
     }
 
     @Test
@@ -1242,6 +1326,15 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return min;
+    }
+
+    private boolean containsDependency(RuleConflictResolutionReport report, String sourceRuleId, String targetRuleId) {
+        for (RuleDependencyEdge edge : report.getDependencyEdges()) {
+            if (sourceRuleId.equals(edge.getSourceRuleId()) && targetRuleId.equals(edge.getTargetRuleId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String repeatedAggregateLeftJoinSql() {
