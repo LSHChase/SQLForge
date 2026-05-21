@@ -518,6 +518,7 @@ class SqlOptimizationPipelineServiceTest {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
         SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
             service.buildRecommendationRuleOutputModel(profile);
+        OptimizationTaskSuggestion rewriteSuggestion = service.buildRewriteSuggestion(profile);
         Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
             new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
                 sql,
@@ -555,13 +556,36 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"));
+        assertTrue(containsRule(model.getRuleChain(), L2SnapshotAggregateReportMvCandidateGenerator.RULE));
         assertFalse(model.isAutoApplyAllowed());
 
+        String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
+        assertTrue(rewriteCandidateSql.contains("customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("customer_flags"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("snapshot_aum"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("\"Sum_增量100\""), rewriteCandidateSql);
+
         assertNotNull(accelerationArtifact);
-        assertEquals("COMMON_SUBGRAPH_MV", accelerationArtifact.get("mvType"));
+        assertEquals("PARAMETERIZED_AGG_MV", accelerationArtifact.get("mvType"));
+        assertEquals("REVIEW_REQUIRED", accelerationArtifact.get("artifactStatus"));
         assertFalse("EXACT_QUERY_MV".equals(accelerationArtifact.get("mvType")));
         assertEquals("PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE", accelerationArtifact.get("governanceBoundary"));
-        assertTrue(String.valueOf(accelerationArtifact.get("blockingReasons")).contains("COMMON_SUBGRAPH"));
+        assertTrue(maps(accelerationArtifact.get("blockingReasons")).isEmpty());
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("snapshot_aum"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
+            + accelerationArtifact.get("mvName")));
+        assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
+            .contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
+        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("RESULT_SET_EXCEPT_DIFF"));
+        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("METRIC_SUM_DIFF"));
+        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("KEY_CARDINALITY_DIFF"));
+        List<Map<String, Object>> validationMethods = maps(accelerationArtifact.get("validationMethods"));
+        assertTrue(validationMethods.size() >= 3, validationMethods.toString());
+        assertTrue(hasCode(validationMethods, "RESULT_SET_EXCEPT_DIFF"));
+        assertTrue(hasCode(validationMethods, "METRIC_SUM_DIFF"));
+        assertTrue(hasCode(validationMethods, "PLAN_SHAPE_SCAN_REDUCTION"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("originalBaseScanCount"));
     }
 
     private String complexAntiPatternSql() {
@@ -624,6 +648,23 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private boolean hasCode(List<Map<String, Object>> entries, String code) {
+        for (Map<String, Object> entry : entries) {
+            if (code.equals(entry.get("code"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> maps(Object value) {
+        if (!(value instanceof List<?>)) {
+            return java.util.Collections.emptyList();
+        }
+        return (List<Map<String, Object>>) value;
     }
 
     private String readRepositorySqlFixture(String relativePath) throws Exception {

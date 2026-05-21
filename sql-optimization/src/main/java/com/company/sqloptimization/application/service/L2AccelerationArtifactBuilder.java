@@ -78,6 +78,11 @@ final class L2AccelerationArtifactBuilder {
             profile,
             grainMeasureDerivation
         );
+        L2SnapshotAggregateReportMvCandidateGenerator.CandidateSql snapshotAggregateCandidateSql =
+            L2SnapshotAggregateReportMvCandidateGenerator.generate(sourceSql, mvName, targetEngine, profile);
+        if (snapshotAggregateCandidateSql != null) {
+            return snapshotAggregateArtifact(input, targetEngine, mvName, snapshotAggregateCandidateSql);
+        }
         if (blockingReasons.isEmpty()) {
             if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
                 commonSubgraphCandidateSql = L2CommonSubgraphMvCandidateGenerator.generate(
@@ -253,6 +258,53 @@ final class L2AccelerationArtifactBuilder {
                 artifact.put("validationSql", candidateSql.getValidationSql());
                 artifact.put("rewriteSql", firstText(validatedRewriteSql, candidateSql.getRewriteSql()));
             }
+        }
+        return artifact;
+    }
+
+    private static Map<String, Object> snapshotAggregateArtifact(
+        AccelerationRecommendationInput input,
+        String targetEngine,
+        String mvName,
+        L2SnapshotAggregateReportMvCandidateGenerator.CandidateSql candidateSql) {
+        List<Map<String, Object>> blockingReasons = candidateSql.getBlockingReasons();
+        List<Map<String, Object>> reviewWarnings = blockingReasons.isEmpty()
+            ? candidateSql.getReviewWarnings()
+            : Collections.<Map<String, Object>>emptyList();
+        LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
+        artifact.put("rule", RULE_PRECOMPUTE_MV);
+        artifact.put("mvType", L2GrainMeasureDeriver.MV_TYPE_PARAMETERIZED_AGG);
+        artifact.put("artifactStatus", artifactStatus(blockingReasons, reviewWarnings));
+        artifact.put("mvName", mvName);
+        artifact.put("targetEngine", targetEngine);
+        artifact.put("targetDatasource", input.targetDatasource);
+        artifact.put("dialect", L2MaterializedViewDialectRenderer.dialect(targetEngine));
+        artifact.put("grain", candidateSql.getGrain());
+        artifact.put("dimensions", candidateSql.getDimensions());
+        artifact.put("measures", candidateSql.getMeasures());
+        artifact.put("joinGraph", Collections.emptyList());
+        artifact.put("requiredEvidence", REQUIRED_EVIDENCE);
+        artifact.put("externalizedPredicates", candidateSql.getExternalizedPredicates());
+        artifact.put("retainedPredicates", candidateSql.getRetainedPredicates());
+        artifact.put("securityPredicates", Collections.emptyList());
+        artifact.put("blockedPredicates", Collections.emptyList());
+        artifact.put("coverage", candidateSql.getCoverage(blockingReasons.isEmpty() ? mvName : null));
+        artifact.put("blockingReasons", blockingReasons);
+        artifact.put("reviewWarnings", reviewWarnings);
+        artifact.put("rewriteEvidence", candidateSql.getRewriteEvidence());
+        artifact.put("validationMethods", candidateSql.getValidationMethods());
+        artifact.put("steps", steps());
+        artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
+        artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
+        artifact.put("governanceBoundaryZh", "SQLForge 仅生成可审查方案，不直接执行生产建表、刷新或删除。");
+        artifact.put("runtimeRewriteBinding", "NOT_CREATED");
+        artifact.put("source", source(input));
+        if (blockingReasons.isEmpty()) {
+            artifact.put("ddlSql", candidateSql.getDdlSql());
+            artifact.put("refreshSql", candidateSql.getRefreshSql());
+            artifact.put("rollbackSql", candidateSql.getRollbackSql());
+            artifact.put("validationSql", candidateSql.getValidationSql());
+            artifact.put("rewriteSql", candidateSql.getRewriteSql());
         }
         return artifact;
     }

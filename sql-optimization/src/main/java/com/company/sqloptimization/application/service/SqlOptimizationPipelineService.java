@@ -442,6 +442,17 @@ public class SqlOptimizationPipelineService {
 
     public OptimizationTaskSuggestion buildRewriteSuggestion(ParsedSqlProfile profile) {
         RewriteOutcome outcome = profile == null ? RewriteOutcome.empty() : profile.getRewriteOutcome();
+        L2SnapshotAggregateReportMvCandidateGenerator.RewriteCandidate snapshotRewrite =
+            profile == null
+                ? null
+                : L2SnapshotAggregateReportMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
+        if (snapshotRewrite != null && StringUtils.hasText(snapshotRewrite.getRewriteSql())) {
+            List<String> appliedRules = new ArrayList<String>(outcome.appliedRules);
+            if (!appliedRules.contains(L2SnapshotAggregateReportMvCandidateGenerator.RULE)) {
+                appliedRules.add(L2SnapshotAggregateReportMvCandidateGenerator.RULE);
+            }
+            outcome = new RewriteOutcome(snapshotRewrite.getRewriteSql(), appliedRules);
+        }
         List<OptimizationTaskRisk> risks = new ArrayList<OptimizationTaskRisk>(buildShapeRisks(profile));
         if (outcome.appliedRules.isEmpty()) {
             risks.add(
@@ -462,11 +473,22 @@ public class SqlOptimizationPipelineService {
                 )
             );
         }
-        List<OptimizationTaskArtifact> artifacts = Arrays.asList(
-            new OptimizationTaskArtifact("REWRITTEN_SQL", "candidateSql", outcome.rewrittenSql),
-            new OptimizationTaskArtifact("REWRITE_RULE_TRACE", "appliedRules", JsonUtils.toJson(outcome.appliedRules)),
-            new OptimizationTaskArtifact("AST_PROFILE", "astProfile", JsonUtils.toJson(profile.toAstProfile()))
-        );
+        List<OptimizationTaskArtifact> artifacts = new ArrayList<OptimizationTaskArtifact>();
+        artifacts.add(new OptimizationTaskArtifact("REWRITTEN_SQL", "candidateSql", outcome.rewrittenSql));
+        artifacts.add(new OptimizationTaskArtifact("REWRITE_RULE_TRACE", "appliedRules", JsonUtils.toJson(outcome.appliedRules)));
+        artifacts.add(new OptimizationTaskArtifact("AST_PROFILE", "astProfile", JsonUtils.toJson(profile.toAstProfile())));
+        if (snapshotRewrite != null) {
+            artifacts.add(new OptimizationTaskArtifact(
+                "REWRITE_VALIDATION_METHODS",
+                "validationMethods",
+                JsonUtils.toJson(snapshotRewrite.getValidationMethods())
+            ));
+            artifacts.add(new OptimizationTaskArtifact(
+                "REWRITE_EVIDENCE",
+                "rewriteEvidence",
+                JsonUtils.toJson(snapshotRewrite.getEvidence())
+            ));
+        }
         List<OptimizationTaskBenefit> benefits = Arrays.asList(
             new OptimizationTaskBenefit(
                 "PLAN_SIMPLIFICATION",
@@ -623,6 +645,32 @@ public class SqlOptimizationPipelineService {
                 "STATIC_PARSE",
                 Boolean.TRUE,
                 l0RuleDescription(appliedRule)
+            ));
+        }
+        L2SnapshotAggregateReportMvCandidateGenerator.RewriteCandidate snapshotRewrite =
+            L2SnapshotAggregateReportMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
+        if (snapshotRewrite != null) {
+            Map<String, Object> snapshotRule = ruleEntry(
+                "L1",
+                L2SnapshotAggregateReportMvCandidateGenerator.RULE,
+                "REWRITE_CANDIDATE_GENERATED",
+                "STATIC_PARSE",
+                Boolean.FALSE,
+                "已将重复快照聚合报表改写为客户-日期粒度快照后再做条件聚合，需完成结果差异和计划形态验证。"
+            );
+            snapshotRule.put("validationMethods", snapshotRewrite.getValidationMethods());
+            snapshotRule.put("rewriteEvidence", snapshotRewrite.getEvidence());
+            ruleChain.add(snapshotRule);
+            preconditions.add(preconditionEntry(
+                L2SnapshotAggregateReportMvCandidateGenerator.RULE,
+                "THREE_WAY_VALIDATION_REQUIRED",
+                "生产激活前必须至少完成结果集差异、核心指标差异和计划扫描形态三类验证。"
+            ));
+            semanticRisks.add(semanticRiskEntry(
+                L2SnapshotAggregateReportMvCandidateGenerator.RULE,
+                "COUNT_DISTINCT_REWRITE",
+                "MEDIUM",
+                "COUNT DISTINCT 被重写为客户快照粒度条件聚合，日期、机构层级和阈值边界必须与原 SQL 对齐。"
             ));
         }
 

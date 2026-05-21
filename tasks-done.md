@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DEEP-SQL-REWRITE-MV-20260521: 增强复杂 SQL 改写与高级 MV 推荐
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `fix(sql-optimization): deepen report SQL rewrite MV recommendation`
+- Priority: 1
+- Depends on: N/A
+- Scope: 基于 doc/test01.sql 的中度复杂 SQL，增强 sql-optimization 的解析、保守改写、合理改写结果输出与高级物化视图推荐能力；补充至少三类合理性验证证据与测试，不执行生产 DDL 或绕过改写记录激活链路。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DEEP-SQL-REWRITE-MV-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 为 docs/test01.sql 这类重复快照聚合报表新增客户-日期粒度快照改写，输出可替换 rewrite SQL、参数化聚合 MV artifact、MV rewrite SQL 和至少三类验证方法，同时保持 PULL_ONLY 与 runtime binding 未自动创建边界。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DEEP-SQL-REWRITE-MV-20260521 --include-task-audit --extra-command 'mvn -pl sql-optimization -am test' --extra-command 'git diff --check' passed; python3 scripts/task_audit.py --check --phase pre-closeout passed
+  - Residual risk: 本轮验证为 repo-closed 静态解析、SQL 生成与单元/模块回归；未执行真实 Hetu/MRS EXPLAIN、真实 MV DDL/refresh 或生产 runtime rewrite activation。
+  - Next step: 在具备真实 Hetu/MRS 环境后，用生成的 validationSql 与 EXPLAIN 对 docs/test01.sql 做环境留证，再按改写记录激活链路进入运行时。
+
 ### USER-CN-PROD-SQL-PARSE-REWRITE-20260521: 适配永洪中度复杂报表 SQL 的解析与推荐改写
 
 - Status: done
