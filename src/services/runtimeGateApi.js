@@ -1175,8 +1175,7 @@ export const uploadGovernanceDatasourceDriver = async (payload, requestOptions =
       ...devProxyHeaders(payload.tenantId, {
         requestPrefix: 'frontend-governance-datasource-driver-upload',
         ...requestOptions
-      }),
-      'Content-Type': 'multipart/form-data'
+      })
     }
   })
   return response.data

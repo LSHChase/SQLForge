@@ -307,7 +307,6 @@ export function useSystemManagement() {
         nextTenantConfig,
         nextStats,
         nextDatasources,
-        nextDatasourceDrivers,
         nextReportInterfaces,
         nextRedisRuleSources,
         nextDispatchPolicies
@@ -315,15 +314,20 @@ export function useSystemManagement() {
         getGovernanceTenantConfig(tenantId, { requestPrefix: 'frontend-system-tenant-config' }),
         getGovernanceMessageStats(tenantId, { requestPrefix: 'frontend-system-message-stats' }),
         getGovernanceDatasources(tenantId, { requestPrefix: 'frontend-system-datasources' }),
-        getGovernanceDatasourceDrivers(tenantId, { requestPrefix: 'frontend-system-datasource-drivers' }),
         getGovernanceReportInterfaces(tenantId, { requestPrefix: 'frontend-system-report-interfaces' }),
         getGovernanceRedisRuleSources(tenantId, { requestPrefix: 'frontend-system-redis-rule-sources' }),
         getGovernanceDispatchPolicies(tenantId, { requestPrefix: 'frontend-system-dispatch-policies' })
       ])
+      const datasourceDriversResult = await Promise.allSettled([
+        getGovernanceDatasourceDrivers(tenantId, { requestPrefix: 'frontend-system-datasource-drivers' })
+      ])
       tenantConfig.value = nextTenantConfig
       stats.value = nextStats
       datasources.value = Array.isArray(nextDatasources) ? nextDatasources : []
-      datasourceDrivers.value = Array.isArray(nextDatasourceDrivers) ? nextDatasourceDrivers : []
+      datasourceDrivers.value =
+        datasourceDriversResult[0].status === 'fulfilled' && Array.isArray(datasourceDriversResult[0].value)
+          ? datasourceDriversResult[0].value
+          : []
       reportInterfaces.value = Array.isArray(nextReportInterfaces) ? nextReportInterfaces : []
       redisRuleSources.value = Array.isArray(nextRedisRuleSources) ? nextRedisRuleSources : []
       dispatchPolicies.value = Array.isArray(nextDispatchPolicies) ? nextDispatchPolicies : []
@@ -492,8 +496,9 @@ export function useSystemManagement() {
     driverDialogVisible.value = true
   }
 
-  const handleDriverFileChange = file => {
-    driverUploadForm.file = file?.raw || null
+  const handleDriverFileChange = payload => {
+    const nativeFile = payload?.target?.files?.[0]
+    driverUploadForm.file = nativeFile || payload?.raw || null
   }
 
   const clearDriverFile = () => {

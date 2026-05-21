@@ -165,35 +165,10 @@ const {
               <el-button data-testid="system-hetu-jdbc-create" @click="openHetuJdbcCreate">
                 {{ t('inline.viewsSystemSystemView.text016') }}
               </el-button>
-              <el-button @click="openHiveJdbcCreate">Create Hive JDBC</el-button>
-              <el-button @click="openTrinoJdbcCreate">Create Trino JDBC</el-button>
-              <el-button @click="openDriverUpload">Upload JDBC driver</el-button>
+              <el-button @click="openHiveJdbcCreate">{{ t('inline.viewsSystemSystemView.text104') }}</el-button>
+              <el-button @click="openTrinoJdbcCreate">{{ t('inline.viewsSystemSystemView.text105') }}</el-button>
               <el-button @click="openDatasourceCreate">{{ t('inline.viewsSystemSystemView.text017') }}</el-button>
             </div>
-          </div>
-          <div class="surface-card driver-panel">
-            <div class="table-heading driver-panel__header">
-              <div>
-                <p class="section-kicker sqlforge-code-label">jdbc driver artifacts</p>
-                <h3 class="section-title">Uploaded driver inventory</h3>
-              </div>
-              <span class="driver-panel__hint">Bind datasources to uploaded artifacts by `artifactId` + `sha256`.</span>
-            </div>
-            <el-table :data="datasourceDrivers" border>
-              <el-table-column prop="engineType" :label="t('inline.viewsSystemSystemView.text091')" min-width="110" />
-              <el-table-column prop="versionLabel" :label="t('inline.viewsSystemSystemView.text092')" min-width="140" />
-              <el-table-column prop="driverClassName" :label="t('inline.viewsSystemSystemView.text093')" min-width="220" />
-              <el-table-column prop="originalFileName" :label="t('inline.viewsSystemSystemView.text094')" min-width="220" />
-              <el-table-column prop="sha256" :label="t('inline.viewsSystemSystemView.text095')" min-width="220" show-overflow-tooltip />
-              <el-table-column prop="status" :label="t('inline.viewsSystemSystemView.text096')" min-width="120" />
-              <el-table-column :label="t('inline.viewsSystemSystemView.text097')" min-width="130">
-                <template #default="{ row }">
-                  <el-button text :loading="driverDetailLoading" @click="inspectDriverArtifact(row.artifactId)">
-                    Inspect
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
           </div>
           <el-table :data="filteredDatasources" border>
             <el-table-column prop="engineType" :label="t('inline.viewsSystemSystemView.text018')" min-width="110" />
@@ -215,6 +190,34 @@ const {
                 </el-button>
                 <el-button text data-testid="system-datasource-test" @click="runDatasourceTest(row.datasourceId)">
                   {{ t('inline.viewsSystemSystemView.text028') }}
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('inline.viewsSystemSystemView.text106')" name="drivers">
+          <div class="table-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">jdbc driver artifacts</p>
+              <h2 class="section-title">{{ t('inline.viewsSystemSystemView.text107') }}</h2>
+              <p class="driver-panel__hint">{{ t('inline.viewsSystemSystemView.text108') }}</p>
+            </div>
+            <div class="action-row action-row-tight">
+              <el-button type="primary" @click="openDriverUpload">{{ t('inline.viewsSystemSystemView.text100') }}</el-button>
+            </div>
+          </div>
+          <el-table :data="datasourceDrivers" border>
+            <el-table-column prop="engineType" :label="t('inline.viewsSystemSystemView.text091')" min-width="110" />
+            <el-table-column prop="versionLabel" :label="t('inline.viewsSystemSystemView.text092')" min-width="140" />
+            <el-table-column prop="driverClassName" :label="t('inline.viewsSystemSystemView.text093')" min-width="220" />
+            <el-table-column prop="originalFileName" :label="t('inline.viewsSystemSystemView.text094')" min-width="220" />
+            <el-table-column prop="sha256" :label="t('inline.viewsSystemSystemView.text095')" min-width="220" show-overflow-tooltip />
+            <el-table-column prop="status" :label="t('inline.viewsSystemSystemView.text096')" min-width="120" />
+            <el-table-column :label="t('inline.viewsSystemSystemView.text097')" min-width="130">
+              <template #default="{ row }">
+                <el-button text :loading="driverDetailLoading" @click="inspectDriverArtifact(row.artifactId)">
+                  {{ t('inline.viewsSystemSystemView.text109') }}
                 </el-button>
               </template>
             </el-table-column>
@@ -566,24 +569,24 @@ const {
           <span class="field-label">versionLabel</span>
           <el-input v-model="driverUploadForm.versionLabel" />
         </label>
-        <label class="field-block field-block-wide">
-          <span class="field-label">file</span>
-          <el-upload
-            drag
-            action="#"
-            :auto-upload="false"
-            :limit="1"
-            :on-change="handleDriverFileChange"
-            :on-remove="clearDriverFile"
+        <label class="field-block field-block-wide field-block-upload">
+          <span class="field-label">{{ t('inline.viewsSystemSystemView.text110') }}</span>
+          <input
+            class="file-input"
+            type="file"
+            accept=".jar"
+            @change="handleDriverFileChange"
           >
-            <div>Drop `.jar` here or click to choose</div>
-          </el-upload>
+          <el-button text @click="clearDriverFile">{{ t('inline.viewsSystemSystemView.text114') }}</el-button>
+          <span class="upload-file-name">
+            {{ driverUploadForm.file?.name || t('inline.viewsSystemSystemView.text112') }}
+          </span>
         </label>
       </div>
       <template #footer>
         <el-button @click="driverDialogVisible = false">{{ t('inline.viewsSystemSystemView.text072') }}</el-button>
         <el-button type="primary" :loading="loading.driverUpload" @click="submitDriverUpload">
-          Upload
+          {{ t('inline.viewsSystemSystemView.text113') }}
         </el-button>
       </template>
     </el-dialog>
@@ -1034,6 +1037,20 @@ const {
 
 .monospace-text {
   font-family: 'SFMono-Regular', 'Consolas', monospace;
+  word-break: break-all;
+}
+
+.field-block-upload {
+  align-items: flex-start;
+}
+
+.file-input {
+  width: 100%;
+  color: var(--sqlforge-text-primary);
+}
+
+.upload-file-name {
+  color: var(--sqlforge-text-secondary);
   word-break: break-all;
 }
 

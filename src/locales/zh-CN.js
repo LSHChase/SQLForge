@@ -2592,7 +2592,18 @@ export default {
       text100: '上传 JDBC 驱动',
       text101: 'TRINO',
       text102: 'HETU',
-      text103: 'HIVE'
+      text103: 'HIVE',
+      text104: '新建 Hive JDBC',
+      text105: '新建 Trino JDBC',
+      text106: 'JDBC 驱动',
+      text107: '已上传驱动清单',
+      text108: '数据源通过 artifactId 和 SHA-256 绑定已上传的驱动制品。',
+      text109: '查看',
+      text110: '驱动文件',
+      text111: '选择 .jar 文件',
+      text112: '未选择文件',
+      text113: '上传',
+      text114: '清空文件'
     },
     viewsSystemUseSystemManagement: {
       text001: '数据源',

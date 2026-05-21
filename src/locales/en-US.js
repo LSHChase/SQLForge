@@ -2608,7 +2608,18 @@ export default {
       text100: 'Upload JDBC driver',
       text101: 'TRINO',
       text102: 'HETU',
-      text103: 'HIVE'
+      text103: 'HIVE',
+      text104: 'Create Hive JDBC',
+      text105: 'Create Trino JDBC',
+      text106: 'JDBC drivers',
+      text107: 'Uploaded driver inventory',
+      text108: 'Bind datasources to uploaded artifacts by artifactId and sha256.',
+      text109: 'Inspect',
+      text110: 'Driver file',
+      text111: 'Choose .jar file',
+      text112: 'No file selected',
+      text113: 'Upload',
+      text114: 'Clear file'
     },
     viewsSystemUseSystemManagement: {
       text001: 'Datasources',

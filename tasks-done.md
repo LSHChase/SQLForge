@@ -4,23 +4,32 @@
 
 ## Done
 
-### USER-CN-SYSTEM-DRIVER-UI-FIX-20260521: Fix system JDBC driver upload UI and layout
+### USER-CN-SYSTEM-DRIVER-UI-FIX-20260521: Fix system JDBC driver upload UI and local dev schema bootstrap
 
 - Status: done
 - Completed at: 2026-05-21
-- Commit subject: `fix(runtime): repair benchmark schema drift and governance startup`
+- Commit subject: `fix(system): repair JDBC driver upload UI and dev schema bootstrap`
 - Priority: 1
-- Depends on: N/A
-- Scope: Repair system management JDBC driver upload usability by adding a visible jar file chooser and separating driver inventory from datasource listing.
+- Depends on: USER-CN-TRINO-UPLOADED-DRIVER-MULTI-ENGINE-JDBC-20260521
+- Scope: Repair system management JDBC driver upload usability, separate driver inventory from datasource listing, and ensure local startup bootstraps the uploaded-driver schema for existing dev MySQL volumes.
 - Validation:
+  - `python3 -m py_compile scripts/ensure_system_management_dev_schema.py`
+  - `bash -n scripts/local-start.sh scripts/local-start-cn.sh scripts/start-governance-dev.sh`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:form-governance`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+  - `node scripts/check-developer-copy-language.mjs --changed`
   - `python3 scripts/foreman.py validate USER-CN-SYSTEM-DRIVER-UI-FIX-20260521`
 - Progress log:
   - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-21: task was prematurely archived before the source changes were committed; moved back to active ledger so validation, commit, and closeout can reflect repository facts.
 - Context closeout:
-  - Completed scope: Patched benchmark dev schema drift handling, aligned benchmark init schema with current mapper fields, and restored stable governance local startup by fixing DatasourceConfigApplicationService constructor injection plus adding a dedicated governance dev launcher.
-  - Validation evidence: python3 -m py_compile scripts/ensure_benchmark_dev_schema.py; bash -n scripts/local-start.sh scripts/local-start-cn.sh scripts/start-governance-dev.sh; mvn -q -pl benchmark-engine,sqlforge-shared -am -Dtest=BenchmarkPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -q -pl governance,sqlforge-shared -am -Dtest=DatasourceConfigControllerTest,MessagingConfigTest -Dsurefire.failIfNoSpecifiedTests=false test; timeout 35s bash scripts/start-governance-dev.sh; npm run lint; python3 scripts/foreman.py validate USER-CN-SYSTEM-DRIVER-UI-FIX-20260521
-  - Residual risk: Existing local MySQL instances still need either scripts/local-start.sh or scripts/ensure_benchmark_dev_schema.py rerun once so already-created benchmark tables receive the missing columns.
-  - Next step: If the current workstation reuses an old docker mysql volume, run python3 scripts/ensure_benchmark_dev_schema.py before restarting benchmark-engine.
+  - Completed scope: Repaired the system-management JDBC driver workflow by moving uploaded-driver inventory into its own tab, restoring native .jar file selection/upload behavior, soft-failing driver inventory fetches, and ensuring local startup upgrades the uploaded-driver schema for existing dev MySQL volumes.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-SYSTEM-DRIVER-UI-FIX-20260521; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: Local runtime smoke against a real reused docker MySQL volume was not rerun in this closeout; the new schema bootstrap path is validated through script checks and frontend/task validation only.
+  - Next step: When reusing an existing local docker mysql volume, rerun scripts/local-start.sh or scripts/start-governance-dev.sh once so the uploaded-driver schema upgrade is applied before manual UI verification.
 
 ### USER-CN-TRINO-UPLOADED-DRIVER-MULTI-ENGINE-JDBC-20260521: 页面驱动上传与 Trino 优先多引擎 JDBC 支持
 

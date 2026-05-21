@@ -141,6 +141,7 @@ main() {
   python3 "${REPO_ROOT}/scripts/ensure_execution_result_dev_schema.py"
   python3 "${REPO_ROOT}/scripts/ensure_query_history_dev_schema.py"
   python3 "${REPO_ROOT}/scripts/ensure_benchmark_dev_schema.py"
+  python3 "${REPO_ROOT}/scripts/ensure_system_management_dev_schema.py"
 
   cat <<'EOF'
 Local CN-mirror services are ready:

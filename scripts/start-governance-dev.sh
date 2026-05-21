@@ -44,6 +44,10 @@ parse_args "$@"
 
 cd "${REPO_ROOT}"
 
+if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -Fxq "${SQLFORGE_DEV_MYSQL_CONTAINER:-sqlforge-mysql}"; then
+  python3 "${REPO_ROOT}/scripts/ensure_system_management_dev_schema.py"
+fi
+
 if [[ "${SKIP_BUILD}" != "true" ]]; then
   mvn -B -pl sqlforge-shared,governance -am install -DskipTests >/dev/null
 fi
