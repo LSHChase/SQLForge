@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521: 实现 SQL 改写最终推荐生成与排序
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521 implement final rewrite recommendations`
+- Priority: 1
+- Depends on: USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，在 sql-optimization 改写核心实现 RewriteRecommendation 最终输出第一版：基于关系代数候选、语义等价验证、代价排序、规则冲突消解和双解析栈/Hetu 适配生成开发者可读推荐项，覆盖 rewrite_id、confidence、category、severity、before/after summary、transformations、equivalence_proof、performance、executable_sql 占位，以及金融级排序 Score=0.4*performance_gain+0.3*confidence+0.2*(1-risk)+0.1*readability；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 SQL 改写最终推荐输出第一版：新增 RewriteRecommendationReport、RewriteRecommendation、transformations、equivalence proof、performance estimate 和金融级排序生成器；基于关系代数候选、语义等价验证、抽象代价排序、规则冲突消解、双解析栈融合和 Hetu hints 生成开发者可读推荐项；固化 Score=0.4*performance_gain+0.3*confidence+0.2*(1-risk_level)+0.1*readability_improvement、confidence<0.9 提示门禁、COUNT DISTINCT 人工审核门禁和时间窗口报表抽样比对门禁；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充回归测试、架构文档和原始需求归档；未改动页面、未执行真实 SQL、未自动应用生产改写。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test => 35 tests passed; mvn -pl sql-optimization -am test => 346 tests passed; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes changed Java paths => 0 violations; git diff --check; python3 scripts/foreman.py validate USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed.
+  - Residual risk: 当前 executableSql 是基于 repo 内 RelNode surrogate 的静态 WITH 模板，并明确标记未调用真实 Calcite RelToSqlConverter；性能与置信度仍来自静态估算和语义验证报告，不是 Hetu EXPLAIN、真实结果 diff、真实扫描字节或生产可执行证明；所有推荐 autoApplyAllowed=false，仍需后续真实 RelToSql、Hetu 方言验证、结果比对、人工审核和治理链。
+  - Next step: 后续可在单独任务中接入真实 Calcite RelToSqlConverter、schema/type catalog、Hetu 方言 SQL 验证和受控结果 diff 证据，再把已验证推荐纳入生产候选链。
+
 ### USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521: 实现双解析栈融合与 Hetu 计划适配
 
 - Status: done

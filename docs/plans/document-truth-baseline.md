@@ -83,7 +83,7 @@
   - `POST /api/sql-optimization/acceleration-plans`、`GET /api/sql-optimization/acceleration-plans/{planId}`、`activate/pause` HTTP 契约
   - `optimization_task` 与 `acceleration_plan` MySQL 载体、MyBatis XML repository、header-based 鉴权、租户隔离、scheduled worker、提交流程日志、失败路径和基础测试
   - 真实 SQL parser / AST analysis / conservative rewrite rule / acceleration suggestion pipeline
-  - SQL 改写核心 IR 已覆盖 QBDAG 查询块分解、L4 关系代数改写候选、候选级语义等价验证报告、基于 Scan/Shuffle/Compute/Memory 四维抽象代价的帕累托改写排序、静态规则 DSL / 规则依赖图 / Beam Search 冲突消解报告，以及 Calcite/JSqlParser 双解析栈融合与 Hetu 静态计划适配报告；当前仍是静态估算与规划，不执行真实 SQL、不读取生产数据、不调用真实 planner、不自动创建 runtime rewrite binding
+  - SQL 改写核心 IR 已覆盖 QBDAG 查询块分解、L4 关系代数改写候选、候选级语义等价验证报告、基于 Scan/Shuffle/Compute/Memory 四维抽象代价的帕累托改写排序、静态规则 DSL / 规则依赖图 / Beam Search 冲突消解报告、Calcite/JSqlParser 双解析栈融合与 Hetu 静态计划适配报告，以及最终 RewriteRecommendation 推荐输出与金融级排序/门禁报告；当前仍是静态估算与规划，不执行真实 SQL、不读取生产数据、不调用真实 planner 或 RelToSqlConverter、不自动创建 runtime rewrite binding
   - `suggestion / failure` 结构化输出，当前已覆盖收益、成本、风险、失败阶段和任务类型差异
   - acceleration plan 已通过 `governance` 内部受保护 trace 入口写回 `config_snapshot/execution_result/query_history`，并通过 `query-execution` 内部 runtime surface 收口 submit/activate/pause 闭环
 - `benchmark-engine/` 已具备压测任务、报告查询与数据库持久化基线：

@@ -376,3 +376,81 @@
 - 不调用真实 Hetu EXPLAIN、Calcite `SqlToRelConverter`、HepPlanner 或 VolcanoPlanner。
 - 不新增数据库 schema，不创建、激活或暂停 runtime rewrite binding。
 - 不把静态 Hetu hints 写成真实执行计划或真实性能收益。
+
+## Phase 5 Rewrite Recommendation Final Output
+
+当前已在后端新增改写推荐最终输出层，用于把 QBDAG、L4 关系代数候选、语义等价验证、抽象代价排序、规则冲突消解、双解析栈融合和 Hetu hints 汇总成开发者可读、可排序、可审计的 `RewriteRecommendation`。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.recommendation`
+- 生成器：`RewriteRecommendationGenerator`
+- 应用入口：`SqlOptimizationPipelineService.generateRewriteRecommendations(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getRewriteRecommendationReport()`
+
+### Recommendation Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 推荐项结构 | `RewriteRecommendation` 固化 `rewriteId`、`confidence`、`category=STRUCTURAL_OPTIMIZATION`、`severity`、`beforeSummary`、`afterSummary`、`transformations`、`equivalenceProof`、`performance`、`executableSql`、`score`、`rank`、人工审核要求和 score breakdown。 | 推荐项来自静态改写报告，不代表生产 SQL 已经被改写、验证或应用。 |
+| 变更描述 | `beforeSummary / afterSummary` 将候选块扫描数、静态查询块数、嵌套深度、共享 CTE、CASE/FILTER 聚合或 LEFT JOIN unnest 以开发者 diff 摘要呈现。 | 摘要是静态结构概括，不写成真实扫描次数、真实层数或真实执行计划。 |
+| transformations | 基于候选规则输出 `MERGE`、`UNNEST`、`PUSH_DOWN`，并在 JSqlParser 检测到帆软 `SubXX_分组和汇总` 标签时补充 `INLINE`。 | transformation 使用 repo 内 RelNode surrogate 标准形，不是完整 Calcite `RelNode` 对象。 |
+| equivalenceProof | 输出 `STRUCTURAL_HASH + PREDICATE_SUBSUMPTION`、聚合拆解或 join key/group by/null extension 等 proof method，并记录 `ROW_COUNT`、`COLUMN_VALUES`、`AGGREGATION_RESULTS`、`NULL_HANDLING` 维度和 edge cases。 | SMT solver 未接入；proof 是静态证明义务和已有语义验证状态，不替代结果集 diff。 |
+| performance | 输出 `scanReduction`、`estimatedSpeedup`、`memoryImpact` 和 `riskLevel`，并保留抽象 cost vector、Pareto 状态和静态收益边界。 | 性能仍是静态估算，不是 Hetu EXPLAIN、真实扫描字节、真实 shuffle 或真实内存证据。 |
+| executableSql | 当前生成 `WITH ...` 静态 SQL 模板，便于开发者理解目标形态；字段明确标记 `STATIC_RELNODE_SURROGATE_NOT_REAL_CALCITE_RELTOSQL`。 | 未调用真实 Calcite `RelToSqlConverter`，未验证目标 Hetu 方言可执行性，不能直接生产应用。 |
+
+### Ranking Contract
+
+最终排序使用金融级生产环境权重：
+
+```plain
+Score = 0.4 * performance_gain
+      + 0.3 * confidence
+      + 0.2 * (1 - risk_level)
+      + 0.1 * readability_improvement
+```
+
+| 因子 | 当前估算 | 说明 |
+|:---|:---|:---|
+| `performance_gain` | 基于候选源查询块数、Pareto front、cost selected 状态和横向展开 shuffle 降低信号归一化。 | 不使用真实执行耗时。 |
+| `confidence` | 基于候选语义等价验证的最弱状态：`PROVED`、`CONDITIONALLY_PROVED`、`NEEDS_CONSTRAINTS`、`UNSUPPORTED`；`COUNT DISTINCT` 语义会触发人工审核。 | 低于 `0.9` 的候选被列入 `automationFilteredCandidateIds`，仅作提示。 |
+| `risk_level` | 结合 confidence、COUNT DISTINCT、规则冲突和 unsupported check 分为 `LOW / MEDIUM / HIGH`。 | 因仓库治理边界，所有推荐 `autoApplyAllowed=false`。 |
+| `readability_improvement` | 基于源块合并数量、纵向折叠、BI 工具标签等静态信号。 | 不声明代码可维护性已经由人工确认。 |
+
+### Filter And Review Gates
+
+本阶段固化三类推荐门禁：
+
+- `confidence < 0.9`：写入 `automationFilteredCandidateIds`，推荐项保留但 `automationDisposition=HINT_ONLY`。
+- 涉及 `COUNT DISTINCT` 语义变更：写入 `COUNT_DISTINCT_SEMANTIC_CHANGE_MANUAL_REVIEW_REQUIRED`。
+- 时间窗口类报表：写入 `TIME_WINDOW_REPORT_SAMPLE_COMPARE_1_TO_2_ORGS_REQUIRED`，要求改写前后抽样比对 1-2 个机构。
+
+### Report Schema
+
+`RewriteRecommendationReport` 固化：
+
+- `schemaVersion = rewrite-recommendation-report/v1`
+- `sourceSchemaVersion`：优先引用 `parser-stack-fusion/v1`
+- `generationStatus`：`NO_RECOMMENDATION` 或 `RECOMMENDATION_GENERATED`
+- `selectedRecommendationId`：排序第一的推荐 id
+- `recommendations`：按 score 降序排列的最终推荐项
+- `automationFilteredCandidateIds`：置信度低于 `0.9`、不得自动应用的候选
+- `manualReviewCandidateIds`：需要人工审核的候选
+- `rankingFactors` 与 `weights`：金融级排序因子和权重
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`sqlGenerationBoundary=STATIC_RELNODE_SURROGATE_NOT_REAL_CALCITE_RELTOSQL`
+
+### Conflict / Choice
+
+本阶段没有需要暂停实现的产品冲突；存在一个必须显式标注的保守实现选择：
+
+| 选择点 | 已采用方案 | 备选 |
+|:---|:---|:---|
+| 用户算法要求“可执行 SQL（通过 Calcite RelToSqlConverter 生成）”。 | 当前先输出基于 repo 内 RelNode surrogate 的 `WITH` 静态 SQL 模板，并在 report 和 recommendation attributes 中明确 `calciteRelToSqlConverterStatus=NOT_INVOKED`。 | 直接调用真实 `RelToSqlConverter` 需要 schema catalog、类型推断、方言配置和 Hetu SQL 验证，超出当前不执行真实 SQL、不接 planner 的阶段边界。 |
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不调用真实 Calcite `RelToSqlConverter`，不验证 Hetu 方言可执行性。
+- 不新增数据库 schema，不创建、激活或暂停 runtime rewrite binding。
+- 不把最终推荐写成生产自动改写；所有推荐仍需语义验证、结果 diff、人工审核和治理链。

@@ -22,6 +22,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendationGenerator;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendationReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolver;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
@@ -728,6 +730,42 @@ public class SqlOptimizationPipelineService {
             plan,
             costReport,
             ruleReport
+        );
+    }
+
+    public RewriteRecommendationReport generateRewriteRecommendations(ParsedSqlProfile profile) {
+        if (profile == null) {
+            throw invalidTask(
+                "生成改写推荐最终输出需要有效 SQL 解析结果。",
+                "请先完成 SQL 结构解析，再生成排序后的 RewriteRecommendation 报告。"
+            );
+        }
+        QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
+        RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
+        SemanticEquivalenceReport semanticReport = new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
+        CostBasedRewriteSelectionReport costReport = new CostBasedRewriteSelector().select(
+            queryBlockDag,
+            plan,
+            semanticReport
+        );
+        RuleConflictResolutionReport ruleReport = new RuleConflictResolver().resolve(plan, costReport);
+        ParserStackFusionReport parserReport = new ParserStackFusionAnalyzer().analyze(
+            profile.getNormalizedSql(),
+            profile.getParserEngine(),
+            profile.toAdvancedStructureProfile(),
+            queryBlockDag,
+            plan,
+            costReport,
+            ruleReport
+        );
+        return new RewriteRecommendationGenerator().generate(
+            profile.getNormalizedSql(),
+            queryBlockDag,
+            plan,
+            semanticReport,
+            costReport,
+            ruleReport,
+            parserReport
         );
     }
 

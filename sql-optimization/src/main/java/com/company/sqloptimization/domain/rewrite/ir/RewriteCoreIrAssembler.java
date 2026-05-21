@@ -9,6 +9,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendationGenerator;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendationReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolver;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
@@ -86,6 +88,15 @@ public class RewriteCoreIrAssembler {
             costBasedRewriteSelectionReport,
             ruleConflictResolutionReport
         );
+        RewriteRecommendationReport rewriteRecommendationReport = new RewriteRecommendationGenerator().generate(
+            normalizedSql,
+            queryBlockDag,
+            relationalRewritePlan,
+            semanticEquivalenceReport,
+            costBasedRewriteSelectionReport,
+            ruleConflictResolutionReport,
+            parserStackFusionReport
+        );
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -115,6 +126,13 @@ public class RewriteCoreIrAssembler {
         attributes.put("parserMetadataTagCount", Integer.valueOf(parserStackFusionReport.getMetadataTags().size()));
         attributes.put("rewriteConstraintCount", Integer.valueOf(parserStackFusionReport.getRewriteConstraints().size()));
         attributes.put("hetuPlanHintCount", Integer.valueOf(parserStackFusionReport.getHetuPlanHints().size()));
+        attributes.put("rewriteRecommendationStatus", rewriteRecommendationReport.getGenerationStatus());
+        attributes.put(
+            "rewriteRecommendationCount",
+            Integer.valueOf(rewriteRecommendationReport.getRecommendations().size())
+        );
+        attributes.put("rewriteRecommendationSelectedId", rewriteRecommendationReport.getSelectedRecommendationId());
+        attributes.put("rewriteRecommendationAutoApplyAllowed", Boolean.FALSE);
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -129,6 +147,7 @@ public class RewriteCoreIrAssembler {
             costBasedRewriteSelectionReport,
             ruleConflictResolutionReport,
             parserStackFusionReport,
+            rewriteRecommendationReport,
             businessIntent,
             architectureConflicts(),
             attributes

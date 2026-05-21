@@ -4,6 +4,7 @@ import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelection
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendationReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
 import java.util.List;
@@ -25,6 +26,7 @@ public class RewriteCoreIrSnapshot {
     private final CostBasedRewriteSelectionReport costBasedRewriteSelectionReport;
     private final RuleConflictResolutionReport ruleConflictResolutionReport;
     private final ParserStackFusionReport parserStackFusionReport;
+    private final RewriteRecommendationReport rewriteRecommendationReport;
     private final BusinessIntentIr businessIntent;
     private final List<RewriteIrConflict> architectureConflicts;
     private final Map<String, Object> attributes;
@@ -41,6 +43,7 @@ public class RewriteCoreIrSnapshot {
                                  CostBasedRewriteSelectionReport costBasedRewriteSelectionReport,
                                  RuleConflictResolutionReport ruleConflictResolutionReport,
                                  ParserStackFusionReport parserStackFusionReport,
+                                 RewriteRecommendationReport rewriteRecommendationReport,
                                  BusinessIntentIr businessIntent,
                                  List<RewriteIrConflict> architectureConflicts,
                                  Map<String, Object> attributes) {
@@ -56,6 +59,7 @@ public class RewriteCoreIrSnapshot {
         this.costBasedRewriteSelectionReport = costBasedRewriteSelectionReport;
         this.ruleConflictResolutionReport = ruleConflictResolutionReport;
         this.parserStackFusionReport = parserStackFusionReport;
+        this.rewriteRecommendationReport = rewriteRecommendationReport;
         this.businessIntent = businessIntent;
         this.architectureConflicts = IrCollections.immutableList(architectureConflicts);
         this.attributes = IrCollections.immutableMap(attributes);
@@ -111,6 +115,10 @@ public class RewriteCoreIrSnapshot {
 
     public ParserStackFusionReport getParserStackFusionReport() {
         return parserStackFusionReport;
+    }
+
+    public RewriteRecommendationReport getRewriteRecommendationReport() {
+        return rewriteRecommendationReport;
     }
 
     public BusinessIntentIr getBusinessIntent() {

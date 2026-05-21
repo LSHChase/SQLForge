@@ -24,6 +24,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteCandidate;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteRuleType;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendation;
+import com.company.sqloptimization.domain.rewrite.recommendation.RewriteRecommendationReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionReport;
 import com.company.sqloptimization.domain.rewrite.rule.RuleDependencyEdge;
 import com.company.sqloptimization.domain.rewrite.rule.RuleSearchState;
@@ -735,6 +737,102 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldGenerateFinalRewriteRecommendationsWithFinanceRankingAndSqlOutput() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            fanruanRepeatedAggregateSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteRecommendationReport report = service.generateRewriteRecommendations(profile);
+
+        assertEquals(RewriteRecommendationReport.SCHEMA_VERSION, report.getSchemaVersion());
+        assertEquals("RECOMMENDATION_GENERATED", report.getGenerationStatus());
+        assertEquals("NO_SQL_EXECUTION", report.getAttributes().get("runtimeBoundary"));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
+        assertEquals(
+            "WEIGHTED_REWRITE_RECOMMENDATION_SCORE",
+            report.getAttributes().get("recommendationAlgorithm")
+        );
+        assertEquals(Double.valueOf(0.40), report.getWeights().get("performanceGainWeight"));
+        assertEquals(Double.valueOf(0.30), report.getWeights().get("confidenceWeight"));
+        assertEquals(Double.valueOf(0.20), report.getWeights().get("riskAvoidanceWeight"));
+        assertEquals(Double.valueOf(0.10), report.getWeights().get("readabilityImprovementWeight"));
+
+        RewriteRecommendation recommendation = report.firstRecommendation();
+        assertNotNull(recommendation);
+        assertEquals(report.getSelectedRecommendationId(), recommendation.getRewriteId());
+        assertEquals(1, recommendation.getRank());
+        assertTrue(recommendation.getScore() > 0.0);
+        assertTrue(recommendation.getConfidence() >= 0.80);
+        assertEquals("STRUCTURAL_OPTIMIZATION", recommendation.getCategory());
+        assertFalse(recommendation.getBeforeSummary().isEmpty());
+        assertFalse(recommendation.getAfterSummary().isEmpty());
+        assertTrue(recommendation.hasTransformationType("MERGE"));
+        assertTrue(recommendation.hasTransformationType("INLINE"));
+        assertTrue(recommendation.getEquivalenceProof().getMethod().contains("STRUCTURAL_HASH"));
+        assertTrue(recommendation.getEquivalenceProof().getVerifiedDimensions().contains("ROW_COUNT"));
+        assertTrue(recommendation.getPerformance().getScanReduction().contains("x -> 1x"));
+        assertTrue(recommendation.getPerformance().getEstimatedSpeedup().contains("取决于数据量和集群规模"));
+        assertTrue(recommendation.getExecutableSql().startsWith("WITH "));
+        assertFalse(recommendation.isAutoApplyAllowed());
+        assertTrue(recommendation.isManualReviewRequired());
+        assertEquals(
+            "STATIC_RELNODE_SURROGATE_NOT_REAL_CALCITE_RELTOSQL",
+            report.getAttributes().get("sqlGenerationBoundary")
+        );
+        assertEquals(
+            "NOT_INVOKED",
+            recommendation.getAttributes().get("calciteRelToSqlConverterStatus")
+        );
+    }
+
+    @Test
+    void shouldApplyRecommendationFiltersForCountDistinctAndTimeWindowReports() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteRecommendationReport report = service.generateRewriteRecommendations(profile);
+
+        assertFalse(report.getRecommendations().isEmpty());
+        assertFalse(report.getAutomationFilteredCandidateIds().isEmpty());
+        assertFalse(report.getManualReviewCandidateIds().isEmpty());
+        assertTrue(containsReviewRequirement(
+            report,
+            "COUNT_DISTINCT_SEMANTIC_CHANGE_MANUAL_REVIEW_REQUIRED"
+        ));
+        assertTrue(containsReviewRequirement(
+            report,
+            "TIME_WINDOW_REPORT_SAMPLE_COMPARE_1_TO_2_ORGS_REQUIRED"
+        ));
+        assertEquals("MANUAL_REVIEW_REQUIRED", report.getAttributes().get("countDistinctPolicy"));
+        assertEquals("SAMPLE_COMPARE_1_TO_2_ORGS_REQUIRED", report.getAttributes().get("timeWindowReportPolicy"));
+    }
+
+    @Test
+    void shouldExposeFinalRewriteRecommendationsThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            fanruanRepeatedAggregateSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+        RewriteRecommendationReport report = snapshot.getRewriteRecommendationReport();
+
+        assertNotNull(report);
+        assertFalse(report.getRecommendations().isEmpty());
+        assertEquals(report.getGenerationStatus(), snapshot.getAttributes().get("rewriteRecommendationStatus"));
+        assertEquals(
+            Integer.valueOf(report.getRecommendations().size()),
+            snapshot.getAttributes().get("rewriteRecommendationCount")
+        );
+        assertEquals(report.getSelectedRecommendationId(), snapshot.getAttributes().get("rewriteRecommendationSelectedId"));
+        assertEquals(Boolean.FALSE, snapshot.getAttributes().get("rewriteRecommendationAutoApplyAllowed"));
+    }
+
+    @Test
     void shouldAnalyzeSqlWithDashLineCommentsWithoutTreatingStringLiteralAsComment() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             "-- report_code=RPT_COMMENTED\n"
@@ -1422,6 +1520,15 @@ class SqlOptimizationPipelineServiceTest {
     private boolean containsPlannerStage(ParserStackFusionReport report, String stage) {
         for (Map<String, Object> item : report.getCalcitePlannerStages()) {
             if (stage.equals(item.get("stage"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsReviewRequirement(RewriteRecommendationReport report, String requirement) {
+        for (RewriteRecommendation recommendation : report.getRecommendations()) {
+            if (recommendation.getReviewRequirements().contains(requirement)) {
                 return true;
             }
         }
