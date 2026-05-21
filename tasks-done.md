@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-COST-BASED-REWRITE-PHASE4-20260521: 实现 SQL 改写第四阶段代价模型与排序
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-COST-BASED-REWRITE-PHASE4-20260521 implement cost based rewrite selection`
+- Priority: 1
+- Depends on: USER-CN-SEMANTIC-EQUIVALENCE-PHASE3-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动生效生产改写的前提下，在 sql-optimization 改写核心实现第四阶段 Cost-Based Rewriting Selection 第一版：基于关系代数改写候选和语义等价验证报告生成抽象 Hetu/Presto 解耦代价估算，覆盖 Scan/Shuffle/Compute/Memory 四维代价、Hetu shuffle/CTE/dynamic filter 调整、多目标 Pareto 前沿筛选和 SLA 策略排序；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-COST-BASED-REWRITE-PHASE4-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implemented Phase 2.4 cost-based rewriting selection in sql-optimization: added abstract cost domain model and selector, pipeline entry, RewriteCoreIrSnapshot integration, focused tests, raw requirement archive, and architecture/truth documentation updates.
+  - Validation evidence: java -version => OpenJDK 1.8.0_112; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test => BUILD SUCCESS with 28 SqlOptimizationPipelineServiceTest tests passed; mvn -pl sql-optimization -am test => BUILD SUCCESS with sql-optimization reporting 339 tests passed; python3 scripts/foreman.py validate USER-CN-COST-BASED-REWRITE-PHASE4-20260521 => passed; python3 scripts/task_audit.py --check --phase pre-closeout => passed; git diff --check => passed.
+  - Residual risk: Cost values remain static abstract estimates, not Hetu EXPLAIN cost, real scan bytes, real shuffle bytes, or real memory usage; selectedCandidateId is ranking evidence only and does not auto-create runtime rewrite binding.
+  - Next step: Future precision work can add governed table statistics or Hetu EXPLAIN evidence as a separate task while preserving the current no-SQL-execution boundary.
+
 ### USER-CN-SEMANTIC-EQUIVALENCE-PHASE3-20260521: 实现 SQL 改写第三阶段语义等价验证
 
 - Status: done

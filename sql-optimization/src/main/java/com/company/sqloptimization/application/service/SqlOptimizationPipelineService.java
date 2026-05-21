@@ -11,6 +11,9 @@ import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
+import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
+import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelector;
+import com.company.sqloptimization.domain.rewrite.cost.CostSelectionStrategy;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrAssembler;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
@@ -671,6 +674,18 @@ public class SqlOptimizationPipelineService {
         QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
         RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
         return new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
+    }
+
+    public CostBasedRewriteSelectionReport selectCostBasedRewrite(ParsedSqlProfile profile) {
+        return selectCostBasedRewrite(profile, CostSelectionStrategy.DEFAULT_WEIGHTED);
+    }
+
+    public CostBasedRewriteSelectionReport selectCostBasedRewrite(ParsedSqlProfile profile,
+                                                                  CostSelectionStrategy strategy) {
+        QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
+        RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
+        SemanticEquivalenceReport semanticReport = new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
+        return new CostBasedRewriteSelector().select(queryBlockDag, plan, semanticReport, strategy);
     }
 
     public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {

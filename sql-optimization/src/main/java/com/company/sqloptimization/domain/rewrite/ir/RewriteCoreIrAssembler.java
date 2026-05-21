@@ -1,5 +1,7 @@
 package com.company.sqloptimization.domain.rewrite.ir;
 
+import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
+import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelector;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
@@ -62,6 +64,11 @@ public class RewriteCoreIrAssembler {
             queryBlockDag,
             relationalRewritePlan
         );
+        CostBasedRewriteSelectionReport costBasedRewriteSelectionReport = new CostBasedRewriteSelector().select(
+            queryBlockDag,
+            relationalRewritePlan,
+            semanticEquivalenceReport
+        );
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -77,6 +84,12 @@ public class RewriteCoreIrAssembler {
         attributes.put("relationalRewriteCandidateCount", Integer.valueOf(relationalRewritePlan.getCandidates().size()));
         attributes.put("semanticEquivalenceStatus", semanticEquivalenceReport.getStatus().name());
         attributes.put("semanticEquivalenceCheckCount", Integer.valueOf(semanticEquivalenceReport.getChecks().size()));
+        attributes.put("costBasedSelectionStatus", costBasedRewriteSelectionReport.getSelectionStatus());
+        attributes.put("costBasedSelectedCandidateId", costBasedRewriteSelectionReport.getSelectedCandidateId());
+        attributes.put(
+            "costBasedParetoFrontierCount",
+            Integer.valueOf(costBasedRewriteSelectionReport.getParetoFrontierCandidateIds().size())
+        );
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -88,6 +101,7 @@ public class RewriteCoreIrAssembler {
             algebra,
             relationalRewritePlan,
             semanticEquivalenceReport,
+            costBasedRewriteSelectionReport,
             businessIntent,
             architectureConflicts(),
             attributes

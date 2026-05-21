@@ -189,3 +189,63 @@
 - 不创建、激活或暂停 runtime rewrite binding。
 - 不调用外部 SMT Solver，不新增数据库 schema 依赖。
 - 不把 `CONDITIONALLY_PROVED` 或 `NEEDS_CONSTRAINTS` 候选升级为自动生产改写。
+
+## Phase 2.4 Cost-Based Rewriting Selection
+
+第四阶段已在后端新增候选级代价模型与改写排序能力，用于在第二阶段关系代数候选和第三阶段语义等价验证报告基础上，对多个静态等价改写方案生成可审计的抽象代价向量、帕累托前沿和 SLA 策略选择结果。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.cost`
+- 选择器：`CostBasedRewriteSelector`
+- 应用入口：`SqlOptimizationPipelineService.selectCostBasedRewrite(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getCostBasedRewriteSelectionReport()`
+
+### Cost Model Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 四维代价向量 | 为每个 `RelationalRewriteCandidate` 计算 `ScanCost`、`ShuffleCost`、`ComputeCost`、`MemoryCost` 和 `weightedCost`；输入来自 `QBDAG` 的查询块字段、谓词、聚合、JOIN、UNION 与候选补偿谓词。 | 代价值是 `ABSTRACT_STATIC_UNITS`，不是 Hetu EXPLAIN 成本、真实扫描字节或真实集群资源消耗。 |
+| Hetu / Presto 解耦调整 | 对横向展开候选优先标记 `HETU_SHUFFLE_REDUCTION_PRIORITY`；对 CSE / 纵向折叠标记 `CTE_MATERIALIZATION_RECOMMENDED_FOR_REUSE`；有补偿谓词或多谓词时标记 `HETU_DYNAMIC_FILTER_PUSHDOWN_PREFERRED`。 | 调整只改变静态排序证据，不调用 Hetu optimizer，不生成 engine-native plan，不自动下推生产谓词。 |
+| 帕累托前沿 | 按 `(Scan, Shuffle, Compute, Memory)` 四维坐标剔除被支配候选，并记录 `paretoFrontierCandidateIds`。 | 非前沿候选仍保留在报告中，便于人工看到被支配原因和候选证据。 |
+| SLA 策略排序 | 支持 `DEFAULT_WEIGHTED`、`TIMEOUT_SENSITIVE`、`MEMORY_CONSTRAINED` 三种策略；默认按加权线性组合，超时敏感按最低扫描代价，内存紧张按最低内存代价。 | 策略只影响候选排序和 `selectedCandidateId`，不改变候选语义验证状态，不越过人工复核和生产改写治理链。 |
+
+### Report Schema
+
+`CostBasedRewriteSelectionReport` 固化：
+
+- `schemaVersion = cost-based-rewrite-selection/v1`
+- `sourceSchemaVersion = relational-rewrite-plan/v1`
+- `strategy`：`DEFAULT_WEIGHTED`、`TIMEOUT_SENSITIVE` 或 `MEMORY_CONSTRAINED`
+- `selectionStatus`：`NO_CANDIDATE`、`SELECTED_PROVED_CANDIDATE` 或 `RANKED_WITH_SEMANTIC_GATES`
+- `selectedCandidateId`：当前策略下从帕累托前沿选出的候选；空值表示没有候选
+- `paretoFrontierCandidateIds`：四维代价空间中未被支配的候选集合
+- `estimates`：包含候选 id、规则类型、四维代价、是否帕累托最优、是否选中、排名、语义门禁、Hetu 调整、选择原因、证据和属性
+- `weights`：当前策略的四维权重
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`costModel=ABSTRACT_HETU_PRESTO_DECOUPLED`
+
+### Selection Semantics
+
+| 策略 | 权重 / 指标 | 适用场景 |
+|:---|:---|:---|
+| `DEFAULT_WEIGHTED` | `Scan=0.35`、`Shuffle=0.30`、`Compute=0.20`、`Memory=0.15` | 默认平衡扫描、网络、计算和内存。 |
+| `TIMEOUT_SENSITIVE` | 从帕累托前沿选择最低 `ScanCost`，同时保留加权成本。 | 报表超时敏感，优先降低扫描压力。 |
+| `MEMORY_CONSTRAINED` | 从帕累托前沿选择最低 `MemoryCost`，同时保留加权成本。 | 集群内存紧张，优先避开高内存 HASH / SORT 方案。 |
+
+### Conflict / Choice
+
+本阶段没有需要暂停实现的产品冲突；存在两个保守实现选择：
+
+| 选择点 | 已采用方案 | 备选 |
+|:---|:---|:---|
+| 用户算法要求代价模型与具体执行引擎解耦，但 Hetu / Presto 的真实统计信息和 EXPLAIN 成本不在当前仓库闭环内。 | 使用查询块静态特征推导抽象代价单位，并显式写入 `STATIC_ABSTRACT_COST_NOT_REAL_EXECUTION_PLAN` 边界。 | 接入真实 Hetu EXPLAIN 或表统计；排序更贴近运行时，但会引入环境依赖并违反本阶段不执行 SQL 的边界。 |
+| 多候选可能只有条件证明或需要约束证明。 | 代价报告保留 `semanticGate`，选择状态为 `RANKED_WITH_SEMANTIC_GATES` 时只表示候选排序，不表示可自动生产改写。 | 只允许 `PROVED` 候选进入排序；更保守，但当前静态验证阶段可能导致所有候选不可比较，削弱本阶段排序能力。 |
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不调用 Hetu EXPLAIN，不访问表统计元数据，不新增数据库 schema 依赖。
+- 不创建、激活或暂停 runtime rewrite binding。
+- 不把抽象代价值写成真实收益、真实扫描量、真实 Shuffle 字节或真实内存占用。
+- 不把 `selectedCandidateId` 自动升级为生产改写；后续仍需完整语义验证、人工复核、压测和治理链。

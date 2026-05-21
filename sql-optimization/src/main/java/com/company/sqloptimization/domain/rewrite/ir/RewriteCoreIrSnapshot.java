@@ -1,5 +1,6 @@
 package com.company.sqloptimization.domain.rewrite.ir;
 
+import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
@@ -19,6 +20,7 @@ public class RewriteCoreIrSnapshot {
     private final List<RelationalAlgebraNode> relationalAlgebra;
     private final RelationalRewritePlan relationalRewritePlan;
     private final SemanticEquivalenceReport semanticEquivalenceReport;
+    private final CostBasedRewriteSelectionReport costBasedRewriteSelectionReport;
     private final BusinessIntentIr businessIntent;
     private final List<RewriteIrConflict> architectureConflicts;
     private final Map<String, Object> attributes;
@@ -32,6 +34,7 @@ public class RewriteCoreIrSnapshot {
                                  List<RelationalAlgebraNode> relationalAlgebra,
                                  RelationalRewritePlan relationalRewritePlan,
                                  SemanticEquivalenceReport semanticEquivalenceReport,
+                                 CostBasedRewriteSelectionReport costBasedRewriteSelectionReport,
                                  BusinessIntentIr businessIntent,
                                  List<RewriteIrConflict> architectureConflicts,
                                  Map<String, Object> attributes) {
@@ -44,6 +47,7 @@ public class RewriteCoreIrSnapshot {
         this.relationalAlgebra = IrCollections.immutableList(relationalAlgebra);
         this.relationalRewritePlan = relationalRewritePlan;
         this.semanticEquivalenceReport = semanticEquivalenceReport;
+        this.costBasedRewriteSelectionReport = costBasedRewriteSelectionReport;
         this.businessIntent = businessIntent;
         this.architectureConflicts = IrCollections.immutableList(architectureConflicts);
         this.attributes = IrCollections.immutableMap(attributes);
@@ -87,6 +91,10 @@ public class RewriteCoreIrSnapshot {
 
     public SemanticEquivalenceReport getSemanticEquivalenceReport() {
         return semanticEquivalenceReport;
+    }
+
+    public CostBasedRewriteSelectionReport getCostBasedRewriteSelectionReport() {
+        return costBasedRewriteSelectionReport;
     }
 
     public BusinessIntentIr getBusinessIntent() {

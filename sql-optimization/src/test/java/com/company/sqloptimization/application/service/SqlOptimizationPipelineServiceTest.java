@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
+import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
+import com.company.sqloptimization.domain.rewrite.cost.CostSelectionStrategy;
+import com.company.sqloptimization.domain.rewrite.cost.RewriteCostEstimate;
 import com.company.sqloptimization.domain.rewrite.ir.RelationalOperator;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteIrConflict;
@@ -476,6 +479,102 @@ class SqlOptimizationPipelineServiceTest {
             snapshot.getSemanticEquivalenceReport().getStatus().name(),
             snapshot.getAttributes().get("semanticEquivalenceStatus")
         );
+    }
+
+    @Test
+    void shouldSelectParetoOptimalRewriteCandidateWithAbstractCostModel() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        CostBasedRewriteSelectionReport report = service.selectCostBasedRewrite(profile);
+
+        assertEquals(CostBasedRewriteSelectionReport.SCHEMA_VERSION, report.getSchemaVersion());
+        assertEquals(CostSelectionStrategy.DEFAULT_WEIGHTED, report.getStrategy());
+        assertFalse(report.getEstimates().isEmpty());
+        assertFalse(report.getParetoFrontierCandidateIds().isEmpty());
+        assertEquals("NO_SQL_EXECUTION", report.getAttributes().get("runtimeBoundary"));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
+        assertEquals("ABSTRACT_HETU_PRESTO_DECOUPLED", report.getAttributes().get("costModel"));
+        assertEquals("PARETO_FRONTIER_THEN_SLA_POLICY", report.getAttributes().get("selectionAlgorithm"));
+        assertTrue(report.getWeights().containsKey("scanWeight"));
+
+        RewriteCostEstimate selected = report.selectedEstimate();
+        assertNotNull(selected);
+        assertTrue(selected.isSelected());
+        assertTrue(selected.isParetoOptimal());
+        assertTrue(selected.getCostVector().getScanCost() > 0.0);
+        assertTrue(selected.getCostVector().getShuffleCost() > 0.0);
+        assertTrue(selected.getCostVector().getComputeCost() > 0.0);
+        assertTrue(selected.getCostVector().getMemoryCost() > 0.0);
+        assertTrue(selected.getSelectionReasons().contains("ABSTRACT_COST_VECTOR_COMPUTED"));
+        assertFalse(selected.getSemanticGate().isEmpty());
+        assertTrue(String.valueOf(selected.getEvidence()).contains("ABSTRACT_COST_FEATURES"));
+
+        RewriteCostEstimate horizontal = report.firstEstimateOf(RelationalRewriteRuleType.HORIZONTAL_UNNESTING);
+        assertNotNull(horizontal);
+        assertTrue(horizontal.getHetuAdjustments().contains("HETU_SHUFFLE_REDUCTION_PRIORITY"));
+
+        RewriteCostEstimate vertical = report.firstEstimateOf(RelationalRewriteRuleType.VERTICAL_FOLDING);
+        assertNotNull(vertical);
+        assertTrue(vertical.getHetuAdjustments().contains("CTE_MATERIALIZATION_RECOMMENDED_FOR_REUSE"));
+        assertTrue(vertical.getHetuAdjustments().contains("HETU_DYNAMIC_FILTER_PUSHDOWN_PREFERRED"));
+    }
+
+    @Test
+    void shouldApplySlaStrategyToParetoFrontierSelection() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        CostBasedRewriteSelectionReport timeoutReport = service.selectCostBasedRewrite(
+            profile,
+            CostSelectionStrategy.TIMEOUT_SENSITIVE
+        );
+        CostBasedRewriteSelectionReport memoryReport = service.selectCostBasedRewrite(
+            profile,
+            CostSelectionStrategy.MEMORY_CONSTRAINED
+        );
+
+        assertEquals(CostSelectionStrategy.TIMEOUT_SENSITIVE, timeoutReport.getStrategy());
+        assertEquals(Double.valueOf(0.50), timeoutReport.getWeights().get("scanWeight"));
+        assertEquals(
+            minParetoScanCost(timeoutReport),
+            timeoutReport.selectedEstimate().getCostVector().getScanCost(),
+            0.001
+        );
+
+        assertEquals(CostSelectionStrategy.MEMORY_CONSTRAINED, memoryReport.getStrategy());
+        assertEquals(Double.valueOf(0.35), memoryReport.getWeights().get("memoryWeight"));
+        assertEquals(
+            minParetoMemoryCost(memoryReport),
+            memoryReport.selectedEstimate().getCostVector().getMemoryCost(),
+            0.001
+        );
+    }
+
+    @Test
+    void shouldExposeCostBasedSelectionThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+        CostBasedRewriteSelectionReport report = snapshot.getCostBasedRewriteSelectionReport();
+
+        assertNotNull(report);
+        assertFalse(report.getEstimates().isEmpty());
+        assertEquals(report.getSelectionStatus(), snapshot.getAttributes().get("costBasedSelectionStatus"));
+        assertEquals(report.getSelectedCandidateId(), snapshot.getAttributes().get("costBasedSelectedCandidateId"));
+        assertEquals(
+            Integer.valueOf(report.getParetoFrontierCandidateIds().size()),
+            snapshot.getAttributes().get("costBasedParetoFrontierCount")
+        );
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
     }
 
     @Test
@@ -1123,6 +1222,26 @@ class SqlOptimizationPipelineServiceTest {
         }
         assertNotNull(null, "缺少语义等价验证：" + checkType + " / " + ruleType);
         return null;
+    }
+
+    private double minParetoScanCost(CostBasedRewriteSelectionReport report) {
+        double min = Double.MAX_VALUE;
+        for (RewriteCostEstimate estimate : report.getEstimates()) {
+            if (estimate.isParetoOptimal()) {
+                min = Math.min(min, estimate.getCostVector().getScanCost());
+            }
+        }
+        return min;
+    }
+
+    private double minParetoMemoryCost(CostBasedRewriteSelectionReport report) {
+        double min = Double.MAX_VALUE;
+        for (RewriteCostEstimate estimate : report.getEstimates()) {
+            if (estimate.isParetoOptimal()) {
+                min = Math.min(min, estimate.getCostVector().getMemoryCost());
+            }
+        }
+        return min;
     }
 
     private String repeatedAggregateLeftJoinSql() {
