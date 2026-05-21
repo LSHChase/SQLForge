@@ -27,6 +27,10 @@ import com.company.sqloptimization.infrastructure.repository.InMemoryAcceleratio
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryRewriteTrialRepository;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -111,6 +115,44 @@ class RewriteTrialApplicationServiceTest {
         assertEquals("tenant-a", submitCaptor.getValue().getTenantId());
         assertEquals(Arrays.asList("COUNT_LITERAL_TO_COUNT_STAR", "DEDUPLICATE_WHERE_PREDICATES", "DEDUPLICATE_ORDER_BY_KEYS"),
             submitCaptor.getValue().getTaskContext().getIssueScenes());
+    }
+
+    @Test
+    void shouldCreateRecommendationForReportRewriteTrialSqlFixture() throws Exception {
+        RewriteTrialRequest request = new RewriteTrialRequest();
+        request.setTenantId("tenant-a");
+        request.setSqlText(readSqlFixture("docs/test01.sql"));
+        request.setDatasourceCode("hetu_main");
+        request.setSourceKind("STRUCTURE_PARSE");
+        request.setParseTaskId("parse-task-test01");
+        request.setParseHistoryId("parse-history-test01");
+
+        RewriteTrialRunVO run = service.createTrial(request);
+
+        assertEquals("RECOMMENDED", run.getTrialStatus());
+        assertEquals(Integer.valueOf(1), run.getCandidateGeneratedCount());
+        assertEquals("RECOMMENDED", run.getItems().get(0).getTrialStatus());
+        assertNotNull(run.getItems().get(0).getCandidateSql());
+        assertNotNull(run.getItems().get(0).getRecommendationId());
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("base_100_anchor"));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("report_customer_snapshot"));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("深圳市分行"));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("\"org\""));
+        assertFalse(run.getItems().get(0).getCandidateSql().contains("GROUPING SETS"));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("UNION ALL"));
+        assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(),
+            L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+        assertTrue(containsLink(run.getItems().get(0).getIssueRuleLinks(),
+            L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+
+        AccelerationRecommendation recommendation =
+            recommendationRepository.findByRecommendationId(run.getItems().get(0).getRecommendationId());
+        assertNotNull(recommendation);
+        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+        assertTrue(recommendation.getRecommendedSqlText().contains("深圳市分行"));
+        assertEquals("NOT_VALIDATED", recommendation.getValidationStatus().name());
+        assertFalse(recommendation.isAutoApplyAllowed());
+        assertTrue(recommendation.isManualReviewRequired());
     }
 
     @Test
@@ -278,6 +320,15 @@ class RewriteTrialApplicationServiceTest {
             }
         }
         return false;
+    }
+
+    private String readSqlFixture(String relativePath) throws Exception {
+        Path path = Paths.get(relativePath);
+        if (!Files.exists(path)) {
+            path = Paths.get("..").resolve(relativePath).normalize();
+        }
+        assertTrue(Files.exists(path), "未找到 SQL 测试文件：" + path.toAbsolutePath());
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     }
 
     @SuppressWarnings("unchecked")

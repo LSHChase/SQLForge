@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521: 修复 test01 改写验证推荐记录生成
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `fix(sql-optimization): restore test01 rewrite trial recommendations`
+- Priority: 1
+- Depends on: N/A
+- Scope: 排查并修复 docs/test01.sql 在 SQL 改写验证/推荐链路中无法生成推荐记录的问题，确保复杂报表 SQL 的推荐 SQL、加速 artifact 和可验证推荐记录能够稳定生成，同时补充回归测试并保持治理边界。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 docs/test01.sql 在改写验证中无法生成推荐记录的问题：将 REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG 纳入候选推荐问题集合并保持 L2 规则层级；将报表快照聚合 SQL 从 GROUPING SETS 改为两个普通 GROUP BY 分支 UNION ALL 等价合并；补充 docs/test01.sql 回归，验证推荐记录、候选 SQL、深圳市分行/org 标签和无 GROUPING SETS。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521 --include-task-audit --extra-command "mvn -pl sql-optimization -am test" --extra-command "git diff --check"；mvn -pl sql-optimization -am -Dtest=RewriteTrialApplicationServiceTest,SqlOptimizationPipelineServiceTest,L2SnapshotAggregateReportMvCandidateGeneratorTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization -am test（328 tests）；git diff --check；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未连接真实 Hetu/生产数据执行 validationSql 和 EXPLAIN，实际结果等价与性能收益仍需在目标环境用推荐记录中的校验 SQL 复核。
+  - Next step: 在目标 Hetu 环境执行推荐记录 validationSql 与 EXPLAIN，确认结果 diff 为 0 且计划扫描形态符合预期。
+
 ### USER-CN-FIX-SQL-REWRITE-CORRECTNESS-20260521: 修复 test01 SQL 改写等价性与性能
 
 - Status: done

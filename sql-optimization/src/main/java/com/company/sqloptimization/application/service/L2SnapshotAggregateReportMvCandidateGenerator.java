@@ -225,36 +225,48 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
 
     private static String buildReportSnapshotSelectFromRaw(SnapshotShape shape, boolean retainScopeColumns) {
         List<String> scopeColumns = retainScopeColumns ? aliasOrgNoReferences() : Collections.<String>emptyList();
-        List<String> topGrouping = new ArrayList<String>(scopeColumns);
-        topGrouping.add("org_level2_no");
-        topGrouping.add("org_level2_name");
-        topGrouping.add("customer_no");
-        topGrouping.add("snapshot_date");
-        List<String> branchGrouping = new ArrayList<String>(scopeColumns);
-        branchGrouping.add("branch_org_no");
-        branchGrouping.add("branch_org_name");
-        branchGrouping.add("customer_no");
-        branchGrouping.add("snapshot_date");
         StringBuilder sql = new StringBuilder();
+        appendReportSnapshotSelectBranch(
+            sql,
+            scopeColumns,
+            "org_level2_no",
+            "org_level2_name",
+            "'" + escapeSqlLiteral(shape.topOrgName) + "'"
+        );
+        sql.append("\nUNION ALL\n");
+        appendReportSnapshotSelectBranch(
+            sql,
+            scopeColumns,
+            "branch_org_no",
+            "branch_org_name",
+            "branch_org_name"
+        );
+        return sql.toString();
+    }
+
+    private static void appendReportSnapshotSelectBranch(StringBuilder sql,
+                                                         List<String> scopeColumns,
+                                                         String reportOrgNoExpression,
+                                                         String reportOrgNameExpression,
+                                                         String reportOrgLabelExpression) {
         sql.append("SELECT\n");
-        if (retainScopeColumns) {
-            for (String column : scopeColumns) {
-                sql.append("  ").append(column).append(",\n");
-            }
+        for (String column : scopeColumns) {
+            sql.append("  ").append(column).append(",\n");
         }
-        sql.append("  COALESCE(branch_org_no, org_level2_no) AS report_org_no,\n");
-        sql.append("  COALESCE(branch_org_name, org_level2_name) AS report_org_name,\n");
-        sql.append("  COALESCE(branch_org_name, '").append(escapeSqlLiteral(shape.topOrgName))
-            .append("') AS report_org_label,\n");
+        sql.append("  ").append(reportOrgNoExpression).append(" AS report_org_no,\n");
+        sql.append("  ").append(reportOrgNameExpression).append(" AS report_org_name,\n");
+        sql.append("  ").append(reportOrgLabelExpression).append(" AS report_org_label,\n");
         sql.append("  customer_no,\n");
         sql.append("  snapshot_date,\n");
         sql.append("  SUM(snapshot_aum) AS snapshot_aum\n");
         sql.append("FROM raw_customer_snapshot\n");
-        sql.append("GROUP BY GROUPING SETS (\n");
-        sql.append("  ").append(parenthesizedCsv(topGrouping)).append(",\n");
-        sql.append("  ").append(parenthesizedCsv(branchGrouping)).append("\n");
-        sql.append(")");
-        return sql.toString();
+        sql.append("GROUP BY\n");
+        List<String> groupBy = new ArrayList<String>(scopeColumns);
+        groupBy.add(reportOrgNoExpression);
+        groupBy.add(reportOrgNameExpression);
+        groupBy.add("customer_no");
+        groupBy.add("snapshot_date");
+        appendCsvLines(sql, groupBy);
     }
 
     private static String buildReportSnapshotSelectFromMv(SnapshotShape shape, String mvName) {
@@ -685,10 +697,6 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             }
             sql.append("\n");
         }
-    }
-
-    private static String parenthesizedCsv(List<String> items) {
-        return "(" + String.join(", ", items) + ")";
     }
 
     private static String countDistinctCase(String predicate) {

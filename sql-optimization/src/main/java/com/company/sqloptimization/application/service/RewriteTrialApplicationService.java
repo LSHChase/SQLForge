@@ -76,6 +76,7 @@ public class RewriteTrialApplicationService {
             "DEDUPLICATE_ORDER_BY_KEYS"
         ))
     );
+    private static final Set<String> CANDIDATE_REWRITE_PROBLEMS = candidateRewriteProblems();
     private static final Set<String> MANUAL_REVIEW_PROBLEMS = Collections.unmodifiableSet(
         new LinkedHashSet<String>(Arrays.asList(
             "SELECT_STAR",
@@ -205,6 +206,12 @@ public class RewriteTrialApplicationService {
         this.pipelineService = pipelineService;
         this.optimizationTaskApplicationService = optimizationTaskApplicationService;
         this.objectMapper = JsonUtils.objectMapper();
+    }
+
+    private static Set<String> candidateRewriteProblems() {
+        LinkedHashSet<String> values = new LinkedHashSet<String>(SAFE_REWRITE_PROBLEMS);
+        values.add(L2SnapshotAggregateReportMvCandidateGenerator.RULE);
+        return Collections.unmodifiableSet(values);
     }
 
     public RewriteTrialRunVO createTrial(RewriteTrialRequest request) {
@@ -531,9 +538,10 @@ public class RewriteTrialApplicationService {
                                                            Map<String, Object> planEvidence) {
         LinkedHashMap<String, Map<String, Object>> problems = new LinkedHashMap<String, Map<String, Object>>();
         for (String appliedRule : appliedRules) {
-            if (SAFE_REWRITE_PROBLEMS.contains(appliedRule)) {
-                problems.put(appliedRule, sourceProblem("REWRITE_CANDIDATE", appliedRule, null, "LOW", "P3",
-                    safeRuleSummary(appliedRule), parseTaskId, parseHistoryId, historyId, batchItemId));
+            if (CANDIDATE_REWRITE_PROBLEMS.contains(appliedRule)) {
+                problems.put(appliedRule, sourceProblem("REWRITE_CANDIDATE", appliedRule, null,
+                    severityFor(appliedRule), priorityFor(appliedRule), summaryFor(appliedRule),
+                    parseTaskId, parseHistoryId, historyId, batchItemId));
             }
         }
         for (String warning : profile.getWarnings()) {
@@ -648,7 +656,7 @@ public class RewriteTrialApplicationService {
             }
             LinkedHashMap<String, Object> normalized = new LinkedHashMap<String, Object>(problem);
             normalized.put("problemType", firstText(objectText(normalized.get("problemType")),
-                SAFE_REWRITE_PROBLEMS.contains(scene) ? "REWRITE_CANDIDATE" : "ISSUE_SCENE"));
+                CANDIDATE_REWRITE_PROBLEMS.contains(scene) ? "REWRITE_CANDIDATE" : "ISSUE_SCENE"));
             normalized.put("issueScene", scene);
             if (!normalized.containsKey("issueCode")) {
                 normalized.put("issueCode", scene);
@@ -695,8 +703,8 @@ public class RewriteTrialApplicationService {
         Set<String> applied = new LinkedHashSet<String>(appliedRules);
         for (Map<String, Object> problem : sourceProblems) {
             String scene = objectText(problem.get("issueScene"));
-            if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
-                links.add(issueRuleLink(scene, scene, "L0", applied.contains(scene) ? "APPLIED" : "SKIPPED",
+            if (CANDIDATE_REWRITE_PROBLEMS.contains(scene)) {
+                links.add(issueRuleLink(scene, scene, candidateRuleLevel(scene), applied.contains(scene) ? "APPLIED" : "SKIPPED",
                     applied.contains(scene) ? "CANDIDATE_GENERATED" : "NO_SAFE_REWRITE", null));
             } else if ("SELECT_STAR".equals(scene)) {
                 links.add(issueRuleLink(scene, "SELECT_STAR_EXPANSION", "L1", "UNAPPLIED", "REQUIRES_METADATA",
@@ -1238,6 +1246,9 @@ public class RewriteTrialApplicationService {
         if ("OR_PREDICATE_INDEX_RISK".equals(scene) || "NESTED_SUBQUERY_RISK".equals(scene)) {
             return "HIGH";
         }
+        if (L2SnapshotAggregateReportMvCandidateGenerator.RULE.equals(scene)) {
+            return "MEDIUM";
+        }
         if ("SELECT_STAR".equals(scene) || "LEADING_WILDCARD_LIKE_RISK".equals(scene)) {
             return "MEDIUM";
         }
@@ -1248,11 +1259,24 @@ public class RewriteTrialApplicationService {
         if ("OR_PREDICATE_INDEX_RISK".equals(scene) || "NESTED_SUBQUERY_RISK".equals(scene)) {
             return "P2";
         }
-        return SAFE_REWRITE_PROBLEMS.contains(scene) ? "P3" : "P2";
+        if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
+            return "P3";
+        }
+        return "P2";
     }
 
     private String summaryFor(String scene) {
-        return SAFE_REWRITE_PROBLEMS.contains(scene) ? safeRuleSummary(scene) : manualProblemSummary(scene);
+        if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
+            return safeRuleSummary(scene);
+        }
+        if (L2SnapshotAggregateReportMvCandidateGenerator.RULE.equals(scene)) {
+            return "复杂报表重复扫描可生成客户时点聚合快照改写候选";
+        }
+        return manualProblemSummary(scene);
+    }
+
+    private String candidateRuleLevel(String scene) {
+        return L2SnapshotAggregateReportMvCandidateGenerator.RULE.equals(scene) ? "L2" : "L0";
     }
 
     private String safeRuleSummary(String rule) {
@@ -1293,7 +1317,7 @@ public class RewriteTrialApplicationService {
     private boolean isEligibleProblem(String scene) {
         return StringUtils.hasText(scene)
             && !SKIPPED_PROBLEMS.contains(scene)
-            && (SAFE_REWRITE_PROBLEMS.contains(scene) || MANUAL_REVIEW_PROBLEMS.contains(scene));
+            && (CANDIDATE_REWRITE_PROBLEMS.contains(scene) || MANUAL_REVIEW_PROBLEMS.contains(scene));
     }
 
     private Set<String> normalizeFilter(List<String> issueSceneFilter) {

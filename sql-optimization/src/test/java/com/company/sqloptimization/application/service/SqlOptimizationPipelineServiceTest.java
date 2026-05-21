@@ -565,7 +565,10 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("metric_by_org"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("growth_by_org"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("UNION ALL"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("'深圳市分行' AS report_org_label"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("branch_org_name AS report_org_label"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("深圳市分行营业部"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("snapshot_aum"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("base_aum < 1000000 AND current_aum >= 1000000"), rewriteCandidateSql);
@@ -582,6 +585,8 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("snapshot_aum"));
         assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("report_org_name"));
         assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("report_org_label"));
+        assertFalse(String.valueOf(accelerationArtifact.get("ddlSql")).contains("GROUPING SETS"));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("UNION ALL"));
         assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
             + accelerationArtifact.get("mvName")));
         assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("base_100_anchor"));
