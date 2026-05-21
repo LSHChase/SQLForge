@@ -88,3 +88,56 @@
 - 不执行真实 SQL，不读取生产数据。
 - 不创建、激活或暂停 runtime rewrite binding。
 - 不把结构哈希重复块直接写成已完成子查询合并；该信号只进入后续 rewrite rule / 语义等价验证阶段。
+
+## Phase 2.2 Relational Algebra Rewriting
+
+第二阶段已在后端新增 L4 关系代数等价变换候选识别能力，用于在 `QBDAG` 和结构哈希基础上识别低效率模式，并生成静态、可审计的高效形式候选。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.ra`
+- 构建器：`RelationalRewritePlanBuilder`
+- 应用入口：`SqlOptimizationPipelineService.buildRelationalRewritePlan(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getRelationalRewritePlan()`
+
+### Rewriting Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 公共子表达式消除 | 对 `QBDAG.duplicateStructuralGroups` 中结构哈希一致、输出列数量等价的查询块生成 `CSE_ELIMINATION` 候选；选择谓词原子更少的查询块作为主副本，并在引用点列出补偿谓词。 | 谓词包含关系当前为静态合取原子比较；碰撞、范围语义和列别名语义仍需 2.3.2 语义等价验证后才能自动合并。 |
+| 纵向折叠 | 对同源、同 `GROUP BY`、输出列数量等价的聚合查询块生成 `VERTICAL_FOLDING` 候选，候选形式使用 `CASE_AGGREGATION` 表达多指标聚合合并。 | 当前只生成候选和前置条件，不直接重写 SQL；`AVG` 拆解、`COUNT DISTINCT` 参数等价和重叠谓词策略必须在后续验证阶段确认。 |
+| 横向展开消除 | 对同一父查询下多个 `LEFT JOIN` 聚合子查询，若 join key 静态等价、`GROUP BY` 等价且子查询之间无外部依赖，生成 `HORIZONTAL_UNNESTING` 候选。 | 源结构差异过大时仍应保留 Lateral Join / 原结构；当前候选只说明可下推为扩展 `GROUP BY` 的方向。 |
+
+### Candidate Schema
+
+`RelationalRewritePlan` 固化：
+
+- `schemaVersion = relational-rewrite-plan/v1`
+- `sourceSchemaVersion = query-block-dag/v1`
+- `candidates`：包含规则类型、主查询块、源查询块、替代形式、补偿谓词、前置条件、语义风险、证据和静态收益估计。
+- `unappliedRules`：记录未命中的规则，便于后续排查为什么某条 SQL 未触发候选。
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`。
+
+### Rule Semantics
+
+| 规则 | 触发信号 | 输出 |
+|:---|:---|:---|
+| `CSE_ELIMINATION` | 结构哈希重复、输出列位置等价、谓词差异可列为补偿谓词。 | `CSE(master=..., replace=..., pushCompensationPredicatesAtReference=true)` |
+| `VERTICAL_FOLDING` | 重复聚合块具有等价来源和等价 `GROUP BY`，指标或谓词不同。 | `VERTICAL_FOLD(source=..., groupBy=..., metrics=...)` |
+| `HORIZONTAL_UNNESTING` | 父查询存在多个同级 `LEFT JOIN` 聚合右表，join key 和 `GROUP BY` 等价，子查询互不依赖。 | `HORIZONTAL_UNNEST(parent=..., joinKey=..., groupBy=..., metrics=...)` |
+
+### Conflict / Choice
+
+本阶段没有需要暂停实现的产品冲突；存在一个必须保守处理的工程选择：
+
+| 选择点 | 已采用方案 | 备选 |
+|:---|:---|:---|
+| CSE、纵向折叠和横向展开都能推导出等价高效形式，但谓词包含、聚合可分解性和 `COUNT DISTINCT` 参数等价仍可能依赖真实语义。 | 只生成 `manualReviewRequired=true`、`autoApplyAllowed=false` 的静态候选，并保留补偿谓词、前置条件和语义风险。 | 直接改写 SQL；实现速度更快，但会在 2.3.2 语义等价验证未完成前扩大误改风险。 |
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不创建、激活或暂停 runtime rewrite binding。
+- 不把候选收益写成真实扫描量或真实运行收益。
+- 不自动合并子查询、不自动下推补偿谓词、不自动替换生产 SQL。

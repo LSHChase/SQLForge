@@ -15,6 +15,8 @@ import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrAssembler;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
 import io.trino.sql.parser.ParsingOptions;
 import io.trino.sql.parser.SqlParser;
 import io.trino.sql.tree.AstVisitor;
@@ -656,6 +658,11 @@ public class SqlOptimizationPipelineService {
             profile.getNormalizedSql(),
             profile.toAdvancedStructureProfile()
         );
+    }
+
+    public RelationalRewritePlan buildRelationalRewritePlan(ParsedSqlProfile profile) {
+        QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
+        return new RelationalRewritePlanBuilder().build(queryBlockDag);
     }
 
     public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {

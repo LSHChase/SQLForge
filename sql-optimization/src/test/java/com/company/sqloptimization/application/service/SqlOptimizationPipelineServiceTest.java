@@ -15,6 +15,9 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagIssue;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockEdge;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteCandidate;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteRuleType;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.nio.charset.StandardCharsets;
@@ -350,6 +353,59 @@ class SqlOptimizationPipelineServiceTest {
             snapshot.getAttributes().get("duplicateStructuralGroupCount")
         );
         assertTrue(hasEquivalentQueryBlock(snapshot));
+    }
+
+    @Test
+    void shouldGenerateRelationalRewriteCandidatesForRepeatedAggregateBlocks() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RelationalRewritePlan plan = service.buildRelationalRewritePlan(profile);
+
+        assertEquals(RelationalRewritePlan.SCHEMA_VERSION, plan.getSchemaVersion());
+        assertTrue(plan.hasCandidate(RelationalRewriteRuleType.CSE_ELIMINATION));
+        assertTrue(plan.hasCandidate(RelationalRewriteRuleType.VERTICAL_FOLDING));
+        assertTrue(plan.hasCandidate(RelationalRewriteRuleType.HORIZONTAL_UNNESTING));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", plan.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, plan.getAttributes().get("autoApplyAllowed"));
+
+        RelationalRewriteCandidate cse = firstCandidate(plan, RelationalRewriteRuleType.CSE_ELIMINATION);
+        assertTrue(cse.isManualReviewRequired());
+        assertFalse(cse.isAutoApplyAllowed());
+        assertTrue(cse.getSourceBlockIds().size() >= 3, cse.getSourceBlockIds().toString());
+        assertFalse(cse.getCompensationPredicates().isEmpty());
+        assertTrue(cse.getReplacementForm().contains("pushCompensationPredicatesAtReference=true"));
+
+        RelationalRewriteCandidate vertical = firstCandidate(plan, RelationalRewriteRuleType.VERTICAL_FOLDING);
+        assertTrue(vertical.getReplacementForm().contains("VERTICAL_FOLD"));
+        assertTrue(vertical.getPreconditions().contains("COUNT_DISTINCT_ARGUMENT_EQUIVALENCE_REQUIRED"));
+        assertTrue(vertical.getSemanticRisks().contains("OVERLAPPING_PREDICATES_MUST_REMAIN_INSIDE_CASE_EXPRESSION"));
+
+        RelationalRewriteCandidate horizontal = firstCandidate(plan, RelationalRewriteRuleType.HORIZONTAL_UNNESTING);
+        assertTrue(horizontal.getReplacementForm().contains("HORIZONTAL_UNNEST"));
+        assertEquals("AGGREGATION_PUSHDOWN_GROUP_BY_EXTENSION", horizontal.getAttributes().get("unnestingMode"));
+    }
+
+    @Test
+    void shouldExposeRelationalRewritePlanThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+
+        assertNotNull(snapshot.getRelationalRewritePlan());
+        assertTrue(snapshot.getRelationalRewritePlan().hasCandidate(RelationalRewriteRuleType.CSE_ELIMINATION));
+        assertTrue(snapshot.getRelationalRewritePlan().hasCandidate(RelationalRewriteRuleType.VERTICAL_FOLDING));
+        assertTrue(snapshot.getRelationalRewritePlan().hasCandidate(RelationalRewriteRuleType.HORIZONTAL_UNNESTING));
+        assertEquals(
+            Integer.valueOf(snapshot.getRelationalRewritePlan().getCandidates().size()),
+            snapshot.getAttributes().get("relationalRewriteCandidateCount")
+        );
+        assertEquals("CANDIDATE_GENERATED", snapshot.getAttributes().get("relationalRewritePlanStatus"));
     }
 
     @Test
@@ -979,6 +1035,35 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private RelationalRewriteCandidate firstCandidate(RelationalRewritePlan plan, RelationalRewriteRuleType ruleType) {
+        List<RelationalRewriteCandidate> candidates = plan.candidatesOf(ruleType);
+        assertFalse(candidates.isEmpty(), "缺少关系代数改写候选：" + ruleType);
+        return candidates.get(0);
+    }
+
+    private String repeatedAggregateLeftJoinSql() {
+        return "SELECT b.customer_id, s1.base_100, s2.current_100, s3.base_600 "
+            + "FROM customers b "
+            + "LEFT JOIN ("
+            + "  SELECT customer_id, COUNT(DISTINCT customer_id) AS base_100 "
+            + "  FROM customer_snapshot "
+            + "  WHERE dt = DATE '2026-04-30' AND avg_balance >= 1000000 "
+            + "  GROUP BY customer_id"
+            + ") s1 ON b.customer_id = s1.customer_id "
+            + "LEFT JOIN ("
+            + "  SELECT customer_id, COUNT(DISTINCT customer_id) AS current_100 "
+            + "  FROM customer_snapshot "
+            + "  WHERE dt = DATE '2026-05-31' AND avg_balance >= 1000000 "
+            + "  GROUP BY customer_id"
+            + ") s2 ON b.customer_id = s2.customer_id "
+            + "LEFT JOIN ("
+            + "  SELECT customer_id, COUNT(DISTINCT customer_id) AS base_600 "
+            + "  FROM customer_snapshot "
+            + "  WHERE dt = DATE '2026-04-30' AND avg_balance >= 6000000 "
+            + "  GROUP BY customer_id"
+            + ") s3 ON b.customer_id = s3.customer_id";
     }
 
     @SuppressWarnings("unchecked")

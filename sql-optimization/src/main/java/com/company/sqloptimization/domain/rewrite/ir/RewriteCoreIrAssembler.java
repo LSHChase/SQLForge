@@ -3,6 +3,8 @@ package com.company.sqloptimization.domain.rewrite.ir;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,6 +55,7 @@ public class RewriteCoreIrAssembler {
             aggregations,
             groupBy
         );
+        RelationalRewritePlan relationalRewritePlan = new RelationalRewritePlanBuilder().build(queryBlockDag);
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -64,6 +67,8 @@ public class RewriteCoreIrAssembler {
         attributes.put("queryBlockDagStatus", queryBlockDag.getAttributes().get("decompositionStatus"));
         attributes.put("queryBlockDagBlockCount", Integer.valueOf(queryBlockDag.getBlocks().size()));
         attributes.put("duplicateStructuralGroupCount", Integer.valueOf(queryBlockDag.getDuplicateStructuralGroups().size()));
+        attributes.put("relationalRewritePlanStatus", relationalRewritePlan.getAttributes().get("rewriteStatus"));
+        attributes.put("relationalRewriteCandidateCount", Integer.valueOf(relationalRewritePlan.getCandidates().size()));
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -73,6 +78,7 @@ public class RewriteCoreIrAssembler {
             queryBlocks,
             queryBlockDag,
             algebra,
+            relationalRewritePlan,
             businessIntent,
             architectureConflicts(),
             attributes

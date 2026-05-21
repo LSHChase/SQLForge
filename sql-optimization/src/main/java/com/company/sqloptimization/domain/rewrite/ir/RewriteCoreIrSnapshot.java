@@ -1,6 +1,7 @@
 package com.company.sqloptimization.domain.rewrite.ir;
 
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
+import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ public class RewriteCoreIrSnapshot {
     private final List<QueryBlockIr> queryBlocks;
     private final QueryBlockDag queryBlockDag;
     private final List<RelationalAlgebraNode> relationalAlgebra;
+    private final RelationalRewritePlan relationalRewritePlan;
     private final BusinessIntentIr businessIntent;
     private final List<RewriteIrConflict> architectureConflicts;
     private final Map<String, Object> attributes;
@@ -26,6 +28,7 @@ public class RewriteCoreIrSnapshot {
                                  List<QueryBlockIr> queryBlocks,
                                  QueryBlockDag queryBlockDag,
                                  List<RelationalAlgebraNode> relationalAlgebra,
+                                 RelationalRewritePlan relationalRewritePlan,
                                  BusinessIntentIr businessIntent,
                                  List<RewriteIrConflict> architectureConflicts,
                                  Map<String, Object> attributes) {
@@ -36,6 +39,7 @@ public class RewriteCoreIrSnapshot {
         this.queryBlocks = IrCollections.immutableList(queryBlocks);
         this.queryBlockDag = queryBlockDag;
         this.relationalAlgebra = IrCollections.immutableList(relationalAlgebra);
+        this.relationalRewritePlan = relationalRewritePlan;
         this.businessIntent = businessIntent;
         this.architectureConflicts = IrCollections.immutableList(architectureConflicts);
         this.attributes = IrCollections.immutableMap(attributes);
@@ -71,6 +75,10 @@ public class RewriteCoreIrSnapshot {
 
     public List<RelationalAlgebraNode> getRelationalAlgebra() {
         return relationalAlgebra;
+    }
+
+    public RelationalRewritePlan getRelationalRewritePlan() {
+        return relationalRewritePlan;
     }
 
     public BusinessIntentIr getBusinessIntent() {

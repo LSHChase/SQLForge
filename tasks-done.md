@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RA-REWRITE-PHASE2-20260521: 实现 SQL 改写第二阶段关系代数等价变换候选
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-RA-REWRITE-PHASE2-20260521 implement relational algebra rewrite candidates`
+- Priority: 1
+- Depends on: USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动生效生产改写的前提下，在 sql-optimization 改写核心 L4 层实现 Relational Algebra Rewriting 第一版：基于 QBDAG 和结构哈希识别公共子表达式消除/子查询去重、纵向折叠多指标聚合合并、横向展开消除 LEFT JOIN 聚合序列，并输出等价高效形式的静态 rewrite candidate、补偿谓词和约束/风险证据；补充测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RA-REWRITE-PHASE2-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 L4 关系代数改写静态候选：CSE 消除、纵向折叠和横向展开消除；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充 QBDAG 聚合 LEFT JOIN 回归测试、架构文档和原始需求归档；未改动页面。
+  - Validation evidence: java -version => OpenJDK 1.8.0_112; mvn -pl sql-optimization -am test -DfailIfNoTests=false => 334 tests passed; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes=changed Java paths => 0 violations; mvn -pl sql-optimization pmd:pmd => BUILD SUCCESS with existing P3C PMD 7 compatibility warnings; git diff --check => passed; node scripts/check-developer-copy-language.mjs --changed => passed; node scripts/lint-repository-knowledge.js => passed; python3 scripts/foreman.py validate USER-CN-RA-REWRITE-PHASE2-20260521 => passed; python3 scripts/task_audit.py --check --phase pre-closeout => passed.
+  - Residual risk: 本阶段只生成 manualReviewRequired=true、autoApplyAllowed=false 的静态候选；谓词包含、COUNT DISTINCT 参数等价、AVG 拆解和真实语义等价仍需后续 2.3.2 验证后才能进入自动改写。PMD 输出存在既有 P3C 规则集 PMD 7 兼容性 warning，命令本身成功。
+  - Next step: 后续阶段实现 2.3.2 语义等价验证与候选到可执行改写的受控桥接。
+
 ### USER-CN-QBDAG-DECOMPOSITION-PHASE1-20260521: 实现 SQL 改写第一阶段 QBDAG 分解与结构哈希
 
 - Status: done
