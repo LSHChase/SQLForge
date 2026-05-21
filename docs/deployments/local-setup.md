@@ -28,7 +28,8 @@ Windows PowerShell：
 3. 启动 MySQL、Redis、MinIO
 4. 等待 MySQL 就绪
 5. 自动执行 `sql/init-schema.sql` 与 `sql/init-data.sql`
-6. 检查 `kafka_message_queue` 表是否存在
+6. 自动补齐 `execution_result`、`query_history`、`benchmark_task` / `benchmark_task_report` 的开发增量字段
+7. 检查 `kafka_message_queue` 表是否存在
 
 ## 手动启动
 
@@ -50,6 +51,12 @@ docker-compose up -d
 
 ```bash
 bash scripts/start-backend-services.sh
+```
+
+如果只想单独启动 `governance`，使用仓库内封装好的命令：
+
+```bash
+bash scripts/start-governance-dev.sh
 ```
 
 脚本会复用当前仓库已经通过 runtime smoke 验证过的后端启动参数：

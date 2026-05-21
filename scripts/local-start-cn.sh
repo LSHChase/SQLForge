@@ -138,6 +138,9 @@ main() {
 
   run_sql_file "sql/init-schema.sql"
   run_sql_file "sql/init-data.sql"
+  python3 "${REPO_ROOT}/scripts/ensure_execution_result_dev_schema.py"
+  python3 "${REPO_ROOT}/scripts/ensure_query_history_dev_schema.py"
+  python3 "${REPO_ROOT}/scripts/ensure_benchmark_dev_schema.py"
 
   cat <<'EOF'
 Local CN-mirror services are ready:

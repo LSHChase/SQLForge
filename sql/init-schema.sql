@@ -84,6 +84,13 @@ CREATE TABLE IF NOT EXISTS benchmark_task (
   ramp_up_seconds INT DEFAULT NULL COMMENT '请求的预热爬坡秒数',
   dataset_size_label VARCHAR(64) DEFAULT NULL COMMENT '数据集规模标签',
   scale_target_json JSON DEFAULT NULL COMMENT '生产规模目标与未验证证据边界 JSON',
+  template_id VARCHAR(64) DEFAULT NULL COMMENT '压测模板标识符',
+  template_type VARCHAR(32) DEFAULT NULL COMMENT '压测模板类型',
+  template_version VARCHAR(32) DEFAULT NULL COMMENT '压测模板契约版本',
+  test_set_id VARCHAR(64) DEFAULT NULL COMMENT '压测测试集标识符',
+  test_set_source VARCHAR(32) DEFAULT NULL COMMENT '压测测试集来源类型',
+  test_set_labels_json JSON DEFAULT NULL COMMENT '压测测试集标签模型 JSON',
+  test_set_source_refs_json JSON DEFAULT NULL COMMENT '压测测试集来源引用 JSON',
   readonly_required TINYINT(1) NOT NULL DEFAULT 1 COMMENT '只读护栏标志',
   shadow_environment_mode VARCHAR(32) NOT NULL COMMENT '影子环境要求模式',
   desensitization_requirement VARCHAR(32) NOT NULL COMMENT '脱敏要求模式',
@@ -105,7 +112,9 @@ CREATE TABLE IF NOT EXISTS benchmark_task (
   PRIMARY KEY (task_id),
   KEY idx_benchmark_task_status_submitted (status, submitted_at),
   KEY idx_benchmark_task_tenant_time (tenant_id, create_time),
-  KEY idx_benchmark_task_fingerprint (sql_fingerprint)
+  KEY idx_benchmark_task_fingerprint (sql_fingerprint),
+  KEY idx_benchmark_task_template_type (template_type),
+  KEY idx_benchmark_task_test_set_source (test_set_source)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Persistent benchmark task carrier for scheduler and worker flow';
 
 CREATE TABLE IF NOT EXISTS benchmark_task_report (
