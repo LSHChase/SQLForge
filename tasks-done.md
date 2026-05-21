@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-SQL-REWRITE-CORRECTNESS-20260521: 修复 test01 SQL 改写等价性与性能
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `fix(sql-optimization): correct report SQL rewrite semantics`
+- Priority: 1
+- Depends on: N/A
+- Scope: 针对 docs/test01.sql 当前推荐 SQL 结果条数被压缩、指标不等价且仍耗时较长的问题，重新分析原 SQL 语义，修复改写与 MV 推荐逻辑，补充至少三类验证方法和回归测试，保持治理边界与运行时激活链路不自动绕过。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-SQL-REWRITE-CORRECTNESS-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 docs/test01.sql 推荐改写的等价性问题：改写结果改为基期100锚点行集，保留深圳市分行及下属机构标签，按原 SQL 语义拆分普通分段指标与新增指标；MV 推荐改为带机构路径过滤能力的报表机构-客户-日期快照，并补充逐键指标、机构标签、锚点行集和计划形态验证。
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest,L2SnapshotAggregateReportMvCandidateGeneratorTest,L2MaterializedViewLargeSqlQualityTest,L2CommonSubgraphMvCandidateGeneratorTest,L2GrainMeasureDeriverTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test passed 33 tests; mvn -pl sql-optimization -am test passed 327 tests; python3 scripts/foreman.py validate USER-CN-FIX-SQL-REWRITE-CORRECTNESS-20260521 --include-task-audit --extra-command 'mvn -pl sql-optimization -am test' --extra-command 'git diff --check' passed; python3 scripts/task_audit.py --check --phase pre-closeout passed.
+  - Residual risk: 本轮为仓库内静态 SQL 生成与语义夹具验证，未连接真实 Hetu/MRS 执行 original/rewrite validationSql、EXPLAIN 或生产 MV refresh；实际 70s 剩余耗时需在目标环境用新 MV rewrite 再测。
+  - Next step: 在真实 Hetu/MRS 环境执行新 artifact 的 validationSql，确认 RESULT_SET_EXCEPT_DIFF、ANCHOR_KEY_SET_DIFF、ORG_LABEL_SET_DIFF、METRIC_BY_KEY_DIFF 均为 0，再用 EXPLAIN/运行时指标比较原 SQL、standalone rewrite 和 MV rewrite 的扫描量与耗时。
+
 ### USER-CN-DEEP-SQL-REWRITE-MV-20260521: 增强复杂 SQL 改写与高级 MV 推荐
 
 - Status: done

@@ -560,9 +560,16 @@ class SqlOptimizationPipelineServiceTest {
         assertFalse(model.isAutoApplyAllowed());
 
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
-        assertTrue(rewriteCandidateSql.contains("customer_snapshot"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("customer_flags"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("metric_by_org"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("growth_by_org"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("深圳市分行营业部"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("snapshot_aum"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("base_aum < 1000000 AND current_aum >= 1000000"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("a.report_org_name AS \"机构编码__第二层机构简称\""), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("\"Sum_增量100\""), rewriteCandidateSql);
 
         assertNotNull(accelerationArtifact);
@@ -573,19 +580,30 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(maps(accelerationArtifact.get("blockingReasons")).isEmpty());
         assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"));
         assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("snapshot_aum"));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("report_org_name"));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("report_org_label"));
         assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
             + accelerationArtifact.get("mvName")));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("base_100_anchor"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("metric_by_org"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("growth_by_org"));
         assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
             .contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
         assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("RESULT_SET_EXCEPT_DIFF"));
         assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("METRIC_SUM_DIFF"));
         assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("KEY_CARDINALITY_DIFF"));
+        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("ANCHOR_KEY_SET_DIFF"));
+        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("ORG_LABEL_SET_DIFF"));
+        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("METRIC_BY_KEY_DIFF"));
         List<Map<String, Object>> validationMethods = maps(accelerationArtifact.get("validationMethods"));
-        assertTrue(validationMethods.size() >= 3, validationMethods.toString());
+        assertTrue(validationMethods.size() >= 6, validationMethods.toString());
         assertTrue(hasCode(validationMethods, "RESULT_SET_EXCEPT_DIFF"));
         assertTrue(hasCode(validationMethods, "METRIC_SUM_DIFF"));
+        assertTrue(hasCode(validationMethods, "ORG_LABEL_SET_DIFF"));
+        assertTrue(hasCode(validationMethods, "METRIC_BY_KEY_DIFF"));
         assertTrue(hasCode(validationMethods, "PLAN_SHAPE_SCAN_REDUCTION"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("originalBaseScanCount"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("BASE_100_SUB34_EQUIVALENT"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("orgLabelLineage"));
     }
 
     private String complexAntiPatternSql() {

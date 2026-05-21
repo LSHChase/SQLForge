@@ -26,9 +26,9 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
     private static final Pattern THRESHOLD_PATTERN =
         Pattern.compile("(?is)(?:AUM|AMOUNT|BAL)[A-Z0-9_\\.\"\\s]*>=\\s*([0-9]+)");
     private static final Pattern SPECIAL_BRANCH_NO_PATTERN =
-        Pattern.compile("(?is)CASE\\s+\"?[A-Z0-9_\\.]*ORG_NO_4\"?\\s+WHEN\\s+'([^']+)'\\s+THEN\\s+'([^']+)'");
+        Pattern.compile("(?is)CASE\\s+[^\\n]*?(?:ORG_NO_4|第四层时点机构号)[\\s\\S]*?WHEN\\s+'([^']+)'\\s+THEN\\s+'([^']+)'[\\s\\S]*?ELSE\\s+[^\\n]*(?:ORG_NO_3|第三层时点机构号)[\\s\\S]*?END");
     private static final Pattern SPECIAL_BRANCH_NAME_PATTERN =
-        Pattern.compile("(?is)CASE\\s+\"?[A-Z0-9_\\.]*ORG_NO_4\"?\\s+WHEN\\s+'[^']+'\\s+THEN\\s+'([^']+)'");
+        Pattern.compile("(?is)CASE\\s+[^\\n]*?(?:ORG_NO_4|第四层时点机构号)[\\s\\S]*?WHEN\\s+'[^']+'\\s+THEN\\s+'([^']+)'[\\s\\S]*?ELSE\\s+[^\\n]*(?:ORG_SNAM_3|第三层机构简称)[\\s\\S]*?END");
     private static final Pattern TOP_ORG_PATTERN =
         Pattern.compile("(?is)'([^']+)'\\s+AS\\s+\"org\"");
 
@@ -66,7 +66,7 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             return CandidateSql.blocked(blockingReasons, shape);
         }
         L2MaterializedViewDialectRenderer.RenderedSql renderedSql =
-            L2MaterializedViewDialectRenderer.render(targetEngine, mvName, buildSnapshotSelect(shape, false, null));
+            L2MaterializedViewDialectRenderer.render(targetEngine, mvName, buildMaterializedSnapshotSelect(shape));
         String rewriteSql = buildMvRewriteSql(shape, mvName);
         String validationSql = buildValidationSql(shape, sourceSql, rewriteSql);
         return CandidateSql.generated(
@@ -129,9 +129,9 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         List<Long> thresholds = thresholds(sourceSql);
         long low = thresholds.isEmpty() ? 1000000L : thresholds.get(0).longValue();
         long high = thresholds.size() < 2 ? low * 6L : thresholds.get(thresholds.size() - 1).longValue();
-        String specialBranchSource = firstGroup(SPECIAL_BRANCH_NO_PATTERN, sourceSql, 1);
-        String specialBranchTarget = firstGroup(SPECIAL_BRANCH_NO_PATTERN, sourceSql, 2);
-        String specialBranchName = firstGroup(SPECIAL_BRANCH_NAME_PATTERN, sourceSql, 1);
+        String specialBranchSource = firstSpecialBranchNoLiteral(sourceSql, 1);
+        String specialBranchTarget = firstSpecialBranchNoLiteral(sourceSql, 2);
+        String specialBranchName = firstSpecialBranchNameLiteral(sourceSql);
         return new SnapshotShape(
             trimTrailingSemicolon(sourceSql),
             factTable,
@@ -157,24 +157,38 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
     }
 
     private static String buildStandaloneRewriteSql(SnapshotShape shape) {
-        return "WITH customer_snapshot AS (\n"
-            + buildSnapshotSelect(shape, true, null)
+        return "WITH raw_customer_snapshot AS (\n"
+            + buildRawCustomerSnapshotSelect(shape, true, null)
             + "\n),\n"
-            + buildFinalReportCtes("customer_snapshot", shape, false)
+            + "report_customer_snapshot AS (\n"
+            + buildReportSnapshotSelectFromRaw(shape, false)
+            + "\n),\n"
+            + buildFinalReportCtes(shape)
             + "\n"
             + finalSelectSql()
             + ";";
     }
 
     private static String buildMvRewriteSql(SnapshotShape shape, String mvName) {
-        return "WITH "
-            + buildFinalReportCtes(mvName, shape, true)
+        return "WITH report_customer_snapshot AS (\n"
+            + buildReportSnapshotSelectFromMv(shape, mvName)
+            + "\n),\n"
+            + buildFinalReportCtes(shape)
             + "\n"
             + finalSelectSql()
             + ";";
     }
 
-    private static String buildSnapshotSelect(SnapshotShape shape, boolean includeReportFilters, String sourceRelation) {
+    private static String buildMaterializedSnapshotSelect(SnapshotShape shape) {
+        return "WITH raw_customer_snapshot AS (\n"
+            + buildRawCustomerSnapshotSelect(shape, false, null)
+            + "\n)\n"
+            + buildReportSnapshotSelectFromRaw(shape, true);
+    }
+
+    private static String buildRawCustomerSnapshotSelect(SnapshotShape shape,
+                                                         boolean includeReportFilters,
+                                                         String sourceRelation) {
         String source = StringUtils.hasText(sourceRelation) ? sourceRelation : shape.factTable;
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT\n");
@@ -209,72 +223,143 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         return sql.toString();
     }
 
-    private static String buildFinalReportCtes(String sourceRelation, SnapshotShape shape, boolean includeFilters) {
-        String relation = sourceRelation;
-        String predicate = includeFilters
-            ? "WHERE " + orgScopePredicate(shape, aliasOrgNoReferences()) + "\n  AND " + datePredicate(shape, "snapshot_date") + "\n"
-            : "";
-        return "scoped_customer_snapshot AS (\n"
-            + "  SELECT org_level2_no, org_level2_name, '" + escapeSqlLiteral(shape.topOrgName)
-            + "' AS org, customer_no, snapshot_date, SUM(snapshot_aum) AS snapshot_aum\n"
-            + "  FROM " + relation + "\n"
-            + indent(predicate, "  ")
-            + "  GROUP BY org_level2_no, org_level2_name, customer_no, snapshot_date\n"
-            + "  UNION ALL\n"
-            + "  SELECT branch_org_no AS org_level2_no, branch_org_name AS org_level2_name, branch_org_name AS org,\n"
-            + "    customer_no, snapshot_date, SUM(snapshot_aum) AS snapshot_aum\n"
-            + "  FROM " + relation + "\n"
-            + indent(predicate, "  ")
-            + "  GROUP BY branch_org_no, branch_org_name, customer_no, snapshot_date\n"
-            + "),\n"
-            + "customer_flags AS (\n"
-            + "  SELECT\n"
-            + "    org_level2_no,\n"
-            + "    org_level2_name,\n"
-            + "    org,\n"
+    private static String buildReportSnapshotSelectFromRaw(SnapshotShape shape, boolean retainScopeColumns) {
+        List<String> scopeColumns = retainScopeColumns ? aliasOrgNoReferences() : Collections.<String>emptyList();
+        List<String> topGrouping = new ArrayList<String>(scopeColumns);
+        topGrouping.add("org_level2_no");
+        topGrouping.add("org_level2_name");
+        topGrouping.add("customer_no");
+        topGrouping.add("snapshot_date");
+        List<String> branchGrouping = new ArrayList<String>(scopeColumns);
+        branchGrouping.add("branch_org_no");
+        branchGrouping.add("branch_org_name");
+        branchGrouping.add("customer_no");
+        branchGrouping.add("snapshot_date");
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT\n");
+        if (retainScopeColumns) {
+            for (String column : scopeColumns) {
+                sql.append("  ").append(column).append(",\n");
+            }
+        }
+        sql.append("  COALESCE(branch_org_no, org_level2_no) AS report_org_no,\n");
+        sql.append("  COALESCE(branch_org_name, org_level2_name) AS report_org_name,\n");
+        sql.append("  COALESCE(branch_org_name, '").append(escapeSqlLiteral(shape.topOrgName))
+            .append("') AS report_org_label,\n");
+        sql.append("  customer_no,\n");
+        sql.append("  snapshot_date,\n");
+        sql.append("  SUM(snapshot_aum) AS snapshot_aum\n");
+        sql.append("FROM raw_customer_snapshot\n");
+        sql.append("GROUP BY GROUPING SETS (\n");
+        sql.append("  ").append(parenthesizedCsv(topGrouping)).append(",\n");
+        sql.append("  ").append(parenthesizedCsv(branchGrouping)).append("\n");
+        sql.append(")");
+        return sql.toString();
+    }
+
+    private static String buildReportSnapshotSelectFromMv(SnapshotShape shape, String mvName) {
+        return "  SELECT\n"
+            + "    report_org_no,\n"
+            + "    report_org_name,\n"
+            + "    report_org_label,\n"
             + "    customer_no,\n"
-            + flagExpression(shape.baseDate, shape.lowThreshold, null, "base_100") + ",\n"
-            + flagExpression(shape.currentDate, shape.lowThreshold, null, "current_100") + ",\n"
-            + flagExpression(shape.baseDate, shape.lowThreshold, Long.valueOf(shape.highThreshold), "base_100_600") + ",\n"
-            + flagExpression(shape.currentDate, shape.lowThreshold, Long.valueOf(shape.highThreshold), "current_100_600") + ",\n"
-            + flagExpression(shape.baseDate, shape.highThreshold, null, "base_600") + ",\n"
-            + flagExpression(shape.currentDate, shape.highThreshold, null, "current_600") + "\n"
-            + "  FROM scoped_customer_snapshot\n"
-            + "  GROUP BY org_level2_no, org_level2_name, org, customer_no\n"
-            + "),\n"
-            + "final_report AS (\n"
+            + "    snapshot_date,\n"
+            + "    SUM(snapshot_aum) AS snapshot_aum\n"
+            + "  FROM " + mvName + "\n"
+            + "  WHERE " + orgScopePredicate(shape, aliasOrgNoReferences()) + "\n"
+            + "    AND " + datePredicate(shape, "snapshot_date") + "\n"
+            + "  GROUP BY report_org_no, report_org_name, report_org_label, customer_no, snapshot_date";
+    }
+
+    private static String buildFinalReportCtes(SnapshotShape shape) {
+        return "customer_pair AS (\n"
             + "  SELECT\n"
-            + "    org_level2_no,\n"
-            + "    org_level2_name,\n"
-            + "    org,\n"
-            + "    SUM(base_100) AS base_100,\n"
-            + "    SUM(current_100) AS current_100,\n"
-            + "    SUM(CASE WHEN base_100 = 0 AND current_100 = 1 THEN 1 ELSE 0 END) AS new_100,\n"
-            + "    SUM(base_100_600) AS base_100_600,\n"
-            + "    SUM(current_100_600) AS current_100_600,\n"
-            + "    SUM(CASE WHEN base_100_600 = 0 AND current_100_600 = 1 THEN 1 ELSE 0 END) AS new_100_600,\n"
-            + "    SUM(base_600) AS base_600,\n"
-            + "    SUM(current_600) AS current_600\n"
-            + "  FROM customer_flags\n"
-            + "  GROUP BY org_level2_no, org_level2_name, org\n"
+            + "    report_org_no,\n"
+            + "    report_org_name,\n"
+            + "    report_org_label,\n"
+            + "    customer_no,\n"
+            + "    SUM(CASE WHEN snapshot_date = '" + escapeSqlLiteral(shape.baseDate)
+            + "' THEN snapshot_aum ELSE 0 END) AS base_aum,\n"
+            + "    SUM(CASE WHEN snapshot_date = '" + escapeSqlLiteral(shape.currentDate)
+            + "' THEN snapshot_aum ELSE 0 END) AS current_aum\n"
+            + "  FROM report_customer_snapshot\n"
+            + "  GROUP BY report_org_no, report_org_name, report_org_label, customer_no\n"
+            + "),\n"
+            + "org_customer_pair AS (\n"
+            + "  SELECT\n"
+            + "    report_org_no,\n"
+            + "    customer_no,\n"
+            + "    SUM(CASE WHEN snapshot_date = '" + escapeSqlLiteral(shape.baseDate)
+            + "' THEN snapshot_aum ELSE 0 END) AS base_aum,\n"
+            + "    SUM(CASE WHEN snapshot_date = '" + escapeSqlLiteral(shape.currentDate)
+            + "' THEN snapshot_aum ELSE 0 END) AS current_aum\n"
+            + "  FROM report_customer_snapshot\n"
+            + "  GROUP BY report_org_no, customer_no\n"
+            + "),\n"
+            + "base_100_anchor AS (\n"
+            + "  SELECT\n"
+            + "    report_org_no,\n"
+            + "    report_org_name,\n"
+            + "    report_org_label,\n"
+            + "    COUNT(DISTINCT customer_no) AS base_100\n"
+            + "  FROM customer_pair\n"
+            + "  WHERE base_aum >= " + shape.lowThreshold + "\n"
+            + "  GROUP BY report_org_no, report_org_name, report_org_label\n"
+            + "),\n"
+            + "metric_by_org AS (\n"
+            + "  SELECT\n"
+            + "    report_org_no,\n"
+            + "    NULLIF(" + countDistinctCase("snapshot_date = '" + escapeSqlLiteral(shape.currentDate)
+            + "' AND snapshot_aum >= " + shape.lowThreshold) + ", 0) AS current_100,\n"
+            + "    NULLIF(" + countDistinctCase("snapshot_date = '" + escapeSqlLiteral(shape.baseDate)
+            + "' AND snapshot_aum >= " + shape.lowThreshold
+            + " AND snapshot_aum < " + shape.highThreshold) + ", 0) AS base_100_600,\n"
+            + "    NULLIF(" + countDistinctCase("snapshot_date = '" + escapeSqlLiteral(shape.currentDate)
+            + "' AND snapshot_aum >= " + shape.lowThreshold
+            + " AND snapshot_aum < " + shape.highThreshold) + ", 0) AS current_100_600,\n"
+            + "    NULLIF(" + countDistinctCase("snapshot_date = '" + escapeSqlLiteral(shape.baseDate)
+            + "' AND snapshot_aum >= " + shape.highThreshold) + ", 0) AS base_600,\n"
+            + "    NULLIF(" + countDistinctCase("snapshot_date = '" + escapeSqlLiteral(shape.currentDate)
+            + "' AND snapshot_aum >= " + shape.highThreshold) + ", 0) AS current_600\n"
+            + "  FROM report_customer_snapshot\n"
+            + "  GROUP BY report_org_no\n"
+            + "),\n"
+            + "growth_by_org AS (\n"
+            + "  SELECT\n"
+            + "    report_org_no,\n"
+            + "    NULLIF(" + countDistinctCase("base_aum < " + shape.lowThreshold
+            + " AND current_aum >= " + shape.lowThreshold) + ", 0) AS new_100,\n"
+            + "    NULLIF(" + countDistinctCase("base_aum < " + shape.lowThreshold
+            + " AND current_aum >= " + shape.lowThreshold
+            + " AND current_aum < " + shape.highThreshold) + ", 0) AS new_100_600\n"
+            + "  FROM org_customer_pair\n"
+            + "  GROUP BY report_org_no\n"
             + ")";
     }
 
     private static String finalSelectSql() {
         return "SELECT\n"
-            + "  org_level2_no AS \"机构编码__第二层时点机构号\",\n"
-            + "  org_level2_name AS \"机构编码__第二层机构简称\",\n"
-            + "  org,\n"
-            + "  base_100 AS \"基期100\",\n"
-            + "  current_100 AS \"当期100\",\n"
-            + "  new_100 AS \"新增100\",\n"
-            + "  new_100_600 AS \"新增100-600\",\n"
-            + "  current_100 - base_100 AS \"Sum_增量100\",\n"
-            + "  CAST(current_100 - base_100 AS DOUBLE) / NULLIF(CAST(base_100 AS DOUBLE), 0) AS \"Sum_增速100\",\n"
-            + "  current_100_600 - base_100_600 AS \"Sum_增量100-600\",\n"
-            + "  CAST(current_100_600 - base_100_600 AS DOUBLE) / NULLIF(CAST(base_100_600 AS DOUBLE), 0) AS \"Sum_增速100-600\",\n"
-            + "  current_600 - base_600 AS \"Sum_增量600\"\n"
-            + "FROM final_report";
+            + "  a.report_org_no AS \"机构编码__第二层时点机构号\",\n"
+            + "  a.report_org_name AS \"机构编码__第二层机构简称\",\n"
+            + "  a.report_org_label AS \"org\",\n"
+            + "  a.base_100 AS \"基期100\",\n"
+            + "  m.current_100 AS \"当期100\",\n"
+            + "  g.new_100 AS \"新增100\",\n"
+            + "  g.new_100_600 AS \"新增100-600\",\n"
+            + "  m.current_100 - a.base_100 AS \"Sum_增量100\",\n"
+            + "  CAST(m.current_100 - a.base_100 AS DOUBLE) / NULLIF(CAST(a.base_100 AS DOUBLE), 0) AS \"Sum_增速100\",\n"
+            + "  m.current_100_600 - m.base_100_600 AS \"Sum_增量100-600\",\n"
+            + "  CAST(m.current_100_600 - m.base_100_600 AS DOUBLE) / NULLIF(CAST(m.base_100_600 AS DOUBLE), 0) AS \"Sum_增速100-600\",\n"
+            + "  m.current_600 - m.base_600 AS \"Sum_增量600\"\n"
+            + "FROM base_100_anchor a\n"
+            + "LEFT JOIN metric_by_org m ON a.report_org_no = m.report_org_no\n"
+            + "LEFT JOIN growth_by_org g ON a.report_org_no = g.report_org_no\n"
+            + "ORDER BY a.report_org_label ASC,\n"
+            + "  a.report_org_name ASC,\n"
+            + "  a.base_100 ASC,\n"
+            + "  m.current_100 ASC,\n"
+            + "  g.new_100 ASC,\n"
+            + "  g.new_100_600 ASC";
     }
 
     private static String buildValidationSql(SnapshotShape shape, String sourceSql, String rewriteSql) {
@@ -292,11 +377,48 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             + "  SELECT * FROM rewrite_result\n"
             + "  EXCEPT\n"
             + "  SELECT * FROM original_result\n"
+            + "),\n"
+            + "key_diff AS (\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\" FROM original_result\n"
+            + "  EXCEPT\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\" FROM rewrite_result\n"
+            + "  UNION ALL\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\" FROM rewrite_result\n"
+            + "  EXCEPT\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\" FROM original_result\n"
+            + "),\n"
+            + "metric_by_key_diff AS (\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\", \"基期100\", \"当期100\",\n"
+            + "    \"新增100\", \"新增100-600\", \"Sum_增量100\", \"Sum_增量100-600\", \"Sum_增量600\" FROM original_result\n"
+            + "  EXCEPT\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\", \"基期100\", \"当期100\",\n"
+            + "    \"新增100\", \"新增100-600\", \"Sum_增量100\", \"Sum_增量100-600\", \"Sum_增量600\" FROM rewrite_result\n"
+            + "  UNION ALL\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\", \"基期100\", \"当期100\",\n"
+            + "    \"新增100\", \"新增100-600\", \"Sum_增量100\", \"Sum_增量100-600\", \"Sum_增量600\" FROM rewrite_result\n"
+            + "  EXCEPT\n"
+            + "  SELECT \"机构编码__第二层时点机构号\", \"机构编码__第二层机构简称\", \"org\", \"基期100\", \"当期100\",\n"
+            + "    \"新增100\", \"新增100-600\", \"Sum_增量100\", \"Sum_增量100-600\", \"Sum_增量600\" FROM original_result\n"
+            + "),\n"
+            + "org_label_diff AS (\n"
+            + "  SELECT \"机构编码__第二层机构简称\", \"org\" FROM original_result\n"
+            + "  EXCEPT\n"
+            + "  SELECT \"机构编码__第二层机构简称\", \"org\" FROM rewrite_result\n"
+            + "  UNION ALL\n"
+            + "  SELECT \"机构编码__第二层机构简称\", \"org\" FROM rewrite_result\n"
+            + "  EXCEPT\n"
+            + "  SELECT \"机构编码__第二层机构简称\", \"org\" FROM original_result\n"
             + ")\n"
             + "SELECT 'RESULT_SET_EXCEPT_DIFF' AS validation_method, COUNT(*) AS diff_count FROM result_diff\n"
             + "UNION ALL\n"
             + "SELECT 'KEY_CARDINALITY_DIFF' AS validation_method,\n"
             + "  ABS((SELECT COUNT(*) FROM original_result) - (SELECT COUNT(*) FROM rewrite_result)) AS diff_count\n"
+            + "UNION ALL\n"
+            + "SELECT 'ANCHOR_KEY_SET_DIFF' AS validation_method, COUNT(*) AS diff_count FROM key_diff\n"
+            + "UNION ALL\n"
+            + "SELECT 'ORG_LABEL_SET_DIFF' AS validation_method, COUNT(*) AS diff_count FROM org_label_diff\n"
+            + "UNION ALL\n"
+            + "SELECT 'METRIC_BY_KEY_DIFF' AS validation_method, COUNT(*) AS diff_count FROM metric_by_key_diff\n"
             + "UNION ALL\n"
             + "SELECT 'METRIC_SUM_DIFF' AS validation_method,\n"
             + "  CAST(ABS(COALESCE((SELECT SUM(\"Sum_增量100\") FROM original_result), 0)\n"
@@ -325,9 +447,24 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             "对最终分组键数量做差异校验，覆盖机构层级展开和客户分段聚合边界。",
             "validationSql"
         ));
+        methods.add(validationMethod(
+            "ANCHOR_KEY_SET_DIFF",
+            "校验改写结果仍以原 SQL 的基期100锚点行集为输出边界，避免结果行数被误压缩或误放大。",
+            "validationSql"
+        ));
+        methods.add(validationMethod(
+            "ORG_LABEL_SET_DIFF",
+            "校验机构简称和 org 展示标签集合一致，覆盖深圳市分行及下属支行名称保留。",
+            "validationSql"
+        ));
+        methods.add(validationMethod(
+            "METRIC_BY_KEY_DIFF",
+            "按机构键逐项比较核心指标，避免汇总数相同但单行数字不等价。",
+            "validationSql"
+        ));
         LinkedHashMap<String, Object> planReduction = validationMethod(
             "PLAN_SHAPE_SCAN_REDUCTION",
-            "静态校验 rewrite 只读取 MV 或单个客户快照 CTE，避免继续多次扫描原始明细表。",
+            "静态校验 rewrite 只读取报表客户快照 MV 或单个原始客户快照 CTE，避免继续多次扫描原始明细表。",
             "staticAstEvidence"
         );
         planReduction.put("originalRepeatedBaseScans", Integer.valueOf(shape.originalBaseScanCount));
@@ -364,8 +501,12 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         evidence.put("originalAggregateFunctionCount", Integer.valueOf(shape.originalAggregateFunctionCount));
         evidence.put("rewriteSource", StringUtils.hasText(mvName) ? "MV_ONLY" : "SINGLE_AGGREGATE_CTE");
         evidence.put("mvName", mvName);
+        evidence.put("resultAnchor", "BASE_100_SUB34_EQUIVALENT");
+        evidence.put("metricJoinShape", "BASE_100_ANCHOR_LEFT_JOIN_ORG_LEVEL_METRICS");
+        evidence.put("orgLabelLineage", Arrays.asList("org_level2_name", "branch_org_name", shape.topOrgName));
+        evidence.put("nullMetricSemantics", "ZERO_COUNT_METRICS_ARE_RENDERED_AS_NULL_TO_MATCH_LEFT_JOIN_ABSENCE");
         evidence.put("resourceReductionRationale",
-            "原 SQL 对同一事实明细按日期和 AUM 分段重复扫描，改写后先收敛到客户-日期粒度，再条件聚合。");
+            "原 SQL 对同一事实明细按日期和 AUM 分段重复扫描，改写后先收敛到报表机构-客户-日期粒度，再按基期100锚点和机构级指标聚合。");
         return evidence;
     }
 
@@ -374,11 +515,12 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         warning.put("code", "SNAPSHOT_AGG_RESULT_VALIDATION_REQUIRED");
         warning.put(
             "description",
-            "COUNT DISTINCT 被改写为客户-日期粒度快照上的条件聚合，必须先通过结果集差异、指标差异和计划形态三类验证。"
+            "COUNT DISTINCT 被改写为报表机构-客户-日期快照上的锚点聚合，必须先通过结果集、机构标签、逐键指标和计划形态验证。"
         );
         warning.put("requiredEvidence", Arrays.asList(
             "RESULT_SET_EXCEPT_DIFF",
-            "METRIC_SUM_DIFF",
+            "ORG_LABEL_SET_DIFF",
+            "METRIC_BY_KEY_DIFF",
             "PLAN_SHAPE_SCAN_REDUCTION"
         ));
         warning.put("generatedAllowed", Boolean.TRUE);
@@ -397,13 +539,27 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         coverage.put("rewriteSqlReadonly", Boolean.TRUE);
         coverage.put("rewriteSqlReferencesMv", Boolean.valueOf(StringUtils.hasText(mvName)));
         coverage.put("rewriteSqlAvoidsOriginalSources", Boolean.valueOf(StringUtils.hasText(mvName)));
-        coverage.put("validationMethodCount", Integer.valueOf(4));
+        coverage.put("validationMethodCount", Integer.valueOf(7));
         coverage.put("claimBoundary", "STATIC_REWRITE_REQUIRES_VALIDATION_SQL_BEFORE_ACTIVATION");
         return coverage;
     }
 
     private static List<String> grain() {
-        return Arrays.asList("snapshot_date", "org_level2_no", "org_level2_name", "branch_org_no", "customer_no");
+        return Arrays.asList(
+            "snapshot_date",
+            "org_no_0",
+            "org_no_1",
+            "org_no_2",
+            "org_no_3",
+            "org_no_4",
+            "org_no_5",
+            "org_no_6",
+            "org_no_7",
+            "report_org_no",
+            "report_org_name",
+            "report_org_label",
+            "customer_no"
+        );
     }
 
     private static List<String> dimensions() {
@@ -417,10 +573,9 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             "org_no_5",
             "org_no_6",
             "org_no_7",
-            "org_level2_no",
-            "org_level2_name",
-            "branch_org_no",
-            "branch_org_name",
+            "report_org_no",
+            "report_org_name",
+            "report_org_label",
             "customer_no"
         );
     }
@@ -458,17 +613,6 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         predicate.put("expression", expression);
         predicate.put("classification", classification);
         return predicate;
-    }
-
-    private static String flagExpression(String date, long lowThreshold, Long highThreshold, String alias) {
-        StringBuilder expression = new StringBuilder();
-        expression.append("    MAX(CASE WHEN snapshot_date = '").append(escapeSqlLiteral(date)).append("'");
-        expression.append(" AND snapshot_aum >= ").append(lowThreshold);
-        if (highThreshold != null) {
-            expression.append(" AND snapshot_aum < ").append(highThreshold.longValue());
-        }
-        expression.append(" THEN 1 ELSE 0 END) AS ").append(alias);
-        return expression.toString();
     }
 
     private static String branchNoExpression(SnapshotShape shape) {
@@ -543,11 +687,12 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         }
     }
 
-    private static String indent(String value, String prefix) {
-        if (!StringUtils.hasText(value)) {
-            return "";
-        }
-        return prefix + value.replace("\n", "\n" + prefix);
+    private static String parenthesizedCsv(List<String> items) {
+        return "(" + String.join(", ", items) + ")";
+    }
+
+    private static String countDistinctCase(String predicate) {
+        return "COUNT(DISTINCT CASE WHEN " + predicate + " THEN customer_no END)";
     }
 
     private static String firstFactTable(String sourceSql, SqlOptimizationPipelineService.ParsedSqlProfile profile) {
@@ -642,6 +787,45 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         List<Long> result = new ArrayList<Long>(values);
         Collections.sort(result);
         return result;
+    }
+
+    private static String firstSpecialBranchNoLiteral(String sourceSql, int group) {
+        String literal = firstSpecialBranchCaseLiteral(sourceSql, group, "ORG_NO_3", "第三层时点机构号");
+        if (StringUtils.hasText(literal)) {
+            return literal;
+        }
+        return firstGroup(SPECIAL_BRANCH_NO_PATTERN, sourceSql, group);
+    }
+
+    private static String firstSpecialBranchNameLiteral(String sourceSql) {
+        String literal = firstSpecialBranchCaseLiteral(sourceSql, 2, "ORG_SNAM_3", "第三层机构简称");
+        if (StringUtils.hasText(literal)) {
+            return literal;
+        }
+        return firstGroup(SPECIAL_BRANCH_NAME_PATTERN, sourceSql, 1);
+    }
+
+    private static String firstSpecialBranchCaseLiteral(String sourceSql,
+                                                       int group,
+                                                       String rawElseSignal,
+                                                       String aliasElseSignal) {
+        Pattern caseBlockPattern = Pattern.compile("(?is)CASE\\s+.*?END");
+        Matcher matcher = caseBlockPattern.matcher(sourceSql == null ? "" : sourceSql);
+        while (matcher.find()) {
+            String block = matcher.group();
+            String upperBlock = block.toUpperCase(Locale.ROOT);
+            if (!(upperBlock.contains("ORG_NO_4") || block.contains("第四层时点机构号"))) {
+                continue;
+            }
+            if (!(upperBlock.contains(rawElseSignal) || block.contains(aliasElseSignal))) {
+                continue;
+            }
+            Matcher literalMatcher = Pattern.compile("(?is)WHEN\\s+'([^']+)'\\s+THEN\\s+'([^']+)'").matcher(block);
+            if (literalMatcher.find()) {
+                return literalMatcher.group(group);
+            }
+        }
+        return "";
     }
 
     private static String stripQuotedAliases(String sql) {
