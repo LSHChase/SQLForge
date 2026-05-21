@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-VALIDATION-ACTIVATION-UX-20260521: 优化推荐 MV 验证激活闭环
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `feat(rewrite): expose validation and approval actions`
+- Priority: 1
+- Depends on: N/A
+- Scope: 在推荐结果/改写记录主页面补齐创建验证运行与批准允许自动应用入口，使 SQL 执行或解析自动推荐的 SQL/MV 能在页面内完成验证后激活；补充前端契约检查并保持 runtime binding ACTIVE 安全门禁。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-VALIDATION-ACTIVATION-UX-20260521`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 推荐中心改写生命周期新增创建验证运行与批准允许自动应用入口；后端暴露改写记录 review API；补充契约、i18n 与 MVC 覆盖。
+  - Validation evidence: node scripts/check-recommendation-page-contract.mjs；mvn -q -pl sql-optimization -Dtest=SqlRewriteRecordControllerTest test；git diff --check；npm run lint；npm run test:i18n-copy；npm run build；npm run test:frontend-page-governance；python3 scripts/foreman.py validate USER-CN-REWRITE-VALIDATION-ACTIVATION-UX-20260521；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 真实只读 digest 执行仍取决于后端 QueryExecutionResultDigestClient 配置；未配置时沿用现有客户端提交验证记录语义。
+  - Next step: 在真实数据源环境跑一次推荐 MV 生成、验证、批准、激活的浏览器链路。
+
 ### USER-CN-FIX-REWRITE-ACTIVATE-POLICY-20260521: 修复改写激活授权策略缺失并补充 MV 测试 SQL
 
 - Status: done

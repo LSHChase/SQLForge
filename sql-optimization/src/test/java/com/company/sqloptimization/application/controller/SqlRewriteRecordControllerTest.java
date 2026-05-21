@@ -59,6 +59,11 @@ class SqlRewriteRecordControllerTest {
         pausedRecord.setRewriteRecordId("rewrite-001");
         pausedRecord.setTenantId("tenant-a");
         pausedRecord.setActivationStatus("PAUSED");
+        SqlRewriteRecordVO approvedRecord = new SqlRewriteRecordVO();
+        approvedRecord.setRewriteRecordId("rewrite-001");
+        approvedRecord.setTenantId("tenant-a");
+        approvedRecord.setReviewStatus("APPROVED");
+        approvedRecord.setAutoApplyAllowed(Boolean.TRUE);
         RewriteActivationEligibilityReasonVO reason = new RewriteActivationEligibilityReasonVO();
         reason.setCode("VALIDATION_STATUS_NOT_EQUIVALENT");
         reason.setMessage("改写记录 validationStatus 必须为 EQUIVALENT。");
@@ -91,6 +96,7 @@ class SqlRewriteRecordControllerTest {
         when(sqlRewriteRecordApplicationService.listRewriteRecords("history-001", null, null, null))
             .thenReturn(Collections.singletonList(record));
         when(sqlRewriteRecordApplicationService.getActivationEligibility("rewrite-001")).thenReturn(eligibility);
+        when(sqlRewriteRecordApplicationService.reviewRewriteRecord(any(), any())).thenReturn(approvedRecord);
         when(sqlRewriteRecordApplicationService.activateRewriteRecord(any(), any())).thenReturn(activatedRecord);
         when(sqlRewriteRecordApplicationService.pauseRewriteRecord(any(), any())).thenReturn(pausedRecord);
         when(sqlRewriteRecordApplicationService.createValidationRun(any(), any())).thenReturn(run);
@@ -125,6 +131,14 @@ class SqlRewriteRecordControllerTest {
             .andExpect(jsonPath("$.eligible").value(false))
             .andExpect(jsonPath("$.refusalReasons[0].code").value("VALIDATION_STATUS_NOT_EQUIVALENT"))
             .andExpect(jsonPath("$.refusalReasons[0].blocking").value(true));
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/review"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"reviewStatus\":\"APPROVED\","
+                    + "\"reviewNote\":\"allow runtime activation\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reviewStatus").value("APPROVED"))
+            .andExpect(jsonPath("$.autoApplyAllowed").value(true));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/rewrite-records/rewrite-001/activate"))
                 .contentType(MediaType.APPLICATION_JSON)

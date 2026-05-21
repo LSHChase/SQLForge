@@ -995,6 +995,8 @@ export default {
       refreshRewriteRecords: '刷新改写记录',
       refreshValidationRuns: '刷新验证运行',
       createRewriteRecordAndReview: '创建改写记录',
+      createValidationRun: '创建验证运行',
+      approveAutoApply: '批准并允许自动应用',
       openRewriteReview: '进入改写激活',
       activateRewrite: '激活',
       pauseRewrite: '暂停',
@@ -1092,6 +1094,8 @@ export default {
       awaitingRewriteActivation: '等待改写记录激活。',
       lifecycleActionApplied: '改写记录动作已提交，状态已从后端刷新。',
       rewriteRecordCreated: '改写记录已创建，激活并确认运行时绑定处于 ACTIVE 后生效。',
+      validationRunCreated: '验证运行已创建，状态已从后端刷新。',
+      rewriteAutoApplyApproved: '已批准改写记录并允许自动应用。',
       rewriteRecordCreateUnavailable: '当前推荐缺少创建改写记录所需的原 SQL 或推荐 SQL。',
       noRefusalReasons: '当前没有激活资格拒绝原因。',
       noValidationRuns: '当前改写记录没有验证运行。'

@@ -755,6 +755,18 @@ export const pauseSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, r
     }
   })
 
+export const reviewSqlRewriteRecord = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/rewrite-records/${encodeURIComponent(rewriteRecordId)}/review`,
+    data: payload,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-rewrite-record-review',
+      ...requestOptions
+    }
+  })
+
 export const createRewriteValidationRun = (tenantId, rewriteRecordId, payload = {}, requestOptions = {}) =>
   request({
     method: 'post',

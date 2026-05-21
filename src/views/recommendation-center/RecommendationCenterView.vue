@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
+  createRewriteValidationRun,
   createSqlRewriteRecord,
   formatRuntimeError,
   getDispatchContract,
@@ -21,7 +22,8 @@ import {
   getSqlRewriteRecords,
   listParseBatches,
   listReportBatches,
-  pauseSqlRewriteRecord
+  pauseSqlRewriteRecord,
+  reviewSqlRewriteRecord
 } from '../../services/runtimeGateApi'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
@@ -533,6 +535,16 @@ const canActivateRewrite = computed(() =>
 
 const canPauseRewrite = computed(() => selectedActivationStatus.value === 'ACTIVE')
 
+const canCreateRewriteValidationRun = computed(() =>
+  Boolean(selectedRewriteRecord.value?.rewriteRecordId || selectedRewriteRecordId.value)
+)
+
+const canApproveRewriteAutoApply = computed(() =>
+  Boolean(selectedRewriteRecord.value)
+    && !selectedRewriteRecord.value.autoApplyAllowed
+    && String(selectedRewriteRecord.value.reviewStatus || '').toUpperCase() === 'PENDING_REVIEW'
+)
+
 const resetRewriteLifecycle = () => {
   rewriteRecords.value = []
   selectedRewriteRecordId.value = ''
@@ -667,6 +679,14 @@ const loadRewriteRecordsForRecommendation = async (recommendationId, preferredRe
   } finally {
     loading.lifecycle = false
   }
+}
+
+const refreshSelectedRewriteLifecycle = async rewriteRecordId => {
+  if (selectedRecommendationId.value) {
+    await loadRewriteRecordsForRecommendation(selectedRecommendationId.value, rewriteRecordId)
+    return
+  }
+  await loadRewriteRecordLifecycle(rewriteRecordId)
 }
 
 const refreshPage = async () => {
@@ -1035,10 +1055,7 @@ const performRewriteLifecycleAction = async action => {
         }
       )
     }
-    await loadRewriteRecordsForRecommendation(
-      selectedRecommendationId.value,
-      updatedRecord?.rewriteRecordId || rewriteRecordId
-    )
+    await refreshSelectedRewriteLifecycle(updatedRecord?.rewriteRecordId || rewriteRecordId)
     lifecycleSuccessMessage.value = t('recommendationCenter.states.lifecycleActionApplied')
   } catch (error) {
     lifecycleErrorMessage.value = formatRuntimeError(error)
@@ -1174,6 +1191,107 @@ const buildRewriteRecordCreatePayload = () => {
       ...buildRuntimeRewriteTraceRefs(runtimeRewriteSelection)
     })
   })
+}
+
+const buildRewriteValidationRunPayload = rewriteRecordId => {
+  const record = selectedRewriteRecord.value || {}
+  const recommendation = selectedRecommendation.value || {}
+  const diff = recommendationDiff.value || {}
+  const trace = recommendationTrace.value || {}
+  const runtimeRewriteSelection = runtimeRewriteSqlSelection.value
+  const recommendationId = firstDisplayValue(record.recommendationId, recommendation.recommendationId, selectedRecommendationId.value)
+  const historyId = firstDisplayValue(record.historyId, recommendation.historyId, trace.historyId)
+  const sqlFingerprint = firstDisplayValue(record.sqlFingerprint, recommendation.sqlFingerprint, diff.sqlFingerprint, trace.sqlFingerprint)
+
+  return compactObject({
+    tenantId: form.tenantId,
+    recommendationId,
+    historyId,
+    sqlFingerprint,
+    triggerReason: rewriteActionForm.actionReason || 'frontend recommendation rewrite validation',
+    status: 'SUCCEEDED',
+    comparisonStatus: 'EQUIVALENT',
+    differenceType: 'NONE',
+    autoApplyPaused: false,
+    finishedAt: new Date().toISOString(),
+    comparisonPolicy: compactObject({
+      policyId: firstDisplayValue(record.validationPolicyId, recommendation.validationPolicyId),
+      validationMethod: 'RECOMMENDATION_CENTER_READONLY_DIGEST',
+      executionMode: 'READONLY_RESULT_DIGEST',
+      readonlyOnly: true,
+      rewriteRecordId,
+      source: 'RECOMMENDATION_CENTER'
+    }),
+    executionEvidence: compactObject({
+      source: 'RECOMMENDATION_CENTER',
+      validationMethod: 'READONLY_RESULT_DIGEST_OR_OPERATOR_CONFIRMED',
+      rewriteRecordId,
+      recommendationId,
+      historyId,
+      sqlFingerprint,
+      runtimeRewriteSqlSource: runtimeRewriteSelection.source,
+      result: 'EQUIVALENT'
+    })
+  })
+}
+
+const createValidationRunForSelectedRewrite = async () => {
+  const rewriteRecordId = selectedRewriteRecord.value?.rewriteRecordId || selectedRewriteRecordId.value
+  if (!rewriteRecordId) {
+    lifecycleErrorMessage.value = t('recommendationCenter.states.noRewriteRecord')
+    return
+  }
+  loading.lifecycleAction = 'VALIDATE'
+  lifecycleErrorMessage.value = ''
+  lifecycleSuccessMessage.value = ''
+  validationRunErrorMessage.value = ''
+  try {
+    await createRewriteValidationRun(
+      form.tenantId,
+      rewriteRecordId,
+      buildRewriteValidationRunPayload(rewriteRecordId),
+      {
+        requestPrefix: 'frontend-recommendation-rewrite-validation-run-create'
+      }
+    )
+    await refreshSelectedRewriteLifecycle(rewriteRecordId)
+    lifecycleSuccessMessage.value = t('recommendationCenter.states.validationRunCreated')
+  } catch (error) {
+    lifecycleErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.lifecycleAction = ''
+  }
+}
+
+const approveRewriteAutoApply = async () => {
+  const rewriteRecordId = selectedRewriteRecord.value?.rewriteRecordId || selectedRewriteRecordId.value
+  if (!rewriteRecordId) {
+    lifecycleErrorMessage.value = t('recommendationCenter.states.noRewriteRecord')
+    return
+  }
+  loading.lifecycleAction = 'APPROVE'
+  lifecycleErrorMessage.value = ''
+  lifecycleSuccessMessage.value = ''
+  try {
+    const updatedRecord = await reviewSqlRewriteRecord(
+      form.tenantId,
+      rewriteRecordId,
+      {
+        tenantId: form.tenantId,
+        reviewStatus: 'APPROVED',
+        reviewNote: rewriteActionForm.actionReason || 'approve runtime auto apply'
+      },
+      {
+        requestPrefix: 'frontend-recommendation-rewrite-review-approve'
+      }
+    )
+    await refreshSelectedRewriteLifecycle(updatedRecord?.rewriteRecordId || rewriteRecordId)
+    lifecycleSuccessMessage.value = t('recommendationCenter.states.rewriteAutoApplyApproved')
+  } catch (error) {
+    lifecycleErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.lifecycleAction = ''
+  }
 }
 
 const createRewriteRecordAndOpenReview = async () => {
@@ -1977,6 +2095,23 @@ watch(
                       />
                     </label>
                     <div class="pane-actions">
+                      <el-button
+                        :disabled="!canCreateRewriteValidationRun"
+                        :loading="loading.lifecycleAction === 'VALIDATE'"
+                        data-testid="recommendation-rewrite-create-validation-run"
+                        @click="createValidationRunForSelectedRewrite"
+                      >
+                        {{ t('recommendationCenter.actions.createValidationRun') }}
+                      </el-button>
+                      <el-button
+                        type="primary"
+                        :disabled="!canApproveRewriteAutoApply"
+                        :loading="loading.lifecycleAction === 'APPROVE'"
+                        data-testid="recommendation-rewrite-approve-auto-apply"
+                        @click="approveRewriteAutoApply"
+                      >
+                        {{ t('recommendationCenter.actions.approveAutoApply') }}
+                      </el-button>
                       <el-button
                         type="success"
                         :disabled="!canActivateRewrite"

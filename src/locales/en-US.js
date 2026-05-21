@@ -1011,6 +1011,8 @@ export default {
       refreshRewriteRecords: 'Refresh rewrite records',
       refreshValidationRuns: 'Refresh validation runs',
       createRewriteRecordAndReview: 'Create rewrite record',
+      createValidationRun: 'Create validation run',
+      approveAutoApply: 'Approve auto-apply',
       openRewriteReview: 'Open rewrite activation',
       activateRewrite: 'Activate',
       pauseRewrite: 'Pause',
@@ -1108,6 +1110,8 @@ export default {
       awaitingRewriteActivation: 'Waiting for rewrite activation.',
       lifecycleActionApplied: 'Rewrite record action was submitted and refreshed from the backend.',
       rewriteRecordCreated: 'Rewrite record created; it becomes active after activation and runtime binding ACTIVE.',
+      validationRunCreated: 'Validation run created and status refreshed from the backend.',
+      rewriteAutoApplyApproved: 'Rewrite record approved and auto-apply allowed.',
       rewriteRecordCreateUnavailable: 'This recommendation is missing the original or recommended SQL required to create a rewrite record.',
       noRefusalReasons: 'No activation eligibility refusal reason is present.',
       noValidationRuns: 'This rewrite record has no validation runs.'
