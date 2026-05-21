@@ -4,6 +4,26 @@
 
 ## Done
 
+### USER-CN-PROD-SQL-PARSE-REWRITE-20260521: 适配永洪中度复杂报表 SQL 的解析与推荐改写
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `fix(sql-optimization): USER-CN-PROD-SQL-PARSE-REWRITE-20260521 parse Yonghong report SQL`
+- Priority: 1
+- Depends on: HARN-142,USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520
+- Scope: 严格限定本轮输入的永洪百万客户净增报表 SQL 形态：优化 sql-optimization 对多层派生表、重复同源扫描、中文双引号别名、OR 机构层级过滤、两日期 AUM 分段聚合、COUNT DISTINCT 与增长率表达式的解析、问题优先级排序、推荐 SQL 改写和 L2 MV/公共子图建议；不得扩大到真实外部 SQL 执行、生产 DDL/refresh、runtime binding 自动激活、前端页面重构或无关 SQL 类型。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-PROD-SQL-PARSE-REWRITE-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-21: added Yonghong report SQL normalization for redundant derived-table join wrappers, recognized `DTE` date predicates, and kept `docs/test01.sql` as the repository regression fixture.
+  - 2026-05-21: covered the production report fixture with parser, recommendation rewrite, and L2 common-subgraph MV assertions; Foreman validate passed with the focused `sql-optimization` Maven regression suite.
+- Context closeout:
+  - Completed scope: 完成永洪百万客户净增报表 SQL 的保守解析归一化、DTE 日期谓词识别、推荐改写与 L2 公共子图 MV 回归覆盖，并将 docs/test01.sql 保留为代码库内 fixture。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-PROD-SQL-PARSE-REWRITE-20260521 --include-task-audit --extra-command 'mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest,L2MaterializedViewLargeSqlQualityTest,L2CommonSubgraphMvCandidateGeneratorTest,L2GrainMeasureDeriverTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test' passed.
+  - Residual risk: 本轮仅覆盖 repo-closed 解析、推荐与 MV artifact 建议；不声明外部 SQL 执行、生产 DDL/refresh 或 runtime binding 自动激活完成。
+  - Next step: 无仓库内阻塞下一步；后续生产执行证据、DDL/refresh 与自动激活仍按独立任务治理。
+
 ### USER-CN-FIX-JDBC-DRIVER-UPLOAD-SCHEMA-BOOTSTRAP-20260521: Fix JDBC driver upload schema bootstrap on reused environments
 
 - Status: done

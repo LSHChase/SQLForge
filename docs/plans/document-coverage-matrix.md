@@ -48,6 +48,7 @@
 | `docs/product/sql-governance-platform-implementation-spec.md` | Authority | SQL 治理中后台 + 开放接入平台产品实施规格 | Consumed | `HARN-042` 与后续 D/E/F Story 的产品目标、页面与流程权威落点 |
 | `docs/product/sql-rewrite-function-boundary-design.md` | Authority | SQL 改写验证、推荐结果 / 改写记录、真实 SQL 改写历史的产品分层、边界和联动方案 | Consumed | 约束解析记录来源改写、推荐治理对象和生产执行改写历史的归属，供后续前端和产品任务引用 |
 | `docs/product/frontend-retrospective-gap-closure-baseline.md` | Authority | 前端复盘、规格补漏与 repo-closed 边界基线 | Consumed | `U-TASK-004` 的前端差距基线、导航/首页补漏边界与剩余待后端承接项权威落点 |
+| `docs/test01.sql` | Archive | 永洪百万客户净增报表 SQL 回归样本 | Archived | `USER-CN-PROD-SQL-PARSE-REWRITE-20260521` 的 parser/rewrite/L2 MV 回归 fixture；保留原始 SQL，不作为生产执行证据 |
 | `docs/report-import-parse-stress-sample.md` | Indexed | 报表导入解析 XLSX 压测样例说明 | Referenced | 记录本次报表导入测试样例的模板、规模、低质量 SQL 场景、自测边界与使用参数 |
 | `docs/report-import-parse-stress-sample.xlsx` | Archive | 报表导入解析 XLSX 压测样例文件 | Archived | 供后续手动导入测试使用；按 `report_code` + `sql_1..sql_120` 宽表模板保留 |
 | `docs/agent-prompts/auto-planner.md` | Indexed | requirement-driven auto planner prompt 模板 | Referenced | 约束 full-auto 模式下的 exec plan 与 manifest 自动生成，不允许绕过 Main Foreman 治理链 |

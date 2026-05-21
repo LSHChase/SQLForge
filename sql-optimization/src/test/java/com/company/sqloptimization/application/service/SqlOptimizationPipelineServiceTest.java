@@ -9,6 +9,10 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -507,6 +511,59 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(coveredRules.size() >= 50, "coveredRules=" + coveredRules);
     }
 
+    @Test
+    void shouldAnalyzeYonghongProductionReportSqlAndRecommendGovernedRewriteShapes() throws Exception {
+        String sql = readRepositorySqlFixture("docs/test01.sql");
+
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+        Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+            new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                sql,
+                "HETU",
+                "datasource-yonghong",
+                "fingerprint-yonghong-million-customer-growth",
+                "SZ_0000003772",
+                "million-customer-growth",
+                null
+            ),
+            profile
+        );
+
+        assertEquals("JSQLPARSER", profile.getParserEngine());
+        assertTrue(containsText(profile.getTables(), "BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), profile.getTables().toString());
+        assertTrue(profile.getSubqueryCount() >= 20, "subqueryCount=" + profile.getSubqueryCount());
+        assertTrue(profile.getNestedSubqueryDepth() >= 3, "nestedSubqueryDepth=" + profile.getNestedSubqueryDepth());
+        assertTrue(profile.getRepeatedTableScanCount() >= 5, "repeatedTableScanCount=" + profile.getRepeatedTableScanCount());
+        assertTrue(profile.getOrPredicateCount() >= 1, "orPredicateCount=" + profile.getOrPredicateCount());
+        assertTrue(containsText(profile.getDatePredicateColumns(), "DTE"), profile.getDatePredicateColumns().toString());
+        assertTrue(profile.getAggregateFunctions().contains("COUNT"), profile.getAggregateFunctions().toString());
+        assertTrue(profile.getAggregateFunctionCount() >= 10, "aggregateFunctionCount=" + profile.getAggregateFunctionCount());
+        assertTrue(profile.getWarnings().contains("REPEATED_TABLE_SCAN_RISK"), profile.getWarnings().toString());
+        assertTrue(profile.getWarnings().contains("OR_PREDICATE_INDEX_RISK"), profile.getWarnings().toString());
+        assertTrue(profile.getWarnings().contains("AGGREGATION_COMPLEXITY_RISK"), profile.getWarnings().toString());
+
+        Map<String, Object> advancedProfile = profile.toAdvancedStructureProfile();
+        assertEquals("AVAILABLE", advancedProfile.get("profileStatus"));
+        assertTrue(String.valueOf(advancedProfile.get("projections")).contains("机构编码__第二层时点机构号"));
+        assertTrue(String.valueOf(advancedProfile.get("projections")).contains("Sum_增速100"));
+        assertTrue(String.valueOf(advancedProfile.get("predicates")).contains("WHERE_OR_"));
+
+        assertTrue(containsRule(model.getUnappliedRules(), "OR_TO_UNION_ALL"));
+        assertTrue(containsRule(model.getUnappliedRules(), "MULTI_COUNT_DISTINCT_DECOMPOSITION"));
+        assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
+        assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
+        assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"));
+        assertFalse(model.isAutoApplyAllowed());
+
+        assertNotNull(accelerationArtifact);
+        assertEquals("COMMON_SUBGRAPH_MV", accelerationArtifact.get("mvType"));
+        assertFalse("EXACT_QUERY_MV".equals(accelerationArtifact.get("mvType")));
+        assertEquals("PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE", accelerationArtifact.get("governanceBoundary"));
+        assertTrue(String.valueOf(accelerationArtifact.get("blockingReasons")).contains("COMMON_SUBGRAPH"));
+    }
+
     private String complexAntiPatternSql() {
         return "-- complex anti-pattern query\n"
             + "SELECT c.customer_id, c.customer_name, c.state,\n"
@@ -558,6 +615,25 @@ class SqlOptimizationPipelineServiceTest {
                 names.add(String.valueOf(rule));
             }
         }
+    }
+
+    private boolean containsText(Iterable<String> values, String expectedText) {
+        for (String value : values) {
+            if (value != null && value.contains(expectedText)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String readRepositorySqlFixture(String relativePath) throws Exception {
+        Path root = Paths.get("").toAbsolutePath();
+        Path fixture = root.resolve(relativePath);
+        if (!Files.exists(fixture)) {
+            fixture = root.resolve("..").resolve(relativePath).normalize();
+        }
+        assertTrue(Files.exists(fixture), "缺少 SQL fixture：" + fixture);
+        return new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
     }
 
     private Sample sample(String name, String sql, String expectedRule) {
