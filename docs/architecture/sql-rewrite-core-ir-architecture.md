@@ -454,3 +454,57 @@ Score = 0.4 * performance_gain
 - 不调用真实 Calcite `RelToSqlConverter`，不验证 Hetu 方言可执行性。
 - 不新增数据库 schema，不创建、激活或暂停 runtime rewrite binding。
 - 不把最终推荐写成生产自动改写；所有推荐仍需语义验证、结果 diff、人工审核和治理链。
+
+## Phase 6 Algorithm Conformance and test01 Regression
+
+当前已在后端新增改写核心算法链路一致性报告，用于按用户给定的“病态 SQL -> 双解析栈 -> QBDAG -> 规则识别 -> RA 候选 -> 语义验证 -> 帕累托择优 -> SQL/推荐生成 -> 输出 bundle”逐段验收当前实现。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.conformance`
+- 分析器：`RewriteAlgorithmConformanceAnalyzer`
+- 应用入口：`SqlOptimizationPipelineService.assessRewriteAlgorithmConformance(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getRewriteAlgorithmConformanceReport()`
+
+### Conformance Contract
+
+| 算法阶段 | 当前验收信号 | 当前结论 |
+|:---|:---|:---|
+| 输入病态 SQL | `ParsedSqlProfile.normalizedSql` 与 BI 工具注释/别名信号。 | 支持 `docs/test01.sql` 这类 BI 生成复杂 SQL 进入后端解析链。 |
+| 解析双栈融合 | `ParserStackFusionReport` 汇总 Calcite / JSqlParser 角色、metadata tags、planner stages。 | 主干符合；真实 Calcite RelNode 仍是 surrogate，报告记录 `REAL_CALCITE_RELNODE_NOT_BUILT`。 |
+| QBDAG 与结构哈希 | `QueryBlockDag` 输出 block count、structural hash groups、duplicate structural groups。 | 主干符合；结构哈希仍是静态规范形。 |
+| 规则识别 | `RuleConflictResolutionReport` 输出 matched rules、selected rules、conflicts 与 RDG/Beam Search 结果。 | 主干符合；规则库是静态代码目录。 |
+| 关系代数变换 | `RelationalRewritePlan` 输出 CSE、VerticalFold、HorizontalUnnest 等候选。 | 主干符合；不直接改写生产 SQL。 |
+| 语义验证 | `SemanticEquivalenceReport` 输出约束等价、统计聚合等价、NULL/bag semantics 与 proof obligations。 | 主干部分符合；外部 SMT Solver 未接入，报告记录 `SMT_SOLVER_NOT_INTEGRATED`。 |
+| 帕累托择优 | `CostBasedRewriteSelectionReport` 输出 Scan/Shuffle/Compute/Memory 四维 cost、Pareto frontier 与 selected candidate。 | 主干符合；代价仍是静态抽象单位。 |
+| SQL 与推荐生成 | `RewriteRecommendationReport` 输出推荐、静态 `WITH` SQL、等价性证明、性能预估、风险评级。 | 主干部分符合；真实 Calcite `RelToSqlConverter` 未调用，报告记录 `REAL_CALCITE_RELTOSQL_NOT_INVOKED`。 |
+| 输出 bundle | `RewriteAlgorithmConformanceReport.outputBundle` 检查 `{改写 SQL, 等价性证明, 性能预估, 风险评级}` 是否存在。 | 对 `docs/test01.sql` 已通过回归测试，输出 bundle 完整但仍不可自动生产应用。 |
+
+### Report Schema
+
+`RewriteAlgorithmConformanceReport` 固化：
+
+- `schemaVersion = rewrite-algorithm-conformance/v1`
+- `algorithmStatus`：`CONFORMS`、`CONFORMS_WITH_STATIC_SURROGATES` 或 `PARTIAL_NO_FINAL_RECOMMENDATION`
+- `stages`：八段算法链路验收结果，每段包含 expected step、implementation status、conformance level、evidence、gaps 和 attributes
+- `criticalGaps`：跨阶段关键缺口，例如 `SMT_SOLVER_NOT_INTEGRATED`、`REAL_CALCITE_RELTOSQL_NOT_INVOKED`
+- `outputBundle`：是否具备改写 SQL、等价性证明、性能预估、风险评级
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`
+
+### test01 Regression
+
+`SqlOptimizationPipelineServiceTest.shouldAssessCoreAlgorithmConformanceForDocsTest01Sql` 读取 `docs/test01.sql`，验证：
+
+- 复杂 BI SQL 可完成后端解析与改写链路评估。
+- QBDAG 生成多个查询块，并识别重复结构组。
+- 算法链路八段 stage 全部存在。
+- 输出 bundle 具备改写 SQL、等价性证明、性能预估和风险评级。
+- 当前算法状态为 `CONFORMS_WITH_STATIC_SURROGATES`，并明确记录 `SMT_SOLVER_NOT_INTEGRATED` 和 `REAL_CALCITE_RELTOSQL_NOT_INVOKED`。
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不调用外部 SMT Solver，不调用真实 Calcite `RelToSqlConverter`。
+- 不新增数据库 schema，不创建、激活或暂停 runtime rewrite binding。
+- 不把算法一致性通过写成生产自动改写许可。

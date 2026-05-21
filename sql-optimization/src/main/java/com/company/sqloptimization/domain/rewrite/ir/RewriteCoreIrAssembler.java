@@ -2,6 +2,8 @@ package com.company.sqloptimization.domain.rewrite.ir;
 
 import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
 import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelector;
+import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceAnalyzer;
+import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceReport;
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionAnalyzer;
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
@@ -97,6 +99,17 @@ public class RewriteCoreIrAssembler {
             ruleConflictResolutionReport,
             parserStackFusionReport
         );
+        RewriteAlgorithmConformanceReport rewriteAlgorithmConformanceReport =
+            new RewriteAlgorithmConformanceAnalyzer().analyze(
+                normalizedSql,
+                queryBlockDag,
+                relationalRewritePlan,
+                semanticEquivalenceReport,
+                costBasedRewriteSelectionReport,
+                ruleConflictResolutionReport,
+                parserStackFusionReport,
+                rewriteRecommendationReport
+            );
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -133,6 +146,15 @@ public class RewriteCoreIrAssembler {
         );
         attributes.put("rewriteRecommendationSelectedId", rewriteRecommendationReport.getSelectedRecommendationId());
         attributes.put("rewriteRecommendationAutoApplyAllowed", Boolean.FALSE);
+        attributes.put("rewriteAlgorithmConformanceStatus", rewriteAlgorithmConformanceReport.getAlgorithmStatus());
+        attributes.put(
+            "rewriteAlgorithmConformanceStageCount",
+            Integer.valueOf(rewriteAlgorithmConformanceReport.getStages().size())
+        );
+        attributes.put(
+            "rewriteAlgorithmConformanceCriticalGapCount",
+            Integer.valueOf(rewriteAlgorithmConformanceReport.getCriticalGaps().size())
+        );
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -148,6 +170,7 @@ public class RewriteCoreIrAssembler {
             ruleConflictResolutionReport,
             parserStackFusionReport,
             rewriteRecommendationReport,
+            rewriteAlgorithmConformanceReport,
             businessIntent,
             architectureConflicts(),
             attributes

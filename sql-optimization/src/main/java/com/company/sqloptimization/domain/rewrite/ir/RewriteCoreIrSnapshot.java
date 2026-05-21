@@ -1,6 +1,7 @@
 package com.company.sqloptimization.domain.rewrite.ir;
 
 import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
+import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceReport;
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
@@ -27,6 +28,7 @@ public class RewriteCoreIrSnapshot {
     private final RuleConflictResolutionReport ruleConflictResolutionReport;
     private final ParserStackFusionReport parserStackFusionReport;
     private final RewriteRecommendationReport rewriteRecommendationReport;
+    private final RewriteAlgorithmConformanceReport rewriteAlgorithmConformanceReport;
     private final BusinessIntentIr businessIntent;
     private final List<RewriteIrConflict> architectureConflicts;
     private final Map<String, Object> attributes;
@@ -44,6 +46,7 @@ public class RewriteCoreIrSnapshot {
                                  RuleConflictResolutionReport ruleConflictResolutionReport,
                                  ParserStackFusionReport parserStackFusionReport,
                                  RewriteRecommendationReport rewriteRecommendationReport,
+                                 RewriteAlgorithmConformanceReport rewriteAlgorithmConformanceReport,
                                  BusinessIntentIr businessIntent,
                                  List<RewriteIrConflict> architectureConflicts,
                                  Map<String, Object> attributes) {
@@ -60,6 +63,7 @@ public class RewriteCoreIrSnapshot {
         this.ruleConflictResolutionReport = ruleConflictResolutionReport;
         this.parserStackFusionReport = parserStackFusionReport;
         this.rewriteRecommendationReport = rewriteRecommendationReport;
+        this.rewriteAlgorithmConformanceReport = rewriteAlgorithmConformanceReport;
         this.businessIntent = businessIntent;
         this.architectureConflicts = IrCollections.immutableList(architectureConflicts);
         this.attributes = IrCollections.immutableMap(attributes);
@@ -119,6 +123,10 @@ public class RewriteCoreIrSnapshot {
 
     public RewriteRecommendationReport getRewriteRecommendationReport() {
         return rewriteRecommendationReport;
+    }
+
+    public RewriteAlgorithmConformanceReport getRewriteAlgorithmConformanceReport() {
+        return rewriteAlgorithmConformanceReport;
     }
 
     public BusinessIntentIr getBusinessIntent() {

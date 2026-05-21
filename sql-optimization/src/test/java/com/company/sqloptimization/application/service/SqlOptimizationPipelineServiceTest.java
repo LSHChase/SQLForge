@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
+import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceReport;
+import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmStage;
 import com.company.sqloptimization.domain.rewrite.cost.CostBasedRewriteSelectionReport;
 import com.company.sqloptimization.domain.rewrite.cost.CostSelectionStrategy;
 import com.company.sqloptimization.domain.rewrite.cost.RewriteCostEstimate;
@@ -833,6 +835,66 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldAssessCoreAlgorithmConformanceForDocsTest01Sql() throws Exception {
+        String sql = readFixture("docs/test01.sql");
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+
+        RewriteAlgorithmConformanceReport report = service.assessRewriteAlgorithmConformance(profile);
+
+        assertEquals(RewriteAlgorithmConformanceReport.SCHEMA_VERSION, report.getSchemaVersion());
+        assertEquals("CONFORMS_WITH_STATIC_SURROGATES", report.getAlgorithmStatus());
+        assertEquals("NO_SQL_EXECUTION", report.getAttributes().get("runtimeBoundary"));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
+        assertEquals(Integer.valueOf(8), report.getAttributes().get("stageCount"));
+        assertTrue(report.hasStage("PARSE_DUAL_STACK"));
+        assertTrue(report.hasStage("DECOMPOSE_QBDAG_STRUCTURAL_HASH"));
+        assertTrue(report.hasStage("IDENTIFY_RULES"));
+        assertTrue(report.hasStage("TRANSFORM_RELATIONAL_ALGEBRA"));
+        assertTrue(report.hasStage("VERIFY_EQUIVALENCE"));
+        assertTrue(report.hasStage("SELECT_COST_PARETO"));
+        assertTrue(report.hasStage("GENERATE_SQL_AND_REPORT"));
+        assertTrue(report.hasStage("OUTPUT_BUNDLE"));
+        assertTrue(report.hasCriticalGap("SMT_SOLVER_NOT_INTEGRATED"));
+        assertTrue(report.hasCriticalGap("REAL_CALCITE_RELTOSQL_NOT_INVOKED"));
+
+        RewriteAlgorithmStage decomposition = report.firstStage("DECOMPOSE_QBDAG_STRUCTURAL_HASH");
+        assertNotNull(decomposition);
+        assertTrue(((Integer) decomposition.getAttributes().get("blockCount")).intValue() > 1);
+        assertTrue(((Integer) decomposition.getAttributes().get("duplicateStructuralGroupCount")).intValue() > 0);
+
+        RewriteAlgorithmStage output = report.firstStage("OUTPUT_BUNDLE");
+        assertNotNull(output);
+        assertEquals(Boolean.TRUE, output.getAttributes().get("hasRewriteSql"));
+        assertEquals(Boolean.TRUE, output.getAttributes().get("hasEquivalenceProof"));
+        assertEquals(Boolean.TRUE, output.getAttributes().get("hasPerformanceEstimate"));
+        assertEquals(Boolean.TRUE, output.getAttributes().get("hasRiskLevel"));
+    }
+
+    @Test
+    void shouldExposeAlgorithmConformanceThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            fanruanRepeatedAggregateSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+        RewriteAlgorithmConformanceReport report = snapshot.getRewriteAlgorithmConformanceReport();
+
+        assertNotNull(report);
+        assertTrue(report.hasStage("PARSE_DUAL_STACK"));
+        assertEquals(report.getAlgorithmStatus(), snapshot.getAttributes().get("rewriteAlgorithmConformanceStatus"));
+        assertEquals(
+            Integer.valueOf(report.getStages().size()),
+            snapshot.getAttributes().get("rewriteAlgorithmConformanceStageCount")
+        );
+        assertEquals(
+            Integer.valueOf(report.getCriticalGaps().size()),
+            snapshot.getAttributes().get("rewriteAlgorithmConformanceCriticalGapCount")
+        );
+    }
+
+    @Test
     void shouldAnalyzeSqlWithDashLineCommentsWithoutTreatingStringLiteralAsComment() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             "-- report_code=RPT_COMMENTED\n"
@@ -1533,6 +1595,14 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private String readFixture(String relativePath) throws Exception {
+        Path path = Paths.get(relativePath);
+        if (!Files.exists(path)) {
+            path = Paths.get("..").resolve(relativePath);
+        }
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     }
 
     private String repeatedAggregateLeftJoinSql() {

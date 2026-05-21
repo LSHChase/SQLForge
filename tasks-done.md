@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521: 实现改写核心算法链路一致性报告并复测 test01
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521 implement rewrite algorithm conformance report`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，基于用户给定的解析、分解、识别、变换、验证、择优、生成、输出核心算法脉络，为 sql-optimization 改写核心新增算法链路一致性报告：逐段汇总 Calcite/JSqlParser 双栈融合、QBDAG/结构哈希、规则库命中、关系代数候选、语义等价/SMT 边界、帕累托代价择优、SQL 生成和最终推荐输出状态；接入 RewriteCoreIrSnapshot 和 service，补充 docs/test01.sql 复测用例、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现改写核心算法链路一致性报告：覆盖解析双栈融合、查询块 DAG/结构哈希、规则识别、关系代数改写、等价验证、帕累托代价择优、SQL/推荐报告生成和最终输出束；将报告接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充 docs/test01.sql 回归测试和架构文档说明。
+  - Validation evidence: JDK: openjdk 1.8.0_112; targeted docs/test01.sql regression: mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest#shouldAssessCoreAlgorithmConformanceForDocsTest01Sql,SqlOptimizationPipelineServiceTest#shouldExposeAlgorithmConformanceThroughRewriteCoreIrSnapshot -Dsurefire.failIfNoSpecifiedTests=false test passed (2 tests); service regression: mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test passed (37 tests); full module regression: mvn -pl sql-optimization -am test passed (348 tests); targeted checkstyle passed; git diff --check passed; foreman validate passed; task_audit pre-closeout passed; repository knowledge lint passed; changed developer copy language check passed.
+  - Residual risk: 当前为静态 IR/结构哈希/统计等价代理实现；真实 Calcite RelNode 构建、外部 SMT Solver 和真实 RelToSqlConverter 仍作为报告中的关键差距暴露；未执行真实 SQL，不做生产自动应用。
+  - Next step: 后续可在独立任务中接入真实 Calcite RelNode/SMT/RelToSql，并补充抽样数据对比执行链。
+
 ### USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521: 实现 SQL 改写最终推荐生成与排序
 
 - Status: done
