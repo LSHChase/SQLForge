@@ -461,6 +461,7 @@ public class SqlOptimizationPipelineService {
 
     public OptimizationTaskSuggestion buildRewriteSuggestion(ParsedSqlProfile profile) {
         RewriteOutcome outcome = profile == null ? RewriteOutcome.empty() : profile.getRewriteOutcome();
+        RewriteCoreIrSnapshot coreIrSnapshot = profile == null ? null : buildRewriteCoreIr(profile);
         L2SnapshotAggregateReportMvCandidateGenerator.RewriteCandidate snapshotRewrite =
             profile == null
                 ? null
@@ -496,6 +497,25 @@ public class SqlOptimizationPipelineService {
         artifacts.add(new OptimizationTaskArtifact("REWRITTEN_SQL", "candidateSql", outcome.rewrittenSql));
         artifacts.add(new OptimizationTaskArtifact("REWRITE_RULE_TRACE", "appliedRules", JsonUtils.toJson(outcome.appliedRules)));
         artifacts.add(new OptimizationTaskArtifact("AST_PROFILE", "astProfile", JsonUtils.toJson(profile.toAstProfile())));
+        if (coreIrSnapshot != null) {
+            artifacts.add(new OptimizationTaskArtifact(
+                "REWRITE_RECOMMENDATION_REPORT",
+                "recommendationReport",
+                JsonUtils.toJson(coreIrSnapshot.getRewriteRecommendationReport())
+            ));
+            if (coreIrSnapshot.getRewriteRecommendationReport().firstRecommendation() != null) {
+                artifacts.add(new OptimizationTaskArtifact(
+                    "REWRITE_RECOMMENDATION_SELECTED",
+                    "selectedRecommendation",
+                    JsonUtils.toJson(coreIrSnapshot.getRewriteRecommendationReport().firstRecommendation())
+                ));
+            }
+            artifacts.add(new OptimizationTaskArtifact(
+                "REWRITE_ALGORITHM_CONFORMANCE",
+                "conformanceReport",
+                JsonUtils.toJson(coreIrSnapshot.getRewriteAlgorithmConformanceReport())
+            ));
+        }
         if (snapshotRewrite != null) {
             artifacts.add(new OptimizationTaskArtifact(
                 "REWRITE_VALIDATION_METHODS",

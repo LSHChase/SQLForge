@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-PAGE-REWRITE-RECOMMENDATION-TEST01-20260521: 轻量适配页面展示改写推荐并用 test01 验证
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-PAGE-REWRITE-RECOMMENDATION-TEST01-20260521 adapt rewrite validation page for test01 recommendation`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521
+- Scope: 轻量改造前端页面以展示 SQL 改写推荐输出，从页面输入 docs/test01.sql 内容进行端到端测试，截图分析是否成功推荐正确 SQL。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-PAGE-REWRITE-RECOMMENDATION-TEST01-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 轻量适配 SQL 改写验证页面，展示后端推荐报告、算法链路状态、置信度、风险、扫描减少和净增报表候选 SQL 形态；后端任务建议追加推荐报告、选中推荐和算法一致性 artifact；归档原始需求和产品边界说明。
+  - Validation evidence: JDK 8u112 confirmed via java -version; npm run lint -- --quiet; npm run build; npm run test:frontend-page-governance; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes=**/application/service/SqlOptimizationPipelineService.java,**/application/service/SqlOptimizationPipelineServiceTest.java; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest#shouldAnalyzeYonghongProductionReportSqlAndRecommendGovernedRewriteShapes,OptimizationTaskControllerTest#shouldSubmitTaskAndPollSucceededStatus -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am test; Playwright page smoke input docs/test01.sql returned SUCCEEDED and screenshots runtime/screenshots/test01-rewrite-validation-core.png plus runtime/screenshots/test01-rewrite-validation-sql.png show recommendation status and all required SQL shape checks pass; python3 scripts/foreman.py validate USER-CN-PAGE-REWRITE-RECOMMENDATION-TEST01-20260521; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: 本阶段仍是静态改写推荐和页面试算验证；未执行真实 SQL 结果集比对，未接入生产治理，真实 Calcite/SMT/RelToSql 能力仍沿用上一阶段的静态 surrogate 边界。
+  - Next step: 后续若进入生产闭环，应接入抽样结果比对和真实治理审批，再开放自动应用。
+
 ### USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521: 实现改写核心算法链路一致性报告并复测 test01
 
 - Status: done

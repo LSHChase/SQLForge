@@ -37,6 +37,7 @@ import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceCh
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceStatus;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
+import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -1195,6 +1196,21 @@ class SqlOptimizationPipelineServiceTest {
         assertFalse(model.isAutoApplyAllowed());
 
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
+        String recommendationReportJson = artifact(
+            rewriteSuggestion,
+            "REWRITE_RECOMMENDATION_REPORT",
+            "recommendationReport"
+        );
+        String selectedRecommendationJson = artifact(
+            rewriteSuggestion,
+            "REWRITE_RECOMMENDATION_SELECTED",
+            "selectedRecommendation"
+        );
+        String conformanceReportJson = artifact(
+            rewriteSuggestion,
+            "REWRITE_ALGORITHM_CONFORMANCE",
+            "conformanceReport"
+        );
         assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
@@ -1209,6 +1225,14 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(rewriteCandidateSql.contains("base_aum < 1000000 AND current_aum >= 1000000"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("a.report_org_name AS \"机构编码__第二层机构简称\""), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("\"Sum_增量100\""), rewriteCandidateSql);
+        assertTrue(recommendationReportJson.contains("\"generationStatus\":\"RECOMMENDATION_GENERATED\""),
+            recommendationReportJson);
+        assertTrue(selectedRecommendationJson.contains("\"confidence\""), selectedRecommendationJson);
+        assertTrue(selectedRecommendationJson.contains("\"riskLevel\""), selectedRecommendationJson);
+        assertTrue(conformanceReportJson.contains("\"algorithmStatus\":\"CONFORMS_WITH_STATIC_SURROGATES\""),
+            conformanceReportJson);
+        assertTrue(conformanceReportJson.contains("PARSE_DUAL_STACK"), conformanceReportJson);
+        assertTrue(conformanceReportJson.contains("SELECT_COST_PARETO"), conformanceReportJson);
 
         assertNotNull(accelerationArtifact);
         assertEquals("PARAMETERIZED_AGG_MV", accelerationArtifact.get("mvType"));
@@ -1442,6 +1466,16 @@ class SqlOptimizationPipelineServiceTest {
         }
         assertTrue(Files.exists(fixture), "缺少 SQL fixture：" + fixture);
         return new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+    }
+
+    private String artifact(OptimizationTaskSuggestion suggestion, String category, String name) {
+        for (OptimizationTaskArtifact artifact : suggestion.getArtifacts()) {
+            if (category.equals(artifact.getCategory()) && name.equals(artifact.getName())) {
+                return artifact.getContent();
+            }
+        }
+        assertNotNull(null, "缺少优化任务制品：" + category + "/" + name);
+        return "";
     }
 
     private Sample sample(String name, String sql, String expectedRule) {

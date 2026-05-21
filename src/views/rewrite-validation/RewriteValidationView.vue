@@ -84,6 +84,19 @@ const risks = computed(() => normalizeArray(suggestion.value?.risks))
 const recommendedSql = computed(() => artifactContent('REWRITTEN_SQL', 'candidateSql') || form.sqlText)
 const appliedRules = computed(() => normalizeRuleTrace(artifactContent('REWRITE_RULE_TRACE', 'appliedRules')))
 const astProfile = computed(() => parseJsonObject(artifactContent('AST_PROFILE', 'astProfile')))
+const recommendationReport = computed(() =>
+  parseJsonObject(artifactContent('REWRITE_RECOMMENDATION_REPORT', 'recommendationReport'))
+)
+const coreRecommendation = computed(() => {
+  const selected = parseJsonObject(artifactContent('REWRITE_RECOMMENDATION_SELECTED', 'selectedRecommendation'))
+  if (hasValue(selected.rewriteId)) {
+    return selected
+  }
+  return normalizeArray(recommendationReport.value?.recommendations)[0] || {}
+})
+const algorithmConformance = computed(() =>
+  parseJsonObject(artifactContent('REWRITE_ALGORITHM_CONFORMANCE', 'conformanceReport'))
+)
 const firstRecommendation = computed(() => relatedRecommendations.value[0] || null)
 const activeRewriteRecordId = computed(
   () => form.validationRewriteRecordId || createdRewriteRecord.value?.rewriteRecordId || ''
@@ -141,10 +154,50 @@ const astProfileCards = computed(() => {
   ].filter(item => hasValue(item.value))
 })
 
+const coreRecommendationCards = computed(() =>
+  [
+    card(t('rewriteValidation.fields.algorithmStatus'), statusLabel(algorithmConformance.value?.algorithmStatus)),
+    card(t('rewriteValidation.fields.generationStatus'), statusLabel(recommendationReport.value?.generationStatus)),
+    card(t('rewriteValidation.fields.selectedRecommendationId'), coreRecommendation.value?.rewriteId),
+    card(t('rewriteValidation.fields.confidence'), coreRecommendation.value?.confidence),
+    card(t('rewriteValidation.fields.riskLevel'), coreRecommendation.value?.performance?.riskLevel || coreRecommendation.value?.attributes?.riskLevel),
+    card(t('rewriteValidation.fields.scanReduction'), coreRecommendation.value?.performance?.scanReduction),
+    card(t('rewriteValidation.fields.recommendationScore'), coreRecommendation.value?.score),
+    card(t('rewriteValidation.fields.autoApplyAllowed'), boolText(coreRecommendation.value?.autoApplyAllowed))
+  ].filter(item => hasValue(item.value))
+)
+
+const rewriteShapeChecks = computed(() => {
+  const sql = String(recommendedSql.value || '')
+  const upperSql = sql.toUpperCase()
+  return [
+    shapeCheck('rawCustomerSnapshot', sql.includes('raw_customer_snapshot'), 'raw_customer_snapshot'),
+    shapeCheck('reportCustomerSnapshot', sql.includes('report_customer_snapshot'), 'report_customer_snapshot'),
+    shapeCheck('baseAnchor', sql.includes('base_100_anchor'), 'base_100_anchor'),
+    shapeCheck('metricByOrg', sql.includes('metric_by_org'), 'metric_by_org'),
+    shapeCheck('growthByOrg', sql.includes('growth_by_org'), 'growth_by_org'),
+    shapeCheck('unionAll', upperSql.includes('UNION ALL'), 'UNION ALL'),
+    shapeCheck('noGroupingSets', !upperSql.includes('GROUPING SETS'), t('rewriteValidation.messages.noGroupingSetsDetected'))
+  ]
+})
+
 const validationRunRows = computed(() => normalizeArray(validationRuns.value))
 
 function card(label, value) {
   return { label, value }
+}
+
+function shapeCheck(key, passed, evidence) {
+  return {
+    key,
+    label: t(`rewriteValidation.shapeChecks.${key}`),
+    passed,
+    evidence: passed ? evidence : t('rewriteValidation.messages.shapeTokenMissing', { token: evidence })
+  }
+}
+
+function statusLabel(value) {
+  return hasValue(value) ? String(value).replace(/_/g, ' ') : value
 }
 
 function hasValue(value) {
@@ -718,6 +771,40 @@ onMounted(loadGovernanceDatasources)
             <p class="result-copy result-copy-muted">{{ displayValue(suggestion?.primaryRecommendation) }}</p>
           </section>
 
+          <section class="result-section" data-testid="rewrite-validation-core-recommendation">
+            <div class="section-heading section-heading-tight">
+              <div>
+                <h3 class="detail-title">{{ t('rewriteValidation.sections.coreRecommendationTitle') }}</h3>
+                <p class="section-summary">{{ t('rewriteValidation.sections.coreRecommendationSummary') }}</p>
+              </div>
+              <el-button text @click="openEvidence({ recommendationReport, coreRecommendation, algorithmConformance })">
+                {{ t('rewriteValidation.actions.viewRawEvidence') }}
+              </el-button>
+            </div>
+            <div class="summary-grid">
+              <article v-for="item in coreRecommendationCards" :key="item.label" class="summary-card summary-card-compact">
+                <span class="summary-card-label">{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </article>
+            </div>
+            <div class="rewrite-check-grid" data-testid="rewrite-validation-shape-checks">
+              <article
+                v-for="item in rewriteShapeChecks"
+                :key="item.key"
+                class="rewrite-check-item"
+                :class="{ 'rewrite-check-item-pass': item.passed }"
+              >
+                <el-tag :type="item.passed ? 'success' : 'warning'" size="small">
+                  {{ item.passed ? t('rewriteValidation.messages.shapePass') : t('rewriteValidation.messages.shapeReview') }}
+                </el-tag>
+                <div>
+                  <strong>{{ item.label }}</strong>
+                  <p>{{ item.evidence }}</p>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section class="result-section" data-testid="rewrite-validation-sql-compare">
             <h3 class="detail-title">{{ t('rewriteValidation.sections.diffTitle') }}</h3>
             <SqlCompareBlock
@@ -1033,6 +1120,35 @@ onMounted(loadGovernanceDatasources)
 
 .evidence-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rewrite-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.rewrite-check-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+}
+
+.rewrite-check-item strong {
+  color: var(--sqlforge-text-primary);
+}
+
+.rewrite-check-item p {
+  margin: 4px 0 0;
+  color: var(--sqlforge-text-muted);
+  font-family: var(--sqlforge-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .result-section {

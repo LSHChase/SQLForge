@@ -1240,6 +1240,8 @@ export default {
       resultTitle: '试算结果',
       resultSummary: '优先展示人能读懂的结论、候选 SQL、规则链和风险，原始 JSON 只在证据抽屉中下钻。',
       suggestionTitle: '建议摘要',
+      coreRecommendationTitle: '核心推荐核验',
+      coreRecommendationSummary: '展示最终推荐报告、算法链路状态和候选 SQL 是否命中净增报表关键形态。',
       diffTitle: 'SQL 差异',
       ruleRiskTitle: '规则链与风险',
       parseEvidenceTitle: '解析证据',
@@ -1272,6 +1274,12 @@ export default {
       taskStatus: '任务状态',
       currentPhase: '当前阶段',
       confidence: '置信度',
+      algorithmStatus: '算法链路状态',
+      generationStatus: '推荐生成状态',
+      selectedRecommendationId: '选中推荐 ID',
+      recommendationScore: '推荐得分',
+      scanReduction: '扫描减少',
+      autoApplyAllowed: '自动应用允许',
       validationMethod: '验证方法',
       comparisonStatus: '比对状态',
       differenceType: '差异类型',
@@ -1323,7 +1331,20 @@ export default {
       recordCreated: '改写记录草稿已创建。',
       validationRunCreated: '验证运行已创建。',
       backendFingerprint: '未显式输入时由后端任务载体生成',
-      ruleFromTrace: '来自后端 REWRITE_RULE_TRACE 制品'
+      ruleFromTrace: '来自后端 REWRITE_RULE_TRACE 制品',
+      shapePass: '命中',
+      shapeReview: '待核验',
+      shapeTokenMissing: '未发现 {token}',
+      noGroupingSetsDetected: '未发现 GROUPING SETS'
+    },
+    shapeChecks: {
+      rawCustomerSnapshot: '原始客户快照 CTE',
+      reportCustomerSnapshot: '报表客户快照 CTE',
+      baseAnchor: '基期锚点',
+      metricByOrg: '机构指标聚合',
+      growthByOrg: '净增口径聚合',
+      unionAll: '跨层补偿 UNION ALL',
+      noGroupingSets: '避免 GROUPING SETS'
     }
   },
   system: {
