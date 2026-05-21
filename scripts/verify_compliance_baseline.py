@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal machine-checkable compliance baseline verification for R-118."""
+"""R-118 最小执行安全合规基线校验。"""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def main() -> int:
         return 1
 
     sys.stdout.write(
-        "Compliance baseline verification passed: auth/access-control, audit schema, encryption baseline, backup-recovery, observability, Kafka runtime gate, and DB script gate evidence are present.\n"
+        "R-118 最小执行安全合规基线通过：身份 / 访问控制、审计表、加密基线、备份恢复、观测、Kafka runtime gate 与数据库脚本 gate 证据均存在。\n"
     )
     return 0
 

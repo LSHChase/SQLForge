@@ -22,6 +22,8 @@
    将“从 SQL 中抽取可复用计算子图并生成高级物化视图候选”的能力拆成可逐项 materialize 的任务包，并明确禁止 `EXACT_QUERY_MV`。
 9. [前端核心链路聚焦改造任务包](./frontend-core-workflow-refocus-task-pack.md)
    将“SQL 查询分析 / SQL 历史查询 / SQL 解析 / 解析历史 / 推荐结果 / 改写记录 / 改写历史”聚焦改造拆成可逐个 materialize、规划、实现和 closeout 的小任务；旧工作台参考页不再作为当前产品页面保留。
+10. [指定规则清理影响分析](./rule-cleanup-r014-r055-r110-r115-r118-r139-impact-analysis-2026-05-20.md)
+   记录 `R-014`、`R-055`、`R-110` 至 `R-115`、`R-118`、`R-139` 的当前消费清理、核心影响和人工决策项。
 
 ## 计划治理要求
 

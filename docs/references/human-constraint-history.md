@@ -316,3 +316,23 @@
   - `scripts/check-developer-copy-language.mjs`
   - `scripts/foreman.py`
   - `scripts/lint-repository-knowledge.js`
+
+## 2026-05-20T00:00:00-05:00
+
+- 事件：人类要求清理 `R-014`、`R-055`、`R-110` 至 `R-115`、`R-118`、`R-139`，并要求若涉及核心功能影响，先给出问题与解决方案，等待人类决定。
+- 新增规则：`R-192`。
+- 约束：
+  - `R-014` 清理为执行效率提示，不得用低 token 作为跳过默认必读入口、任务台账、验证或审计链的理由。
+  - `R-055` 清理为“不默认引入 Flyway 等迁移工具”，但 `sql/migrations/` 增量脚本仍是当前强制 schema 演进载体。
+  - `R-110` 清理为华为云 / 私有云生产部署场景 runbook 要求，不再作为本地开发、普通任务或 repo-closed runtime smoke 的通用阻断项。
+  - `R-139` 清理为显式阶段门禁，由标准动作、workflow 或 release metadata 触发，不再依赖 prompt 文本模糊识别。
+  - `R-111` 至 `R-115` 与 `R-118` 直接影响身份鉴别、租户访问控制、审计历史、敏感字段加密、备份恢复和阶段合规验证；破坏性删除或弱化必须进入 `INBOX.md` 等待人类决定。
+- 落点：
+  - `docs/references/raw-requirements/USER-CN-RULE-CLEANUP-R014-R055-R110-R115-R118-R139-20260520.md`
+  - `docs/plans/rule-cleanup-r014-r055-r110-r115-r118-r139-impact-analysis-2026-05-20.md`
+  - `docs/rules/codex-rules.md`
+  - `docs/quality/validation-rules.md`
+  - `docs/architecture/persistence.md`
+  - `docs/security/compliance.md`
+  - `docs/deployments/phase-gate-baseline.md`
+  - `INBOX.md`

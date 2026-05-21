@@ -4,6 +4,35 @@
 
 ## Done
 
+### USER-CN-RULE-CLEANUP-R014-R055-R110-R115-R118-R139-20260520: 清理指定规则并收口核心影响
+
+- Status: done
+- Completed at: 2026-05-20
+- Commit subject: `docs(rules): USER-CN-RULE-CLEANUP-R014-R055-R110-R115-R118-R139-20260520 clean rule boundaries`
+- Priority: 1
+- Depends on: N/A
+- Scope: 清理 R014、R055、R110、R139 等非核心或过时规则语义，深入盘点 R111-R115 与 R118 对身份、访问控制、审计、加密、备份和合规验证的核心影响；涉及核心安全/运行边界的变更只形成问题、方案和人工决策项，不直接破坏核心功能。
+- Validation:
+  - `node scripts/lint-repository-knowledge.js`
+  - `node scripts/check-developer-copy-language.mjs --changed`
+  - `python3 scripts/verify_compliance_baseline.py`
+  - `bash scripts/run-phase-gates.sh --gate compliance`
+  - `python3 scripts/foreman.py validate USER-CN-RULE-CLEANUP-R014-R055-R110-R115-R118-R139-20260520`
+- Progress log:
+  - 2026-05-20: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-20: archived raw requirement and created rule cleanup impact analysis covering docs, rules, requirements, scripts, validation gates and core security impact.
+  - 2026-05-20: cleaned non-core/current-consumption semantics for `R-014`, `R-055`, `R-110` and `R-139`; preserved `R-111` through `R-115` and `R-118` as core security / compliance boundaries.
+  - 2026-05-20: opened `INBOX-008` with A/B/C decision options for any destructive deletion or weakening of `R-111` through `R-115` and `R-118`; no core security code, schema or protected API was removed.
+- Next action: Human chooses A/B/C in `INBOX-008`: A) keep minimal execution safety kernel and only clean product-surface interpretation, B) replace core compliance rules with narrower execution-engine safety rules while preserving equivalent controls, or C) delete / weaken the rules and explicitly accept security, audit, compliance and recovery risk.
+- Escalation: If B or C is chosen, create a follow-up implementation task with explicit ADR / migration / validation scope before modifying core auth, tenant isolation, audit history, encryption, backup recovery or compliance gate behavior.
+- Human decision: Decide whether `R-111` through `R-115` and `R-118` should remain as the recommended minimal execution safety kernel, be replaced by narrower equivalent rules, or be destructively removed / weakened.
+- INBOX ref: INBOX-008
+- Context closeout:
+  - Completed scope: 归档原始需求，新增指定规则清理影响分析与 R-192；清理 R-014、R-055、R-110、R-139 的当前消费语义；将 R-118 收口为最小执行安全合规基线；保留 R-111 至 R-115 核心控制并通过 INBOX-008 承接破坏性删除或弱化决策。
+  - Validation evidence: node scripts/lint-repository-knowledge.js 通过；node scripts/check-developer-copy-language.mjs --changed 通过；python3 scripts/verify_compliance_baseline.py 通过；bash scripts/run-phase-gates.sh --gate compliance 通过；python3 scripts/foreman.py validate USER-CN-RULE-CLEANUP-R014-R055-R110-R115-R118-R139-20260520 通过；python3 scripts/task_audit.py --check 通过；git diff --check 通过。
+  - Residual risk: INBOX-008 仍需人类选择 A/B/C；在决策前不得破坏性删除或弱化身份鉴别、租户访问控制、审计历史、敏感字段加密、备份恢复或 R-118 合规验证。
+  - Next step: 等待人类处理 INBOX-008；若选择 B 或 C，另立 ADR / 迁移 / 验证范围明确的 follow-up 任务后再修改核心安全或合规行为。
+
 ### USER-CN-MV-REWRITE-LARGE-SQL-QUALITY-20260520: 优化 MV 推荐改写准确性与大 SQL 支持
 
 - Status: done

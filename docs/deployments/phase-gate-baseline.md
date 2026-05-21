@@ -64,7 +64,7 @@
 
 ### Blocking On Demand For Stage Switching
 
-以下检查通过 `Phase Gate` workflow 显式触发：
+以下检查通过 `Phase Gate` workflow 或 `bash scripts/run-phase-gates.sh` 显式触发。该语义同时收口 `R-139`：阶段切换不再依赖 prompt 文本或阶段计划文件中的自然语言片段自动触发。
 
 1. `R-116` 入口门禁：`--gate entry`
 2. `R-117` 交付门禁：`--gate delivery` 或 `--gate full`
@@ -98,7 +98,7 @@
 
 以下缺口在 `F-TASK-005` 完成后仍然存在：
 
-1. `Release Phase Gate` 已自动绑定到 `checkpoint/*` tag / `release.published`，但 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
+1. `Release Phase Gate` 已自动绑定到 `checkpoint/*` tag / `release.published`，但 ad hoc 阶段切换按 `R-139` 清理后的显式语义，仍主要依赖 `workflow_dispatch` 或手工执行 `scripts/run-phase-gates.sh`。
 2. `phase1plus` 覆盖率当前实测为 `86.9763%`，已高于 85% 门槛，coverage blocker 不再是 release gate 的残余缺口。
 3. Sonar 仍受 secrets / vars / 可选 environment 是否配置影响；但当前必须先完成 provisioning，再显式 enable 或显式要求 fallback，才会影响默认 workflow 行为。
 4. 自动 release gate 已消费发布元数据，但当前还未把 foreman 的 delivery write-back 记录直接反向注入 workflow 输入。
