@@ -4,6 +4,7 @@
 
 target/
 dist/
+runtime/
 node_modules/
 
 *.log
