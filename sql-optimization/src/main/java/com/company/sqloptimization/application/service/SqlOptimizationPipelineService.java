@@ -17,6 +17,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceVerifier;
 import io.trino.sql.parser.ParsingOptions;
 import io.trino.sql.parser.SqlParser;
 import io.trino.sql.tree.AstVisitor;
@@ -663,6 +665,12 @@ public class SqlOptimizationPipelineService {
     public RelationalRewritePlan buildRelationalRewritePlan(ParsedSqlProfile profile) {
         QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
         return new RelationalRewritePlanBuilder().build(queryBlockDag);
+    }
+
+    public SemanticEquivalenceReport verifySemanticEquivalence(ParsedSqlProfile profile) {
+        QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
+        RelationalRewritePlan plan = new RelationalRewritePlanBuilder().build(queryBlockDag);
+        return new SemanticEquivalenceVerifier().verify(queryBlockDag, plan);
     }
 
     public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {

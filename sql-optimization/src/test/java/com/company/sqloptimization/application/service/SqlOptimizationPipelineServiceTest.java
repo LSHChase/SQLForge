@@ -18,6 +18,10 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteCandidate;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewriteRuleType;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceCheck;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceCheckType;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceStatus;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.nio.charset.StandardCharsets;
@@ -406,6 +410,72 @@ class SqlOptimizationPipelineServiceTest {
             snapshot.getAttributes().get("relationalRewriteCandidateCount")
         );
         assertEquals("CANDIDATE_GENERATED", snapshot.getAttributes().get("relationalRewritePlanStatus"));
+    }
+
+    @Test
+    void shouldGenerateSemanticEquivalenceReportForRelationalRewriteCandidates() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        SemanticEquivalenceReport report = service.verifySemanticEquivalence(profile);
+
+        assertEquals(SemanticEquivalenceReport.SCHEMA_VERSION, report.getSchemaVersion());
+        assertEquals(SemanticEquivalenceStatus.NEEDS_CONSTRAINTS, report.getStatus());
+        assertTrue(report.hasCheck(SemanticEquivalenceCheckType.CONSTRAINT_BASED_EQUIVALENCE));
+        assertTrue(report.hasCheck(SemanticEquivalenceCheckType.STATISTICAL_AGGREGATION_EQUIVALENCE));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
+        assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
+        assertFalse(report.getUnverifiedCandidateIds().isEmpty());
+
+        SemanticEquivalenceCheck constraint = firstSemanticCheck(
+            report,
+            SemanticEquivalenceCheckType.CONSTRAINT_BASED_EQUIVALENCE,
+            RelationalRewriteRuleType.CSE_ELIMINATION
+        );
+        assertTrue(constraint.getDifferenceExpression().contains("DELTA_Q1_MINUS_Q2"));
+        assertTrue(constraint.getReverseDifferenceExpression().contains("DELTA_Q2_MINUS_Q1"));
+        assertTrue(constraint.getProofObligations().contains("DELTA_Q1_MINUS_Q2_EMPTY"));
+        assertTrue(constraint.getProofObligations().contains("COMPENSATION_PREDICATES_APPLIED_AT_REFERENCE"));
+        assertTrue(constraint.getNullSemantics().contains("USE_IS_NOT_DISTINCT_FROM_FOR_NULLABLE_COLUMN_COMPARISON"));
+
+        SemanticEquivalenceCheck aggregation = firstSemanticCheck(
+            report,
+            SemanticEquivalenceCheckType.STATISTICAL_AGGREGATION_EQUIVALENCE,
+            RelationalRewriteRuleType.VERTICAL_FOLDING
+        );
+        assertEquals(SemanticEquivalenceStatus.CONDITIONALLY_PROVED, aggregation.getStatus());
+        assertTrue(aggregation.getPreconditions().contains("COUNT_DISTINCT_CASE_FILTER_EQUIVALENCE"));
+        assertTrue(aggregation.getPreconditions().contains("CASE_FALSE_BRANCH_RETURNS_NULL"));
+        assertTrue(aggregation.getNullSemantics().contains("COUNT_DISTINCT_IGNORES_NULL"));
+        assertTrue(String.valueOf(aggregation.getAttributes().get("equivalenceLaw")).contains("COUNT(DISTINCT CASE"));
+    }
+
+    @Test
+    void shouldExposeSemanticEquivalenceReportThroughRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            repeatedAggregateLeftJoinSql(),
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+
+        assertNotNull(snapshot.getSemanticEquivalenceReport());
+        assertTrue(snapshot.getSemanticEquivalenceReport().hasCheck(
+            SemanticEquivalenceCheckType.CONSTRAINT_BASED_EQUIVALENCE
+        ));
+        assertTrue(snapshot.getSemanticEquivalenceReport().hasCheck(
+            SemanticEquivalenceCheckType.STATISTICAL_AGGREGATION_EQUIVALENCE
+        ));
+        assertEquals(
+            Integer.valueOf(snapshot.getSemanticEquivalenceReport().getChecks().size()),
+            snapshot.getAttributes().get("semanticEquivalenceCheckCount")
+        );
+        assertEquals(
+            snapshot.getSemanticEquivalenceReport().getStatus().name(),
+            snapshot.getAttributes().get("semanticEquivalenceStatus")
+        );
     }
 
     @Test
@@ -1041,6 +1111,18 @@ class SqlOptimizationPipelineServiceTest {
         List<RelationalRewriteCandidate> candidates = plan.candidatesOf(ruleType);
         assertFalse(candidates.isEmpty(), "缺少关系代数改写候选：" + ruleType);
         return candidates.get(0);
+    }
+
+    private SemanticEquivalenceCheck firstSemanticCheck(SemanticEquivalenceReport report,
+                                                        SemanticEquivalenceCheckType checkType,
+                                                        RelationalRewriteRuleType ruleType) {
+        for (SemanticEquivalenceCheck check : report.getChecks()) {
+            if (checkType == check.getCheckType() && ruleType == check.getRuleType()) {
+                return check;
+            }
+        }
+        assertNotNull(null, "缺少语义等价验证：" + checkType + " / " + ruleType);
+        return null;
     }
 
     private String repeatedAggregateLeftJoinSql() {

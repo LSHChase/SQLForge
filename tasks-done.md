@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SEMANTIC-EQUIVALENCE-PHASE3-20260521: 实现 SQL 改写第三阶段语义等价验证
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-SEMANTIC-EQUIVALENCE-PHASE3-20260521 implement semantic equivalence verification`
+- Priority: 1
+- Depends on: USER-CN-RA-REWRITE-PHASE2-20260521
+- Scope: 在不改动页面、不执行真实 SQL、不自动生效生产改写的前提下，在 sql-optimization 改写核心实现第三阶段 Semantic Equivalence Verification 第一版：基于 L4/QBDAG/RA rewrite candidates 生成约束等价验证与聚合统计等价验证结果，覆盖差查询空结果判定、NULL 语义风险、COUNT DISTINCT CASE/FILTER 等价规则、验证状态和证据；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SEMANTIC-EQUIVALENCE-PHASE3-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 实现 SQL 改写第三阶段候选级语义等价验证：新增 SemanticEquivalenceReport/Check/Verifier，支持基于约束的差表达式空结果义务、NULL 与 bag 语义证明义务、COUNT DISTINCT CASE/FILTER 聚合统计等价检查；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充回归测试、架构文档和原始需求归档；未改动页面。
+  - Validation evidence: java -version => OpenJDK 1.8.0_112; mvn -pl sql-optimization -am test -DfailIfNoTests=false => 336 tests passed; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest -DfailIfNoTests=false test => 25 tests passed; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes=changed Java paths => 0 violations; mvn -pl sql-optimization pmd:pmd => BUILD SUCCESS with existing P3C PMD 7 compatibility warnings; git diff --check => passed; node scripts/check-developer-copy-language.mjs --changed => passed; node scripts/lint-repository-knowledge.js => passed; python3 scripts/foreman.py validate USER-CN-SEMANTIC-EQUIVALENCE-PHASE3-20260521 => passed; python3 scripts/task_audit.py --check --phase pre-closeout => passed.
+  - Residual risk: 本阶段为候选级静态验证报告，不执行真实 SQL、不接入真实 schema 约束、不调用 SMT Solver/Z3；CONDITIONALLY_PROVED 或 NEEDS_CONSTRAINTS 不能升级为生产自动改写。PMD 输出存在既有 P3C 规则集 PMD 7 兼容性 warning，命令本身成功。
+  - Next step: 后续可接入 schema 约束抽取、SMT-LIB/Z3 求解器和完整 rewritten SQL 生成器，再把 PROVED 候选纳入受控自动改写链路。
+
 ### USER-CN-RA-REWRITE-PHASE2-20260521: 实现 SQL 改写第二阶段关系代数等价变换候选
 
 - Status: done

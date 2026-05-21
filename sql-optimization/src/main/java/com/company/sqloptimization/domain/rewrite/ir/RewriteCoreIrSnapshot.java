@@ -2,6 +2,7 @@ package com.company.sqloptimization.domain.rewrite.ir;
 
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ public class RewriteCoreIrSnapshot {
     private final QueryBlockDag queryBlockDag;
     private final List<RelationalAlgebraNode> relationalAlgebra;
     private final RelationalRewritePlan relationalRewritePlan;
+    private final SemanticEquivalenceReport semanticEquivalenceReport;
     private final BusinessIntentIr businessIntent;
     private final List<RewriteIrConflict> architectureConflicts;
     private final Map<String, Object> attributes;
@@ -29,6 +31,7 @@ public class RewriteCoreIrSnapshot {
                                  QueryBlockDag queryBlockDag,
                                  List<RelationalAlgebraNode> relationalAlgebra,
                                  RelationalRewritePlan relationalRewritePlan,
+                                 SemanticEquivalenceReport semanticEquivalenceReport,
                                  BusinessIntentIr businessIntent,
                                  List<RewriteIrConflict> architectureConflicts,
                                  Map<String, Object> attributes) {
@@ -40,6 +43,7 @@ public class RewriteCoreIrSnapshot {
         this.queryBlockDag = queryBlockDag;
         this.relationalAlgebra = IrCollections.immutableList(relationalAlgebra);
         this.relationalRewritePlan = relationalRewritePlan;
+        this.semanticEquivalenceReport = semanticEquivalenceReport;
         this.businessIntent = businessIntent;
         this.architectureConflicts = IrCollections.immutableList(architectureConflicts);
         this.attributes = IrCollections.immutableMap(attributes);
@@ -79,6 +83,10 @@ public class RewriteCoreIrSnapshot {
 
     public RelationalRewritePlan getRelationalRewritePlan() {
         return relationalRewritePlan;
+    }
+
+    public SemanticEquivalenceReport getSemanticEquivalenceReport() {
+        return semanticEquivalenceReport;
     }
 
     public BusinessIntentIr getBusinessIntent() {

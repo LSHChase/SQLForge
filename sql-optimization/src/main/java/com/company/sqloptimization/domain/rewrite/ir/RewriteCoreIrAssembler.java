@@ -5,6 +5,8 @@ import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockNode;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlanBuilder;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
+import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceVerifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +58,10 @@ public class RewriteCoreIrAssembler {
             groupBy
         );
         RelationalRewritePlan relationalRewritePlan = new RelationalRewritePlanBuilder().build(queryBlockDag);
+        SemanticEquivalenceReport semanticEquivalenceReport = new SemanticEquivalenceVerifier().verify(
+            queryBlockDag,
+            relationalRewritePlan
+        );
         BusinessIntentIr businessIntent = buildBusinessIntent(advancedProfile, projections, predicates, aggregations, groupBy);
         AstNodeReference ast = buildAstReference(normalizedSql, parserEngine, advancedProfile);
 
@@ -69,6 +75,8 @@ public class RewriteCoreIrAssembler {
         attributes.put("duplicateStructuralGroupCount", Integer.valueOf(queryBlockDag.getDuplicateStructuralGroups().size()));
         attributes.put("relationalRewritePlanStatus", relationalRewritePlan.getAttributes().get("rewriteStatus"));
         attributes.put("relationalRewriteCandidateCount", Integer.valueOf(relationalRewritePlan.getCandidates().size()));
+        attributes.put("semanticEquivalenceStatus", semanticEquivalenceReport.getStatus().name());
+        attributes.put("semanticEquivalenceCheckCount", Integer.valueOf(semanticEquivalenceReport.getChecks().size()));
 
         return new RewriteCoreIrSnapshot(
             RewriteCoreIrSnapshot.SCHEMA_VERSION,
@@ -79,6 +87,7 @@ public class RewriteCoreIrAssembler {
             queryBlockDag,
             algebra,
             relationalRewritePlan,
+            semanticEquivalenceReport,
             businessIntent,
             architectureConflicts(),
             attributes

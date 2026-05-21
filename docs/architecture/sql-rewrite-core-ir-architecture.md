@@ -141,3 +141,51 @@
 - 不创建、激活或暂停 runtime rewrite binding。
 - 不把候选收益写成真实扫描量或真实运行收益。
 - 不自动合并子查询、不自动下推补偿谓词、不自动替换生产 SQL。
+
+## Phase 2.3 Semantic Equivalence Verification
+
+第三阶段已在后端新增候选级语义等价验证报告，用于在不执行 SQL、不访问数据的前提下，对第二阶段生成的关系代数改写候选输出证明状态、差表达式、NULL 语义、bag 语义和聚合统计等价证据。实现入口：
+
+- 领域模型包：`com.company.sqloptimization.domain.rewrite.semantic`
+- 验证器：`SemanticEquivalenceVerifier`
+- 应用入口：`SqlOptimizationPipelineService.verifySemanticEquivalence(...)`
+- IR 汇总入口：`RewriteCoreIrSnapshot.getSemanticEquivalenceReport()`
+
+### Verification Contract
+
+| 子能力 | 当前实现 | 边界 |
+|:---|:---|:---|
+| 基于约束的等价性检验 | 为每个 `RelationalRewriteCandidate` 生成 `CONSTRAINT_BASED_EQUIVALENCE` 检查，固化 `Q1 - Q2` 与 `Q2 - Q1` 的差表达式、双向空结果义务、输出 schema 等价义务和补偿谓词义务。 | 当前不接入真实 schema 约束、不执行差查询、不调用 SMT Solver；无 NOT NULL / CHECK / 主外键证据时状态保持 `NEEDS_CONSTRAINTS` 或 `CONDITIONALLY_PROVED`。 |
+| NULL 语义 | 每个约束检查显式记录三值逻辑保持、可空列比较需使用 `IS NOT DISTINCT FROM`、可空输出列需要 schema 约束或补偿。 | 静态解析无法证明所有列的可空性；不会把未证明的 NULL 风险写成已证明等价。 |
+| bag / set 语义 | 默认按 bag equivalence 记录重复值保持义务；CSE 要求引用替换不改变 multiplicity，横向展开要求 LEFT JOIN 行数不变。 | 当前不做真实基数估计，不声称扫描或行数收益已经发生。 |
+| 聚合统计等价 | 对纵向折叠和横向展开候选生成 `STATISTICAL_AGGREGATION_EQUIVALENCE` 检查；固化 `COUNT(DISTINCT CASE WHEN p THEN x END) == COUNT(DISTINCT x) FILTER (WHERE p)` 等价律、CASE false 分支为 NULL、DISTINCT 参数等价和 AVG 拆解义务。 | `COUNT DISTINCT` / `AVG` / LEFT JOIN 空扩展仍需要后续约束、规则或执行验证闭环；本阶段不自动升级为可生产改写。 |
+
+### Report Schema
+
+`SemanticEquivalenceReport` 固化：
+
+- `schemaVersion = semantic-equivalence-report/v1`
+- `sourceSchemaVersion = relational-rewrite-plan/v1`
+- `status`：`PROVED`、`CONDITIONALLY_PROVED`、`NEEDS_CONSTRAINTS`、`UNSUPPORTED` 或 `NO_CANDIDATE`
+- `checks`：包含候选 id、规则类型、验证类型、原表达式、改写表达式、双向差表达式、前置条件、证明义务、NULL 语义、bag 语义、风险和证据。
+- `unverifiedCandidateIds`：记录尚未达到 `PROVED` 的候选，避免误触发自动改写。
+- `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`smtSolverStatus=NOT_INTEGRATED`。
+
+### Conflict / Choice
+
+本阶段没有需要暂停实现的产品冲突；存在两个保守实现选择：
+
+| 选择点 | 已采用方案 | 备选 |
+|:---|:---|:---|
+| 用户算法包含 SMT Solver / Z3 高级方法，但仓库当前没有 solver 依赖和真实 schema 约束输入。 | 先实现静态规则验证报告，显式标记 `smtSolverStatus=NOT_INTEGRATED`，并把需要主键、外键、NOT NULL、CHECK 的部分列入 proof obligations。 | 直接引入 Z3；证明能力更强，但会引入新依赖、构建环境和约束抽取任务，超出本阶段“先搭能力”的边界。 |
+| 第二阶段只有候选形式，没有完整 rewritten SQL。 | 以候选级验证为边界，生成差表达式和等价义务，不声称完整 SQL 已被证明。 | 强行拼接完整 SQL；短期看更完整，但会在 SQL 生成器和语义验证都不完备时扩大误证明风险。 |
+
+### No Page / Runtime Impact
+
+本阶段仍保持：
+
+- 不改动前端页面、路由、菜单和展示文案。
+- 不执行真实 SQL，不读取生产数据。
+- 不创建、激活或暂停 runtime rewrite binding。
+- 不调用外部 SMT Solver，不新增数据库 schema 依赖。
+- 不把 `CONDITIONALLY_PROVED` 或 `NEEDS_CONSTRAINTS` 候选升级为自动生产改写。
