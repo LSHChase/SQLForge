@@ -98,7 +98,7 @@ const requiredReadmeMarkers = [
   'docs/plans/codex-governance-integration-blueprint.md'
 ]
 
-const expectedRuleEnd = 192
+const expectedRuleEnd = 190
 const expectedValidationIndexRanges = [
   [116, 144],
   [151, 154],

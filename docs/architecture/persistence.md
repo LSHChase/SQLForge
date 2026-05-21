@@ -1,6 +1,6 @@
 # SQLForge Persistence Baseline
 
-本文件是 `R-031`、`R-055`、`R-065`、`R-129` 与 `R-169` 的当前权威落点，统一描述 SQLForge 的 MySQL 主持久化方向、核心追溯链、MyBatis XML 落点与增量脚本约束。`R-055` 当前只表示“不默认引入 Flyway 等迁移工具”，不再使用表数量或团队规模阈值作为自动引入条件。
+本文件是 `R-031`、`R-055`、`R-065`、`R-129` 与 `R-169` 的当前权威落点，统一描述 SQLForge 的 MySQL 主持久化方向、核心追溯链、MyBatis XML 落点与增量脚本约束。
 
 ## Scope
 
@@ -159,8 +159,7 @@
 
 ## Migration Policy
 
-- 当前不把 Flyway 或其他迁移工具作为默认依赖；是否引入迁移工具必须另立 ADR / 任务确认。
-- 当前仓库已经强制使用 `sql/migrations/` 保存增量 DDL 脚本；`R-055` 不得被解释为“不需要增量脚本”。
+- 当前不引入 Flyway。
 - MySQL / TDSQL 的初始化脚本和增量脚本不得新增物理外键约束。
 - 变更表结构时必须同时更新：
   - `sql/init-schema.sql`

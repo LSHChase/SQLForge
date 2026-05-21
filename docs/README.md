@@ -208,8 +208,6 @@
   定义 requirement normalization、candidate task pack、materialization gate，以及 `requirements_to_plan/task_materialize/governed_full_cycle` 脚本如何在不绕过审计链的前提下把“只有需求”推进到正式 task。
 - [文档缺口矩阵](./plans/document-gap-matrix.md)
   把冲突、漂移、缺失项和残余实现缺口显式矩阵化。
-- [指定规则清理影响分析](./plans/rule-cleanup-r014-r055-r110-r115-r118-r139-impact-analysis-2026-05-20.md)
-  记录 `R-014`、`R-055`、`R-110` 至 `R-115`、`R-118`、`R-139` 的清理边界、非核心改造项与核心安全人工决策项。
 - [阶段前置条件矩阵](./plans/phase-prerequisite-matrix.md)
   为每个阶段显式列出输入文档、ADR、规则、验证规则和人工确认点。
 - [Task 治理扩展矩阵](./plans/task-governance-extension-matrix.md)

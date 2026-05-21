@@ -95,7 +95,7 @@
 
 以下缺口属于当前 CI 基线的残余事实，不是“已经接入”的事实：
 
-1. `R-116` / `R-117` / `R-118` 已自动绑定到 `checkpoint/*` tag / `release.published` 发布路径；日常 ad hoc 阶段切换按 `R-139` 的显式门禁语义，仍主要依赖 `workflow_dispatch` 或手工执行 `scripts/run-phase-gates.sh`。
+1. `R-116` / `R-117` / `R-118` 已自动绑定到 `checkpoint/*` tag / `release.published` 发布路径，但日常的 ad hoc 阶段切换仍主要依赖 `workflow_dispatch`。
 2. 当前 workflow 仍未把 `python3 scripts/foreman.py validate <TASK>` 纳入通用 CI。
 3. `phase1plus` 聚合覆盖率已提升到 `86.9763%`，`Release Phase Gate` 与 `Phase Gate` 的 coverage blocker 已从“真实阻断项”转为“已达标门禁项”。
 4. Sonar 已降为“仓库保留接线、外部 provisioning + 显式 enable 可恢复”的 fallback 项；缺少 `SONAR_HOST_URL` / `SONAR_TOKEN` 不再构成仓库默认发布阻断，且仅 provisioning 不会自动把 Sonar 升回主线阻断；若显式要求 `--require-config` 仍会失败并留下恢复证据。
