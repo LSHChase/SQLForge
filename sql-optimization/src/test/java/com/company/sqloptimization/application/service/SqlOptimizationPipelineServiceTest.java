@@ -611,6 +611,47 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("orgLabelLineage"));
     }
 
+    @Test
+    void shouldRecommendReportSnapshotRewriteForEquivalentNamingVariants() {
+        String sql = reportSnapshotNamingVariantSql();
+
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        OptimizationTaskSuggestion rewriteSuggestion = service.buildRewriteSuggestion(profile);
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+        Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+            new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                sql,
+                "HETU",
+                "datasource-generic-report",
+                "fingerprint-generic-report",
+                "GENERIC_REPORT",
+                "generic-report",
+                null
+            ),
+            profile
+        );
+
+        assertTrue(profile.getRepeatedTableScanCount() >= 4, "repeatedTableScanCount=" + profile.getRepeatedTableScanCount());
+        assertTrue(containsRule(model.getRuleChain(), L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+        String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
+        assertTrue(rewriteCandidateSql.contains("rpt_customer_asset_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_level2_no"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__ORG_SHORT_NAME_L3 AS branch_org_name"),
+            rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("'深圳分行' AS report_org_label"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__BIZ_DATE AS snapshot_date"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
+
+        assertNotNull(accelerationArtifact);
+        assertEquals("PARAMETERIZED_AGG_MV", accelerationArtifact.get("mvType"));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql"))
+            .contains("FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_no_2"));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("UNION ALL"));
+        assertFalse(String.valueOf(accelerationArtifact.get("ddlSql")).contains("GROUPING SETS"));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("SZ001"));
+    }
+
     private String complexAntiPatternSql() {
         return "-- complex anti-pattern query\n"
             + "SELECT c.customer_id, c.customer_name, c.state,\n"
@@ -628,6 +669,74 @@ class SqlOptimizationPipelineServiceTest {
             + "AND oi2.product_id IN (SELECT product_id FROM products WHERE category LIKE '%电子%')))\n"
             + "OR c.customer_id IN (SELECT customer_id FROM orders WHERE order_amount > 10000)\n"
             + "ORDER BY RAND() LIMIT 10";
+    }
+
+    private String reportSnapshotNamingVariantSql() {
+        return "SELECT b.org_code_l2, b.org_name_l2, b.org_label, b.base_100, c.current_100, "
+            + "x.base_600, y.current_600, n.new_100\n"
+            + "FROM (\n"
+            + "  SELECT FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_code_l2,\n"
+            + "    FACT_CUSTOMER_ASSET__ORG_NAME_L2 AS org_name_l2,\n"
+            + "    '深圳分行' AS org_label,\n"
+            + "    COUNT(DISTINCT FACT_CUSTOMER_ASSET__CUSTOMER_ID) AS base_100\n"
+            + "  FROM rpt_customer_asset_snapshot\n"
+            + "  WHERE (FACT_CUSTOMER_ASSET__ORG_CODE_L2 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L3 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L4 = 'SZ001')\n"
+            + "    AND FACT_CUSTOMER_ASSET__ORG_LEVEL = 4\n"
+            + "    AND FACT_CUSTOMER_ASSET__BIZ_DATE = '2026-04-30'\n"
+            + "    AND FACT_CUSTOMER_ASSET__AVG_BALANCE >= 1000000\n"
+            + "  GROUP BY FACT_CUSTOMER_ASSET__ORG_CODE_L2, FACT_CUSTOMER_ASSET__ORG_NAME_L2\n"
+            + ") b\n"
+            + "LEFT JOIN (\n"
+            + "  SELECT FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_code_l2,\n"
+            + "    COUNT(DISTINCT FACT_CUSTOMER_ASSET__CUSTOMER_ID) AS current_100\n"
+            + "  FROM rpt_customer_asset_snapshot\n"
+            + "  WHERE (FACT_CUSTOMER_ASSET__ORG_CODE_L2 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L3 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L4 = 'SZ001')\n"
+            + "    AND FACT_CUSTOMER_ASSET__ORG_LEVEL = 4\n"
+            + "    AND FACT_CUSTOMER_ASSET__BIZ_DATE = '2026-05-31'\n"
+            + "    AND FACT_CUSTOMER_ASSET__AVG_BALANCE >= 1000000\n"
+            + "  GROUP BY FACT_CUSTOMER_ASSET__ORG_CODE_L2\n"
+            + ") c ON b.org_code_l2 = c.org_code_l2\n"
+            + "LEFT JOIN (\n"
+            + "  SELECT FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_code_l2,\n"
+            + "    COUNT(DISTINCT FACT_CUSTOMER_ASSET__CUSTOMER_ID) AS base_600\n"
+            + "  FROM rpt_customer_asset_snapshot\n"
+            + "  WHERE (FACT_CUSTOMER_ASSET__ORG_CODE_L2 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L3 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L4 = 'SZ001')\n"
+            + "    AND FACT_CUSTOMER_ASSET__ORG_LEVEL = 4\n"
+            + "    AND FACT_CUSTOMER_ASSET__BIZ_DATE = '2026-04-30'\n"
+            + "    AND FACT_CUSTOMER_ASSET__AVG_BALANCE >= 6000000\n"
+            + "  GROUP BY FACT_CUSTOMER_ASSET__ORG_CODE_L2\n"
+            + ") x ON b.org_code_l2 = x.org_code_l2\n"
+            + "LEFT JOIN (\n"
+            + "  SELECT FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_code_l2,\n"
+            + "    COUNT(DISTINCT FACT_CUSTOMER_ASSET__CUSTOMER_ID) AS current_600\n"
+            + "  FROM rpt_customer_asset_snapshot\n"
+            + "  WHERE (FACT_CUSTOMER_ASSET__ORG_CODE_L2 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L3 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L4 = 'SZ001')\n"
+            + "    AND FACT_CUSTOMER_ASSET__ORG_LEVEL = 4\n"
+            + "    AND FACT_CUSTOMER_ASSET__BIZ_DATE = '2026-05-31'\n"
+            + "    AND FACT_CUSTOMER_ASSET__AVG_BALANCE >= 6000000\n"
+            + "  GROUP BY FACT_CUSTOMER_ASSET__ORG_CODE_L2\n"
+            + ") y ON b.org_code_l2 = y.org_code_l2\n"
+            + "LEFT JOIN (\n"
+            + "  SELECT FACT_CUSTOMER_ASSET__ORG_CODE_L3 AS org_code_l3,\n"
+            + "    FACT_CUSTOMER_ASSET__ORG_SHORT_NAME_L3 AS branch_name,\n"
+            + "    COUNT(DISTINCT FACT_CUSTOMER_ASSET__CUSTOMER_ID) AS new_100\n"
+            + "  FROM rpt_customer_asset_snapshot\n"
+            + "  WHERE (FACT_CUSTOMER_ASSET__ORG_CODE_L2 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L3 = 'SZ001'\n"
+            + "    OR FACT_CUSTOMER_ASSET__ORG_CODE_L4 = 'SZ001')\n"
+            + "    AND FACT_CUSTOMER_ASSET__ORG_LEVEL = 4\n"
+            + "    AND FACT_CUSTOMER_ASSET__BIZ_DATE = '2026-05-31'\n"
+            + "    AND FACT_CUSTOMER_ASSET__AVG_BALANCE >= 1000000\n"
+            + "  GROUP BY FACT_CUSTOMER_ASSET__ORG_CODE_L3, FACT_CUSTOMER_ASSET__ORG_SHORT_NAME_L3\n"
+            + ") n ON b.org_code_l2 = n.org_code_l3";
     }
 
     private boolean containsRule(List<Map<String, Object>> entries, String rule) {

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521: 通用化复杂报表改写推荐
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `feat(sql-optimization): generalize report rewrite detection`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将 docs/test01.sql 的报表改写能力抽象为更通用的复杂报表 SQL 推荐逻辑，覆盖类似重复扫描事实表、日期快照、客户粒度、机构层级和分段指标的 SQL 形态，减少样例特化判断并补充变体回归验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 将 test01 的复杂报表改写从样例特化扩展为字段命名族识别：支持 ORG_CODE/ORG_CD/ORG_ID 等层级编码、ORG_NAME/SHORT_NAME/SNAM 等机构名称、ORG_LEVEL、CUSTOMER_ID/CLIENT_ID、AVG_BALANCE/BIZ_DATE 等命名变体；候选列按物理字段优先评分，避免外层别名误入 raw CTE；MV 粒度只输出实际检测到的机构层级；补充同形不同命名 SQL 变体回归，验证 L2 规则、rewrite SQL、MV DDL 和无 GROUPING SETS。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 --include-task-audit --extra-command mvn -pl sql-optimization -am test --extra-command git diff --check；git diff --check；python3 scripts/task_audit.py --check --phase pre-closeout；同轮集中验证覆盖 SqlOptimizationPipelineServiceTest、RewriteTrialApplicationServiceTest、L2SnapshotAggregateReportMvCandidateGeneratorTest。
+  - Residual risk: 未连接真实 Hetu/生产数据执行 EXPLAIN 与结果差异 SQL；当前覆盖常见命名族和同形报表模式，任意业务语义仍需依赖生成的 validationSql、EXPLAIN 和生产样本回归确认。
+  - Next step: 将更多生产同形报表补充为 fixture，并在真实引擎执行生成的 validationSql 与 EXPLAIN，持续扩展命名族识别。
+
 ### USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521: 修复 test01 改写验证推荐记录生成
 
 - Status: done

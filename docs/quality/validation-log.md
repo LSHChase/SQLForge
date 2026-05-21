@@ -5262,3 +5262,24 @@
 2026-05-21T06:57:31-05:00 | USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-21T06:57:31-05:00 | USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): restore test01 rewrite trial recommendations' (projected-precommit)`
 2026-05-21T06:57:31-05:00 | USER-CN-FIX-TEST01-RECOMMENDATION-RECORD-20260521 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-21T07:42:54-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-21T07:42:54-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-21T07:42:54-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-21T07:42:55-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-21T07:43:14-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -am test`
+2026-05-21T07:43:14-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-21T07:46:48-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-21T07:46:48-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-21T07:46:48-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-21T07:46:49-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-21T07:47:07-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -am test`
+2026-05-21T07:47:07-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-21T07:49:07-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-21T07:49:07-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-21T07:49:07-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-21T07:49:07-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-21T07:49:27-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -am test`
+2026-05-21T07:49:27-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-21T07:51:31-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-21T07:51:31-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): generalize report rewrite detection' (projected-precommit)`
+2026-05-21T07:51:31-05:00 | USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

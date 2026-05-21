@@ -20,9 +20,7 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
     private static final Pattern FROM_TABLE_PATTERN =
         Pattern.compile("(?is)\\bFROM\\s+((?:\"[^\"]+\"\\.)?[A-Z0-9_\\.]+)");
     private static final Pattern DATE_LITERAL_PATTERN =
-        Pattern.compile("(?is)([A-Z0-9_\\.]*?(?:DTE|DT|DATE|DAY))\\s*=\\s*'([0-9]{8}|[0-9]{4}-[0-9]{2}-[0-9]{2})'");
-    private static final Pattern ORG_VALUE_PATTERN =
-        Pattern.compile("(?is)\\b[A-Z0-9_\\.]*ORG_NO_[0-7]\\s*=\\s*'([^']+)'");
+        Pattern.compile("(?is)([A-Z0-9_\\.]*?(?:DTE|DT|DATE|DAY))\\s*(?:=|>=|<=|>|<)\\s*(?:DATE\\s*)?'([0-9]{8}|[0-9]{4}-[0-9]{2}-[0-9]{2})'");
     private static final Pattern THRESHOLD_PATTERN =
         Pattern.compile("(?is)(?:AUM|AMOUNT|BAL)[A-Z0-9_\\.\"\\s]*>=\\s*([0-9]+)");
     private static final Pattern SPECIAL_BRANCH_NO_PATTERN =
@@ -30,7 +28,21 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
     private static final Pattern SPECIAL_BRANCH_NAME_PATTERN =
         Pattern.compile("(?is)CASE\\s+[^\\n]*?(?:ORG_NO_4|第四层时点机构号)[\\s\\S]*?WHEN\\s+'[^']+'\\s+THEN\\s+'([^']+)'[\\s\\S]*?ELSE\\s+[^\\n]*(?:ORG_SNAM_3|第三层机构简称)[\\s\\S]*?END");
     private static final Pattern TOP_ORG_PATTERN =
-        Pattern.compile("(?is)'([^']+)'\\s+AS\\s+\"org\"");
+        Pattern.compile("(?is)'([^']+)'\\s+AS\\s+(?:\"(?:org|org_label|report_org_label|机构|机构简称)\"|(?:org|org_label|report_org_label)\\b)");
+    private static final List<String> ORG_NO_COLUMN_PATTERNS = Arrays.asList(
+        "ORG_NO_([0-7])",
+        "ORG_(?:NO|CODE|CD|ID)_L([0-7])",
+        "ORG_(?:NO|CODE|CD|ID)_LEVEL_?([0-7])",
+        "ORG_L([0-7])_(?:NO|CODE|CD|ID)",
+        "ORG(?:NO|CODE|CD|ID)([0-7])"
+    );
+    private static final List<String> ORG_NAME_COLUMN_PATTERNS = Arrays.asList(
+        "ORG_(?:SNAM|SNAME|SHORT_NAME|NAME)_([0-7])",
+        "ORG_(?:SNAM|SNAME|SHORT_NAME|NAME)_L([0-7])",
+        "ORG_(?:SNAM|SNAME|SHORT_NAME|NAME)_LEVEL_?([0-7])",
+        "ORG_L([0-7])_(?:SNAM|SNAME|SHORT_NAME|NAME)",
+        "ORG(?:SNAM|SNAME|NAME)([0-7])"
+    );
 
     private L2SnapshotAggregateReportMvCandidateGenerator() {
     }
@@ -95,24 +107,33 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         String factTable = firstFactTable(sourceSql, profile);
         String dateColumn = firstColumn(
             sourceSql,
-            Arrays.asList("DTE", "SNAPSHOT_DATE", "DATA_DATE", "BIZ_DATE", "DT")
+            Arrays.asList("SNAPSHOT_DATE", "DATA_DATE", "BIZ_DATE", "BUSINESS_DATE", "TXN_DATE", "DTE", "DT", "DAY")
         );
         if (!StringUtils.hasText(dateColumn)) {
             dateColumn = firstProfileDateColumn(profile);
         }
         String customerColumn = firstColumn(
             sourceSql,
-            Arrays.asList("CUST_NO", "CUSTOMER_NO", "CUSTOMER_ID", "CUST_ID")
+            Arrays.asList("CUSTOMER_NO", "CUSTOMER_ID", "CUST_NO", "CUST_ID", "CLIENT_NO", "CLIENT_ID", "USER_ID", "MEMBER_ID")
         );
         String measureColumn = firstColumn(
             sourceSql,
-            Arrays.asList("AUM_MAVER_BAL", "AUM", "AMOUNT", "BALANCE", "BAL")
+            Arrays.asList("AUM_MAVER_BAL", "AVG_BALANCE", "BALANCE_AMT", "ASSET_BAL", "AUM", "AMOUNT", "BALANCE", "BAL")
         );
-        String orgLevelColumn = firstColumn(sourceSql, Collections.singletonList("ORG_LVL"));
+        String orgLevelColumn = firstColumn(sourceSql, Arrays.asList(
+            "ORG_LEVEL_CODE",
+            "ORG_LEVEL_CD",
+            "ORG_LVL_CODE",
+            "ORG_LVL_CD",
+            "ORG_HIER_LEVEL",
+            "ORG_HIER_LVL",
+            "ORG_LEVEL",
+            "ORG_LVL"
+        ));
         Map<Integer, String> orgNoColumns = orgNoColumns(sourceSql);
         Map<Integer, String> orgNameColumns = orgNameColumns(sourceSql);
         List<String> dates = dateLiterals(sourceSql);
-        String orgValue = firstGroup(ORG_VALUE_PATTERN, sourceSql, 1);
+        String orgValue = firstOrgScopeValue(sourceSql, orgNoColumns);
         if (!StringUtils.hasText(factTable)
             || !StringUtils.hasText(dateColumn)
             || !StringUtils.hasText(customerColumn)
@@ -224,7 +245,7 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
     }
 
     private static String buildReportSnapshotSelectFromRaw(SnapshotShape shape, boolean retainScopeColumns) {
-        List<String> scopeColumns = retainScopeColumns ? aliasOrgNoReferences() : Collections.<String>emptyList();
+        List<String> scopeColumns = retainScopeColumns ? aliasOrgNoReferences(shape) : Collections.<String>emptyList();
         StringBuilder sql = new StringBuilder();
         appendReportSnapshotSelectBranch(
             sql,
@@ -278,7 +299,7 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             + "    snapshot_date,\n"
             + "    SUM(snapshot_aum) AS snapshot_aum\n"
             + "  FROM " + mvName + "\n"
-            + "  WHERE " + orgScopePredicate(shape, aliasOrgNoReferences()) + "\n"
+            + "  WHERE " + orgScopePredicate(shape, aliasOrgNoReferences(shape)) + "\n"
             + "    AND " + datePredicate(shape, "snapshot_date") + "\n"
             + "  GROUP BY report_org_no, report_org_name, report_org_label, customer_no, snapshot_date";
     }
@@ -556,40 +577,30 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         return coverage;
     }
 
-    private static List<String> grain() {
-        return Arrays.asList(
-            "snapshot_date",
-            "org_no_0",
-            "org_no_1",
-            "org_no_2",
-            "org_no_3",
-            "org_no_4",
-            "org_no_5",
-            "org_no_6",
-            "org_no_7",
+    private static List<String> grain(SnapshotShape shape) {
+        List<String> values = new ArrayList<String>();
+        values.add("snapshot_date");
+        values.addAll(aliasOrgNoReferences(shape));
+        values.addAll(Arrays.asList(
             "report_org_no",
             "report_org_name",
             "report_org_label",
             "customer_no"
-        );
+        ));
+        return values;
     }
 
-    private static List<String> dimensions() {
-        return Arrays.asList(
-            "snapshot_date",
-            "org_no_0",
-            "org_no_1",
-            "org_no_2",
-            "org_no_3",
-            "org_no_4",
-            "org_no_5",
-            "org_no_6",
-            "org_no_7",
+    private static List<String> dimensions(SnapshotShape shape) {
+        List<String> values = new ArrayList<String>();
+        values.add("snapshot_date");
+        values.addAll(aliasOrgNoReferences(shape));
+        values.addAll(Arrays.asList(
             "report_org_no",
             "report_org_name",
             "report_org_label",
             "customer_no"
-        );
+        ));
+        return values;
     }
 
     private static List<Map<String, Object>> measures() {
@@ -609,7 +620,7 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
             "snapshot_date IN ('" + shape.baseDate + "', '" + shape.currentDate + "')",
             "EXTERNALIZED_PARAMETER_PREDICATE"
         ));
-        predicates.add(predicate("org_scope", orgScopePredicate(shape, aliasOrgNoReferences()), "EXTERNALIZED_PARAMETER_PREDICATE"));
+        predicates.add(predicate("org_scope", orgScopePredicate(shape, aliasOrgNoReferences(shape)), "EXTERNALIZED_PARAMETER_PREDICATE"));
         return predicates;
     }
 
@@ -678,9 +689,12 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         return values;
     }
 
-    private static List<String> aliasOrgNoReferences() {
-        return Arrays.asList("org_no_0", "org_no_1", "org_no_2", "org_no_3", "org_no_4",
-            "org_no_5", "org_no_6", "org_no_7");
+    private static List<String> aliasOrgNoReferences(SnapshotShape shape) {
+        List<String> values = new ArrayList<String>();
+        for (Integer level : sortedLevels(shape.orgNoColumns)) {
+            values.add("org_no_" + level);
+        }
+        return values;
     }
 
     private static List<Integer> sortedLevels(Map<Integer, String> columns) {
@@ -734,41 +748,116 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         for (String suffix : suffixes) {
             Pattern pattern = Pattern.compile("(?is)\\b([A-Z0-9_\\.]*" + Pattern.quote(suffix) + ")\\b");
             Matcher matcher = pattern.matcher(stripped);
+            String best = "";
             while (matcher.find()) {
-                String candidate = matcher.group(1);
-                if (!candidate.contains("__") && ("DT".equals(suffix) || "DAY".equals(suffix))) {
+                String candidate = normalizeDetectedColumn(matcher.group(1));
+                if (!candidate.contains("__")
+                    && ("DT".equals(suffix) || "DAY".equals(suffix))
+                    && candidate.equalsIgnoreCase(suffix)) {
                     continue;
                 }
-                return candidate;
+                if (isBetterColumnCandidate(candidate, best)) {
+                    best = candidate;
+                }
+            }
+            if (StringUtils.hasText(best)) {
+                return best;
             }
         }
         return "";
     }
 
     private static Map<Integer, String> orgNoColumns(String sql) {
-        return indexedColumns(sql, "ORG_NO_([0-7])");
+        return indexedColumns(sql, ORG_NO_COLUMN_PATTERNS);
     }
 
     private static Map<Integer, String> orgNameColumns(String sql) {
-        Map<Integer, String> result = indexedColumns(sql, "ORG_SNAM_([0-7])");
-        if (result.isEmpty()) {
-            result = indexedColumns(sql, "ORG_NAME_([0-7])");
+        return indexedColumns(sql, ORG_NAME_COLUMN_PATTERNS);
+    }
+
+    private static Map<Integer, String> indexedColumns(String sql, List<String> suffixPatterns) {
+        LinkedHashMap<Integer, String> result = new LinkedHashMap<Integer, String>();
+        String stripped = stripQuotedAliases(sql);
+        for (String suffixPattern : suffixPatterns) {
+            Pattern pattern = Pattern.compile("(?is)\\b([A-Z0-9_\\.]*" + suffixPattern + ")\\b");
+            Matcher matcher = pattern.matcher(stripped);
+            while (matcher.find()) {
+                Integer level = Integer.valueOf(matcher.group(2));
+                String candidate = normalizeDetectedColumn(matcher.group(1));
+                if (!result.containsKey(level) || isBetterColumnCandidate(candidate, result.get(level))) {
+                    result.put(level, candidate);
+                }
+            }
         }
         return result;
     }
 
-    private static Map<Integer, String> indexedColumns(String sql, String suffixPattern) {
-        LinkedHashMap<Integer, String> result = new LinkedHashMap<Integer, String>();
-        String stripped = stripQuotedAliases(sql);
-        Pattern pattern = Pattern.compile("(?is)\\b([A-Z0-9_\\.]*" + suffixPattern + ")\\b");
-        Matcher matcher = pattern.matcher(stripped);
-        while (matcher.find()) {
-            Integer level = Integer.valueOf(matcher.group(2));
-            if (!result.containsKey(level)) {
-                result.put(level, matcher.group(1));
+    private static String normalizeDetectedColumn(String column) {
+        if (!StringUtils.hasText(column)) {
+            return "";
+        }
+        String trimmed = column.trim();
+        int dot = trimmed.indexOf('.');
+        if (dot > 0) {
+            String qualifier = trimmed.substring(0, dot);
+            if (qualifier.length() <= 3 && qualifier.matches("(?is)[A-Z][A-Z0-9_]*")) {
+                return trimmed.substring(dot + 1);
             }
         }
-        return result;
+        return trimmed;
+    }
+
+    private static boolean isBetterColumnCandidate(String candidate, String current) {
+        if (!StringUtils.hasText(candidate)) {
+            return false;
+        }
+        if (!StringUtils.hasText(current)) {
+            return true;
+        }
+        int candidateScore = columnCandidateScore(candidate);
+        int currentScore = columnCandidateScore(current);
+        if (candidateScore != currentScore) {
+            return candidateScore > currentScore;
+        }
+        return candidate.length() > current.length();
+    }
+
+    private static int columnCandidateScore(String column) {
+        String normalized = column == null ? "" : column.toUpperCase(Locale.ROOT);
+        int score = 0;
+        if (normalized.contains("__")) {
+            score += 6;
+        }
+        if (!normalized.contains(".")) {
+            score += 3;
+        }
+        int dot = normalized.indexOf('.');
+        if (dot > 0) {
+            String qualifier = normalized.substring(0, dot);
+            if (qualifier.length() <= 3 && qualifier.matches("[A-Z][A-Z0-9_]*")) {
+                score -= 5;
+            }
+        }
+        return score;
+    }
+
+    private static String firstOrgScopeValue(String sourceSql, Map<Integer, String> orgNoColumns) {
+        for (Integer level : sortedLevels(orgNoColumns)) {
+            String value = firstColumnLiteralPredicate(sourceSql, orgNoColumns.get(level));
+            if (StringUtils.hasText(value)) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private static String firstColumnLiteralPredicate(String sourceSql, String column) {
+        if (!StringUtils.hasText(sourceSql) || !StringUtils.hasText(column)) {
+            return "";
+        }
+        Pattern pattern = Pattern.compile("(?is)\\b" + Pattern.quote(column) + "\\s*=\\s*'([^']+)'");
+        Matcher matcher = pattern.matcher(sourceSql);
+        return matcher.find() ? matcher.group(1) : "";
     }
 
     private static List<String> dateLiterals(String sourceSql) {
@@ -1009,11 +1098,11 @@ final class L2SnapshotAggregateReportMvCandidateGenerator {
         }
 
         List<String> getGrain() {
-            return grain();
+            return grain(shape);
         }
 
         List<String> getDimensions() {
-            return dimensions();
+            return dimensions(shape);
         }
 
         List<Map<String, Object>> getMeasures() {
