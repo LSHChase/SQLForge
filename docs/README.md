@@ -94,6 +94,7 @@
   - `service-interface-contract-baseline.md`：4 微服务统一身份、错误码、DTO/事件和审计契约基线。
   - `sql-governance-interface-extension-baseline.md`：SQL 治理产品线新增的查询、解析、批量解析、推荐协同、开放接入与告警接口扩展基线。
   - `sql-governance-data-model-extension.md`：SQL 治理产品线新增对象、扩表现状、JSON/结构化字段取舍与落表策略。
+  - `sql-rewrite-core-ir-architecture.md`：SQL 改写核心 L1-L5 IR 架构骨架、层级契约和与既有推荐规则等级的命名冲突处理。
 - `product/`
   产品实施规格与页面、流程、角色、分期设计权威入口。
   - `sql-governance-platform-implementation-spec.md`：SQL 治理中后台 + 开放接入平台实施规格。

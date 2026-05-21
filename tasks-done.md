@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521: 搭建 SQL 改写 L1-L5 核心 IR 架构骨架
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `feat(rewrite): scaffold core IR architecture`
+- Priority: 1
+- Depends on: USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521
+- Scope: 在不改动页面、不改变运行时自动生效语义、不执行真实 SQL 的前提下，为 sql-optimization 改写核心搭建 L1 AST、L2 Table Reference、L3 Query Block、L4 Relational Algebra、L5 Business Intent 五层 IR 骨架、转换入口和最小测试；如发现与既有 HARN-130 L0/L1/L2 规则模型或 L2 物化视图命名冲突，先以兼容命名和文档说明收口。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 搭建 SQL 改写 L1-L5 核心 IR 骨架：L1 AST、L2 表引用、L3 查询块、L4 关系代数、L5 业务意图；新增 assembler、pipeline 入口、最小单测、架构文档和原始需求归档；未改动页面。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REWRITE-CORE-IR-SCAFFOLD-20260521; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false test; git diff --check; node scripts/check-developer-copy-language.mjs --changed; node scripts/lint-repository-knowledge.js
+  - Residual risk: 本次仅搭建后端 IR 骨架和转换入口，不改变现有推荐/页面运行路径；后续需按具体改写规则补齐真实代数优化、查询块归一化和业务意图识别。
+  - Next step: 在该 IR 骨架上接入具体 SQL 改写规则和可验证的 rewrite plan 输出。
+
 ### USER-CN-GENERALIZE-REPORT-REWRITE-RECOMMENDATION-20260521: 通用化复杂报表改写推荐
 
 - Status: done

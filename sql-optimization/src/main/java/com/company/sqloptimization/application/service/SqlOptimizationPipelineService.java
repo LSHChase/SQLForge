@@ -11,6 +11,8 @@ import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
+import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrAssembler;
+import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import io.trino.sql.parser.ParsingOptions;
 import io.trino.sql.parser.SqlParser;
 import io.trino.sql.tree.AstVisitor;
@@ -625,6 +627,20 @@ public class SqlOptimizationPipelineService {
             return Collections.emptyList();
         }
         return profile.getRewriteOutcome().appliedRules;
+    }
+
+    public RewriteCoreIrSnapshot buildRewriteCoreIr(ParsedSqlProfile profile) {
+        if (profile == null) {
+            throw invalidTask(
+                "构建改写核心 IR 需要有效 SQL 解析结果。",
+                "请先完成 SQL 结构解析，再生成 L1-L5 改写 IR 骨架。"
+            );
+        }
+        return new RewriteCoreIrAssembler().assemble(
+            profile.getNormalizedSql(),
+            profile.getParserEngine(),
+            profile.toAdvancedStructureProfile()
+        );
     }
 
     public RecommendationRuleOutputModel buildRecommendationRuleOutputModel(ParsedSqlProfile profile) {

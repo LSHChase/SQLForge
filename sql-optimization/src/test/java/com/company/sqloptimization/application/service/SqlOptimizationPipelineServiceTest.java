@@ -7,6 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
+import com.company.sqloptimization.domain.rewrite.ir.RelationalOperator;
+import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
+import com.company.sqloptimization.domain.rewrite.ir.RewriteIrConflict;
+import com.company.sqloptimization.domain.rewrite.ir.RewriteIrLayer;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
 import java.nio.charset.StandardCharsets;
@@ -257,6 +261,41 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(profile.getGroupByCount() >= 1);
         assertTrue(profile.isLimitPresent());
         assertTrue(service.deriveRewriteCandidateRules(profile).isEmpty());
+    }
+
+    @Test
+    void shouldBuildFiveLayerRewriteCoreIrSnapshot() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "WITH recent_orders AS ("
+                + "SELECT customer_id, amount, dt FROM orders WHERE dt >= DATE '2026-05-01'"
+                + ") SELECT c.customer_level, SUM(r.amount) AS total_amount "
+                + "FROM recent_orders r JOIN customers c ON r.customer_id = c.customer_id "
+                + "WHERE r.dt <= DATE '2026-05-31' GROUP BY c.customer_level",
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteCoreIrSnapshot snapshot = service.buildRewriteCoreIr(profile);
+
+        assertEquals(RewriteCoreIrSnapshot.SCHEMA_VERSION, snapshot.getSchemaVersion());
+        assertTrue(snapshot.containsLayer(RewriteIrLayer.L1_AST));
+        assertTrue(snapshot.containsLayer(RewriteIrLayer.L2_TABLE_REFERENCE));
+        assertTrue(snapshot.containsLayer(RewriteIrLayer.L3_QUERY_BLOCK));
+        assertTrue(snapshot.containsLayer(RewriteIrLayer.L4_RELATIONAL_ALGEBRA));
+        assertTrue(snapshot.containsLayer(RewriteIrLayer.L5_BUSINESS_INTENT));
+        assertEquals("JSQLPARSER_EXPRESSION", snapshot.getAst().getDialectNodeKind());
+        assertFalse(snapshot.getTableReferences().isEmpty());
+        assertFalse(snapshot.getQueryBlocks().isEmpty());
+        assertTrue(containsOperator(snapshot, RelationalOperator.TABLE_SCAN));
+        assertTrue(containsOperator(snapshot, RelationalOperator.JOIN));
+        assertTrue(containsOperator(snapshot, RelationalOperator.SIGMA));
+        assertTrue(containsOperator(snapshot, RelationalOperator.GAMMA));
+        assertTrue(containsOperator(snapshot, RelationalOperator.PI));
+        assertFalse(snapshot.getBusinessIntent().getTimeAnchors().isEmpty());
+        assertFalse(snapshot.getBusinessIntent().getMeasures().isEmpty());
+        assertFalse(snapshot.getBusinessIntent().getDimensions().isEmpty());
+        assertFalse(snapshot.getBusinessIntent().getFilters().isEmpty());
+        assertTrue(containsConflict(snapshot, "IR_LAYER_RULE_LEVEL_NAME_OVERLAP"));
+        assertEquals("NO_FRONTEND_PAGE_CHANGE", snapshot.getAttributes().get("pageImpact"));
     }
 
     @Test
@@ -826,6 +865,24 @@ class SqlOptimizationPipelineServiceTest {
     private boolean containsPrecondition(List<Map<String, Object>> entries, String code) {
         for (Map<String, Object> entry : entries) {
             if (code.equals(entry.get("code"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsOperator(RewriteCoreIrSnapshot snapshot, RelationalOperator operator) {
+        for (com.company.sqloptimization.domain.rewrite.ir.RelationalAlgebraNode node : snapshot.getRelationalAlgebra()) {
+            if (operator == node.getOperator()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsConflict(RewriteCoreIrSnapshot snapshot, String conflictCode) {
+        for (RewriteIrConflict conflict : snapshot.getArchitectureConflicts()) {
+            if (conflictCode.equals(conflict.getConflictCode())) {
                 return true;
             }
         }
