@@ -1138,6 +1138,50 @@ export const testGovernanceDatasourceConnection = (datasourceId, tenantId, paylo
     }
   })
 
+export const getGovernanceDatasourceDrivers = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/datasource-drivers?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasource-drivers',
+      ...requestOptions
+    }
+  })
+
+export const getGovernanceDatasourceDriverDetail = (tenantId, artifactId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: `/api/governance/datasource-drivers/${encodeURIComponent(artifactId)}?tenantId=${encodeURIComponent(tenantId)}`,
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-governance-datasource-driver-detail',
+      ...requestOptions
+    }
+  })
+
+export const uploadGovernanceDatasourceDriver = async (payload, requestOptions = {}) => {
+  const formData = new FormData()
+  formData.append('tenantId', payload.tenantId)
+  formData.append('engineType', payload.engineType)
+  formData.append('driverClassName', payload.driverClassName)
+  formData.append('versionLabel', payload.versionLabel)
+  formData.append('file', payload.file)
+  const response = await httpClient.request({
+    method: 'post',
+    url: '/api/governance/datasource-drivers',
+    data: formData,
+    headers: {
+      ...devProxyHeaders(payload.tenantId, {
+        requestPrefix: 'frontend-governance-datasource-driver-upload',
+        ...requestOptions
+      }),
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+  return response.data
+}
+
 export const getGovernanceReportInterfaces = (tenantId, requestOptions = {}) =>
   request({
     method: 'get',

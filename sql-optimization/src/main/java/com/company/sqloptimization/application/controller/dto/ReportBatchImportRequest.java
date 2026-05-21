@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller.dto;
 
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
@@ -20,6 +21,7 @@ public class ReportBatchImportRequest {
     private String reportCodeField;
 
     private String datasourceCode;
+    private DataSourceTypeEnum datasourceType;
     private String stage;
     private String priority;
     @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
@@ -39,6 +41,8 @@ public class ReportBatchImportRequest {
     public void setReportCodeField(String reportCodeField) { this.reportCodeField = reportCodeField; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
+    public DataSourceTypeEnum getDatasourceType() { return datasourceType; }
+    public void setDatasourceType(DataSourceTypeEnum datasourceType) { this.datasourceType = datasourceType; }
     public String getStage() { return stage; }
     public void setStage(String stage) { this.stage = stage; }
     public String getPriority() { return priority; }

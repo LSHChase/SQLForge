@@ -13,6 +13,11 @@ public class DatasourceConfig {
     private final String stage;
     private final String jdbcUrl;
     private final String jdbcDriverClassName;
+    private final String driverSourceType;
+    private final String driverArtifactId;
+    private final String driverVersionLabel;
+    private final String driverSha256;
+    private final String driverLoadStatus;
     private final String username;
     private final String apiBaseUrl;
     private final String clientEndpoint;
@@ -45,6 +50,11 @@ public class DatasourceConfig {
                             String stage,
                             String jdbcUrl,
                             String jdbcDriverClassName,
+                            String driverSourceType,
+                            String driverArtifactId,
+                            String driverVersionLabel,
+                            String driverSha256,
+                            String driverLoadStatus,
                             String username,
                             String apiBaseUrl,
                             String clientEndpoint,
@@ -76,6 +86,11 @@ public class DatasourceConfig {
         this.stage = stage;
         this.jdbcUrl = jdbcUrl;
         this.jdbcDriverClassName = jdbcDriverClassName;
+        this.driverSourceType = driverSourceType;
+        this.driverArtifactId = driverArtifactId;
+        this.driverVersionLabel = driverVersionLabel;
+        this.driverSha256 = driverSha256;
+        this.driverLoadStatus = driverLoadStatus;
         this.username = username;
         this.apiBaseUrl = apiBaseUrl;
         this.clientEndpoint = clientEndpoint;
@@ -114,6 +129,11 @@ public class DatasourceConfig {
             stage,
             jdbcUrl,
             jdbcDriverClassName,
+            driverSourceType,
+            driverArtifactId,
+            driverVersionLabel,
+            driverSha256,
+            driverLoadStatus,
             username,
             apiBaseUrl,
             clientEndpoint,
@@ -173,6 +193,26 @@ public class DatasourceConfig {
 
     public String getJdbcDriverClassName() {
         return jdbcDriverClassName;
+    }
+
+    public String getDriverSourceType() {
+        return driverSourceType;
+    }
+
+    public String getDriverArtifactId() {
+        return driverArtifactId;
+    }
+
+    public String getDriverVersionLabel() {
+        return driverVersionLabel;
+    }
+
+    public String getDriverSha256() {
+        return driverSha256;
+    }
+
+    public String getDriverLoadStatus() {
+        return driverLoadStatus;
     }
 
     public String getUsername() {

@@ -15,6 +15,7 @@ public class QueryExecutionGovernanceProperties {
 
     public QueryExecutionGovernanceProperties() {
         datasourceIdMap.put(DataSourceTypeEnum.AUTO.name(), "query-hetu");
+        datasourceIdMap.put(DataSourceTypeEnum.TRINO.name(), "query-trino");
         datasourceIdMap.put(DataSourceTypeEnum.HETU.name(), "query-hetu");
         datasourceIdMap.put(DataSourceTypeEnum.HIVE.name(), "query-hive");
     }

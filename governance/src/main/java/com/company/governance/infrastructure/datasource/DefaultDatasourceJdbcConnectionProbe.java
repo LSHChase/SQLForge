@@ -1,9 +1,11 @@
 package com.company.governance.infrastructure.datasource;
 
 import com.company.governance.application.service.DatasourceJdbcConnectionProbe;
+import com.company.governance.application.service.JdbcDriverArtifactApplicationService;
 import com.company.governance.domain.datasource.DatasourceConfig;
+import com.company.governance.domain.datasource.JdbcDriverArtifact;
+import com.company.sqlforge.common.jdbc.ManagedJdbcConnectionFactory;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +16,12 @@ import org.springframework.util.StringUtils;
 public class DefaultDatasourceJdbcConnectionProbe implements DatasourceJdbcConnectionProbe {
 
     private static final int MAX_REASON_LENGTH = 160;
+    private final ManagedJdbcConnectionFactory connectionFactory = new ManagedJdbcConnectionFactory();
+    private final JdbcDriverArtifactApplicationService jdbcDriverArtifactApplicationService;
+
+    public DefaultDatasourceJdbcConnectionProbe(JdbcDriverArtifactApplicationService jdbcDriverArtifactApplicationService) {
+        this.jdbcDriverArtifactApplicationService = jdbcDriverArtifactApplicationService;
+    }
 
     @Override
     public JdbcProbeResult probe(DatasourceConfig config, String password, int timeoutMs) {
@@ -22,11 +30,17 @@ public class DefaultDatasourceJdbcConnectionProbe implements DatasourceJdbcConne
             return failed("JDBC_URL_MISSING", start);
         }
         try {
-            if (StringUtils.hasText(config.getJdbcDriverClassName())) {
-                Class.forName(config.getJdbcDriverClassName().trim());
-            }
-            DriverManager.setLoginTimeout(Math.max(1, timeoutMs / 1000));
-            try (Connection connection = DriverManager.getConnection(config.getJdbcUrl(), connectionProperties(config, password))) {
+            JdbcDriverArtifact artifact = resolveArtifact(config);
+            java.sql.DriverManager.setLoginTimeout(Math.max(1, timeoutMs / 1000));
+            try (Connection connection = connectionFactory.openConnection(
+                config.getJdbcUrl(),
+                connectionProperties(config, password),
+                config.getJdbcDriverClassName(),
+                config.getDriverSourceType(),
+                artifact == null ? null : jdbcDriverArtifactApplicationService.resolveArtifactPath(artifact),
+                artifact == null ? null : artifact.getArtifactId(),
+                artifact == null ? null : artifact.getSha256()
+            )) {
                 try {
                     connection.setReadOnly(true);
                 } catch (SQLException ignored) {
@@ -44,6 +58,14 @@ public class DefaultDatasourceJdbcConnectionProbe implements DatasourceJdbcConne
         } catch (RuntimeException ex) {
             return failed("JDBC_CONNECT_FAILED: " + compact(ex.getMessage()), start);
         }
+    }
+
+    private JdbcDriverArtifact resolveArtifact(DatasourceConfig config) {
+        if (config == null || !"UPLOADED".equalsIgnoreCase(config.getDriverSourceType())
+            || !StringUtils.hasText(config.getDriverArtifactId())) {
+            return null;
+        }
+        return jdbcDriverArtifactApplicationService.requireArtifact(config.getTenantId(), config.getDriverArtifactId());
     }
 
     private Properties connectionProperties(DatasourceConfig config, String password) {

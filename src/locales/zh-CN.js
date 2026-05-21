@@ -2579,7 +2579,20 @@ export default {
       text087: '新增策略',
       text088: '系统管理边界说明',
       text089: 'Redis 规则源仍保留配置证据语义，但现在支持新增和修改。',
-      text090: 'Dispatch 策略支持新增，但当前仍不伪装为浏览器内执行，也没有修改接口。'
+      text090: 'Dispatch 策略支持新增，但当前仍不伪装为浏览器内执行，也没有修改接口。',
+      text091: '引擎',
+      text092: '版本',
+      text093: '驱动类',
+      text094: 'Jar 文件',
+      text095: 'SHA-256',
+      text096: '状态',
+      text097: '操作',
+      text098: '类路径内置',
+      text099: '上传制品',
+      text100: '上传 JDBC 驱动',
+      text101: 'TRINO',
+      text102: 'HETU',
+      text103: 'HIVE'
     },
     viewsSystemUseSystemManagement: {
       text001: '数据源',

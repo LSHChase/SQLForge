@@ -125,6 +125,23 @@
 - `report_interface_config`
   - repo-side 当前实现为 governance 内存配置对象，后续可落到 `system_config` 或独立表
 
+其中 `datasource_config` 在多引擎 JDBC 驱动治理下补充字段：
+
+- `driver_source_type`
+- `jdbc_driver_artifact_id`
+- `driver_version_label`
+- `driver_sha256`
+- `driver_load_status`
+
+并新增 append-only 表：
+
+- `jdbc_driver_artifact`
+  - 所属服务：`governance`
+  - 主键：`artifact_id`
+  - 结构化字段：`tenant_id`,`engine_type`,`driver_class_name`,`version_label`,`original_file_name`,`size_bytes`,`sha256`,`relative_path`,`status`,`uploaded_by`,`create_time`,`update_time`
+  - 追溯键：`tenant_id`,`artifact_id`,`engine_type`,`sha256`
+  - 边界：只支持上传、查看、绑定与换绑；不做删除覆盖，历史 artifact 保留为追溯版本
+
 建议新增：
 
 - `sql_parse_history`

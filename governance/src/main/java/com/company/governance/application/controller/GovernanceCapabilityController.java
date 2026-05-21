@@ -19,6 +19,8 @@ import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
@@ -118,6 +120,13 @@ public class GovernanceCapabilityController {
         @RequestBody GovernanceJdbcDatasourceResolveRequest request
     ) {
         return governanceCapabilityApplicationService.resolveJdbcDatasource(request);
+    }
+
+    @PostMapping("/datasources/jdbc/resolve-route")
+    public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(
+        @RequestBody GovernanceJdbcRouteResolveRequest request
+    ) {
+        return governanceCapabilityApplicationService.resolveJdbcRoute(request);
     }
 
     @PostMapping("/tenant-artifact-policy/resolve")

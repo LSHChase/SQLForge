@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller.dto;
 
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import java.util.Map;
 import javax.validation.constraints.NotBlank;
@@ -13,6 +14,7 @@ public class StructureParseRequest {
     private Map<String, Object> bindParameters;
     private String bindingMode;
     private String datasourceCode;
+    private DataSourceTypeEnum datasourceType;
     private Map<String, Object> commentContext;
     private Boolean historyWriteEnabled;
     @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
@@ -56,6 +58,14 @@ public class StructureParseRequest {
 
     public void setDatasourceCode(String datasourceCode) {
         this.datasourceCode = datasourceCode;
+    }
+
+    public DataSourceTypeEnum getDatasourceType() {
+        return datasourceType;
+    }
+
+    public void setDatasourceType(DataSourceTypeEnum datasourceType) {
+        this.datasourceType = datasourceType;
     }
 
     public Map<String, Object> getCommentContext() {

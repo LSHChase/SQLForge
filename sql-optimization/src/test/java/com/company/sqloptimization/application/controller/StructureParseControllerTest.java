@@ -386,7 +386,7 @@ class StructureParseControllerTest {
 
     @Test
     void shouldRunHetuExplainPlanWhenPlanParserModeRequested() throws Exception {
-        when(hetuPlanAnalysisClient.explain(any(), any(), any())).thenReturn(
+        when(hetuPlanAnalysisClient.explain(any(), any(), any(), any())).thenReturn(
             HetuPlanAnalysisResult.success(
                 "hetu_main",
                 "Fragment 0 [SINGLE]\nOutput[_col0]",
@@ -407,12 +407,12 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.planAnalysis.planText").value(org.hamcrest.Matchers.containsString("Fragment 0")))
             .andExpect(jsonPath("$.planAnalysis.evidence[0]").value("sqlExecution=EXPLAIN_ONLY"));
 
-        verify(hetuPlanAnalysisClient).explain(any(), any(), any());
+        verify(hetuPlanAnalysisClient).explain(any(), any(), any(), any());
     }
 
     @Test
     void shouldReturnPartialSuccessWhenHetuPlanFailsAfterStructureSuccess() throws Exception {
-        when(hetuPlanAnalysisClient.explain(any(), any(), any())).thenReturn(
+        when(hetuPlanAnalysisClient.explain(any(), any(), any(), any())).thenReturn(
             HetuPlanAnalysisResult.failed(
                 "hetu_main",
                 "HETU_JDBC_CONFIG_NOT_FOUND",
@@ -442,7 +442,7 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.analysisStatus").value("SUCCESS"))
             .andExpect(jsonPath("$.planAnalysis.status").value("SKIPPED"));
 
-        verify(hetuPlanAnalysisClient, never()).explain(any(), any(), any());
+        verify(hetuPlanAnalysisClient, never()).explain(any(), any(), any(), any());
     }
 
     @Test

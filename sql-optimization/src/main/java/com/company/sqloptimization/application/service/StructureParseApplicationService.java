@@ -216,6 +216,7 @@ public class StructureParseApplicationService {
                     profile,
                     tenantId,
                     datasourceCode,
+                    request.getDatasourceType(),
                     structureParserMode
                 );
                 result.setLogicalObjectHits(logicalObjectExpansion.getHits());
@@ -799,7 +800,8 @@ public class StructureParseApplicationService {
             HetuPlanAnalysisResult result = hetuPlanAnalysisClient.explain(
                 request.getSqlText(),
                 RequestContext.getTenantId(),
-                datasourceCode
+                datasourceCode,
+                request.getDatasourceType()
             );
             if (result == null) {
                 return HetuPlanAnalysisResult.failed(
@@ -1278,9 +1280,10 @@ public class StructureParseApplicationService {
     private LogicalObjectExpansionResult buildLogicalObjectHits(SqlOptimizationPipelineService.ParsedSqlProfile profile,
                                                                String tenantId,
                                                                String datasourceCode,
+                                                               DataSourceTypeEnum datasourceType,
                                                                SqlParserMode parserMode) {
         LogicalObjectExpansionResult result = new LogicalObjectExpansionResult();
-        ViewExpansionContext context = new ViewExpansionContext(tenantId, datasourceCode, parserMode, result);
+        ViewExpansionContext context = new ViewExpansionContext(tenantId, datasourceCode, datasourceType, parserMode, result);
         for (String table : profile.getTables()) {
             expandObjectReference(table, MATCH_SOURCE_SQL, 0, context);
         }
@@ -1458,6 +1461,7 @@ public class StructureParseApplicationService {
         DatasourceViewMetadataRequest request = new DatasourceViewMetadataRequest();
         request.setTenantId(context.getTenantId());
         request.setDatasourceCode(context.getDatasourceCode());
+        request.setDatasourceType(context.getDatasourceType());
         request.setCatalogName(qualifiedObject.getCatalogName());
         request.setSchemaName(qualifiedObject.getSchemaName());
         request.setObjectName(qualifiedObject.getObjectName());
@@ -2602,16 +2606,19 @@ public class StructureParseApplicationService {
 
         private final String tenantId;
         private final String datasourceCode;
+        private final DataSourceTypeEnum datasourceType;
         private final SqlParserMode parserMode;
         private final LogicalObjectExpansionResult result;
         private final Set<String> visited = new LinkedHashSet<String>();
 
         private ViewExpansionContext(String tenantId,
                                      String datasourceCode,
+                                     DataSourceTypeEnum datasourceType,
                                      SqlParserMode parserMode,
                                      LogicalObjectExpansionResult result) {
             this.tenantId = tenantId;
             this.datasourceCode = datasourceCode;
+            this.datasourceType = datasourceType;
             this.parserMode = parserMode;
             this.result = result;
         }
@@ -2622,6 +2629,10 @@ public class StructureParseApplicationService {
 
         private String getDatasourceCode() {
             return datasourceCode;
+        }
+
+        private DataSourceTypeEnum getDatasourceType() {
+            return datasourceType;
         }
 
         private SqlParserMode getParserMode() {

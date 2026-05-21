@@ -23,6 +23,9 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteCandidate;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.jdbcagent.JdbcAgentSqlCommentParser;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
@@ -177,7 +180,7 @@ public class QueryExecutionApplicationService {
             RuntimeRewriteResolution.noRewrite(originalSql, sqlFingerprint);
         logStart(request, sqlFingerprint);
         try {
-            DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request.getDatasourceType());
+            DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request);
             governanceCapabilityClient.assertAuthorization(
                 request.getTenantId(),
                 request.getDatasourceType(),
@@ -242,7 +245,7 @@ public class QueryExecutionApplicationService {
                         new QueryErrorDetailVO(
                             ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ROUTE_UNAVAILABLE,
                             ROUTE_UNAVAILABLE_MESSAGE,
-                            "当前同步基线请使用 HETU、HIVE 或 AUTO。",
+                            "当前同步基线请使用 TRINO、HETU、HIVE 或 AUTO。",
                             true
                         ),
                         sqlFingerprint,
@@ -959,24 +962,74 @@ public class QueryExecutionApplicationService {
         return normalized;
     }
 
-    private DataSourceTypeEnum resolvePrimaryEngine(DataSourceTypeEnum datasourceType) {
-        if (datasourceType == null) {
+    private DataSourceTypeEnum resolvePrimaryEngine(QueryExecuteRequest request) {
+        if (request == null || request.getDatasourceType() == null) {
             return null;
         }
-        if (DataSourceTypeEnum.AUTO == datasourceType) {
-            return DataSourceTypeEnum.HETU;
+        String datasourceCode = trimToNull(request.getDatasourceCode());
+        if (StringUtils.hasText(datasourceCode)) {
+            GovernanceJdbcRouteResolveRequest routeRequest = new GovernanceJdbcRouteResolveRequest();
+            routeRequest.setTenantId(request.getTenantId());
+            routeRequest.setDatasourceCode(datasourceCode);
+            routeRequest.setDatasourceType(request.getDatasourceType());
+            try {
+                GovernanceJdbcRouteResolveResponse response = governanceCapabilityClient.resolveJdbcRoute(routeRequest);
+                DataSourceTypeEnum candidate = firstHealthyCandidate(response == null ? null : response.getCandidates());
+                if (candidate != null) {
+                    return candidate;
+                }
+            } catch (RuntimeException ignored) {
+                // 当前同步基线在治理路由缺失时保留本地默认回退。
+            }
         }
-        if (DataSourceTypeEnum.HETU == datasourceType || DataSourceTypeEnum.HIVE == datasourceType) {
-            return datasourceType;
+        if (DataSourceTypeEnum.AUTO == request.getDatasourceType()) {
+            return DataSourceTypeEnum.TRINO;
+        }
+        if (DataSourceTypeEnum.TRINO == request.getDatasourceType()
+            || DataSourceTypeEnum.HETU == request.getDatasourceType()
+            || DataSourceTypeEnum.HIVE == request.getDatasourceType()) {
+            return request.getDatasourceType();
         }
         return null;
     }
 
     private DataSourceTypeEnum resolveFallbackEngine(DataSourceTypeEnum primaryEngine) {
-        if (DataSourceTypeEnum.HETU == primaryEngine) {
+        if (DataSourceTypeEnum.TRINO == primaryEngine || DataSourceTypeEnum.HETU == primaryEngine) {
             return DataSourceTypeEnum.HIVE;
         }
         return null;
+    }
+
+    private DataSourceTypeEnum firstHealthyCandidate(List<GovernanceJdbcRouteCandidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        for (GovernanceJdbcRouteCandidate candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+            if (candidate.isEnabled() && "HEALTHY".equalsIgnoreCase(trimToNull(candidate.getHealthStatus()))) {
+                return parseEngine(candidate.getEngineType());
+            }
+        }
+        for (GovernanceJdbcRouteCandidate candidate : candidates) {
+            if (candidate != null && candidate.isEnabled()) {
+                return parseEngine(candidate.getEngineType());
+            }
+        }
+        return parseEngine(candidates.get(0).getEngineType());
+    }
+
+    private DataSourceTypeEnum parseEngine(String engineType) {
+        String normalized = trimToNull(engineType);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        try {
+            return DataSourceTypeEnum.valueOf(normalized.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private Long resolveTimeoutMs(QueryContextDTO queryContext) {
@@ -991,6 +1044,13 @@ public class QueryExecutionApplicationService {
             return primaryEngine.name();
         }
         return requestedEngine == null ? DataSourceTypeEnum.AUTO.name() : requestedEngine.name();
+    }
+
+    private String trimToNull(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
     }
 
     private RuntimeRewriteResolution resolveRuntimeRewrite(QueryExecuteRequest request,

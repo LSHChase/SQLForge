@@ -238,6 +238,7 @@ SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-re
 
 - 单条 SQL 输入
 - 数据源选择
+- 数据源类型选择
 - 参数绑定输入
 - 结构解析结果卡
 - 数据访问解析结果卡
@@ -248,6 +249,17 @@ SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-re
 - 解析完成记录写入解析历史，可从独立历史查询页面查看
 - 服务不可用提示
 - recommended action
+
+#### 4.4.1A 多引擎 JDBC 与驱动治理补充约束
+
+- 查询页数据源树改为读取治理侧 live datasource inventory，按 `TRINO/HETU/HIVE` 分组展示
+- `AUTO` 路由固定按 `TRINO -> HETU -> HIVE` 选择首个 `enabled + healthy` 的候选
+- 显式 `TRINO` 失败允许回退 `HIVE`
+- 显式 `HETU` 失败允许回退 `HIVE`
+- 显式 `HIVE` 不做跨引擎回退
+- `WITH_PLAN`、live metadata、JDBC 连接测试统一复用治理侧 JDBC resolve / route resolve 契约
+- 系统管理页新增 JDBC 驱动上传面板、`CLASSPATH|UPLOADED` 驱动来源选择和 artifact 绑定字段
+- 驱动制品生效方式固定为共享卷热加载；上传后无需重启服务
 
 #### 4.4.2 批量解析中心
 

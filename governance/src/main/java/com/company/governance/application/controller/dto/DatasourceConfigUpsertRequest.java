@@ -10,6 +10,8 @@ public class DatasourceConfigUpsertRequest {
     private String stage;
     private String jdbcUrl;
     private String jdbcDriverClassName;
+    private String driverSourceType;
+    private String driverArtifactId;
     private String username;
     private String apiBaseUrl;
     private String clientEndpoint;
@@ -87,6 +89,22 @@ public class DatasourceConfigUpsertRequest {
 
     public void setJdbcDriverClassName(String jdbcDriverClassName) {
         this.jdbcDriverClassName = jdbcDriverClassName;
+    }
+
+    public String getDriverSourceType() {
+        return driverSourceType;
+    }
+
+    public void setDriverSourceType(String driverSourceType) {
+        this.driverSourceType = driverSourceType;
+    }
+
+    public String getDriverArtifactId() {
+        return driverArtifactId;
+    }
+
+    public void setDriverArtifactId(String driverArtifactId) {
+        this.driverArtifactId = driverArtifactId;
     }
 
     public String getUsername() {

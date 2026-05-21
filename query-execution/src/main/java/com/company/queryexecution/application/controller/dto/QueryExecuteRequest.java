@@ -20,6 +20,8 @@ public class QueryExecuteRequest {
     @NotNull(message = "datasourceType 为必填项")
     private DataSourceTypeEnum datasourceType;
 
+    private String datasourceCode;
+
     @Valid
     private QueryContextDTO queryContext;
 
@@ -48,6 +50,14 @@ public class QueryExecuteRequest {
 
     public void setDatasourceType(DataSourceTypeEnum datasourceType) {
         this.datasourceType = datasourceType;
+    }
+
+    public String getDatasourceCode() {
+        return datasourceCode;
+    }
+
+    public void setDatasourceCode(String datasourceCode) {
+        this.datasourceCode = datasourceCode;
     }
 
     public QueryContextDTO getQueryContext() {

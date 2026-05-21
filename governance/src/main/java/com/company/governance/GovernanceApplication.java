@@ -1,6 +1,7 @@
 package com.company.governance;
 
 import com.company.governance.config.AuthProperties;
+import com.company.governance.config.GovernanceDatasourceDriverProperties;
 import com.company.governance.config.GovernanceAuditProperties;
 import com.company.governance.config.GovernanceAccessProperties;
 import com.company.governance.config.GovernanceBenchmarkEngineProperties;
@@ -19,7 +20,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     GovernanceAccessProperties.class,
     GovernanceAuditProperties.class,
     GovernanceBenchmarkEngineProperties.class,
-    GovernanceSqlOptimizationProperties.class
+    GovernanceSqlOptimizationProperties.class,
+    GovernanceDatasourceDriverProperties.class
 })
 @EnableScheduling
 @MapperScan("com.company.governance.infrastructure.persistence.mapper")

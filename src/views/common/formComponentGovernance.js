@@ -51,6 +51,7 @@ export const dispatchTypeOptions = [
 ]
 
 export const engineOptions = [
+  { label: 'TRINO', value: 'TRINO' },
   { label: 'HETU', value: 'HETU' },
   { label: 'HIVE', value: 'HIVE' },
   { label: 'SPARK', value: 'SPARK' }

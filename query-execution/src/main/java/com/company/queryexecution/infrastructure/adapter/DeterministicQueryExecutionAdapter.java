@@ -18,6 +18,7 @@ import java.util.Map;
 public class DeterministicQueryExecutionAdapter implements QueryExecutionAdapter {
 
     private static final long HETU_BASE_ELAPSED_MS = 80L;
+    private static final long TRINO_BASE_ELAPSED_MS = 36L;
     private static final long HIVE_BASE_ELAPSED_MS = 24L;
 
     @Override
@@ -56,7 +57,12 @@ public class DeterministicQueryExecutionAdapter implements QueryExecutionAdapter
     }
 
     private long resolveElapsedMs(DataSourceTypeEnum targetEngine, String actualSql, boolean accelerationApplied) {
-        long baseElapsedMs = DataSourceTypeEnum.HIVE == targetEngine ? HIVE_BASE_ELAPSED_MS : HETU_BASE_ELAPSED_MS;
+        long baseElapsedMs = HETU_BASE_ELAPSED_MS;
+        if (DataSourceTypeEnum.TRINO == targetEngine) {
+            baseElapsedMs = TRINO_BASE_ELAPSED_MS;
+        } else if (DataSourceTypeEnum.HIVE == targetEngine) {
+            baseElapsedMs = HIVE_BASE_ELAPSED_MS;
+        }
         long shapeOffsetMs = Math.abs(actualSql.hashCode() % 7);
         if (accelerationApplied && baseElapsedMs > 10L) {
             return baseElapsedMs - 10L + shapeOffsetMs;
@@ -74,7 +80,7 @@ public class DeterministicQueryExecutionAdapter implements QueryExecutionAdapter
         if (degradedPath || request == null) {
             return false;
         }
-        return DataSourceTypeEnum.HETU == targetEngine
+        return (DataSourceTypeEnum.HETU == targetEngine || DataSourceTypeEnum.TRINO == targetEngine)
             && request.getAccelerationPreference() == AccelerationPreference.PREFER_ACCELERATED;
     }
 

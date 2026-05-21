@@ -1,15 +1,12 @@
-package com.company.sqloptimization.infrastructure.metadata;
+package com.company.sqlforge.common.governance;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 
-public class DatasourceViewMetadataRequest {
+public class GovernanceJdbcRouteResolveRequest {
 
     private String tenantId;
     private String datasourceCode;
     private DataSourceTypeEnum datasourceType;
-    private String catalogName;
-    private String schemaName;
-    private String objectName;
 
     public String getTenantId() {
         return tenantId;
@@ -33,29 +30,5 @@ public class DatasourceViewMetadataRequest {
 
     public void setDatasourceType(DataSourceTypeEnum datasourceType) {
         this.datasourceType = datasourceType;
-    }
-
-    public String getCatalogName() {
-        return catalogName;
-    }
-
-    public void setCatalogName(String catalogName) {
-        this.catalogName = catalogName;
-    }
-
-    public String getSchemaName() {
-        return schemaName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
-    }
-
-    public String getObjectName() {
-        return objectName;
-    }
-
-    public void setObjectName(String objectName) {
-        this.objectName = objectName;
     }
 }

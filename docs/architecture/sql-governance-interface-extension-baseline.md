@@ -18,6 +18,11 @@
 | `engineHint` | No | 注释或策略给出的目标引擎偏好 |
 | `priority` | No | 查询、批量、推荐、压测的治理优先级 |
 
+补充约束：
+
+- 共享枚举 `DataSourceTypeEnum` 扩展 `TRINO`
+- 多引擎同码场景下，页面和服务间调用不得只传 `datasourceCode`；必须结合 `datasourceType`
+
 ## 2. Query Execution Extension Contracts
 
 ### 2.1 Execute Query
@@ -32,6 +37,7 @@
 - `bindingMode`
   - `POSITIONAL`
   - `NAMED`
+- `datasourceType`
 - `datasourceCode`
 - `catalog`
 - `schemaName`
@@ -178,6 +184,7 @@
 - `sqlTemplateText`
 - `bindParameters`
 - `bindingMode`
+- `datasourceType`
 - `datasourceCode`
 - `commentContext`
 
@@ -257,6 +264,44 @@
 - `affectedReportCount`
 - `priorityScore`
 - `priorityLevel`
+
+## 4.4 JDBC Driver Governance Extension
+
+治理侧新增上传驱动接口：
+
+- `POST /api/governance/datasource-drivers`
+  - `multipart/form-data`
+  - 字段固定为 `tenantId`、`engineType`、`driverClassName`、`versionLabel`、`file`
+- `GET /api/governance/datasource-drivers`
+- `GET /api/governance/datasource-drivers/{artifactId}`
+
+数据源配置契约扩展：
+
+- `driverSourceType`
+  - `CLASSPATH`
+  - `UPLOADED`
+- `driverArtifactId`
+- `driverVersionLabel`
+- `driverSha256`
+- `driverLoadStatus`
+
+内部解析契约新增：
+
+- `POST /api/governance/internal/datasources/jdbc/resolve-route`
+
+返回有序候选列表，每项固定包含：
+
+- `engineType`
+- `datasourceCode`
+- `connectionMode`
+- `jdbcUrl`
+- `driverClassName`
+- `driverArtifactId`
+- `driverSha256`
+- `timeoutMs`
+- `healthStatus`
+- `enabled`
+- `readonly`
 
 结构解析问题域：
 

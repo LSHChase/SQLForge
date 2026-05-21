@@ -3,10 +3,12 @@ package com.company.sqloptimization.infrastructure.plananalysis;
 import com.company.sqloptimization.config.HetuPlanAnalysisProperties;
 import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.jdbc.ManagedJdbcConnectionFactory;
+import java.nio.file.Paths;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
@@ -26,6 +28,7 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
 
     private final HetuPlanAnalysisProperties properties;
     private final GovernanceCapabilityClient governanceCapabilityClient;
+    private final ManagedJdbcConnectionFactory connectionFactory = new ManagedJdbcConnectionFactory();
 
     public JdbcHetuPlanAnalysisClient(HetuPlanAnalysisProperties properties,
                                       GovernanceCapabilityClient governanceCapabilityClient) {
@@ -35,12 +38,20 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
 
     @Override
     public HetuPlanAnalysisResult explain(String sqlText, String tenantId, String datasourceCode) {
+        return explain(sqlText, tenantId, datasourceCode, DataSourceTypeEnum.HETU);
+    }
+
+    @Override
+    public HetuPlanAnalysisResult explain(String sqlText,
+                                          String tenantId,
+                                          String datasourceCode,
+                                          DataSourceTypeEnum datasourceType) {
         long start = System.currentTimeMillis();
         String normalizedDatasource = trimToNull(datasourceCode);
         if (!StringUtils.hasText(normalizedDatasource)) {
             return failed(null, "HETU_PLAN_DATASOURCE_REQUIRED", start, "datasourceCode=missing");
         }
-        ResolvedDatasource datasource = resolveDatasource(tenantId, normalizedDatasource);
+        ResolvedDatasource datasource = resolveDatasource(tenantId, normalizedDatasource, datasourceType);
         if (datasource != null && StringUtils.hasText(datasource.failureReason)) {
             return failed(normalizedDatasource, datasource.failureReason, start, "configSource=" + datasource.configSource);
         }
@@ -49,10 +60,15 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
         }
         try {
             String explainSql = buildExplainSql(sqlText);
-            if (StringUtils.hasText(datasource.driverClassName)) {
-                Class.forName(datasource.driverClassName.trim());
-            }
-            try (Connection connection = DriverManager.getConnection(datasource.jdbcUrl, connectionProperties(datasource));
+            try (Connection connection = connectionFactory.openConnection(
+                     datasource.jdbcUrl,
+                     connectionProperties(datasource),
+                     datasource.driverClassName,
+                     datasource.driverSourceType,
+                     datasource.driverJarPath,
+                     datasource.driverArtifactId,
+                     datasource.driverSha256
+                 );
                  Statement statement = connection.createStatement()) {
                 int queryTimeoutSeconds = resolveQueryTimeoutSeconds(datasource);
                 statement.setQueryTimeout(queryTimeoutSeconds);
@@ -98,8 +114,8 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
         }
     }
 
-    private ResolvedDatasource resolveDatasource(String tenantId, String datasourceCode) {
-        GovernanceJdbcDatasourceResolveResponse governanceConfig = resolveFromGovernance(tenantId, datasourceCode);
+    private ResolvedDatasource resolveDatasource(String tenantId, String datasourceCode, DataSourceTypeEnum datasourceType) {
+        GovernanceJdbcDatasourceResolveResponse governanceConfig = resolveFromGovernance(tenantId, datasourceCode, datasourceType);
         if (governanceConfig != null) {
             if (governanceConfig.isResolved()) {
                 return ResolvedDatasource.fromGovernance(governanceConfig);
@@ -111,14 +127,16 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
         return resolveLocalDatasource(datasourceCode);
     }
 
-    private GovernanceJdbcDatasourceResolveResponse resolveFromGovernance(String tenantId, String datasourceCode) {
+    private GovernanceJdbcDatasourceResolveResponse resolveFromGovernance(String tenantId,
+                                                                          String datasourceCode,
+                                                                          DataSourceTypeEnum datasourceType) {
         if (governanceCapabilityClient == null || !StringUtils.hasText(tenantId)) {
             return null;
         }
         GovernanceJdbcDatasourceResolveRequest request = new GovernanceJdbcDatasourceResolveRequest();
         request.setTenantId(tenantId);
         request.setDatasourceCode(datasourceCode);
-        request.setEngineType("HETU");
+        request.setEngineType((datasourceType == null ? DataSourceTypeEnum.HETU : datasourceType).name());
         try {
             return governanceCapabilityClient.resolveJdbcDatasource(request);
         } catch (RuntimeException ex) {
@@ -307,6 +325,10 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
         private final String driverClassName;
         private final String username;
         private final String password;
+        private final String driverSourceType;
+        private final String driverArtifactId;
+        private final String driverSha256;
+        private final java.nio.file.Path driverJarPath;
         private final int timeoutMs;
         private final String failureReason;
 
@@ -315,6 +337,10 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
                                    String driverClassName,
                                    String username,
                                    String password,
+                                   String driverSourceType,
+                                   String driverArtifactId,
+                                   String driverSha256,
+                                   java.nio.file.Path driverJarPath,
                                    int timeoutMs,
                                    String failureReason) {
             this.configSource = configSource;
@@ -322,6 +348,10 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
             this.driverClassName = driverClassName;
             this.username = username;
             this.password = password;
+            this.driverSourceType = driverSourceType;
+            this.driverArtifactId = driverArtifactId;
+            this.driverSha256 = driverSha256;
+            this.driverJarPath = driverJarPath;
             this.timeoutMs = timeoutMs;
             this.failureReason = failureReason;
         }
@@ -333,6 +363,10 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
                 response.getDriverClassName(),
                 response.getUsername(),
                 response.getPassword(),
+                response.getDriverSourceType(),
+                response.getDriverArtifactId(),
+                response.getDriverSha256(),
+                StringUtils.hasText(response.getDriverRelativePath()) ? Paths.get(response.getDriverRelativePath()) : null,
                 response.getTimeoutMs() == null ? 5000 : response.getTimeoutMs().intValue(),
                 null
             );
@@ -347,13 +381,17 @@ public class JdbcHetuPlanAnalysisClient implements HetuPlanAnalysisClient {
                 datasource.getDriverClassName(),
                 datasource.getUsername(),
                 datasource.getPassword(),
+                "CLASSPATH",
+                null,
+                null,
+                null,
                 timeoutMs,
                 null
             );
         }
 
         private static ResolvedDatasource failed(String configSource, String failureReason) {
-            return new ResolvedDatasource(configSource, null, null, null, null, 0, failureReason);
+            return new ResolvedDatasource(configSource, null, null, null, null, null, null, null, null, 0, failureReason);
         }
     }
 }

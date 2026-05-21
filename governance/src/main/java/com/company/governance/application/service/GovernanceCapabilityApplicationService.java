@@ -25,6 +25,8 @@ import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
@@ -146,6 +148,11 @@ public class GovernanceCapabilityApplicationService {
     public GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request) {
         requireProtectedTenantContext();
         return datasourceConfigApplicationService.resolveJdbcDatasource(request);
+    }
+
+    public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
+        requireProtectedTenantContext();
+        return datasourceConfigApplicationService.resolveJdbcRoute(request);
     }
 
     public GovernanceTenantArtifactPolicyResponse resolveTenantArtifactPolicy(

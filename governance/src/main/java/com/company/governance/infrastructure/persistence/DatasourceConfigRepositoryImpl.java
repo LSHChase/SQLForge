@@ -62,6 +62,11 @@ public class DatasourceConfigRepositoryImpl implements DatasourceConfigRepositor
         record.setStage(config.getStage());
         record.setJdbcUrl(config.getJdbcUrl());
         record.setJdbcDriverClassName(config.getJdbcDriverClassName());
+        record.setDriverSourceType(config.getDriverSourceType());
+        record.setDriverArtifactId(config.getDriverArtifactId());
+        record.setDriverVersionLabel(config.getDriverVersionLabel());
+        record.setDriverSha256(config.getDriverSha256());
+        record.setDriverLoadStatus(config.getDriverLoadStatus());
         record.setUsername(config.getUsername());
         record.setApiBaseUrl(config.getApiBaseUrl());
         record.setClientEndpoint(config.getClientEndpoint());
@@ -103,6 +108,11 @@ public class DatasourceConfigRepositoryImpl implements DatasourceConfigRepositor
             record.getStage(),
             record.getJdbcUrl(),
             record.getJdbcDriverClassName(),
+            record.getDriverSourceType(),
+            record.getDriverArtifactId(),
+            record.getDriverVersionLabel(),
+            record.getDriverSha256(),
+            record.getDriverLoadStatus(),
             record.getUsername(),
             record.getApiBaseUrl(),
             record.getClientEndpoint(),

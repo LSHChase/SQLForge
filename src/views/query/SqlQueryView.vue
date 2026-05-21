@@ -1,9 +1,10 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   executeQuery,
   formatRuntimeError,
+  getGovernanceDatasources,
   getGovernanceMessageStats
 } from '../../services/runtimeGateApi'
 import MetricCard from '../common/MetricCard.vue'
@@ -14,33 +15,7 @@ import { formatSqlText } from '../common/sqlFormatting.mjs'
 
 const { t } = useI18n()
 
-const datasourceTree = [
-  {
-    id: 'favorites',
-    label: 'Favorites',
-    children: [
-      { id: 'fav-biz-view', label: 'BUSINESS_VIEW.order_daily_rollup', datasourceType: 'HETU' },
-      { id: 'fav-db-view', label: 'DB_VIEW.vw_sales_summary', datasourceType: 'HETU' }
-    ]
-  },
-  {
-    id: 'hetu-clusters',
-    label: 'Hetu Clusters',
-    children: [
-      { id: 'hetu-main', label: 'hetu_main.sales.orders', datasourceType: 'HETU' },
-      { id: 'hetu-main-logic', label: 'hetu_main.logic.customer_360', datasourceType: 'HETU' },
-      { id: 'hetu-shadow', label: 'hetu_shadow.audit.query_history', datasourceType: 'HETU' }
-    ]
-  },
-  {
-    id: 'hive-datasets',
-    label: 'Hive Datasets',
-    children: [
-      { id: 'hive-lakehouse', label: 'hive_lakehouse.dw.fact_orders', datasourceType: 'HIVE' },
-      { id: 'hive-views', label: 'hive_lakehouse.view.revenue_monthly', datasourceType: 'HIVE' }
-    ]
-  }
-]
+const datasourceTree = ref([])
 
 const sqlTemplates = [
   {
@@ -88,7 +63,8 @@ const form = reactive({
   tenantId: 'tenant-a',
   sqlText:
     '--report_code=RPT_SALES_DAILY\n--stage=PROD\n--biz_date=2026-04-27\n--tenant_id=tenant-a\n--datasource=hetu_main\nSELECT * FROM orders WHERE query_date = :query_date LIMIT :limit',
-  datasourceType: 'HETU',
+  datasourceType: 'AUTO',
+  datasourceCode: 'hetu_main',
   accelerationPreference: 'PREFER_ACCELERATED',
   faultToleranceStrategy: 'FAIL_FAST'
 })
@@ -121,16 +97,16 @@ const resultColumns = computed(() => {
   return firstRow ? Object.keys(firstRow) : []
 })
 const selectedDatasource = computed(() => {
-  for (const group of datasourceTree) {
+  for (const group of datasourceTree.value) {
     for (const item of group.children || []) {
       if (item.id === selectedDatasourceId.value) {
         return item
       }
     }
   }
-  return datasourceTree[1].children[0]
+  return datasourceTree.value[0]?.children?.[0] || { label: form.datasourceCode || '-', datasourceType: form.datasourceType, datasourceCode: form.datasourceCode }
 })
-const datasourceOptions = computed(() => ['HETU', 'HIVE'])
+const datasourceOptions = computed(() => ['AUTO', 'TRINO', 'HETU', 'HIVE'])
 const accelerationOptions = computed(() => [
   { value: 'NONE', label: t('inline.viewsQuerySqlQueryView.text001') },
   { value: 'PREFER_ACCELERATED', label: t('inline.viewsQuerySqlQueryView.text002') }
@@ -305,6 +281,7 @@ const syncDatasourceSelection = datasource => {
   }
   selectedDatasourceId.value = datasource.id
   form.datasourceType = datasource.datasourceType
+  form.datasourceCode = datasource.datasourceCode || form.datasourceCode
 }
 
 const addParameter = () => {
@@ -363,6 +340,7 @@ const runQuery = async scenario => {
       tenantId: form.tenantId,
       sqlText: boundSqlPreview.value,
       datasourceType: form.datasourceType,
+      datasourceCode: form.datasourceCode,
       accelerationPreference: form.accelerationPreference,
       faultToleranceStrategy: form.faultToleranceStrategy,
       queryContext:
@@ -394,6 +372,40 @@ const runQuery = async scenario => {
     running.value = false
   }
 }
+
+const loadDatasourceInventory = async () => {
+  const records = await getGovernanceDatasources(form.tenantId, {
+    requestPrefix: 'frontend-query-datasource-inventory'
+  })
+  const grouped = new Map()
+  for (const record of records || []) {
+    const engineType = String(record.engineType || 'UNKNOWN').toUpperCase()
+    if (!grouped.has(engineType)) {
+      grouped.set(engineType, [])
+    }
+    grouped.get(engineType).push({
+      id: record.datasourceId || `${engineType}-${record.datasourceCode}`,
+      label: `${record.datasourceCode}.${record.stage || 'PROD'}`,
+      datasourceType: engineType,
+      datasourceCode: record.datasourceCode
+    })
+  }
+  datasourceTree.value = Array.from(grouped.entries()).map(([engineType, children]) => ({
+    id: `${engineType.toLowerCase()}-inventory`,
+    label: `${engineType} inventory`,
+    children
+  }))
+  const firstDatasource = datasourceTree.value[0]?.children?.[0]
+  if (firstDatasource) {
+    syncDatasourceSelection(firstDatasource)
+  }
+}
+
+onMounted(() => {
+  loadDatasourceInventory().catch(() => {
+    datasourceTree.value = []
+  })
+})
 
 const displayValue = value => {
   if (value === null || value === undefined || String(value).trim() === '') {
@@ -804,6 +816,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
     </el-dialog>
 
     <el-drawer v-model="showBoundPreviewDrawer" :title="t('inline.viewsQuerySqlQueryView.text078')" size="48%">
+      <!-- Bound SQL preview -->
       <SqlCodeBlock
         :value="boundSqlPreview"
         :label="t('inline.viewsQuerySqlQueryView.text079')"

@@ -77,7 +77,7 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldEncryptPasswordAndResolvePlaintextOnlyForInternalJdbcEndpoint() {
-        RequestContext.set("tenant-a", "service-001", Arrays.asList("SERVICE"), "request-012", "trace-012", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "service-001", Arrays.asList("TENANT_ADMIN"), "request-012", "trace-012", "header", 1L, 2L);
         InMemoryDatasourceConfigRepository repository = new InMemoryDatasourceConfigRepository();
         DatasourceConfigApplicationService service = newService(repository, successfulProbe());
 

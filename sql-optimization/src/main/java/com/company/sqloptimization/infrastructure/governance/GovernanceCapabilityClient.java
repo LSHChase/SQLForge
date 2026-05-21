@@ -7,6 +7,8 @@ import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigRequest;
 import com.company.sqlforge.common.governance.GovernanceReportInterfaceConfigResponse;
 import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
@@ -25,6 +27,8 @@ public interface GovernanceCapabilityClient {
     GovernanceDbViewResolveResponse resolveDbView(GovernanceDbViewResolveRequest request);
 
     GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request);
+
+    GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request);
 
     GovernanceReportInterfaceConfigResponse resolveReportInterfaceConfig(GovernanceReportInterfaceConfigRequest request);
 

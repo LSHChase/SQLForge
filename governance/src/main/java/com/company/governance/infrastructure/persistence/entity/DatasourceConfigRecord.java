@@ -13,6 +13,11 @@ public class DatasourceConfigRecord {
     private String stage;
     private String jdbcUrl;
     private String jdbcDriverClassName;
+    private String driverSourceType;
+    private String driverArtifactId;
+    private String driverVersionLabel;
+    private String driverSha256;
+    private String driverLoadStatus;
     private String username;
     private String apiBaseUrl;
     private String clientEndpoint;
@@ -55,6 +60,16 @@ public class DatasourceConfigRecord {
     public void setJdbcUrl(String jdbcUrl) { this.jdbcUrl = jdbcUrl; }
     public String getJdbcDriverClassName() { return jdbcDriverClassName; }
     public void setJdbcDriverClassName(String jdbcDriverClassName) { this.jdbcDriverClassName = jdbcDriverClassName; }
+    public String getDriverSourceType() { return driverSourceType; }
+    public void setDriverSourceType(String driverSourceType) { this.driverSourceType = driverSourceType; }
+    public String getDriverArtifactId() { return driverArtifactId; }
+    public void setDriverArtifactId(String driverArtifactId) { this.driverArtifactId = driverArtifactId; }
+    public String getDriverVersionLabel() { return driverVersionLabel; }
+    public void setDriverVersionLabel(String driverVersionLabel) { this.driverVersionLabel = driverVersionLabel; }
+    public String getDriverSha256() { return driverSha256; }
+    public void setDriverSha256(String driverSha256) { this.driverSha256 = driverSha256; }
+    public String getDriverLoadStatus() { return driverLoadStatus; }
+    public void setDriverLoadStatus(String driverLoadStatus) { this.driverLoadStatus = driverLoadStatus; }
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
     public String getApiBaseUrl() { return apiBaseUrl; }

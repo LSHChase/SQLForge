@@ -33,6 +33,7 @@ const {
   retryResult,
   datasourceFilter,
   datasourceDialogVisible,
+  driverDialogVisible,
   reportDialogVisible,
   redisDialogVisible,
   dispatchDialogVisible,
@@ -40,8 +41,12 @@ const {
   datasourceDialogMode,
   reportDialogMode,
   redisDialogMode,
+  driverDetailLoading,
   placeholderPayload,
   datasourceForm,
+  datasourceDrivers,
+  datasourceDriverOptions,
+  driverUploadForm,
   reportForm,
   redisForm,
   dispatchForm,
@@ -61,9 +66,17 @@ const {
   retryFailedMessages,
   openPayloadDrawer,
   openDatasourceCreate,
+  openDriverUpload,
+  openHiveJdbcCreate,
   openHetuJdbcCreate,
+  openTrinoJdbcCreate,
   openDatasourceEdit,
+  applyDriverArtifactSelection,
+  clearDriverFile,
+  handleDriverFileChange,
+  inspectDriverArtifact,
   submitDatasource,
+  submitDriverUpload,
   openReportCreate,
   openReportEdit,
   submitReportInterface,
@@ -152,8 +165,35 @@ const {
               <el-button data-testid="system-hetu-jdbc-create" @click="openHetuJdbcCreate">
                 {{ t('inline.viewsSystemSystemView.text016') }}
               </el-button>
+              <el-button @click="openHiveJdbcCreate">Create Hive JDBC</el-button>
+              <el-button @click="openTrinoJdbcCreate">Create Trino JDBC</el-button>
+              <el-button @click="openDriverUpload">Upload JDBC driver</el-button>
               <el-button @click="openDatasourceCreate">{{ t('inline.viewsSystemSystemView.text017') }}</el-button>
             </div>
+          </div>
+          <div class="surface-card driver-panel">
+            <div class="table-heading driver-panel__header">
+              <div>
+                <p class="section-kicker sqlforge-code-label">jdbc driver artifacts</p>
+                <h3 class="section-title">Uploaded driver inventory</h3>
+              </div>
+              <span class="driver-panel__hint">Bind datasources to uploaded artifacts by `artifactId` + `sha256`.</span>
+            </div>
+            <el-table :data="datasourceDrivers" border>
+              <el-table-column prop="engineType" :label="t('inline.viewsSystemSystemView.text091')" min-width="110" />
+              <el-table-column prop="versionLabel" :label="t('inline.viewsSystemSystemView.text092')" min-width="140" />
+              <el-table-column prop="driverClassName" :label="t('inline.viewsSystemSystemView.text093')" min-width="220" />
+              <el-table-column prop="originalFileName" :label="t('inline.viewsSystemSystemView.text094')" min-width="220" />
+              <el-table-column prop="sha256" :label="t('inline.viewsSystemSystemView.text095')" min-width="220" show-overflow-tooltip />
+              <el-table-column prop="status" :label="t('inline.viewsSystemSystemView.text096')" min-width="120" />
+              <el-table-column :label="t('inline.viewsSystemSystemView.text097')" min-width="130">
+                <template #default="{ row }">
+                  <el-button text :loading="driverDetailLoading" @click="inspectDriverArtifact(row.artifactId)">
+                    Inspect
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
           </div>
           <el-table :data="filteredDatasources" border>
             <el-table-column prop="engineType" :label="t('inline.viewsSystemSystemView.text018')" min-width="110" />
@@ -380,6 +420,13 @@ const {
           <span class="field-label">timeoutMs</span>
           <el-input-number v-model="datasourceForm.timeoutMs" :min="100" :step="100" controls-position="right" />
         </label>
+        <label class="field-block">
+          <span class="field-label">driverSourceType</span>
+          <el-select v-model="datasourceForm.driverSourceType">
+            <el-option :label="t('inline.viewsSystemSystemView.text098')" value="CLASSPATH" />
+            <el-option :label="t('inline.viewsSystemSystemView.text099')" value="UPLOADED" />
+          </el-select>
+        </label>
         <label class="field-block field-block-wide">
           <span class="field-label">jdbcUrl</span>
           <el-input v-model="datasourceForm.jdbcUrl" />
@@ -387,6 +434,45 @@ const {
         <label class="field-block">
           <span class="field-label">jdbcDriverClassName</span>
           <el-input v-model="datasourceForm.jdbcDriverClassName" />
+        </label>
+        <label v-if="datasourceForm.driverSourceType === 'UPLOADED'" class="field-block field-block-wide">
+          <span class="field-label">driverArtifactId</span>
+          <div class="field-inline">
+            <el-select
+              v-model="datasourceForm.driverArtifactId"
+              filterable
+              clearable
+              default-first-option
+              @change="applyDriverArtifactSelection"
+            >
+              <el-option
+                v-for="item in withCurrentOption(datasourceDriverOptions, datasourceForm.driverArtifactId)"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+            <el-button :loading="driverDetailLoading" @click="inspectDriverArtifact(datasourceForm.driverArtifactId)">
+              Inspect
+            </el-button>
+          </div>
+        </label>
+        <label v-if="datasourceForm.driverSourceType === 'UPLOADED'" class="field-block field-block-wide">
+          <span class="field-label">driverArtifactMeta</span>
+          <div class="detail-grid detail-grid-compact">
+            <div class="detail-grid__item">
+              <span>versionLabel</span>
+              <strong>{{ displayValue(datasourceForm.driverVersionLabel) }}</strong>
+            </div>
+            <div class="detail-grid__item">
+              <span>driverLoadStatus</span>
+              <strong>{{ displayValue(datasourceForm.driverLoadStatus) }}</strong>
+            </div>
+            <div class="detail-grid__item field-span-full">
+              <span>driverSha256</span>
+              <strong class="monospace-text">{{ displayValue(datasourceForm.driverSha256) }}</strong>
+            </div>
+          </div>
         </label>
         <label class="field-block">
           <span class="field-label">username</span>
@@ -447,6 +533,57 @@ const {
         <el-button @click="datasourceDialogVisible = false">{{ t('inline.viewsSystemSystemView.text072') }}</el-button>
         <el-button type="primary" :loading="loading.datasourceSubmit" @click="submitDatasource">
           {{ datasourceDialogMode === 'create' ? (t('inline.viewsSystemSystemView.text073')) : (t('inline.viewsSystemSystemView.text074')) }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="driverDialogVisible" :title="t('inline.viewsSystemSystemView.text100')" width="760px">
+      <div class="form-grid">
+        <label class="field-block">
+          <span class="field-label">tenantId</span>
+          <el-select v-model="driverUploadForm.tenantId" filterable allow-create default-first-option>
+            <el-option
+              v-for="item in withCurrentOption(tenantOptions, driverUploadForm.tenantId)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </label>
+        <label class="field-block">
+          <span class="field-label">engineType</span>
+          <el-select v-model="driverUploadForm.engineType">
+            <el-option :label="t('inline.viewsSystemSystemView.text101')" value="TRINO" />
+            <el-option :label="t('inline.viewsSystemSystemView.text102')" value="HETU" />
+            <el-option :label="t('inline.viewsSystemSystemView.text103')" value="HIVE" />
+          </el-select>
+        </label>
+        <label class="field-block field-block-wide">
+          <span class="field-label">driverClassName</span>
+          <el-input v-model="driverUploadForm.driverClassName" />
+        </label>
+        <label class="field-block">
+          <span class="field-label">versionLabel</span>
+          <el-input v-model="driverUploadForm.versionLabel" />
+        </label>
+        <label class="field-block field-block-wide">
+          <span class="field-label">file</span>
+          <el-upload
+            drag
+            action="#"
+            :auto-upload="false"
+            :limit="1"
+            :on-change="handleDriverFileChange"
+            :on-remove="clearDriverFile"
+          >
+            <div>Drop `.jar` here or click to choose</div>
+          </el-upload>
+        </label>
+      </div>
+      <template #footer>
+        <el-button @click="driverDialogVisible = false">{{ t('inline.viewsSystemSystemView.text072') }}</el-button>
+        <el-button type="primary" :loading="loading.driverUpload" @click="submitDriverUpload">
+          Upload
         </el-button>
       </template>
     </el-dialog>
@@ -812,6 +949,19 @@ const {
   margin-bottom: 14px;
 }
 
+.driver-panel {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.driver-panel__header {
+  margin-bottom: 12px;
+}
+
+.driver-panel__hint {
+  color: var(--sqlforge-text-secondary);
+}
+
 .field-block {
   display: flex;
   flex-direction: column;
@@ -821,8 +971,18 @@ const {
 }
 
 .field-block :deep(.el-select),
-.field-block :deep(.el-input-number) {
+.field-block :deep(.el-input-number),
+.field-block :deep(.el-upload) {
   width: 100%;
+}
+
+.field-inline {
+  display: flex;
+  gap: 8px;
+}
+
+.field-inline :deep(.el-select) {
+  flex: 1;
 }
 
 .summary-card {
@@ -866,6 +1026,15 @@ const {
 
 .detail-grid__item span {
   color: var(--sqlforge-text-secondary);
+}
+
+.field-span-full {
+  grid-column: 1 / -1;
+}
+
+.monospace-text {
+  font-family: 'SFMono-Regular', 'Consolas', monospace;
+  word-break: break-all;
 }
 
 .code-block {

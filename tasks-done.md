@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-TRINO-UPLOADED-DRIVER-MULTI-ENGINE-JDBC-20260521: 页面驱动上传与 Trino 优先多引擎 JDBC 支持
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `feat(governance): add multi-engine uploaded JDBC driver routing`
+- Priority: 1
+- Depends on: N/A
+- Scope: 系统管理页驱动上传、治理驱动制品注册、共享卷热加载、query-execution 的 TRINO/HETU/HIVE JDBC 路由执行，以及 sql-optimization 的 EXPLAIN/live metadata 复用治理驱动链。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-TRINO-UPLOADED-DRIVER-MULTI-ENGINE-JDBC-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Implement uploaded JDBC driver governance, TRINO-first multi-engine JDBC routing, query/sql-optimization reuse, frontend system/query integration, schema migrations, and docs updates.
+  - Validation evidence: npm run build; node scripts/check-system-datasource-contract.mjs; node scripts/check-query-workbench-contract.mjs; node scripts/check-sql-ui-contract.mjs; npm run test:frontend-page-governance; mvn -q -DskipTests compile; mvn -q -pl governance -am -Dtest=DatasourceConfigApplicationServiceTest,DatasourceConfigControllerTest,SystemManagementConfigControllerTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -q -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionControllerTest,GovernanceHttpClientTest,ModeRoutingQueryExecutionAdapterTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -q -pl sql-optimization -am -Dtest=StructureParseControllerTest,StructureParseContractTest,GovernanceHttpClientTest,JdbcHetuPlanAnalysisClientTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate USER-CN-TRINO-UPLOADED-DRIVER-MULTI-ENGINE-JDBC-20260521; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Full-repo lint and the broader Maven matrix from the planning note were not rerun; coverage is limited to compile plus task-relevant targeted checks.
+  - Next step: If required, run the broader lint and full Maven matrix under a delivery-oriented follow-up task.
+
 ### USER-CN-REWRITE-VALIDATION-ACTIVATION-UX-20260521: 优化推荐 MV 验证激活闭环
 
 - Status: done

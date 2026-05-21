@@ -23,6 +23,8 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
@@ -536,6 +538,11 @@ class ProductionRewriteClosedLoopEndToEndTest {
 
         @Override
         public void writeAudit(QueryExecutionAuditRecord auditRecord) {
+        }
+
+        @Override
+        public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
+            return null;
         }
 
         @Override

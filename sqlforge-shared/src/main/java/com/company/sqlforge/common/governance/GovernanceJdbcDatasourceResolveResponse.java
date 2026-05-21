@@ -12,6 +12,11 @@ public class GovernanceJdbcDatasourceResolveResponse {
     private boolean readonly;
     private String jdbcUrl;
     private String driverClassName;
+    private String driverSourceType;
+    private String driverArtifactId;
+    private String driverVersionLabel;
+    private String driverSha256;
+    private String driverRelativePath;
     private String username;
     private String password;
     private Integer timeoutMs;
@@ -98,6 +103,46 @@ public class GovernanceJdbcDatasourceResolveResponse {
 
     public void setDriverClassName(String driverClassName) {
         this.driverClassName = driverClassName;
+    }
+
+    public String getDriverSourceType() {
+        return driverSourceType;
+    }
+
+    public void setDriverSourceType(String driverSourceType) {
+        this.driverSourceType = driverSourceType;
+    }
+
+    public String getDriverArtifactId() {
+        return driverArtifactId;
+    }
+
+    public void setDriverArtifactId(String driverArtifactId) {
+        this.driverArtifactId = driverArtifactId;
+    }
+
+    public String getDriverVersionLabel() {
+        return driverVersionLabel;
+    }
+
+    public void setDriverVersionLabel(String driverVersionLabel) {
+        this.driverVersionLabel = driverVersionLabel;
+    }
+
+    public String getDriverSha256() {
+        return driverSha256;
+    }
+
+    public void setDriverSha256(String driverSha256) {
+        this.driverSha256 = driverSha256;
+    }
+
+    public String getDriverRelativePath() {
+        return driverRelativePath;
+    }
+
+    public void setDriverRelativePath(String driverRelativePath) {
+        this.driverRelativePath = driverRelativePath;
     }
 
     public String getUsername() {

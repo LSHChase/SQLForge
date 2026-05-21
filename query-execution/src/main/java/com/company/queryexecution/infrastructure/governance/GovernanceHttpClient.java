@@ -8,6 +8,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
 import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
@@ -93,6 +95,11 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         request.setRequestParams(auditRecord.getRequestParams());
         request.setResponseSummary(auditRecord.getResponseSummary());
         post("/audit/write", request, Object.class);
+    }
+
+    @Override
+    public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
+        return post("/datasources/jdbc/resolve-route", request, GovernanceJdbcRouteResolveResponse.class);
     }
 
     @Override

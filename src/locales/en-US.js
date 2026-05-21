@@ -2595,7 +2595,20 @@ export default {
       text087: 'Create policy',
       text088: 'System-management boundary guide',
       text089: 'Redis rule sources keep config-evidence semantics while now supporting create and edit.',
-      text090: 'Dispatch policies support creation, but they are still not presented as browser-executed workflows and still lack an edit API.'
+      text090: 'Dispatch policies support creation, but they are still not presented as browser-executed workflows and still lack an edit API.',
+      text091: 'Engine',
+      text092: 'Version',
+      text093: 'Driver class',
+      text094: 'Jar file',
+      text095: 'sha256',
+      text096: 'Status',
+      text097: 'Action',
+      text098: 'Classpath',
+      text099: 'Uploaded',
+      text100: 'Upload JDBC driver',
+      text101: 'TRINO',
+      text102: 'HETU',
+      text103: 'HIVE'
     },
     viewsSystemUseSystemManagement: {
       text001: 'Datasources',

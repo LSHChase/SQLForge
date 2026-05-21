@@ -5,6 +5,7 @@ import com.company.governance.application.controller.dto.DatasourceConnectionTes
 import com.company.governance.application.controller.vo.DatasourceConfigVO;
 import com.company.governance.application.controller.vo.DatasourceConnectionTestVO;
 import com.company.governance.domain.datasource.DatasourceConfig;
+import com.company.governance.domain.datasource.JdbcDriverArtifact;
 import com.company.governance.domain.datasource.repository.DatasourceConfigRepository;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -12,10 +13,14 @@ import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteCandidate;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.security.SensitiveDataCryptoService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -30,20 +35,32 @@ public class DatasourceConfigApplicationService {
     private static final String IMPLEMENTATION_STAGE = "DATASOURCE_CONFIG_BASELINE";
     private static final String HEALTHCHECK_IMPLEMENTATION_STAGE = "DATASOURCE_HEALTHCHECK_BASELINE";
     private static final String JDBC_RESOLVE_IMPLEMENTATION_STAGE = "HETU_JDBC_DATASOURCE_RESOLVE_BASELINE";
+    private static final String JDBC_ROUTE_IMPLEMENTATION_STAGE = "MULTI_ENGINE_JDBC_ROUTE_BASELINE";
     private static final int DEFAULT_TIMEOUT_MS = 3000;
     private static final String DEFAULT_ENGINE_TYPE = "HETU";
+    private static final String DEFAULT_DRIVER_SOURCE_TYPE = "CLASSPATH";
     private static final List<String> SUPPORTED_CONNECTION_MODES = Arrays.asList("JDBC", "API", "REST", "CLIENT", "GATEWAY", "PROXY");
+    private static final List<String> ROUTE_ORDER = Arrays.asList("TRINO", "HETU", "HIVE");
 
     private final DatasourceConfigRepository datasourceConfigRepository;
     private final SensitiveDataCryptoService sensitiveDataCryptoService;
     private final DatasourceJdbcConnectionProbe jdbcConnectionProbe;
+    private final JdbcDriverArtifactApplicationService jdbcDriverArtifactApplicationService;
+
+    public DatasourceConfigApplicationService(DatasourceConfigRepository datasourceConfigRepository,
+                                              SensitiveDataCryptoService sensitiveDataCryptoService,
+                                              DatasourceJdbcConnectionProbe jdbcConnectionProbe,
+                                              JdbcDriverArtifactApplicationService jdbcDriverArtifactApplicationService) {
+        this.datasourceConfigRepository = datasourceConfigRepository;
+        this.sensitiveDataCryptoService = sensitiveDataCryptoService;
+        this.jdbcConnectionProbe = jdbcConnectionProbe;
+        this.jdbcDriverArtifactApplicationService = jdbcDriverArtifactApplicationService;
+    }
 
     public DatasourceConfigApplicationService(DatasourceConfigRepository datasourceConfigRepository,
                                               SensitiveDataCryptoService sensitiveDataCryptoService,
                                               DatasourceJdbcConnectionProbe jdbcConnectionProbe) {
-        this.datasourceConfigRepository = datasourceConfigRepository;
-        this.sensitiveDataCryptoService = sensitiveDataCryptoService;
-        this.jdbcConnectionProbe = jdbcConnectionProbe;
+        this(datasourceConfigRepository, sensitiveDataCryptoService, jdbcConnectionProbe, null);
     }
 
     public DatasourceConfigVO create(DatasourceConfigUpsertRequest request) {
@@ -140,9 +157,7 @@ public class DatasourceConfigApplicationService {
         String tenantId = requireTenant(request == null ? null : request.getTenantId());
         String datasourceCode = requireText(request == null ? null : request.getDatasourceCode(), "datasourceCode");
         String engineType = normalizeEngineType(request == null ? null : request.getEngineType());
-        DatasourceConfig config = datasourceConfigRepository
-            .findByTenantIdAndDatasourceCodeAndEngineType(tenantId, datasourceCode, engineType)
-            .orElse(null);
+        DatasourceConfig config = findDatasourceByCodeAndEngine(tenantId, datasourceCode, engineType);
         if (config == null) {
             return unresolved(tenantId, datasourceCode, engineType, "HETU_JDBC_CONFIG_NOT_FOUND");
         }
@@ -163,6 +178,19 @@ public class DatasourceConfigApplicationService {
         response.setReadonly(config.isReadonly());
         response.setJdbcUrl(config.getJdbcUrl());
         response.setDriverClassName(config.getJdbcDriverClassName());
+        response.setDriverSourceType(config.getDriverSourceType());
+        response.setDriverArtifactId(config.getDriverArtifactId());
+        response.setDriverVersionLabel(config.getDriverVersionLabel());
+        response.setDriverSha256(config.getDriverSha256());
+        if (StringUtils.hasText(config.getDriverArtifactId())) {
+            JdbcDriverArtifact artifact = jdbcDriverArtifactApplicationService.requireArtifact(
+                config.getTenantId(),
+                config.getDriverArtifactId()
+            );
+            response.setDriverRelativePath(
+                jdbcDriverArtifactApplicationService.resolveArtifactPath(artifact).toString()
+            );
+        }
         response.setUsername(config.getUsername());
         response.setPassword(decryptCredential(config));
         response.setTimeoutMs(Integer.valueOf(config.getTimeoutMs()));
@@ -170,8 +198,45 @@ public class DatasourceConfigApplicationService {
         return response;
     }
 
+    public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
+        String tenantId = requireTenant(request == null ? null : request.getTenantId());
+        String datasourceCode = requireText(request == null ? null : request.getDatasourceCode(), "datasourceCode");
+        String requestedType = request == null || request.getDatasourceType() == null
+            ? "AUTO"
+            : request.getDatasourceType().name();
+        List<GovernanceJdbcRouteCandidate> candidates = new ArrayList<GovernanceJdbcRouteCandidate>();
+        for (String engineType : resolveRouteOrder(requestedType)) {
+            DatasourceConfig config = findDatasourceByCodeAndEngine(tenantId, datasourceCode, engineType);
+            if (config == null || !"JDBC".equals(config.getConnectionMode())) {
+                continue;
+            }
+            GovernanceJdbcRouteCandidate candidate = new GovernanceJdbcRouteCandidate();
+            candidate.setEngineType(config.getEngineType());
+            candidate.setDatasourceCode(config.getDatasourceCode());
+            candidate.setConnectionMode(config.getConnectionMode());
+            candidate.setJdbcUrl(config.getJdbcUrl());
+            candidate.setDriverClassName(config.getJdbcDriverClassName());
+            candidate.setDriverArtifactId(config.getDriverArtifactId());
+            candidate.setDriverSha256(config.getDriverSha256());
+            candidate.setTimeoutMs(Integer.valueOf(config.getTimeoutMs()));
+            candidate.setHealthStatus(config.getHealthStatus());
+            candidate.setEnabled(config.isEnabled());
+            candidate.setReadonly(config.isReadonly());
+            candidates.add(candidate);
+        }
+        GovernanceJdbcRouteResolveResponse response = new GovernanceJdbcRouteResolveResponse();
+        response.setTenantId(tenantId);
+        response.setDatasourceCode(datasourceCode);
+        response.setRequestedDatasourceType(requestedType);
+        response.setCandidates(candidates);
+        response.setContractStage(CONTRACT_STAGE);
+        response.setImplementationStage(JDBC_ROUTE_IMPLEMENTATION_STAGE);
+        return response;
+    }
+
     private DatasourceConfigVO upsert(String datasourceId, DatasourceConfigUpsertRequest request, boolean update) {
         String tenantId = requireTenant(request == null ? null : request.getTenantId());
+        requireDatasourceAdmin();
         String connectionMode = normalizeConnectionMode(request == null ? null : request.getConnectionMode());
         validateConnectionFields(connectionMode, request);
         DatasourceConfig existing = null;
@@ -179,6 +244,7 @@ public class DatasourceConfigApplicationService {
             existing = loadConfig(tenantId, datasourceId);
         }
         CredentialEnvelope credentialEnvelope = buildCredentialEnvelope(request, existing);
+        DriverBinding driverBinding = resolveDriverBinding(tenantId, request, existing);
         DatasourceConfig config = new DatasourceConfig(
             datasourceId,
             tenantId,
@@ -189,6 +255,11 @@ public class DatasourceConfigApplicationService {
             firstNonBlank(request == null ? null : request.getStage(), "PROD").toUpperCase(Locale.ROOT),
             trimToNull(request == null ? null : request.getJdbcUrl()),
             trimToNull(request == null ? null : request.getJdbcDriverClassName()),
+            driverBinding.driverSourceType,
+            driverBinding.driverArtifactId,
+            driverBinding.driverVersionLabel,
+            driverBinding.driverSha256,
+            driverBinding.driverLoadStatus,
             trimToNull(request == null ? null : request.getUsername()),
             trimToNull(request == null ? null : request.getApiBaseUrl()),
             trimToNull(request == null ? null : request.getClientEndpoint()),
@@ -286,6 +357,11 @@ public class DatasourceConfigApplicationService {
         response.setStage(config.getStage());
         response.setJdbcUrl(config.getJdbcUrl());
         response.setJdbcDriverClassName(config.getJdbcDriverClassName());
+        response.setDriverSourceType(config.getDriverSourceType());
+        response.setDriverArtifactId(config.getDriverArtifactId());
+        response.setDriverVersionLabel(config.getDriverVersionLabel());
+        response.setDriverSha256(config.getDriverSha256());
+        response.setDriverLoadStatus(config.getDriverLoadStatus());
         response.setUsername(config.getUsername());
         response.setApiBaseUrl(config.getApiBaseUrl());
         response.setClientEndpoint(config.getClientEndpoint());
@@ -331,6 +407,35 @@ public class DatasourceConfigApplicationService {
 
     private String normalizeEngineType(String value) {
         return firstNonBlank(value, DEFAULT_ENGINE_TYPE).toUpperCase(Locale.ROOT);
+    }
+
+    private void requireDatasourceAdmin() {
+        if (RequestContext.hasRole("PLATFORM_ADMIN") || RequestContext.hasRole("TENANT_ADMIN")) {
+            return;
+        }
+        throw new AccessDeniedException("当前请求缺少数据源管理权限");
+    }
+
+    private DatasourceConfig findDatasourceByCodeAndEngine(String tenantId, String datasourceCode, String engineType) {
+        return datasourceConfigRepository
+            .findByTenantIdAndDatasourceCodeAndEngineType(tenantId, datasourceCode, engineType)
+            .orElse(null);
+    }
+
+    private List<String> resolveRouteOrder(String requestedType) {
+        if ("AUTO".equalsIgnoreCase(requestedType)) {
+            return ROUTE_ORDER;
+        }
+        if ("TRINO".equalsIgnoreCase(requestedType)) {
+            return Arrays.asList("TRINO", "HIVE");
+        }
+        if ("HETU".equalsIgnoreCase(requestedType)) {
+            return Arrays.asList("HETU", "HIVE");
+        }
+        if ("HIVE".equalsIgnoreCase(requestedType)) {
+            return Collections.singletonList("HIVE");
+        }
+        return Collections.emptyList();
     }
 
     private int normalizeTimeout(Integer timeoutMs) {
@@ -400,6 +505,47 @@ public class DatasourceConfigApplicationService {
         );
     }
 
+    private DriverBinding resolveDriverBinding(String tenantId,
+                                               DatasourceConfigUpsertRequest request,
+                                               DatasourceConfig existing) {
+        String driverSourceType = firstNonBlank(
+            request == null ? null : request.getDriverSourceType(),
+            existing == null ? null : existing.getDriverSourceType(),
+            DEFAULT_DRIVER_SOURCE_TYPE
+        ).toUpperCase(Locale.ROOT);
+        if (!"CLASSPATH".equals(driverSourceType) && !"UPLOADED".equals(driverSourceType)) {
+            throw invalidArgument("driverSourceType", "driverSourceType 必须是 CLASSPATH 或 UPLOADED");
+        }
+        if ("CLASSPATH".equals(driverSourceType)) {
+            return new DriverBinding("CLASSPATH", null, null, null, "CLASSPATH_READY");
+        }
+        String artifactId = firstNonBlank(
+            request == null ? null : request.getDriverArtifactId(),
+            existing == null ? null : existing.getDriverArtifactId()
+        );
+        if (!StringUtils.hasText(artifactId)) {
+            throw invalidArgument("driverArtifactId", "UPLOADED 驱动必须提供 driverArtifactId");
+        }
+        if (jdbcDriverArtifactApplicationService == null) {
+            throw invalidArgument("driverArtifactId", "当前环境未启用上传驱动绑定能力");
+        }
+        JdbcDriverArtifact artifact = jdbcDriverArtifactApplicationService.requireArtifact(tenantId, artifactId);
+        String engineType = normalizeEngineType(request == null ? null : request.getEngineType());
+        if (!artifact.getEngineType().equalsIgnoreCase(engineType)) {
+            throw invalidArgument("driverArtifactId", "上传驱动与 datasource engineType 不一致");
+        }
+        if (request != null) {
+            request.setJdbcDriverClassName(artifact.getDriverClassName());
+        }
+        return new DriverBinding(
+            "UPLOADED",
+            artifact.getArtifactId(),
+            artifact.getVersionLabel(),
+            artifact.getSha256(),
+            "READY"
+        );
+    }
+
     private String decryptCredential(DatasourceConfig config) {
         if (config == null || !StringUtils.hasText(config.getCredentialCiphertext())) {
             return null;
@@ -446,6 +592,27 @@ public class DatasourceConfigApplicationService {
             this.ciphertext = ciphertext;
             this.algorithm = algorithm;
             this.keyId = keyId;
+        }
+    }
+
+    private static final class DriverBinding {
+
+        private final String driverSourceType;
+        private final String driverArtifactId;
+        private final String driverVersionLabel;
+        private final String driverSha256;
+        private final String driverLoadStatus;
+
+        private DriverBinding(String driverSourceType,
+                              String driverArtifactId,
+                              String driverVersionLabel,
+                              String driverSha256,
+                              String driverLoadStatus) {
+            this.driverSourceType = driverSourceType;
+            this.driverArtifactId = driverArtifactId;
+            this.driverVersionLabel = driverVersionLabel;
+            this.driverSha256 = driverSha256;
+            this.driverLoadStatus = driverLoadStatus;
         }
     }
 }

@@ -21,6 +21,8 @@ import {
   createGovernanceRedisRuleSource,
   createGovernanceReportInterface,
   formatRuntimeError,
+  getGovernanceDatasourceDriverDetail,
+  getGovernanceDatasourceDrivers,
   getGovernanceDatasourceDetail,
   getGovernanceDatasources,
   getGovernanceDispatchPolicies,
@@ -30,6 +32,7 @@ import {
   getGovernanceTenantConfig,
   retryGovernanceFailedMessages,
   testGovernanceDatasourceConnection,
+  uploadGovernanceDatasourceDriver,
   updateGovernanceDatasource,
   updateGovernanceRedisRuleSource,
   updateGovernanceReportInterface
@@ -45,6 +48,7 @@ export function useSystemManagement() {
   const loading = reactive({
     page: false,
     datasourceTest: false,
+    driverUpload: false,
     retry: false,
     datasourceSubmit: false,
     reportSubmit: false,
@@ -62,6 +66,7 @@ export function useSystemManagement() {
   const tenantConfig = ref(null)
   const stats = ref(null)
   const datasources = ref([])
+  const datasourceDrivers = ref([])
   const reportInterfaces = ref([])
   const redisRuleSources = ref([])
   const dispatchPolicies = ref([])
@@ -74,6 +79,7 @@ export function useSystemManagement() {
   })
 
   const datasourceDialogVisible = ref(false)
+  const driverDialogVisible = ref(false)
   const reportDialogVisible = ref(false)
   const redisDialogVisible = ref(false)
   const dispatchDialogVisible = ref(false)
@@ -82,6 +88,7 @@ export function useSystemManagement() {
   const datasourceDialogMode = ref('create')
   const reportDialogMode = ref('create')
   const redisDialogMode = ref('create')
+  const driverDetailLoading = ref(false)
   const placeholderPayload = ref({
     title: '',
     capability: '',
@@ -100,6 +107,11 @@ export function useSystemManagement() {
       stage: 'PROD',
       jdbcUrl: '',
       jdbcDriverClassName: 'io.prestosql.jdbc.PrestoDriver',
+      driverSourceType: 'CLASSPATH',
+      driverArtifactId: '',
+      driverVersionLabel: '',
+      driverSha256: '',
+      driverLoadStatus: '',
       username: '',
       apiBaseUrl: '',
       clientEndpoint: '',
@@ -137,6 +149,16 @@ export function useSystemManagement() {
     }
   }
 
+  function buildDriverUploadForm() {
+    return {
+      tenantId: form.tenantId,
+      engineType: 'TRINO',
+      driverClassName: 'io.trino.jdbc.TrinoDriver',
+      versionLabel: '',
+      file: null
+    }
+  }
+
   function buildRedisForm() {
     return {
       sourceId: '',
@@ -169,6 +191,7 @@ export function useSystemManagement() {
   }
 
   const datasourceForm = reactive(buildDatasourceForm())
+  const driverUploadForm = reactive(buildDriverUploadForm())
   const reportForm = reactive(buildReportForm())
   const redisForm = reactive(buildRedisForm())
   const dispatchForm = reactive(buildDispatchForm())
@@ -188,6 +211,12 @@ export function useSystemManagement() {
     )
   )
   const datasourceOptions = computed(() => buildDatasourceOptions(datasources.value))
+  const datasourceDriverOptions = computed(() =>
+    datasourceDrivers.value.map(item => ({
+      label: `${item.engineType} · ${item.versionLabel} · ${item.originalFileName}`,
+      value: item.artifactId
+    }))
+  )
   const filteredDatasources = computed(() =>
     datasources.value.filter(item => {
       const engineMatched = !datasourceFilter.engineType || item.engineType === datasourceFilter.engineType
@@ -278,6 +307,7 @@ export function useSystemManagement() {
         nextTenantConfig,
         nextStats,
         nextDatasources,
+        nextDatasourceDrivers,
         nextReportInterfaces,
         nextRedisRuleSources,
         nextDispatchPolicies
@@ -285,6 +315,7 @@ export function useSystemManagement() {
         getGovernanceTenantConfig(tenantId, { requestPrefix: 'frontend-system-tenant-config' }),
         getGovernanceMessageStats(tenantId, { requestPrefix: 'frontend-system-message-stats' }),
         getGovernanceDatasources(tenantId, { requestPrefix: 'frontend-system-datasources' }),
+        getGovernanceDatasourceDrivers(tenantId, { requestPrefix: 'frontend-system-datasource-drivers' }),
         getGovernanceReportInterfaces(tenantId, { requestPrefix: 'frontend-system-report-interfaces' }),
         getGovernanceRedisRuleSources(tenantId, { requestPrefix: 'frontend-system-redis-rule-sources' }),
         getGovernanceDispatchPolicies(tenantId, { requestPrefix: 'frontend-system-dispatch-policies' })
@@ -292,6 +323,7 @@ export function useSystemManagement() {
       tenantConfig.value = nextTenantConfig
       stats.value = nextStats
       datasources.value = Array.isArray(nextDatasources) ? nextDatasources : []
+      datasourceDrivers.value = Array.isArray(nextDatasourceDrivers) ? nextDatasourceDrivers : []
       reportInterfaces.value = Array.isArray(nextReportInterfaces) ? nextReportInterfaces : []
       redisRuleSources.value = Array.isArray(nextRedisRuleSources) ? nextRedisRuleSources : []
       dispatchPolicies.value = Array.isArray(nextDispatchPolicies) ? nextDispatchPolicies : []
@@ -365,24 +397,45 @@ export function useSystemManagement() {
     datasourceDialogVisible.value = true
   }
 
-  const openHetuJdbcCreate = () => {
+  const openJdbcDatasourceCreate = engineType => {
     datasourceDialogMode.value = 'create'
     resetFormState(datasourceForm, buildDatasourceForm)
+    const normalizedEngineType = String(engineType || 'HETU').toUpperCase()
+    const driverClassNames = {
+      HETU: 'io.prestosql.jdbc.PrestoDriver',
+      HIVE: 'org.apache.hive.jdbc.HiveDriver',
+      TRINO: 'io.trino.jdbc.TrinoDriver'
+    }
+    const datasourceCodes = {
+      HETU: 'hetu_main',
+      HIVE: 'hive_lakehouse',
+      TRINO: 'trino_main'
+    }
+    const datasourceNames = {
+      HETU: 'Hetu JDBC',
+      HIVE: 'Hive JDBC',
+      TRINO: 'Trino JDBC'
+    }
     Object.assign(datasourceForm, {
-      engineType: 'HETU',
+      engineType: normalizedEngineType,
       connectionMode: 'JDBC',
-      datasourceCode: 'hetu_main',
-      datasourceName: 'Hetu JDBC',
-      jdbcDriverClassName: 'io.prestosql.jdbc.PrestoDriver',
+      datasourceCode: datasourceCodes[normalizedEngineType] || 'jdbc_main',
+      datasourceName: datasourceNames[normalizedEngineType] || 'JDBC datasource',
+      jdbcDriverClassName: driverClassNames[normalizedEngineType] || '',
+      driverSourceType: 'CLASSPATH',
       authMode: 'PASSWORD',
       credentialMode: 'PASSWORD',
       readonly: true,
       enabled: true
     })
-    datasourceFilter.engineType = 'HETU'
+    datasourceFilter.engineType = normalizedEngineType
     datasourceFilter.connectionMode = 'JDBC'
     datasourceDialogVisible.value = true
   }
+
+  const openHetuJdbcCreate = () => openJdbcDatasourceCreate('HETU')
+  const openHiveJdbcCreate = () => openJdbcDatasourceCreate('HIVE')
+  const openTrinoJdbcCreate = () => openJdbcDatasourceCreate('TRINO')
 
   const openDatasourceEdit = row => {
     datasourceDialogMode.value = 'edit'
@@ -397,6 +450,11 @@ export function useSystemManagement() {
       stage: row.stage || 'PROD',
       jdbcUrl: row.jdbcUrl || '',
       jdbcDriverClassName: row.jdbcDriverClassName || '',
+      driverSourceType: row.driverSourceType || 'CLASSPATH',
+      driverArtifactId: row.driverArtifactId || '',
+      driverVersionLabel: row.driverVersionLabel || '',
+      driverSha256: row.driverSha256 || '',
+      driverLoadStatus: row.driverLoadStatus || '',
       username: row.username || '',
       apiBaseUrl: row.apiBaseUrl || '',
       clientEndpoint: row.clientEndpoint || '',
@@ -414,6 +472,71 @@ export function useSystemManagement() {
     datasourceDialogVisible.value = true
   }
 
+  const applyDriverArtifactSelection = artifactId => {
+    datasourceForm.driverArtifactId = artifactId || ''
+    const artifact = datasourceDrivers.value.find(item => item.artifactId === artifactId)
+    if (!artifact) {
+      datasourceForm.driverVersionLabel = ''
+      datasourceForm.driverSha256 = ''
+      datasourceForm.driverLoadStatus = ''
+      return
+    }
+    datasourceForm.jdbcDriverClassName = artifact.driverClassName || datasourceForm.jdbcDriverClassName
+    datasourceForm.driverVersionLabel = artifact.versionLabel || ''
+    datasourceForm.driverSha256 = artifact.sha256 || ''
+    datasourceForm.driverLoadStatus = artifact.status || ''
+  }
+
+  const openDriverUpload = () => {
+    resetFormState(driverUploadForm, buildDriverUploadForm)
+    driverDialogVisible.value = true
+  }
+
+  const handleDriverFileChange = file => {
+    driverUploadForm.file = file?.raw || null
+  }
+
+  const clearDriverFile = () => {
+    driverUploadForm.file = null
+  }
+
+  const inspectDriverArtifact = async artifactId => {
+    if (!artifactId) {
+      return
+    }
+    driverDetailLoading.value = true
+    errorMessage.value = ''
+    try {
+      const detail = await getGovernanceDatasourceDriverDetail(form.tenantId, artifactId, {
+        requestPrefix: 'frontend-system-datasource-driver-detail'
+      })
+      datasourceForm.driverVersionLabel = detail.versionLabel || ''
+      datasourceForm.driverSha256 = detail.sha256 || ''
+      datasourceForm.driverLoadStatus = detail.status || ''
+      openPayloadDrawer(detail.originalFileName || artifactId, detail)
+    } catch (error) {
+      errorMessage.value = formatRuntimeError(error)
+    } finally {
+      driverDetailLoading.value = false
+    }
+  }
+
+  const submitDriverUpload = async () => {
+    loading.driverUpload = true
+    errorMessage.value = ''
+    try {
+      await uploadGovernanceDatasourceDriver(driverUploadForm, {
+        requestPrefix: 'frontend-system-datasource-driver-upload'
+      })
+      driverDialogVisible.value = false
+      await loadSystemEvidence()
+    } catch (error) {
+      errorMessage.value = formatRuntimeError(error)
+    } finally {
+      loading.driverUpload = false
+    }
+  }
+
   const submitDatasource = async () => {
     loading.datasourceSubmit = true
     errorMessage.value = ''
@@ -426,6 +549,8 @@ export function useSystemManagement() {
       stage: datasourceForm.stage,
       jdbcUrl: datasourceForm.jdbcUrl,
       jdbcDriverClassName: datasourceForm.jdbcDriverClassName,
+      driverSourceType: datasourceForm.driverSourceType,
+      driverArtifactId: datasourceForm.driverSourceType === 'UPLOADED' ? datasourceForm.driverArtifactId : '',
       username: datasourceForm.username,
       apiBaseUrl: datasourceForm.apiBaseUrl,
       clientEndpoint: datasourceForm.clientEndpoint,
@@ -639,6 +764,7 @@ export function useSystemManagement() {
     retryResult,
     datasourceFilter,
     datasourceDialogVisible,
+    driverDialogVisible,
     reportDialogVisible,
     redisDialogVisible,
     dispatchDialogVisible,
@@ -646,8 +772,12 @@ export function useSystemManagement() {
     datasourceDialogMode,
     reportDialogMode,
     redisDialogMode,
+    driverDetailLoading,
     placeholderPayload,
     datasourceForm,
+    datasourceDrivers,
+    datasourceDriverOptions,
+    driverUploadForm,
     reportForm,
     redisForm,
     dispatchForm,
@@ -668,9 +798,17 @@ export function useSystemManagement() {
     retryFailedMessages,
     openPayloadDrawer,
     openDatasourceCreate,
+    openDriverUpload,
+    openHiveJdbcCreate,
     openHetuJdbcCreate,
+    openTrinoJdbcCreate,
     openDatasourceEdit,
+    applyDriverArtifactSelection,
+    clearDriverFile,
+    handleDriverFileChange,
+    inspectDriverArtifact,
     submitDatasource,
+    submitDriverUpload,
     openReportCreate,
     openReportEdit,
     submitReportInterface,
@@ -682,4 +820,3 @@ export function useSystemManagement() {
     submitDispatchPolicy
   }
 }
-

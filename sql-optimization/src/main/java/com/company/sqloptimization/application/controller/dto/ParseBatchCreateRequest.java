@@ -1,5 +1,6 @@
 package com.company.sqloptimization.application.controller.dto;
 
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -21,6 +22,7 @@ public class ParseBatchCreateRequest {
 
     private String templateVersion;
     private String datasourceCode;
+    private DataSourceTypeEnum datasourceType;
     @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
 
@@ -39,6 +41,8 @@ public class ParseBatchCreateRequest {
     public void setTemplateVersion(String templateVersion) { this.templateVersion = templateVersion; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
+    public DataSourceTypeEnum getDatasourceType() { return datasourceType; }
+    public void setDatasourceType(DataSourceTypeEnum datasourceType) { this.datasourceType = datasourceType; }
     public String getParserMode() { return parserMode; }
     public void setParserMode(String parserMode) { this.parserMode = parserMode; }
     public Boolean getStructureParseOnly() { return structureParseOnly; }

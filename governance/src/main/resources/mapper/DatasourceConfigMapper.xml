@@ -14,6 +14,11 @@
         <result property="stage" column="stage"/>
         <result property="jdbcUrl" column="jdbc_url"/>
         <result property="jdbcDriverClassName" column="jdbc_driver_class_name"/>
+        <result property="driverSourceType" column="driver_source_type"/>
+        <result property="driverArtifactId" column="jdbc_driver_artifact_id"/>
+        <result property="driverVersionLabel" column="driver_version_label"/>
+        <result property="driverSha256" column="driver_sha256"/>
+        <result property="driverLoadStatus" column="driver_load_status"/>
         <result property="username" column="username"/>
         <result property="apiBaseUrl" column="api_base_url"/>
         <result property="clientEndpoint" column="client_endpoint"/>
@@ -49,6 +54,11 @@
         stage,
         jdbc_url,
         jdbc_driver_class_name,
+        driver_source_type,
+        jdbc_driver_artifact_id,
+        driver_version_label,
+        driver_sha256,
+        driver_load_status,
         username,
         api_base_url,
         client_endpoint,
@@ -85,6 +95,11 @@
             stage,
             jdbc_url,
             jdbc_driver_class_name,
+            driver_source_type,
+            jdbc_driver_artifact_id,
+            driver_version_label,
+            driver_sha256,
+            driver_load_status,
             username,
             api_base_url,
             client_endpoint,
@@ -118,6 +133,11 @@
             #{stage},
             #{jdbcUrl},
             #{jdbcDriverClassName},
+            #{driverSourceType},
+            #{driverArtifactId},
+            #{driverVersionLabel},
+            #{driverSha256},
+            #{driverLoadStatus},
             #{username},
             #{apiBaseUrl},
             #{clientEndpoint},
@@ -150,6 +170,11 @@
             stage = VALUES(stage),
             jdbc_url = VALUES(jdbc_url),
             jdbc_driver_class_name = VALUES(jdbc_driver_class_name),
+            driver_source_type = VALUES(driver_source_type),
+            jdbc_driver_artifact_id = VALUES(jdbc_driver_artifact_id),
+            driver_version_label = VALUES(driver_version_label),
+            driver_sha256 = VALUES(driver_sha256),
+            driver_load_status = VALUES(driver_load_status),
             username = VALUES(username),
             api_base_url = VALUES(api_base_url),
             client_endpoint = VALUES(client_endpoint),
