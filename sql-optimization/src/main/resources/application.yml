@@ -52,6 +52,22 @@ sql-optimization:
     rewrite-binding-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_REWRITE_BINDING_BASE_URL:http://localhost:8081/api/query-execution/internal/rewrite-bindings}
     connect-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
+  rewrite-production:
+    development-direct-activation-enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_DEV_DIRECT_ACTIVATION_ENABLED:false}
+    calcite-rel-node:
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_CALCITE_RELNODE_ENABLED:false}
+    rel-to-sql:
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_REL_TO_SQL_ENABLED:false}
+    jsql-parser-metadata:
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_JSQLPARSER_METADATA_ENABLED:false}
+    smt-z3:
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_SMT_Z3_ENABLED:false}
+      command: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_SMT_Z3_COMMAND:}
+    hetu-explain-cost:
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_HETU_EXPLAIN_COST_ENABLED:false}
+    statistics-cost:
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_STATISTICS_COST_ENABLED:false}
+      statistics-source: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_STATISTICS_SOURCE:}
   rewrite-validation-scheduler:
     enabled: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_ENABLED:false}
     fixed-delay-ms: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_FIXED_DELAY_MS:60000}

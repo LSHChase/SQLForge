@@ -3,6 +3,7 @@ package com.company.sqloptimization.application.service;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqloptimization.config.RewriteProductionGateProperties;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
 import com.company.sqloptimization.domain.task.OptimizationTaskBenefit;
@@ -20,6 +21,8 @@ import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrAssembler;
 import com.company.sqloptimization.domain.rewrite.ir.RewriteCoreIrSnapshot;
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionAnalyzer;
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
+import com.company.sqloptimization.domain.rewrite.production.RewriteProductionCapabilityAnalyzer;
+import com.company.sqloptimization.domain.rewrite.production.RewriteProductionCapabilityReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagBuilder;
 import com.company.sqloptimization.domain.rewrite.ra.RelationalRewritePlan;
@@ -30,6 +33,7 @@ import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolutionRep
 import com.company.sqloptimization.domain.rewrite.rule.RuleConflictResolver;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceReport;
 import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceVerifier;
+import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import io.trino.sql.parser.ParsingOptions;
 import io.trino.sql.parser.SqlParser;
 import io.trino.sql.tree.AstVisitor;
@@ -107,8 +111,9 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -224,8 +229,22 @@ public class SqlOptimizationPipelineService {
 
     private final Map<SqlParserMode, SqlStructureParserAdapter> parserAdapters =
         new LinkedHashMap<SqlParserMode, SqlStructureParserAdapter>();
+    private final RewriteProductionGateProperties rewriteProductionGateProperties;
+    private final HetuPlanAnalysisClient hetuPlanAnalysisClient;
 
     public SqlOptimizationPipelineService() {
+        this(new RewriteProductionGateProperties(), HetuPlanAnalysisClient.unavailable());
+    }
+
+    @Autowired
+    public SqlOptimizationPipelineService(RewriteProductionGateProperties rewriteProductionGateProperties,
+                                          HetuPlanAnalysisClient hetuPlanAnalysisClient) {
+        this.rewriteProductionGateProperties = rewriteProductionGateProperties == null
+            ? new RewriteProductionGateProperties()
+            : rewriteProductionGateProperties;
+        this.hetuPlanAnalysisClient = hetuPlanAnalysisClient == null
+            ? HetuPlanAnalysisClient.unavailable()
+            : hetuPlanAnalysisClient;
         registerParserAdapter(new JsqlParserAdapter());
         registerParserAdapter(new ApacheCalciteParserAdapter());
     }
@@ -516,6 +535,11 @@ public class SqlOptimizationPipelineService {
                 JsonUtils.toJson(coreIrSnapshot.getRewriteAlgorithmConformanceReport())
             ));
         }
+        artifacts.add(new OptimizationTaskArtifact(
+            "REWRITE_PRODUCTION_CAPABILITY_REPORT",
+            "productionCapabilityReport",
+            JsonUtils.toJson(assessRewriteProductionCapabilities(profile).toMap())
+        ));
         if (snapshotRewrite != null) {
             artifacts.add(new OptimizationTaskArtifact(
                 "REWRITE_VALIDATION_METHODS",
@@ -726,6 +750,26 @@ public class SqlOptimizationPipelineService {
             semanticReport
         );
         return new RuleConflictResolver().resolve(plan, costReport);
+    }
+
+    public RewriteProductionCapabilityReport assessRewriteProductionCapabilities(ParsedSqlProfile profile) {
+        return assessRewriteProductionCapabilities(profile, null, null, null);
+    }
+
+    public RewriteProductionCapabilityReport assessRewriteProductionCapabilities(ParsedSqlProfile profile,
+                                                                                 String tenantId,
+                                                                                 String datasourceCode,
+                                                                                 DataSourceTypeEnum datasourceType) {
+        if (profile == null) {
+            throw invalidTask(
+                "评估改写生产适配能力需要有效 SQL 解析结果。",
+                "请先完成 SQL 结构解析，再生成生产化适配层状态报告。"
+            );
+        }
+        return new RewriteProductionCapabilityAnalyzer(
+            rewriteProductionGateProperties,
+            hetuPlanAnalysisClient
+        ).assess(profile.getNormalizedSql(), tenantId, datasourceCode, datasourceType);
     }
 
     public ParserStackFusionReport buildParserStackFusionReport(ParsedSqlProfile profile) {
@@ -990,13 +1034,14 @@ public class SqlOptimizationPipelineService {
 
         boolean manualReviewRequired = !unappliedRules.isEmpty() || containsManualReviewRule(ruleChain);
         String validationMethod = manualReviewRequired ? "RESULT_DIFF_THEN_MANUAL_REVIEW" : "RESULT_DIFF_REQUIRED";
+        RewriteProductionCapabilityReport productionCapabilityReport = assessRewriteProductionCapabilities(profile);
         return new RecommendationRuleOutputModel(
             ruleChain,
             unappliedRules,
             preconditions,
             semanticRisks,
-            expectedBenefit(profile, outcome),
-            estimatedCost(profile, manualReviewRequired),
+            expectedBenefit(profile, outcome, productionCapabilityReport),
+            estimatedCost(profile, manualReviewRequired, productionCapabilityReport),
             Integer.valueOf(calculateRecommendationConfidence(profile, outcome, unappliedRules)),
             validationMethod,
             false,
@@ -1993,7 +2038,9 @@ public class SqlOptimizationPipelineService {
         return false;
     }
 
-    private Map<String, Object> expectedBenefit(ParsedSqlProfile profile, RewriteOutcome outcome) {
+    private Map<String, Object> expectedBenefit(ParsedSqlProfile profile,
+                                                RewriteOutcome outcome,
+                                                RewriteProductionCapabilityReport productionCapabilityReport) {
         LinkedHashMap<String, Object> benefit = new LinkedHashMap<String, Object>();
         benefit.put("evidenceType", "STATIC_HEURISTIC");
         benefit.put("claimBoundary", "NOT_REAL_EXECUTION_GAIN");
@@ -2002,10 +2049,13 @@ public class SqlOptimizationPipelineService {
         benefit.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
         benefit.put("level", staticBenefitLevel(profile, outcome));
         benefit.put("productionScaleGate", productionScaleGate());
+        benefit.put("productionCapabilityGate", productionCapabilityReport.toSummaryMap());
         return benefit;
     }
 
-    private Map<String, Object> estimatedCost(ParsedSqlProfile profile, boolean manualReviewRequired) {
+    private Map<String, Object> estimatedCost(ParsedSqlProfile profile,
+                                              boolean manualReviewRequired,
+                                              RewriteProductionCapabilityReport productionCapabilityReport) {
         LinkedHashMap<String, Object> cost = new LinkedHashMap<String, Object>();
         cost.put("evidenceType", "STATIC_HEURISTIC");
         cost.put("validation", "RESULT_DIFF_REQUIRED");
@@ -2013,6 +2063,7 @@ public class SqlOptimizationPipelineService {
         cost.put("followUp", manualReviewRequired ? "REVIEW_RULE_PRECONDITIONS" : "VALIDATE_L0_CANDIDATE");
         cost.put("riskSignalCount", Integer.valueOf(profile.getWarnings().size()));
         cost.put("productionScaleGate", productionScaleGate());
+        cost.put("productionCapabilityGate", productionCapabilityReport.toSummaryMap());
         return cost;
     }
 

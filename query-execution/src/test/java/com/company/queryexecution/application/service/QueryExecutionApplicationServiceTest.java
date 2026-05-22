@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import com.company.queryexecution.application.controller.dto.QueryContextDTO;
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
+import com.company.queryexecution.config.QueryExecutionRewriteProperties;
 import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
@@ -186,7 +187,7 @@ class QueryExecutionApplicationServiceTest {
             .thenReturn(activeRuntimeRewriteResponse(originalFingerprint, recommendedSql));
         RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
         QueryExecutionApplicationService service =
-            newService(adapter, governanceCapabilityClient, rewriteBindingService);
+            newService(adapter, governanceCapabilityClient, rewriteBindingService, developmentDirectSuccessProperties());
 
         QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
 
@@ -232,6 +233,29 @@ class QueryExecutionApplicationServiceTest {
         assertTrue(historyRequest.getBindingSummary().contains("\"runtimeBindingId\":\"rwb-001\""));
         assertTrue(historyRequest.getBindingSummary().contains("\"rewriteActivationStatusSnapshot\":\"ACTIVE\""));
         assertTrue(historyRequest.getQueryContext().contains("\"runtimeRuleVersion\":\"runtime-rewrite-v3\""));
+    }
+
+    @Test
+    void shouldExecuteRecommendedSqlWhenDevelopmentRewriteDirectSuccessIsDisabled() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        String originalSql = "SELECT * FROM orders";
+        String recommendedSql = "SELECT id FROM orders";
+        when(rewriteBindingService.resolveActive(any()))
+            .thenReturn(activeRuntimeRewriteResponse(SqlFingerprintUtils.fingerprint(originalSql), recommendedSql));
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            newService(adapter, mockGovernanceClient(), rewriteBindingService);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(recommendedSql, adapter.actualSql);
+        assertEquals(recommendedSql, response.getMetadata().getActualSql());
+        assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
+        assertTrue(response.getMetadata().isRewriteApplied());
+        assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
     }
 
     @Test
@@ -732,6 +756,27 @@ class QueryExecutionApplicationServiceTest {
             new QueryExecutionCacheGovernanceRuntimeService(),
             rewriteBindingService
         );
+    }
+
+    private QueryExecutionApplicationService newService(QueryExecutionAdapter adapter,
+                                                        GovernanceCapabilityClient governanceCapabilityClient,
+                                                        QueryExecutionRuntimeRewriteBindingService rewriteBindingService,
+                                                        QueryExecutionRewriteProperties rewriteProperties) {
+        return new QueryExecutionApplicationService(
+            adapter,
+            governanceCapabilityClient,
+            QueryExecutionMetricsRecorder.noop(),
+            new QueryExecutionAccelerationRuntimeService(),
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            rewriteBindingService,
+            rewriteProperties
+        );
+    }
+
+    private QueryExecutionRewriteProperties developmentDirectSuccessProperties() {
+        QueryExecutionRewriteProperties properties = new QueryExecutionRewriteProperties();
+        properties.setDevelopmentDirectSuccessEnabled(true);
+        return properties;
     }
 
     private RuntimeRewriteBindingResponse activeRuntimeRewriteResponse(String sqlFingerprint, String recommendedSql) {

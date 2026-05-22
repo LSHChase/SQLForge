@@ -30,6 +30,8 @@ query-execution:
     readonly-first: true
   parser:
     strategy: OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH
+  rewrite:
+    development-direct-success-enabled: ${QUERY_EXECUTION_REWRITE_DEV_DIRECT_SUCCESS_ENABLED:false}
   hetu:
     enabled: ${QUERY_EXECUTION_HETU_ENABLED:false}
     calibration:

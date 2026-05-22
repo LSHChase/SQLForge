@@ -12,6 +12,7 @@ import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
+import com.company.sqloptimization.config.RewriteProductionGateProperties;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordActivationActionRequest;
@@ -70,6 +71,7 @@ public class SqlRewriteRecordApplicationService {
     private final ResultDigestComparisonEngine resultDigestComparisonEngine;
     private final RewriteActivationEligibilityPolicy rewriteActivationEligibilityPolicy;
     private final AccelerationRecommendationRepository recommendationRepository;
+    private final RewriteProductionGateProperties rewriteProductionGateProperties;
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository) {
         this(
@@ -79,7 +81,8 @@ public class SqlRewriteRecordApplicationService {
             new RewriteActivationEligibilityPolicy(),
             null,
             null,
-            null
+            null,
+            new RewriteProductionGateProperties()
         );
     }
 
@@ -89,7 +92,8 @@ public class SqlRewriteRecordApplicationService {
                                               ResultDigestComparisonEngine resultDigestComparisonEngine,
                                               QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
                                               GovernanceCapabilityClient governanceCapabilityClient,
-                                              AccelerationRecommendationRepository recommendationRepository) {
+                                              AccelerationRecommendationRepository recommendationRepository,
+                                              RewriteProductionGateProperties rewriteProductionGateProperties) {
         this(
             sqlRewriteRecordRepository,
             queryExecutionResultDigestClient,
@@ -97,7 +101,8 @@ public class SqlRewriteRecordApplicationService {
             new RewriteActivationEligibilityPolicy(),
             runtimeRewriteBindingClient,
             governanceCapabilityClient,
-            recommendationRepository
+            recommendationRepository,
+            rewriteProductionGateProperties
         );
     }
 
@@ -112,7 +117,8 @@ public class SqlRewriteRecordApplicationService {
             new RewriteActivationEligibilityPolicy(),
             runtimeRewriteBindingClient,
             null,
-            null
+            null,
+            new RewriteProductionGateProperties()
         );
     }
 
@@ -126,7 +132,8 @@ public class SqlRewriteRecordApplicationService {
             new RewriteActivationEligibilityPolicy(),
             null,
             null,
-            null
+            null,
+            new RewriteProductionGateProperties()
         );
     }
 
@@ -139,7 +146,8 @@ public class SqlRewriteRecordApplicationService {
             new RewriteActivationEligibilityPolicy(),
             null,
             null,
-            recommendationRepository
+            recommendationRepository,
+            new RewriteProductionGateProperties()
         );
     }
 
@@ -154,7 +162,8 @@ public class SqlRewriteRecordApplicationService {
             rewriteActivationEligibilityPolicy,
             null,
             null,
-            null
+            null,
+            new RewriteProductionGateProperties()
         );
     }
 
@@ -165,6 +174,26 @@ public class SqlRewriteRecordApplicationService {
                                               QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
                                               GovernanceCapabilityClient governanceCapabilityClient,
                                               AccelerationRecommendationRepository recommendationRepository) {
+        this(
+            sqlRewriteRecordRepository,
+            queryExecutionResultDigestClient,
+            resultDigestComparisonEngine,
+            rewriteActivationEligibilityPolicy,
+            runtimeRewriteBindingClient,
+            governanceCapabilityClient,
+            recommendationRepository,
+            new RewriteProductionGateProperties()
+        );
+    }
+
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
+                                              RewriteActivationEligibilityPolicy rewriteActivationEligibilityPolicy,
+                                              QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
+                                              GovernanceCapabilityClient governanceCapabilityClient,
+                                              AccelerationRecommendationRepository recommendationRepository,
+                                              RewriteProductionGateProperties rewriteProductionGateProperties) {
         this.sqlRewriteRecordRepository = sqlRewriteRecordRepository;
         this.queryExecutionResultDigestClient = queryExecutionResultDigestClient;
         this.runtimeRewriteBindingClient = runtimeRewriteBindingClient;
@@ -172,6 +201,9 @@ public class SqlRewriteRecordApplicationService {
         this.resultDigestComparisonEngine = resultDigestComparisonEngine;
         this.rewriteActivationEligibilityPolicy = rewriteActivationEligibilityPolicy;
         this.recommendationRepository = recommendationRepository;
+        this.rewriteProductionGateProperties = rewriteProductionGateProperties == null
+            ? new RewriteProductionGateProperties()
+            : rewriteProductionGateProperties;
     }
 
     public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
@@ -186,7 +218,25 @@ public class SqlRewriteRecordApplicationService {
             rewriteActivationEligibilityPolicy,
             runtimeRewriteBindingClient,
             null,
-            null
+            null,
+            new RewriteProductionGateProperties()
+        );
+    }
+
+    public SqlRewriteRecordApplicationService(SqlRewriteRecordRepository sqlRewriteRecordRepository,
+                                              QueryExecutionResultDigestClient queryExecutionResultDigestClient,
+                                              ResultDigestComparisonEngine resultDigestComparisonEngine,
+                                              QueryExecutionRuntimeRewriteBindingClient runtimeRewriteBindingClient,
+                                              RewriteProductionGateProperties rewriteProductionGateProperties) {
+        this(
+            sqlRewriteRecordRepository,
+            queryExecutionResultDigestClient,
+            resultDigestComparisonEngine,
+            new RewriteActivationEligibilityPolicy(),
+            runtimeRewriteBindingClient,
+            null,
+            null,
+            rewriteProductionGateProperties
         );
     }
 
@@ -314,6 +364,11 @@ public class SqlRewriteRecordApplicationService {
             }
         });
         requireMvRuntimeRewriteSqlAligned(rewriteRecord);
+        RewriteActivationEligibility eligibility = evaluateActivationEligibility(rewriteRecord);
+        boolean developmentDirectActivation = shouldUseDevelopmentDirectActivation(eligibility);
+        if (!developmentDirectActivation) {
+            requireEligibleForRuntimeActivation(eligibility);
+        }
         String operator = requireContextUser();
         String reason = actionReason(request);
         Instant now = Instant.now();
@@ -332,7 +387,9 @@ public class SqlRewriteRecordApplicationService {
                     operator,
                     now,
                     null,
-                    ex
+                    ex,
+                    developmentDirectActivation,
+                    eligibility
                 )
             );
             sqlRewriteRecordRepository.saveRecord(failed);
@@ -354,7 +411,9 @@ public class SqlRewriteRecordApplicationService {
                 operator,
                 now,
                 runtimeResponse,
-                null
+                null,
+                developmentDirectActivation,
+                eligibility
             )
         );
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(activated));
@@ -390,7 +449,9 @@ public class SqlRewriteRecordApplicationService {
                     operator,
                     now,
                     null,
-                    ex
+                    ex,
+                    false,
+                    null
                 )
             );
             sqlRewriteRecordRepository.saveRecord(failed);
@@ -408,6 +469,8 @@ public class SqlRewriteRecordApplicationService {
                 operator,
                 now,
                 runtimeResponse,
+                null,
+                false,
                 null
             )
         );
@@ -421,7 +484,9 @@ public class SqlRewriteRecordApplicationService {
                                                              String operator,
                                                              Instant occurredAt,
                                                              RuntimeRewriteBindingResponse runtimeResponse,
-                                                             RuntimeException failure) {
+                                                             RuntimeException failure,
+                                                             boolean developmentDirectActivation,
+                                                             RewriteActivationEligibility eligibility) {
         Map<String, Object> traceRefs = new LinkedHashMap<String, Object>(rewriteRecord.getTraceRefs());
         Map<String, Object> lifecycleEvidence = new LinkedHashMap<String, Object>();
         lifecycleEvidence.put("action", action);
@@ -430,8 +495,15 @@ public class SqlRewriteRecordApplicationService {
         lifecycleEvidence.put("occurredAt", occurredAt.toString());
         lifecycleEvidence.put("runtimeBinding", Boolean.TRUE);
         if (action != null && action.contains("ACTIVATE")) {
-            lifecycleEvidence.put("developmentDirectActivation", Boolean.TRUE);
-            lifecycleEvidence.put("validationGate", "BYPASSED_FOR_DEVELOPMENT_DEBUG");
+            lifecycleEvidence.put("developmentDirectActivation", Boolean.valueOf(developmentDirectActivation));
+            lifecycleEvidence.put(
+                "validationGate",
+                developmentDirectActivation ? "BYPASSED_FOR_DEVELOPMENT_DEBUG" : "PASSED_PRODUCTION_ELIGIBILITY"
+            );
+            if (eligibility != null) {
+                lifecycleEvidence.put("eligibilityPolicyId", eligibility.getPolicyId());
+                lifecycleEvidence.put("eligibilityRefusalCodes", eligibilityRefusalCodes(eligibility));
+            }
         }
         if (runtimeResponse != null) {
             lifecycleEvidence.put("runtimeBindingId", runtimeResponse.getRuntimeBindingId());
@@ -518,7 +590,9 @@ public class SqlRewriteRecordApplicationService {
                     operator,
                     now,
                     null,
-                    ex
+                    ex,
+                    false,
+                    null
                 ),
                 now
             );
@@ -534,6 +608,8 @@ public class SqlRewriteRecordApplicationService {
                 operator,
                 now,
                 runtimeResponse,
+                null,
+                false,
                 null
             )
         );
@@ -764,6 +840,11 @@ public class SqlRewriteRecordApplicationService {
         );
     }
 
+    private boolean shouldUseDevelopmentDirectActivation(RewriteActivationEligibility eligibility) {
+        return rewriteProductionGateProperties.isDevelopmentDirectActivationEnabled()
+            && (eligibility == null || !eligibility.isEligible());
+    }
+
     private String summarizeRefusalReasons(RewriteActivationEligibility eligibility) {
         if (eligibility == null || eligibility.getRefusalReasons().isEmpty()) {
             return "UNKNOWN";
@@ -773,6 +854,17 @@ public class SqlRewriteRecordApplicationService {
             codes.add(reason.getCode());
         }
         return codes.toString();
+    }
+
+    private List<String> eligibilityRefusalCodes(RewriteActivationEligibility eligibility) {
+        if (eligibility == null || eligibility.getRefusalReasons().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> codes = new ArrayList<String>();
+        for (RewriteActivationEligibilityReason reason : eligibility.getRefusalReasons()) {
+            codes.add(reason.getCode());
+        }
+        return codes;
     }
 
     private void requireDomainState(Runnable stateCheck) {

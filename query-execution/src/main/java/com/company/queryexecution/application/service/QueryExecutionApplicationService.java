@@ -6,6 +6,7 @@ import com.company.queryexecution.application.controller.vo.QueryErrorDetailVO;
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.application.controller.vo.QueryExecutionMetadataVO;
 import com.company.queryexecution.application.controller.vo.QueryRetryStepVO;
+import com.company.queryexecution.config.QueryExecutionRewriteProperties;
 import com.company.queryexecution.domain.query.ActivatedAccelerationBinding;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
@@ -102,6 +103,7 @@ public class QueryExecutionApplicationService {
     private final QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
     private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
     private final QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
+    private final QueryExecutionRewriteProperties rewriteProperties;
 
     @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -109,13 +111,17 @@ public class QueryExecutionApplicationService {
                                             QueryExecutionMetricsRecorder metricsRecorder,
                                             QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
                                             QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
-                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService) {
+                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService,
+                                            QueryExecutionRewriteProperties rewriteProperties) {
         this.queryExecutionAdapter = queryExecutionAdapter;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.metricsRecorder = metricsRecorder;
         this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
         this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
         this.queryExecutionRuntimeRewriteBindingService = queryExecutionRuntimeRewriteBindingService;
+        this.rewriteProperties = rewriteProperties == null
+            ? new QueryExecutionRewriteProperties()
+            : rewriteProperties;
     }
 
     QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -126,7 +132,8 @@ public class QueryExecutionApplicationService {
             QueryExecutionMetricsRecorder.noop(),
             new QueryExecutionAccelerationRuntimeService(),
             new QueryExecutionCacheGovernanceRuntimeService(),
-            null
+            null,
+            new QueryExecutionRewriteProperties()
         );
     }
 
@@ -139,7 +146,8 @@ public class QueryExecutionApplicationService {
             metricsRecorder,
             new QueryExecutionAccelerationRuntimeService(),
             new QueryExecutionCacheGovernanceRuntimeService(),
-            null
+            null,
+            new QueryExecutionRewriteProperties()
         );
     }
 
@@ -153,7 +161,8 @@ public class QueryExecutionApplicationService {
             metricsRecorder,
             queryExecutionAccelerationRuntimeService,
             new QueryExecutionCacheGovernanceRuntimeService(),
-            null
+            null,
+            new QueryExecutionRewriteProperties()
         );
     }
 
@@ -168,7 +177,25 @@ public class QueryExecutionApplicationService {
             metricsRecorder,
             queryExecutionAccelerationRuntimeService,
             queryExecutionCacheGovernanceRuntimeService,
-            null
+            null,
+            new QueryExecutionRewriteProperties()
+        );
+    }
+
+    public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            QueryExecutionMetricsRecorder metricsRecorder,
+                                            QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
+                                            QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
+                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService) {
+        this(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            metricsRecorder,
+            queryExecutionAccelerationRuntimeService,
+            queryExecutionCacheGovernanceRuntimeService,
+            queryExecutionRuntimeRewriteBindingService,
+            new QueryExecutionRewriteProperties()
         );
     }
 
@@ -275,7 +302,8 @@ public class QueryExecutionApplicationService {
                 "ROUTED",
                 null
             );
-            if (runtimeRewriteResolution.isRewriteApplied()) {
+            if (runtimeRewriteResolution.isRewriteApplied()
+                && rewriteProperties.isDevelopmentDirectSuccessEnabled()) {
                 logStateChange(
                     sqlFingerprint,
                     request,

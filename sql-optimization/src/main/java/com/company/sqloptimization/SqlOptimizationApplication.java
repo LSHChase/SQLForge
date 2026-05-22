@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     com.company.sqloptimization.config.OptimizationQueryExecutionProperties.class,
     com.company.sqloptimization.config.OptimizationViewMetadataProperties.class,
     com.company.sqloptimization.config.HetuPlanAnalysisProperties.class,
+    com.company.sqloptimization.config.RewriteProductionGateProperties.class,
     com.company.sqloptimization.config.RewriteValidationSchedulerProperties.class
 })
 @SpringBootApplication(scanBasePackages = {"com.company.sqloptimization", "com.company.sqlforge.common"})

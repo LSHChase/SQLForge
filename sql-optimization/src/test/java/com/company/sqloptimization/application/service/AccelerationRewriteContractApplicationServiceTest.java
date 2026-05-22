@@ -15,6 +15,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResp
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqloptimization.config.RewriteProductionGateProperties;
 import com.company.sqloptimization.application.controller.dto.AccelerationCandidateCreateRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
@@ -442,7 +443,8 @@ class AccelerationRewriteContractApplicationServiceTest {
             repository,
             null,
             new ResultDigestComparisonEngine(),
-            runtimeClient
+            runtimeClient,
+            developmentDirectActivationProperties()
         );
         setTenant("tenant-a");
         SqlRewriteRecordVO created = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-not-ready"));
@@ -461,6 +463,29 @@ class AccelerationRewriteContractApplicationServiceTest {
         Map<?, ?> publishTrace = (Map<?, ?>) activated.getTraceRefs().get("activationEvidence");
         assertEquals(Boolean.TRUE, publishTrace.get("developmentDirectActivation"));
         assertEquals("BYPASSED_FOR_DEVELOPMENT_DEBUG", publishTrace.get("validationGate"));
+    }
+
+    @Test
+    void shouldRejectDirectActivateRewriteRecordWithoutValidationWhenSwitchDisabled() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
+            repository,
+            null,
+            new ResultDigestComparisonEngine(),
+            runtimeClient
+        );
+        setTenant("tenant-a");
+        SqlRewriteRecordVO created = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-not-ready"));
+
+        BizException exception = assertThrows(
+            BizException.class,
+            () -> service.activateRewriteRecord(created.getRewriteRecordId(), publishActionRequest("prod gated activate"))
+        );
+
+        assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID, exception.getCode());
+        assertEquals(0, runtimeClient.activateCount);
+        assertTrue(exception.getMessage().contains("VALIDATION_STATUS_NOT_EQUIVALENT"));
     }
 
     @Test
@@ -836,6 +861,12 @@ class AccelerationRewriteContractApplicationServiceTest {
         Map<String, Object> evidence = new LinkedHashMap<String, Object>();
         evidence.put("runtimeDelta", runtimeDelta);
         return evidence;
+    }
+
+    private RewriteProductionGateProperties developmentDirectActivationProperties() {
+        RewriteProductionGateProperties properties = new RewriteProductionGateProperties();
+        properties.setDevelopmentDirectActivationEnabled(true);
+        return properties;
     }
 
     private Map<String, Object> generatedMvArtifact(String rewriteSql) {

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqloptimization.config.RewriteProductionGateProperties;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceReport;
 import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmStage;
@@ -19,6 +21,8 @@ import com.company.sqloptimization.domain.rewrite.ir.RewriteIrLayer;
 import com.company.sqloptimization.domain.rewrite.parser.HetuPlanHint;
 import com.company.sqloptimization.domain.rewrite.parser.ParserMetadataTag;
 import com.company.sqloptimization.domain.rewrite.parser.ParserStackFusionReport;
+import com.company.sqloptimization.domain.rewrite.production.RewriteProductionAdapterStatus;
+import com.company.sqloptimization.domain.rewrite.production.RewriteProductionCapabilityReport;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDag;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockDagIssue;
 import com.company.sqloptimization.domain.rewrite.qbdag.QueryBlockEdge;
@@ -39,11 +43,13 @@ import com.company.sqloptimization.domain.rewrite.semantic.SemanticEquivalenceSt
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
+import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -156,9 +162,63 @@ class SqlOptimizationPipelineServiceTest {
             productionGate.get("blockedTask"));
         assertEquals("EXTERNAL_EVIDENCE_REQUIRED",
             nestedMap(model.getEstimatedCost(), "productionScaleGate").get("status"));
+        Map<String, Object> productionCapabilityGate = nestedMap(model.getExpectedBenefit(), "productionCapabilityGate");
+        assertEquals("DEFAULT_STATIC_CHAIN", productionCapabilityGate.get("capabilityStatus"));
+        assertEquals(Integer.valueOf(0), productionCapabilityGate.get("enabledAdapterCount"));
+        assertEquals("ADAPTER_STATUS_NOT_PRODUCTION_SCALE_EVIDENCE",
+            productionCapabilityGate.get("claimBoundary"));
         assertEquals("RESULT_DIFF_THEN_MANUAL_REVIEW", model.getValidationMethod());
         assertTrue(model.isManualReviewRequired());
         assertFalse(model.isAutoApplyAllowed());
+    }
+
+    @Test
+    void shouldKeepProductionCapabilityAdaptersDisabledByDefault() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT id FROM orders",
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteProductionCapabilityReport report = service.assessRewriteProductionCapabilities(profile);
+
+        assertEquals("DEFAULT_STATIC_CHAIN", report.getCapabilityStatus());
+        assertEquals(Integer.valueOf(0), report.toSummaryMap().get("enabledAdapterCount"));
+        assertEquals(Integer.valueOf(0), report.toSummaryMap().get("liveAvailableAdapterCount"));
+        assertEquals("DISABLED_DEFAULT_STATIC_CHAIN",
+            adapter(report, "CALCITE_RELNODE").getStatus());
+        assertEquals("DISABLED_DEFAULT_STATIC_CHAIN",
+            adapter(report, "HETU_EXPLAIN_COST").getStatus());
+    }
+
+    @Test
+    void shouldReportEnabledProductionCapabilityAdapterStatuses() {
+        RewriteProductionGateProperties properties = new RewriteProductionGateProperties();
+        properties.getJsqlParserMetadata().setEnabled(true);
+        properties.getHetuExplainCost().setEnabled(true);
+        properties.getSmtZ3().setEnabled(true);
+        SqlOptimizationPipelineService productionService =
+            new SqlOptimizationPipelineService(properties, successfulHetuPlanAnalysisClient());
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = productionService.analyze(
+            "SELECT id FROM orders",
+            DataSourceTypeEnum.HETU
+        );
+
+        RewriteProductionCapabilityReport report = productionService.assessRewriteProductionCapabilities(
+            profile,
+            "tenant-a",
+            "hetu_main",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals("LIVE_ADAPTER_AVAILABLE_WITH_GATES", report.getCapabilityStatus());
+        assertEquals(Integer.valueOf(3), report.toSummaryMap().get("enabledAdapterCount"));
+        assertEquals(Integer.valueOf(2), report.toSummaryMap().get("liveAvailableAdapterCount"));
+        assertEquals("REAL_JSQLPARSER_METADATA_AVAILABLE",
+            adapter(report, "JSQLPARSER_METADATA_INJECTION").getStatus());
+        assertEquals("REAL_HETU_EXPLAIN_AVAILABLE",
+            adapter(report, "HETU_EXPLAIN_COST").getStatus());
+        assertEquals("BLOCKED_SOLVER_COMMAND_MISSING",
+            adapter(report, "SMT_Z3_EQUIVALENCE").getStatus());
     }
 
     @Test
@@ -1629,6 +1689,30 @@ class SqlOptimizationPipelineServiceTest {
             }
         }
         return false;
+    }
+
+    private RewriteProductionAdapterStatus adapter(RewriteProductionCapabilityReport report, String adapterName) {
+        for (RewriteProductionAdapterStatus adapter : report.getAdapters()) {
+            if (adapterName.equals(adapter.getAdapterName())) {
+                return adapter;
+            }
+        }
+        assertNotNull(null, "缺少生产化适配层状态：" + adapterName);
+        return null;
+    }
+
+    private HetuPlanAnalysisClient successfulHetuPlanAnalysisClient() {
+        return new HetuPlanAnalysisClient() {
+            @Override
+            public HetuPlanAnalysisResult explain(String sqlText, String tenantId, String datasourceCode) {
+                return HetuPlanAnalysisResult.success(
+                    datasourceCode,
+                    "Fragment 0 [SOURCE]\n  TableScan[orders]",
+                    12L,
+                    Collections.singletonList("hetuExplain=success")
+                );
+            }
+        };
     }
 
     private String readFixture(String relativePath) throws Exception {

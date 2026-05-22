@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522: 实现改写生产化开关与真实能力适配层
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522 add production rewrite gates and adapters`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按上一轮建议实现：为开发直通激活/查询直通增加配置开关；为真实 Calcite RelNode/RelToSql、JSqlParser 标签注入、可选 SMT/Z3、Hetu EXPLAIN/统计代价接入补充可启用适配层和报告状态，保持默认静态链路兼容并补回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 为改写激活和查询执行开发直通路径增加默认关闭的配置开关；补充 Calcite RelNode/RelToSql、JSqlParser 元数据、SMT/Z3、Hetu EXPLAIN 和统计成本的可启用生产化适配层状态报告；把生产能力门禁摘要接入推荐收益/成本输出并保持默认静态链路兼容。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522 --include-task-audit --extra-command git-diff-check --extra-command query-execution-service-test --extra-command sql-optimization-rewrite-and-pipeline-tests；详见 docs/quality/validation-log.md。
+  - Residual risk: 真实 Hetu/MRS 连接、外部 Z3 求解器与真实统计源仍需环境侧显式启用并提供外部证据；默认配置保持关闭，不声明生产规模收益。
+  - Next step: 如需声明生产规模完成，继续等待 USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-EXTERNAL-ARTIFACTS-20260518 的外部证据。
+
 ### USER-CN-DEV-REWRITE-ACTIVATE-QUERY-PORTABLE-ALGO-20260521: 开发阶段改写激活直通查询直通并更新 portable 后分析核心算法
 
 - Status: done
