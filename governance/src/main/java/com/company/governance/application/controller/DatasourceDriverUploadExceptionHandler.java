@@ -10,10 +10,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.unit.DataSize;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice(assignableTypes = DatasourceDriverArtifactController.class)
 public class DatasourceDriverUploadExceptionHandler {
@@ -37,6 +39,21 @@ public class DatasourceDriverUploadExceptionHandler {
             return badRequest(uploadSizeExceededMessage(), request);
         }
         return badRequest("驱动上传请求无效，请确认表单编码和文件内容后重试", request);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestPart(MissingServletRequestPartException ex,
+                                                                         HttpServletRequest request) {
+        if ("file".equals(ex.getRequestPartName())) {
+            return badRequest("请选择 JDBC 驱动 .jar 文件后再上传", request);
+        }
+        return badRequest("驱动上传请求缺少必填表单字段：" + ex.getRequestPartName(), request);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameter(MissingServletRequestParameterException ex,
+                                                                              HttpServletRequest request) {
+        return badRequest("驱动上传请求缺少必填表单字段：" + ex.getParameterName(), request);
     }
 
     private ResponseEntity<ErrorResponse> badRequest(String message, HttpServletRequest request) {

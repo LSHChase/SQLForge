@@ -2640,7 +2640,8 @@ export default {
       text111: 'Choose .jar file',
       text112: 'No file selected',
       text113: 'Upload',
-      text114: 'Clear file'
+      text114: 'Clear file',
+      text115: 'Choose a JDBC driver .jar file before uploading.'
     },
     viewsSystemUseSystemManagement: {
       text001: 'Datasources',

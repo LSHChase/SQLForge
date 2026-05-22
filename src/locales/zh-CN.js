@@ -2624,7 +2624,8 @@ export default {
       text111: '选择 .jar 文件',
       text112: '未选择文件',
       text113: '上传',
-      text114: '清空文件'
+      text114: '清空文件',
+      text115: '请选择 JDBC 驱动 .jar 文件后再上传'
     },
     viewsSystemUseSystemManagement: {
       text001: '数据源',

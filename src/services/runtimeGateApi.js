@@ -1166,7 +1166,9 @@ export const uploadGovernanceDatasourceDriver = async (payload, requestOptions =
   formData.append('engineType', payload.engineType)
   formData.append('driverClassName', payload.driverClassName)
   formData.append('versionLabel', payload.versionLabel)
-  formData.append('file', payload.file)
+  if (payload.file) {
+    formData.append('file', payload.file)
+  }
   const response = await httpClient.request({
     method: 'post',
     url: '/api/governance/datasource-drivers',

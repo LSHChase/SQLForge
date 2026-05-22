@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522: Fix JDBC driver upload missing file part
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `fix(system): harden JDBC driver upload file handling`
+- Priority: 1
+- Depends on: N/A
+- Scope: Diagnose and repair JDBC driver upload failing with required request part file is not present by aligning frontend multipart payload and backend contract, then validate through repository standard checks.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Fixed JDBC driver upload when the file multipart part is missing by preventing empty frontend submits, resetting the native file input state, avoiding null FormData file parts, and mapping backend missing file part errors to a clear 400 JSON response.
+  - Validation evidence: mvn -pl governance -Dtest=DatasourceDriverArtifactControllerTest test; npm run lint; npm run build; git diff --check; python3 scripts/foreman.py validate USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Manual browser upload against the affected runtime should still be retried after pulling this commit to confirm the local browser/proxy path uses the updated frontend bundle.
+  - Next step: Retest the JDBC driver upload from the system management page with a real .jar file.
+
 ### USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522: 实现改写生产化开关与真实能力适配层
 
 - Status: done

@@ -86,6 +86,27 @@ class DatasourceDriverArtifactControllerTest {
             .andExpect(jsonPath("$.message").value("驱动文件超过大小限制，请将 JDBC 驱动文件控制在 50 MB 以内后重试"));
     }
 
+    @Test
+    void shouldReturnBadRequestWhenUploadFilePartIsMissing() throws Exception {
+        JdbcDriverArtifactApplicationService service = org.mockito.Mockito.mock(JdbcDriverArtifactApplicationService.class);
+
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new DatasourceDriverArtifactController(service))
+            .setControllerAdvice(
+                new DatasourceDriverUploadExceptionHandler(new GovernanceDatasourceDriverProperties()),
+                new GlobalExceptionHandler()
+            )
+            .build();
+
+        mockMvc.perform(multipart("/api/governance/datasource-drivers")
+                .param("tenantId", "tenant-a")
+                .param("engineType", "HETU")
+                .param("driverClassName", "io.prestosql.jdbc.PrestoDriver")
+                .param("versionLabel", "351"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(10001))
+            .andExpect(jsonPath("$.message").value("请选择 JDBC 驱动 .jar 文件后再上传"));
+    }
+
     private JdbcDriverArtifactVO sampleArtifact() {
         JdbcDriverArtifactVO response = new JdbcDriverArtifactVO();
         response.setArtifactId("artifact-001");

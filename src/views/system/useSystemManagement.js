@@ -89,6 +89,7 @@ export function useSystemManagement() {
   const reportDialogMode = ref('create')
   const redisDialogMode = ref('create')
   const driverDetailLoading = ref(false)
+  const driverFileInputRef = ref(null)
   const placeholderPayload = ref({
     title: '',
     capability: '',
@@ -493,6 +494,7 @@ export function useSystemManagement() {
 
   const openDriverUpload = () => {
     resetFormState(driverUploadForm, buildDriverUploadForm)
+    resetDriverFileInput()
     driverDialogVisible.value = true
   }
 
@@ -501,8 +503,15 @@ export function useSystemManagement() {
     driverUploadForm.file = nativeFile || payload?.raw || null
   }
 
+  const resetDriverFileInput = () => {
+    if (driverFileInputRef.value) {
+      driverFileInputRef.value.value = ''
+    }
+  }
+
   const clearDriverFile = () => {
     driverUploadForm.file = null
+    resetDriverFileInput()
   }
 
   const inspectDriverArtifact = async artifactId => {
@@ -527,6 +536,10 @@ export function useSystemManagement() {
   }
 
   const submitDriverUpload = async () => {
+    if (!driverUploadForm.file) {
+      errorMessage.value = t('inline.viewsSystemSystemView.text115')
+      return
+    }
     loading.driverUpload = true
     errorMessage.value = ''
     try {
@@ -534,6 +547,7 @@ export function useSystemManagement() {
         requestPrefix: 'frontend-system-datasource-driver-upload'
       })
       driverDialogVisible.value = false
+      clearDriverFile()
       await loadSystemEvidence()
     } catch (error) {
       errorMessage.value = formatRuntimeError(error)
@@ -778,6 +792,7 @@ export function useSystemManagement() {
     reportDialogMode,
     redisDialogMode,
     driverDetailLoading,
+    driverFileInputRef,
     placeholderPayload,
     datasourceForm,
     datasourceDrivers,

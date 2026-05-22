@@ -47,6 +47,7 @@ const {
   datasourceDrivers,
   datasourceDriverOptions,
   driverUploadForm,
+  driverFileInputRef,
   reportForm,
   redisForm,
   dispatchForm,
@@ -572,6 +573,7 @@ const {
         <label class="field-block field-block-wide field-block-upload">
           <span class="field-label">{{ t('inline.viewsSystemSystemView.text110') }}</span>
           <input
+            ref="driverFileInputRef"
             class="file-input"
             type="file"
             accept=".jar"
@@ -585,7 +587,12 @@ const {
       </div>
       <template #footer>
         <el-button @click="driverDialogVisible = false">{{ t('inline.viewsSystemSystemView.text072') }}</el-button>
-        <el-button type="primary" :loading="loading.driverUpload" @click="submitDriverUpload">
+        <el-button
+          type="primary"
+          :loading="loading.driverUpload"
+          :disabled="!driverUploadForm.file"
+          @click="submitDriverUpload"
+        >
           {{ t('inline.viewsSystemSystemView.text113') }}
         </el-button>
       </template>
