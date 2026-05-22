@@ -17,7 +17,6 @@ import com.company.queryexecution.application.controller.dto.QueryExecuteRequest
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.FaultToleranceStrategy;
-import com.company.queryexecution.domain.query.ActivatedAccelerationBinding;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.queryexecution.domain.query.QueryExecutionStatus;
 import com.company.queryexecution.infrastructure.adapter.DeterministicQueryExecutionAdapter;
@@ -192,10 +191,14 @@ class QueryExecutionApplicationServiceTest {
         QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
-        assertEquals(recommendedSql, adapter.actualSql);
+        assertNull(adapter.actualSql);
         assertEquals(originalSql, response.getMetadata().getOriginalSql());
         assertEquals(recommendedSql, response.getMetadata().getActualSql());
+        assertEquals("DEV_REWRITE_DIRECT_SUCCESS", response.getMetadata().getExecutionMode());
+        assertEquals("DEV_RUNTIME_REWRITE_SHORT_CIRCUIT", response.getMetadata().getRouteProfile());
         assertTrue(response.getMetadata().isRewriteApplied());
+        assertEquals(1, response.getRows().size());
+        assertEquals(Boolean.TRUE, response.getRows().get(0).get("rewriteApplied"));
         assertEquals("rewrite-001", response.getMetadata().getRewriteRecordId());
         assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
         assertEquals(Long.valueOf(3L), response.getMetadata().getRuleVersion());

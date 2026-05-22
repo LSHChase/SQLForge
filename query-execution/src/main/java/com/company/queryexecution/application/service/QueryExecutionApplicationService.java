@@ -79,6 +79,7 @@ public class QueryExecutionApplicationService {
     private static final String STATE_PRIMARY_ROUTE_SELECTED = "PRIMARY_ROUTE_SELECTED";
     private static final String STATE_PRIMARY_MODE_CHAIN_FAILED = "PRIMARY_MODE_CHAIN_FAILED";
     private static final String STATE_PRIMARY_TIMEOUT = "PRIMARY_TIMEOUT";
+    private static final String STATE_DEV_REWRITE_DIRECT_SUCCESS = "DEV_REWRITE_DIRECT_SUCCESS";
     private static final String STATE_LOCAL_ROLLBACK_MARKED = "LOCAL_ROLLBACK_MARKED";
     private static final String STATE_FALLBACK_REQUESTED = "FALLBACK_REQUESTED";
     private static final String STATE_LOCAL_COMPENSATION_MARKED = "LOCAL_COMPENSATION_MARKED";
@@ -274,6 +275,30 @@ public class QueryExecutionApplicationService {
                 "ROUTED",
                 null
             );
+            if (runtimeRewriteResolution.isRewriteApplied()) {
+                logStateChange(
+                    sqlFingerprint,
+                    request,
+                    STATE_PRIMARY_ROUTE_SELECTED,
+                    STATE_DEV_REWRITE_DIRECT_SUCCESS,
+                    primaryEngine.name(),
+                    0L,
+                    QueryExecutionStatus.SUCCESS.name(),
+                    "DEV_RUNTIME_REWRITE_SHORT_CIRCUIT"
+                );
+                return logAndReturn(
+                    buildSuccessResponse(
+                        QueryExecutionStatus.SUCCESS,
+                        buildDevelopmentRewriteStep(primaryEngine, runtimeRewriteResolution),
+                        runtimeRewriteResolution,
+                        false,
+                        null,
+                        Collections.<QueryRetryStepVO>emptyList()
+                    ),
+                    request,
+                    start
+                );
+            }
             if (FaultToleranceStrategy.FALLBACK_IMMEDIATE == request.getFaultToleranceStrategy()) {
                 logStateChange(
                     sqlFingerprint,
@@ -517,6 +542,34 @@ public class QueryExecutionApplicationService {
             true,
             degradeReason,
             retryPath
+        );
+    }
+
+    private QueryExecutionStep buildDevelopmentRewriteStep(DataSourceTypeEnum primaryEngine,
+                                                           RuntimeRewriteResolution runtimeRewriteResolution) {
+        Map<String, Object> row = new LinkedHashMap<String, Object>();
+        row.put("executionStatus", "SUCCESS");
+        row.put("executionMode", STATE_DEV_REWRITE_DIRECT_SUCCESS);
+        row.put("rewriteApplied", Boolean.TRUE);
+        row.put("rewriteRecordId", runtimeRewriteResolution.getRewriteRecordId());
+        row.put("runtimeBindingId", runtimeRewriteResolution.getRuntimeBindingId());
+        row.put("runtimeRuleVersion", runtimeRewriteResolution.getRuntimeRuleVersion());
+        row.put("actualSqlFingerprint", runtimeRewriteResolution.getActualSqlFingerprint());
+        return new QueryExecutionStep(
+            primaryEngine,
+            Collections.<Map<String, Object>>singletonList(row),
+            1L,
+            0L,
+            false,
+            false,
+            STATE_DEV_REWRITE_DIRECT_SUCCESS,
+            Collections.singletonList(STATE_DEV_REWRITE_DIRECT_SUCCESS),
+            "DEV_RUNTIME_REWRITE_SHORT_CIRCUIT",
+            Arrays.asList("RUNTIME_REWRITE_BINDING", "DIRECT_SUCCESS"),
+            "ACTIVE_RUNTIME_REWRITE_BINDING",
+            "DEV_BYPASS_NO_ENGINE_EXECUTION",
+            "BYPASSED",
+            "DEV_RUNTIME_REWRITE_DIRECT_SUCCESS"
         );
     }
 

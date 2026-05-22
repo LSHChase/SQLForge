@@ -24,7 +24,6 @@ import com.company.sqloptimization.domain.governance.ComparisonStatus;
 import com.company.sqloptimization.domain.governance.DifferenceType;
 import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
-import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
 import com.company.sqloptimization.domain.governance.ValidationRunStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
@@ -315,7 +314,6 @@ public class SqlRewriteRecordApplicationService {
             }
         });
         requireMvRuntimeRewriteSqlAligned(rewriteRecord);
-        requireEligibleForRuntimeActivation(evaluateActivationEligibility(rewriteRecord));
         String operator = requireContextUser();
         String reason = actionReason(request);
         Instant now = Instant.now();
@@ -431,6 +429,10 @@ public class SqlRewriteRecordApplicationService {
         lifecycleEvidence.put("operator", operator);
         lifecycleEvidence.put("occurredAt", occurredAt.toString());
         lifecycleEvidence.put("runtimeBinding", Boolean.TRUE);
+        if (action != null && action.contains("ACTIVATE")) {
+            lifecycleEvidence.put("developmentDirectActivation", Boolean.TRUE);
+            lifecycleEvidence.put("validationGate", "BYPASSED_FOR_DEVELOPMENT_DEBUG");
+        }
         if (runtimeResponse != null) {
             lifecycleEvidence.put("runtimeBindingId", runtimeResponse.getRuntimeBindingId());
             lifecycleEvidence.put("runtimeStatus", runtimeResponse.getStatus());
@@ -687,10 +689,13 @@ public class SqlRewriteRecordApplicationService {
         request.setSourceType(name(rewriteRecord.getSourceType()));
         request.setSourceKind(name(rewriteRecord.getSourceKind()));
         request.setSourceId(rewriteRecord.getSourceId());
-        request.setSqlFingerprint(rewriteRecord.getSqlFingerprint());
+        request.setSqlFingerprint(firstText(
+            rewriteRecord.getSqlFingerprint(),
+            SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText())
+        ));
         request.setOriginalSqlDigest(SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText()));
         request.setRecommendedSqlText(rewriteRecord.getRecommendedSqlText());
-        request.setDatasourceCode(rewriteRecord.getDatasourceCode());
+        request.setDatasourceCode(firstText(rewriteRecord.getDatasourceCode(), "hetu_main"));
         request.setActivatedBy(operator);
         return request;
     }
@@ -1391,5 +1396,18 @@ public class SqlRewriteRecordApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private String firstText(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String normalized = trimToNull(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
     }
 }

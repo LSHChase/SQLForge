@@ -13,6 +13,8 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import java.util.Arrays;
@@ -131,6 +133,11 @@ class QueryExecutionResultDigestServiceTest {
 
         @Override
         public void writeAudit(QueryExecutionAuditRecord auditRecord) {
+        }
+
+        @Override
+        public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
+            return new GovernanceJdbcRouteResolveResponse();
         }
 
         @Override

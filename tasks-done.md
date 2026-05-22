@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DEV-REWRITE-ACTIVATE-QUERY-PORTABLE-ALGO-20260521: 开发阶段改写激活直通查询直通并更新 portable 后分析核心算法
+
+- Status: done
+- Completed at: 2026-05-21
+- Commit subject: `USER-CN-DEV-REWRITE-ACTIVATE-QUERY-PORTABLE-ALGO-20260521 enable dev rewrite direct success`
+- Priority: 1
+- Depends on: N/A
+- Scope: 开发调试阶段改写记录/MV 推荐激活不等待实际效果校验，SQL 查询命中改写后直接返回改写成功结果；全量更新 dist-portable；阅读 docs/改写核心算法.txt 并分析与当前页面输入 SQL 改写链路的融合差距，提出解决方案但暂不实现。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DEV-REWRITE-ACTIVATE-QUERY-PORTABLE-ALGO-20260521`
+- Progress log:
+  - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 开发调试阶段改写记录激活跳过验证资格门禁但仍创建 runtime binding；查询命中活动 runtime rewrite binding 后直接把实际 SQL 替换为推荐 SQL 并返回 DEV_REWRITE_DIRECT_SUCCESS；补充后端定向测试、更新 dist-portable、复测 docs/test01.sql 推荐链路，并完成 docs/改写核心算法.txt 对照分析。
+  - Validation evidence: java -version => openjdk 1.8.0_112; mvn -pl sql-optimization -Dtest=AccelerationRewriteContractApplicationServiceTest#shouldDirectActivateRewriteRecordWithoutValidationEvidenceInDevelopment test -Dsurefire.failIfNoSpecifiedTests=false passed; mvn -pl query-execution -Dtest=QueryExecutionApplicationServiceTest#shouldApplyActiveRuntimeRewriteBindingBeforeExecution test -Dsurefire.failIfNoSpecifiedTests=false passed; npm run build:portable passed; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest#shouldAssessCoreAlgorithmConformanceForDocsTest01Sql+shouldAnalyzeYonghongProductionReportSqlAndRecommendGovernedRewriteShapes,RewriteTrialApplicationServiceTest#shouldCreateRecommendationForReportRewriteTrialSqlFixture test -Dsurefire.failIfNoSpecifiedTests=false passed; npm run smoke:portable-frontend passed; git diff --check passed; targeted changed-file checkstyle passed; python3 scripts/foreman.py validate USER-CN-DEV-REWRITE-ACTIVATE-QUERY-PORTABLE-ALGO-20260521 passed; python3 scripts/task_audit.py --check --phase pre-closeout passed. Full query-execution/sql-optimization checkstyle was attempted and still has unrelated pre-existing violations in GovernanceHttpClient and QueryExecutionCacheGovernanceRuntimeServiceTest; changed-file checkstyle is clean.
+  - Residual risk: 本阶段按用户要求实现开发调试直通语义，未加配置开关；算法对照结论为主干已融合，但真实 Calcite RelNode、外部 SMT Solver、真实 RelToSqlConverter、基于真实统计的代价模型仍是静态替代边界，解决方案已在最终答复中列出且未实现。
+  - Next step: 后续如要进入生产语义，应增加 dev-only 配置开关并把 RelNode/SMT/RelToSql/统计代价接入真实引擎验证。
+
 ### USER-CN-PAGE-REWRITE-RECOMMENDATION-TEST01-20260521: 轻量适配页面展示改写推荐并用 test01 验证
 
 - Status: done

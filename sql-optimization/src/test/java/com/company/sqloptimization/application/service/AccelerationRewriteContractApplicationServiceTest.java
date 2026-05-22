@@ -1,7 +1,6 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -436,7 +435,7 @@ class AccelerationRewriteContractApplicationServiceTest {
     }
 
     @Test
-    void shouldRejectPublishWhenReviewIsNotApprovedWithoutRuntimeCall() {
+    void shouldDirectActivateRewriteRecordWithoutValidationEvidenceInDevelopment() {
         InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
         StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
         SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
@@ -448,14 +447,20 @@ class AccelerationRewriteContractApplicationServiceTest {
         setTenant("tenant-a");
         SqlRewriteRecordVO created = service.createRewriteRecord(rewriteRecordRequest("tenant-a", "history-not-ready"));
 
-        BizException ex = assertThrows(
-            BizException.class,
-            () -> service.activateRewriteRecord(created.getRewriteRecordId(), publishActionRequest("too early"))
-        );
+        SqlRewriteRecordVO activated =
+            service.activateRewriteRecord(created.getRewriteRecordId(), publishActionRequest("dev direct activate"));
 
-        assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID, ex.getCode());
-        assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
-        assertEquals(0, runtimeClient.activateCount);
+        assertEquals("ACTIVE", activated.getActivationStatus());
+        assertEquals("ACTIVE", activated.getStatus());
+        assertEquals(1, runtimeClient.activateCount);
+        assertEquals(
+            com.company.sqlforge.common.utils.SqlFingerprintUtils.fingerprint("SELECT * FROM orders"),
+            runtimeClient.lastActivateRequest.getSqlFingerprint()
+        );
+        assertEquals("hetu_main", runtimeClient.lastActivateRequest.getDatasourceCode());
+        Map<?, ?> publishTrace = (Map<?, ?>) activated.getTraceRefs().get("activationEvidence");
+        assertEquals(Boolean.TRUE, publishTrace.get("developmentDirectActivation"));
+        assertEquals("BYPASSED_FOR_DEVELOPMENT_DEBUG", publishTrace.get("validationGate"));
     }
 
     @Test

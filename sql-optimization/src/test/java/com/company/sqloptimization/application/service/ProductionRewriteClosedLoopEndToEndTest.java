@@ -540,7 +540,6 @@ class ProductionRewriteClosedLoopEndToEndTest {
         public void writeAudit(QueryExecutionAuditRecord auditRecord) {
         }
 
-        @Override
         public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
             return null;
         }
