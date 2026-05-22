@@ -14,7 +14,11 @@
         <result property="sourceId" column="source_id"/>
         <result property="sqlFingerprint" column="sql_fingerprint"/>
         <result property="originalSqlDigest" column="original_sql_digest"/>
+        <result property="originalSqlText" column="original_sql_text"/>
         <result property="recommendedSqlText" column="recommended_sql_text"/>
+        <result property="rewriteMatchMode" column="rewrite_match_mode"/>
+        <result property="rewriteProgramJson" column="rewrite_program_json"/>
+        <result property="templateFamilyFingerprint" column="template_family_fingerprint"/>
         <result property="datasourceCode" column="datasource_code"/>
         <result property="status" column="status"/>
         <result property="ruleVersion" column="rule_version"/>
@@ -30,7 +34,8 @@
 
     <sql id="BaseColumns">
         runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
-        source_kind, source_id, sql_fingerprint, original_sql_digest, recommended_sql_text,
+        source_kind, source_id, sql_fingerprint, original_sql_digest, original_sql_text,
+        recommended_sql_text, rewrite_match_mode, rewrite_program_json, template_family_fingerprint,
         datasource_code, status, rule_version, runtime_rule_version, activated_by, activated_at,
         paused_by, paused_at, pause_reason, created_at, updated_at
     </sql>
@@ -67,15 +72,25 @@
         ORDER BY rule_version DESC, created_at DESC
     </select>
 
+    <select id="selectActiveByTenantId" resultMap="RuntimeRewriteBindingRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM runtime_rewrite_binding
+        WHERE tenant_id = #{tenantId}
+          AND status = 'ACTIVE'
+        ORDER BY rule_version DESC, created_at DESC
+    </select>
+
     <insert id="insert" parameterType="com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord">
         INSERT INTO runtime_rewrite_binding (
             runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
-            source_kind, source_id, sql_fingerprint, original_sql_digest, recommended_sql_text,
+            source_kind, source_id, sql_fingerprint, original_sql_digest, original_sql_text,
+            recommended_sql_text, rewrite_match_mode, rewrite_program_json, template_family_fingerprint,
             datasource_code, status, rule_version, runtime_rule_version, activated_by, activated_at,
             paused_by, paused_at, pause_reason, created_at, updated_at
         ) VALUES (
             #{runtimeBindingId}, #{tenantId}, #{rewriteRecordId}, #{recommendationId}, #{sourceType},
-            #{sourceKind}, #{sourceId}, #{sqlFingerprint}, #{originalSqlDigest}, #{recommendedSqlText},
+            #{sourceKind}, #{sourceId}, #{sqlFingerprint}, #{originalSqlDigest}, #{originalSqlText},
+            #{recommendedSqlText}, #{rewriteMatchMode}, #{rewriteProgramJson}, #{templateFamilyFingerprint},
             #{datasourceCode}, #{status}, #{ruleVersion}, #{runtimeRuleVersion}, #{activatedBy}, #{activatedAt},
             #{pausedBy}, #{pausedAt}, #{pauseReason}, #{createdAt}, #{updatedAt}
         )
@@ -91,7 +106,11 @@
             source_id = #{sourceId},
             sql_fingerprint = #{sqlFingerprint},
             original_sql_digest = #{originalSqlDigest},
+            original_sql_text = #{originalSqlText},
             recommended_sql_text = #{recommendedSqlText},
+            rewrite_match_mode = #{rewriteMatchMode},
+            rewrite_program_json = #{rewriteProgramJson},
+            template_family_fingerprint = #{templateFamilyFingerprint},
             datasource_code = #{datasourceCode},
             status = #{status},
             rule_version = #{ruleVersion},

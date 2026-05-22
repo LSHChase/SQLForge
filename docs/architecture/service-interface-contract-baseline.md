@@ -436,15 +436,17 @@
 | `GET /api/sql-optimization/rewrite-records/{rewriteRecordId}/activation-eligibility` | `sql-optimization` | 返回激活门禁与结构化拒绝原因；前端只能展示，不得绕过后端策略直接变更状态。 |
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/activate` | `sql-optimization` | 资格通过后调用 `query-execution` runtime binding activate；只有返回 `ACTIVE` 后才将改写记录 `activationStatus` 改为 `ACTIVE`，并写入操作人、原因、绑定 ID、规则版本和 activation evidence。 |
 | `POST /api/sql-optimization/rewrite-records/{rewriteRecordId}/pause` | `sql-optimization` | 调用 runtime binding pause；只有返回 `PAUSED` 后才将改写记录 `activationStatus` 改为 `PAUSED`，并保留原因和 pause evidence。 |
-| `POST /api/query-execution/internal/rewrite-bindings/activate` | `query-execution` | 创建生产 runtime rewrite binding，返回 `runtimeBindingId` 与 `runtimeRuleVersion`；同租户同 SQL 指纹最多只能存在一个 `ACTIVE` binding。 |
-| `POST /api/query-execution/internal/rewrite-bindings/resolve-active` | `query-execution` | 以 tenant + SQL fingerprint 查询 `ACTIVE` runtime rewrite binding；可用 datasource evidence 收窄匹配。 |
+| `POST /api/query-execution/internal/rewrite-bindings/activate` | `query-execution` | 创建生产 runtime rewrite binding，返回 `runtimeBindingId` 与 `runtimeRuleVersion`；同租户同 SQL 指纹最多只能存在一个 `ACTIVE` binding；激活载荷可携带 `originalSqlText`,`rewriteProgramJson`,`templateFamilyFingerprint`，用于运行时模板匹配和参数 / 条件重放。 |
+| `POST /api/query-execution/internal/rewrite-bindings/resolve-active` | `query-execution` | 以 tenant + SQL fingerprint 优先查询 `ACTIVE` runtime rewrite binding；可用 datasource evidence 收窄匹配；当请求携带 `sqlText` 且精确 fingerprint 未命中时，可在同租户 ACTIVE binding 内按模板族尝试匹配并重放当前 SQL 的参数和可迁移 WHERE 条件。 |
 | `POST /api/query-execution/internal/rewrite-bindings/pause` | `query-execution` | 将 runtime rewrite binding 置为 `PAUSED`，保留原因、操作人、时间和版本追踪。 |
 
 运行时执行契约如下：
 
 - `query-execution` 的 `runtime_rewrite_binding` 持久化表是独立生产自动改写运行时绑定真值；JDBC Agent / Redis 只能作为后续兼容出口。
-- 只有同租户、同 SQL 指纹且 runtime binding status 为 `ACTIVE` 时，查询执行入口才能把原 SQL 替换为已激活推荐 SQL。
-- `PRW-013` 后 JDBC Agent Redis 兼容出口使用 tenant-scoped key：`<namespace>:tenant:<tenantId>:rewrite:<sqlFingerprint>` 保存推荐 SQL，`<namespace>:tenant:<tenantId>:meta:<sqlFingerprint>` 保存 `runtimeBindingId`、`ruleVersion`、`runtimeRuleVersion`、`datasourceCode`、`status`、`updatedAt`、可选 `expiresAt` 与 `syncStatus`；旧 `<namespace>:rewrite:<sqlFingerprint>` 只允许作为显式开启的兼容 fallback。
+- 运行时改写仍必须在已认证 tenant 与 `ACTIVE` runtime binding 安全边界内执行；不得跨租户、跨授权上下文或绕过 datasource evidence 全局套用改写规则。
+- 查询执行入口优先以同租户、同 SQL 指纹查找 `ACTIVE` binding；命中后不再直接整条替换固定推荐 SQL，而是基于激活时保存的 `originalSqlText` / `rewriteProgramJson` 对当前 SQL 做模板匹配，并把当前 WHERE 参数与可迁移条件重放到推荐 SQL 模板。
+- 精确 fingerprint 未命中时，`query-execution` 可在同租户 `ACTIVE` bindings 内做模板族匹配；若多个模板同时匹配，必须保守跳过自动改写。
+- `PRW-013` 后 JDBC Agent Redis 兼容出口使用 tenant-scoped key：`<namespace>:tenant:<tenantId>:rewrite:<sqlFingerprint>` 保存推荐 SQL 模板，`<namespace>:tenant:<tenantId>:meta:<sqlFingerprint>` 保存 `runtimeBindingId`、`ruleVersion`、`runtimeRuleVersion`、`datasourceCode`、`status`、`updatedAt`、可选 `expiresAt`、`syncStatus`、`originalSqlText`、`rewriteProgramJson` 与 `templateFamilyFingerprint`；旧 `<namespace>:rewrite:<sqlFingerprint>` 只允许作为显式开启的兼容 fallback。
 - 激活或暂停 runtime binding 时，Redis 同步失败必须返回或记录 `syncStatus=FAILED`、`retryable=true`、`alertRequired=true` 证据，但不得回滚或篡改 `query-execution` 主绑定状态。
 - 执行历史必须记录原始 SQL、实际执行 SQL、是否改写、改写记录 ID、runtime binding ID、规则版本和激活状态快照，前端不得自行推断 `rewriteApplied`。
 - 周期比对发现结果不等价或超过容忍阈值时，必须更新 `activationStatus=PAUSED` 并写入告警和 trace；不得在改写记录状态动作中直接绕过 runtime binding 流程。

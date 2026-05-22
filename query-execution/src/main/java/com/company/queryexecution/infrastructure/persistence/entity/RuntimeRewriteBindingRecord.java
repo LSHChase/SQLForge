@@ -13,7 +13,11 @@ public class RuntimeRewriteBindingRecord {
     private String sourceId;
     private String sqlFingerprint;
     private String originalSqlDigest;
+    private String originalSqlText;
     private String recommendedSqlText;
+    private String rewriteMatchMode;
+    private String rewriteProgramJson;
+    private String templateFamilyFingerprint;
     private String datasourceCode;
     private String status;
     private Long ruleVersion;
@@ -44,8 +48,16 @@ public class RuntimeRewriteBindingRecord {
     public void setSqlFingerprint(String sqlFingerprint) { this.sqlFingerprint = sqlFingerprint; }
     public String getOriginalSqlDigest() { return originalSqlDigest; }
     public void setOriginalSqlDigest(String originalSqlDigest) { this.originalSqlDigest = originalSqlDigest; }
+    public String getOriginalSqlText() { return originalSqlText; }
+    public void setOriginalSqlText(String originalSqlText) { this.originalSqlText = originalSqlText; }
     public String getRecommendedSqlText() { return recommendedSqlText; }
     public void setRecommendedSqlText(String recommendedSqlText) { this.recommendedSqlText = recommendedSqlText; }
+    public String getRewriteMatchMode() { return rewriteMatchMode; }
+    public void setRewriteMatchMode(String rewriteMatchMode) { this.rewriteMatchMode = rewriteMatchMode; }
+    public String getRewriteProgramJson() { return rewriteProgramJson; }
+    public void setRewriteProgramJson(String rewriteProgramJson) { this.rewriteProgramJson = rewriteProgramJson; }
+    public String getTemplateFamilyFingerprint() { return templateFamilyFingerprint; }
+    public void setTemplateFamilyFingerprint(String templateFamilyFingerprint) { this.templateFamilyFingerprint = templateFamilyFingerprint; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
     public String getStatus() { return status; }

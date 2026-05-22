@@ -10,9 +10,13 @@ import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivatio
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
+import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateEngine;
+import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateResult;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,7 +90,11 @@ public class QueryExecutionRuntimeRewriteBindingService {
             .sourceId(requireText(request.getSourceId(), "sourceId"))
             .sqlFingerprint(sqlFingerprint)
             .originalSqlDigest(requireText(request.getOriginalSqlDigest(), "originalSqlDigest"))
+            .originalSqlText(trimToNull(request.getOriginalSqlText()))
             .recommendedSqlText(requireText(request.getRecommendedSqlText(), "recommendedSqlText"))
+            .rewriteMatchMode(resolveRewriteMatchMode(request))
+            .rewriteProgramJson(resolveRewriteProgramJson(request))
+            .templateFamilyFingerprint(resolveTemplateFamilyFingerprint(request))
             .datasourceCode(requireText(request.getDatasourceCode(), "datasourceCode"))
             .ruleVersion(nextRuleVersion)
             .runtimeRuleVersion(RULE_VERSION_PREFIX + nextRuleVersion)
@@ -130,14 +138,40 @@ public class QueryExecutionRuntimeRewriteBindingService {
         String sqlFingerprint = requireText(request.getSqlFingerprint(), "sqlFingerprint");
         RuntimeRewriteBinding binding =
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
-        if (binding == null) {
+        if (binding != null) {
+            if (!datasourceMatches(request, binding)) {
+                return missingResponse(tenantId, sqlFingerprint, "没有生效的运行时改写绑定与数据源证据匹配。");
+            }
+            RuntimeSqlRewriteTemplateResult templateResult = resolveTemplateReplay(binding, request);
+            if (!templateResult.isApplied() && StringUtils.hasText(binding.getOriginalSqlText())) {
+                return missingResponse(
+                    tenantId,
+                    sqlFingerprint,
+                    "生效的运行时改写绑定未通过模板匹配：" + templateResult.getFailureReason()
+                );
+            }
+            return responseFrom(
+                binding,
+                "已找到生效的运行时改写绑定。",
+                null,
+                templateResult,
+                sqlFingerprint
+            );
+        }
+        RuntimeTemplateMatch match = resolveTemplateFamilyMatch(tenantId, sqlFingerprint, request);
+        if (match.isAmbiguous()) {
+            return missingResponse(tenantId, sqlFingerprint, "多个运行时改写模板同时匹配，已保守跳过自动改写。");
+        }
+        if (match.getBinding() == null) {
             return missingResponse(tenantId, sqlFingerprint, "未找到生效的运行时改写绑定。");
         }
-        if (StringUtils.hasText(request.getDatasourceCode())
-            && !request.getDatasourceCode().trim().equalsIgnoreCase(binding.getDatasourceCode())) {
-            return missingResponse(tenantId, sqlFingerprint, "没有生效的运行时改写绑定与数据源证据匹配。");
-        }
-        return responseFrom(binding, "已找到生效的运行时改写绑定。", null);
+        return responseFrom(
+            match.getBinding(),
+            "已通过运行时改写模板匹配找到生效绑定。",
+            null,
+            match.getTemplateResult(),
+            sqlFingerprint
+        );
     }
 
     private RuntimeRewriteBinding resolveMutationTarget(RuntimeRewriteBindingStateChangeRequest request) {
@@ -159,6 +193,14 @@ public class QueryExecutionRuntimeRewriteBindingService {
     private RuntimeRewriteBindingResponse responseFrom(RuntimeRewriteBinding binding,
                                                        String summary,
                                                        JdbcAgentRewriteRuleSyncResult syncResult) {
+        return responseFrom(binding, summary, syncResult, null, null);
+    }
+
+    private RuntimeRewriteBindingResponse responseFrom(RuntimeRewriteBinding binding,
+                                                       String summary,
+                                                       JdbcAgentRewriteRuleSyncResult syncResult,
+                                                       RuntimeSqlRewriteTemplateResult templateResult,
+                                                       String resolvedSqlFingerprint) {
         RuntimeRewriteBindingResponse response = new RuntimeRewriteBindingResponse();
         response.setTenantId(binding.getTenantId());
         response.setRuntimeBindingId(binding.getRuntimeBindingId());
@@ -167,9 +209,21 @@ public class QueryExecutionRuntimeRewriteBindingService {
         response.setSourceType(binding.getSourceType());
         response.setSourceKind(binding.getSourceKind());
         response.setSourceId(binding.getSourceId());
-        response.setSqlFingerprint(binding.getSqlFingerprint());
+        response.setSqlFingerprint(StringUtils.hasText(resolvedSqlFingerprint)
+            ? resolvedSqlFingerprint
+            : binding.getSqlFingerprint());
         response.setOriginalSqlDigest(binding.getOriginalSqlDigest());
-        response.setRecommendedSqlText(binding.getRecommendedSqlText());
+        response.setOriginalSqlText(binding.getOriginalSqlText());
+        response.setRecommendedSqlText(templateResult != null && templateResult.isApplied()
+            ? templateResult.getRewrittenSql()
+            : binding.getRecommendedSqlText());
+        response.setRewriteMatchMode(templateResult != null && templateResult.isApplied()
+            ? templateResult.getMatchMode()
+            : binding.getRewriteMatchMode());
+        response.setRewriteProgramJson(StringUtils.hasText(binding.getRewriteProgramJson())
+            ? binding.getRewriteProgramJson()
+            : templateResult == null ? null : templateResult.getProgramJson());
+        response.setTemplateFamilyFingerprint(binding.getTemplateFamilyFingerprint());
         response.setDatasourceCode(binding.getDatasourceCode());
         response.setStatus(binding.getStatus().name());
         response.setActive(binding.isActive());
@@ -202,6 +256,8 @@ public class QueryExecutionRuntimeRewriteBindingService {
             "runtimeBindingId", binding.getRuntimeBindingId(),
             "runtimeRuleVersion", binding.getRuntimeRuleVersion(),
             "ruleVersion", Long.valueOf(binding.getRuleVersion()),
+            "rewriteMatchMode", binding.getRewriteMatchMode(),
+            "templateFamilyFingerprint", binding.getTemplateFamilyFingerprint(),
             "activatedAt", binding.getActivatedAt() == null ? null : binding.getActivatedAt().toString(),
             "activatedBy", binding.getActivatedBy()
         );
@@ -214,6 +270,80 @@ public class QueryExecutionRuntimeRewriteBindingService {
             details.put("jdbcAgentRedisSync", syncResult.toDetails());
         }
         return details;
+    }
+
+    private RuntimeSqlRewriteTemplateResult resolveTemplateReplay(RuntimeRewriteBinding binding,
+                                                                  RuntimeRewriteBindingResolveRequest request) {
+        if (!StringUtils.hasText(binding.getOriginalSqlText())) {
+            return RuntimeSqlRewriteTemplateResult.notApplied("ORIGINAL_SQL_TEMPLATE_UNAVAILABLE");
+        }
+        return RuntimeSqlRewriteTemplateEngine.rewrite(
+            binding.getOriginalSqlText(),
+            binding.getRecommendedSqlText(),
+            request == null ? null : request.getSqlText()
+        );
+    }
+
+    private RuntimeTemplateMatch resolveTemplateFamilyMatch(String tenantId,
+                                                           String sqlFingerprint,
+                                                           RuntimeRewriteBindingResolveRequest request) {
+        if (!StringUtils.hasText(request == null ? null : request.getSqlText())) {
+            return RuntimeTemplateMatch.none();
+        }
+        List<RuntimeTemplateMatch> matches = new ArrayList<RuntimeTemplateMatch>();
+        List<RuntimeRewriteBinding> activeBindings = runtimeRewriteBindingRepository.findActiveByTenantId(tenantId);
+        for (RuntimeRewriteBinding candidate : activeBindings) {
+            if (candidate == null
+                || sqlFingerprint.equals(candidate.getSqlFingerprint())
+                || !datasourceMatches(request, candidate)) {
+                continue;
+            }
+            RuntimeSqlRewriteTemplateResult templateResult = resolveTemplateReplay(candidate, request);
+            if (templateResult.isApplied()) {
+                matches.add(RuntimeTemplateMatch.one(candidate, templateResult));
+            }
+        }
+        if (matches.isEmpty()) {
+            return RuntimeTemplateMatch.none();
+        }
+        if (matches.size() > 1) {
+            return RuntimeTemplateMatch.ambiguous();
+        }
+        return matches.get(0);
+    }
+
+    private boolean datasourceMatches(RuntimeRewriteBindingResolveRequest request, RuntimeRewriteBinding binding) {
+        return !StringUtils.hasText(request == null ? null : request.getDatasourceCode())
+            || request.getDatasourceCode().trim().equalsIgnoreCase(binding.getDatasourceCode());
+    }
+
+    private String resolveRewriteMatchMode(RuntimeRewriteBindingActivationRequest request) {
+        return StringUtils.hasText(request.getOriginalSqlText())
+            ? RuntimeSqlRewriteTemplateEngine.MATCH_MODE
+            : "EXACT_FINGERPRINT";
+    }
+
+    private String resolveRewriteProgramJson(RuntimeRewriteBindingActivationRequest request) {
+        if (StringUtils.hasText(request.getRewriteProgramJson())) {
+            return request.getRewriteProgramJson().trim();
+        }
+        if (!StringUtils.hasText(request.getOriginalSqlText())) {
+            return null;
+        }
+        return RuntimeSqlRewriteTemplateEngine.buildProgramJson(
+            request.getOriginalSqlText(),
+            request.getRecommendedSqlText()
+        );
+    }
+
+    private String resolveTemplateFamilyFingerprint(RuntimeRewriteBindingActivationRequest request) {
+        if (StringUtils.hasText(request.getTemplateFamilyFingerprint())) {
+            return request.getTemplateFamilyFingerprint().trim();
+        }
+        if (!StringUtils.hasText(request.getOriginalSqlText())) {
+            return request.getSqlFingerprint();
+        }
+        return RuntimeSqlRewriteTemplateEngine.templateFamilyFingerprint(request.getOriginalSqlText());
     }
 
     private JdbcAgentRewriteRuleSyncResult syncActivate(RuntimeRewriteBinding binding) {
@@ -271,17 +401,56 @@ public class QueryExecutionRuntimeRewriteBindingService {
     }
 
     private String requireText(String value, String fieldName) {
-        if (!StringUtils.hasText(value)) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
                 HttpStatus.BAD_REQUEST,
                 fieldName + " 不能为空"
             );
         }
+        return trimmed;
+    }
+
+    private String trimToNull(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
         return value.trim();
     }
 
     private String newRuntimeBindingId() {
         return "rwb-" + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private static final class RuntimeTemplateMatch {
+        private final RuntimeRewriteBinding binding;
+        private final RuntimeSqlRewriteTemplateResult templateResult;
+        private final boolean ambiguous;
+
+        private RuntimeTemplateMatch(RuntimeRewriteBinding binding,
+                                     RuntimeSqlRewriteTemplateResult templateResult,
+                                     boolean ambiguous) {
+            this.binding = binding;
+            this.templateResult = templateResult;
+            this.ambiguous = ambiguous;
+        }
+
+        static RuntimeTemplateMatch one(RuntimeRewriteBinding binding,
+                                        RuntimeSqlRewriteTemplateResult templateResult) {
+            return new RuntimeTemplateMatch(binding, templateResult, false);
+        }
+
+        static RuntimeTemplateMatch none() {
+            return new RuntimeTemplateMatch(null, null, false);
+        }
+
+        static RuntimeTemplateMatch ambiguous() {
+            return new RuntimeTemplateMatch(null, null, true);
+        }
+
+        RuntimeRewriteBinding getBinding() { return binding; }
+        RuntimeSqlRewriteTemplateResult getTemplateResult() { return templateResult; }
+        boolean isAmbiguous() { return ambiguous; }
     }
 }

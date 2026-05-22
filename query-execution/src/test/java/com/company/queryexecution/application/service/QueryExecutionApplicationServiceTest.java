@@ -215,6 +215,7 @@ class QueryExecutionApplicationServiceTest {
         verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
         assertEquals("tenant-a", resolveCaptor.getValue().getTenantId());
         assertEquals(originalFingerprint, resolveCaptor.getValue().getSqlFingerprint());
+        assertEquals(originalSql, resolveCaptor.getValue().getSqlText());
         assertNull(resolveCaptor.getValue().getDatasourceCode());
 
         ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =

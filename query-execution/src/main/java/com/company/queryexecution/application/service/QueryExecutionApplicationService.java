@@ -1170,6 +1170,7 @@ public class QueryExecutionApplicationService {
             RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
             resolveRequest.setTenantId(request.getTenantId());
             resolveRequest.setSqlFingerprint(originalSqlFingerprint);
+            resolveRequest.setSqlText(originalSql);
             resolveRequest.setDatasourceCode(resolveRuntimeRewriteDatasourceEvidence(request, originalSql));
             RuntimeRewriteBindingResponse response =
                 queryExecutionRuntimeRewriteBindingService.resolveActive(resolveRequest);

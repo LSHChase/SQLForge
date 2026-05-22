@@ -65,6 +65,16 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
         return bindings;
     }
 
+    @Override
+    public List<RuntimeRewriteBinding> findActiveByTenantId(String tenantId) {
+        List<RuntimeRewriteBindingRecord> records = runtimeRewriteBindingMapper.selectActiveByTenantId(tenantId);
+        List<RuntimeRewriteBinding> bindings = new ArrayList<RuntimeRewriteBinding>(records.size());
+        for (RuntimeRewriteBindingRecord record : records) {
+            bindings.add(toDomain(record));
+        }
+        return bindings;
+    }
+
     private RuntimeRewriteBindingRecord toRecord(RuntimeRewriteBinding binding) {
         RuntimeRewriteBindingRecord record = new RuntimeRewriteBindingRecord();
         record.setRuntimeBindingId(binding.getRuntimeBindingId());
@@ -76,7 +86,11 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
         record.setSourceId(binding.getSourceId());
         record.setSqlFingerprint(binding.getSqlFingerprint());
         record.setOriginalSqlDigest(binding.getOriginalSqlDigest());
+        record.setOriginalSqlText(binding.getOriginalSqlText());
         record.setRecommendedSqlText(binding.getRecommendedSqlText());
+        record.setRewriteMatchMode(binding.getRewriteMatchMode());
+        record.setRewriteProgramJson(binding.getRewriteProgramJson());
+        record.setTemplateFamilyFingerprint(binding.getTemplateFamilyFingerprint());
         record.setDatasourceCode(binding.getDatasourceCode());
         record.setStatus(binding.getStatus().name());
         record.setRuleVersion(Long.valueOf(binding.getRuleVersion()));
@@ -102,7 +116,11 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
             .sourceId(record.getSourceId())
             .sqlFingerprint(record.getSqlFingerprint())
             .originalSqlDigest(record.getOriginalSqlDigest())
+            .originalSqlText(record.getOriginalSqlText())
             .recommendedSqlText(record.getRecommendedSqlText())
+            .rewriteMatchMode(record.getRewriteMatchMode())
+            .rewriteProgramJson(record.getRewriteProgramJson())
+            .templateFamilyFingerprint(record.getTemplateFamilyFingerprint())
             .datasourceCode(record.getDatasourceCode())
             .status(record.getStatus() == null ? null : RuntimeRewriteBindingStatus.valueOf(record.getStatus()))
             .ruleVersion(record.getRuleVersion() == null ? 1L : record.getRuleVersion().longValue())

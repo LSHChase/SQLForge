@@ -34,7 +34,11 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals("rewrite-001", record.getRewriteRecordId());
         assertEquals("QUERY_HISTORY", record.getSourceKind());
         assertEquals("digest-original-001", record.getOriginalSqlDigest());
+        assertEquals("SELECT * FROM orders WHERE tenant_id = 1", record.getOriginalSqlText());
         assertEquals("SELECT id FROM orders", record.getRecommendedSqlText());
+        assertEquals("TEMPLATE_CONDITION_REPLAY", record.getRewriteMatchMode());
+        assertEquals("{\"programVersion\":\"template-replay-v1\"}", record.getRewriteProgramJson());
+        assertEquals("family-001", record.getTemplateFamilyFingerprint());
         assertEquals("ACTIVE", record.getStatus());
         assertEquals(Long.valueOf(3), record.getRuleVersion());
         assertEquals("runtime-rewrite-v3", record.getRuntimeRuleVersion());
@@ -53,6 +57,8 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals(RuntimeRewriteBindingStatus.PAUSED, binding.getStatus());
         assertEquals(4L, binding.getRuleVersion());
         assertEquals("runtime-rewrite-v4", binding.getRuntimeRuleVersion());
+        assertEquals("TEMPLATE_CONDITION_REPLAY", binding.getRewriteMatchMode());
+        assertEquals("family-002", binding.getTemplateFamilyFingerprint());
         assertEquals("validation divergence", binding.getPauseReason());
         assertEquals(Instant.parse("2026-05-11T14:05:00Z"), binding.getPausedAt());
     }
@@ -68,7 +74,11 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
             .sourceId("history-001")
             .sqlFingerprint("fp-001")
             .originalSqlDigest("digest-original-001")
+            .originalSqlText("SELECT * FROM orders WHERE tenant_id = 1")
             .recommendedSqlText("SELECT id FROM orders")
+            .rewriteMatchMode("TEMPLATE_CONDITION_REPLAY")
+            .rewriteProgramJson("{\"programVersion\":\"template-replay-v1\"}")
+            .templateFamilyFingerprint("family-001")
             .datasourceCode("hetu_main")
             .ruleVersion(3L)
             .runtimeRuleVersion("runtime-rewrite-v3")
@@ -90,7 +100,11 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         record.setSourceId("history-002");
         record.setSqlFingerprint("fp-002");
         record.setOriginalSqlDigest("digest-original-002");
+        record.setOriginalSqlText("SELECT * FROM orders WHERE query_date = ?");
         record.setRecommendedSqlText("SELECT id FROM orders WHERE query_date = ?");
+        record.setRewriteMatchMode("TEMPLATE_CONDITION_REPLAY");
+        record.setRewriteProgramJson("{\"programVersion\":\"template-replay-v1\"}");
+        record.setTemplateFamilyFingerprint("family-002");
         record.setDatasourceCode("hetu_main");
         record.setStatus("PAUSED");
         record.setRuleVersion(Long.valueOf(4));

@@ -13,7 +13,11 @@ public class RuntimeRewriteBinding {
     private final String sourceId;
     private final String sqlFingerprint;
     private final String originalSqlDigest;
+    private final String originalSqlText;
     private final String recommendedSqlText;
+    private final String rewriteMatchMode;
+    private final String rewriteProgramJson;
+    private final String templateFamilyFingerprint;
     private final String datasourceCode;
     private final RuntimeRewriteBindingStatus status;
     private final long ruleVersion;
@@ -36,7 +40,13 @@ public class RuntimeRewriteBinding {
         this.sourceId = requireText(builder.sourceId, "sourceId");
         this.sqlFingerprint = requireText(builder.sqlFingerprint, "sqlFingerprint");
         this.originalSqlDigest = requireText(builder.originalSqlDigest, "originalSqlDigest");
+        this.originalSqlText = trimToNull(builder.originalSqlText);
         this.recommendedSqlText = requireText(builder.recommendedSqlText, "recommendedSqlText");
+        this.rewriteMatchMode = trimToNull(builder.rewriteMatchMode) == null
+            ? "EXACT_FINGERPRINT"
+            : trimToNull(builder.rewriteMatchMode);
+        this.rewriteProgramJson = trimToNull(builder.rewriteProgramJson);
+        this.templateFamilyFingerprint = trimToNull(builder.templateFamilyFingerprint);
         this.datasourceCode = requireText(builder.datasourceCode, "datasourceCode");
         this.status = builder.status == null ? RuntimeRewriteBindingStatus.ACTIVE : builder.status;
         this.ruleVersion = builder.ruleVersion <= 0 ? 1L : builder.ruleVersion;
@@ -83,7 +93,11 @@ public class RuntimeRewriteBinding {
             .sourceId(sourceId)
             .sqlFingerprint(sqlFingerprint)
             .originalSqlDigest(originalSqlDigest)
+            .originalSqlText(originalSqlText)
             .recommendedSqlText(recommendedSqlText)
+            .rewriteMatchMode(rewriteMatchMode)
+            .rewriteProgramJson(rewriteProgramJson)
+            .templateFamilyFingerprint(templateFamilyFingerprint)
             .datasourceCode(datasourceCode)
             .status(status)
             .ruleVersion(ruleVersion)
@@ -121,7 +135,11 @@ public class RuntimeRewriteBinding {
     public String getSourceId() { return sourceId; }
     public String getSqlFingerprint() { return sqlFingerprint; }
     public String getOriginalSqlDigest() { return originalSqlDigest; }
+    public String getOriginalSqlText() { return originalSqlText; }
     public String getRecommendedSqlText() { return recommendedSqlText; }
+    public String getRewriteMatchMode() { return rewriteMatchMode; }
+    public String getRewriteProgramJson() { return rewriteProgramJson; }
+    public String getTemplateFamilyFingerprint() { return templateFamilyFingerprint; }
     public String getDatasourceCode() { return datasourceCode; }
     public RuntimeRewriteBindingStatus getStatus() { return status; }
     public long getRuleVersion() { return ruleVersion; }
@@ -144,7 +162,11 @@ public class RuntimeRewriteBinding {
         private String sourceId;
         private String sqlFingerprint;
         private String originalSqlDigest;
+        private String originalSqlText;
         private String recommendedSqlText;
+        private String rewriteMatchMode;
+        private String rewriteProgramJson;
+        private String templateFamilyFingerprint;
         private String datasourceCode;
         private RuntimeRewriteBindingStatus status;
         private long ruleVersion;
@@ -166,7 +188,11 @@ public class RuntimeRewriteBinding {
         public Builder sourceId(String sourceId) { this.sourceId = sourceId; return this; }
         public Builder sqlFingerprint(String sqlFingerprint) { this.sqlFingerprint = sqlFingerprint; return this; }
         public Builder originalSqlDigest(String originalSqlDigest) { this.originalSqlDigest = originalSqlDigest; return this; }
+        public Builder originalSqlText(String originalSqlText) { this.originalSqlText = originalSqlText; return this; }
         public Builder recommendedSqlText(String recommendedSqlText) { this.recommendedSqlText = recommendedSqlText; return this; }
+        public Builder rewriteMatchMode(String rewriteMatchMode) { this.rewriteMatchMode = rewriteMatchMode; return this; }
+        public Builder rewriteProgramJson(String rewriteProgramJson) { this.rewriteProgramJson = rewriteProgramJson; return this; }
+        public Builder templateFamilyFingerprint(String templateFamilyFingerprint) { this.templateFamilyFingerprint = templateFamilyFingerprint; return this; }
         public Builder datasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; return this; }
         public Builder status(RuntimeRewriteBindingStatus status) { this.status = status; return this; }
         public Builder ruleVersion(long ruleVersion) { this.ruleVersion = ruleVersion; return this; }

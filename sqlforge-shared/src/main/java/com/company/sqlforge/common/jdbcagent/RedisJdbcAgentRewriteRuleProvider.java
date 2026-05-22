@@ -5,6 +5,8 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateEngine;
+import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateResult;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.util.StringUtils;
@@ -82,6 +84,19 @@ public class RedisJdbcAgentRewriteRuleProvider implements JdbcAgentRewriteRulePr
             : null;
         if (!StringUtils.hasText(rewriteSql) && !StringUtils.hasText(routeHint)) {
             return JdbcAgentRewriteDecision.passthrough("REDIS_RULE_MISS");
+        }
+        if (StringUtils.hasText(rewriteSql) && StringUtils.hasText(metadata.getOriginalSqlText())) {
+            RuntimeSqlRewriteTemplateResult rewriteResult = RuntimeSqlRewriteTemplateEngine.rewrite(
+                metadata.getOriginalSqlText(),
+                rewriteSql,
+                observation == null ? null : observation.getBoundSqlText()
+            );
+            if (!rewriteResult.isApplied()) {
+                return JdbcAgentRewriteDecision.passthrough(
+                    "REDIS_RULE_TEMPLATE_MISMATCH_" + safeEvidenceStatus(rewriteResult.getFailureReason())
+                );
+            }
+            rewriteSql = rewriteResult.getRewrittenSql();
         }
         return new JdbcAgentRewriteDecision(
             StringUtils.hasText(rewriteSql),

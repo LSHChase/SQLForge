@@ -14,4 +14,6 @@ public interface RuntimeRewriteBindingRepository {
     RuntimeRewriteBinding findLatestByTenantIdAndSqlFingerprint(String tenantId, String sqlFingerprint);
 
     List<RuntimeRewriteBinding> findByTenantIdAndSqlFingerprint(String tenantId, String sqlFingerprint);
+
+    List<RuntimeRewriteBinding> findActiveByTenantId(String tenantId);
 }

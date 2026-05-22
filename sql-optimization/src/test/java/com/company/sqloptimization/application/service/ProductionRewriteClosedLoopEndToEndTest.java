@@ -401,6 +401,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
         RuntimeRewriteBindingResolveRequest request = new RuntimeRewriteBindingResolveRequest();
         request.setTenantId(TENANT_ID);
         request.setSqlFingerprint(sqlFingerprint);
+        request.setSqlText(MV_SQL_FINGERPRINT.equals(sqlFingerprint) ? MV_ORIGINAL_SQL : ORIGINAL_SQL);
         return request;
     }
 
@@ -626,6 +627,18 @@ class ProductionRewriteClosedLoopEndToEndTest {
             List<RuntimeRewriteBinding> matches = new ArrayList<RuntimeRewriteBinding>();
             for (RuntimeRewriteBinding binding : bindings.values()) {
                 if (tenantId.equals(binding.getTenantId()) && sqlFingerprint.equals(binding.getSqlFingerprint())) {
+                    matches.add(binding);
+                }
+            }
+            return matches;
+        }
+
+        @Override
+        public List<RuntimeRewriteBinding> findActiveByTenantId(String tenantId) {
+            List<RuntimeRewriteBinding> matches = new ArrayList<RuntimeRewriteBinding>();
+            for (RuntimeRewriteBinding binding : bindings.values()) {
+                if (tenantId.equals(binding.getTenantId())
+                    && binding.getStatus() == RuntimeRewriteBindingStatus.ACTIVE) {
                     matches.add(binding);
                 }
             }

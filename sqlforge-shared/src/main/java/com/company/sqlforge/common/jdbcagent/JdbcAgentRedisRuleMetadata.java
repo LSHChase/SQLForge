@@ -9,6 +9,9 @@ public class JdbcAgentRedisRuleMetadata {
     private String sqlFingerprint;
     private String runtimeBindingId;
     private String datasourceCode;
+    private String originalSqlText;
+    private String rewriteProgramJson;
+    private String templateFamilyFingerprint;
     private String status;
     private Long ruleVersion;
     private String runtimeRuleVersion;
@@ -44,6 +47,12 @@ public class JdbcAgentRedisRuleMetadata {
     public void setRuntimeBindingId(String runtimeBindingId) { this.runtimeBindingId = runtimeBindingId; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
+    public String getOriginalSqlText() { return originalSqlText; }
+    public void setOriginalSqlText(String originalSqlText) { this.originalSqlText = originalSqlText; }
+    public String getRewriteProgramJson() { return rewriteProgramJson; }
+    public void setRewriteProgramJson(String rewriteProgramJson) { this.rewriteProgramJson = rewriteProgramJson; }
+    public String getTemplateFamilyFingerprint() { return templateFamilyFingerprint; }
+    public void setTemplateFamilyFingerprint(String templateFamilyFingerprint) { this.templateFamilyFingerprint = templateFamilyFingerprint; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public Long getRuleVersion() { return ruleVersion; }

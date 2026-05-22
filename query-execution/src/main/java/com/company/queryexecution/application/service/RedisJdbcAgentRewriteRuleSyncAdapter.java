@@ -128,6 +128,9 @@ public class RedisJdbcAgentRewriteRuleSyncAdapter implements JdbcAgentRewriteRul
         metadata.setSqlFingerprint(binding.getSqlFingerprint());
         metadata.setRuntimeBindingId(binding.getRuntimeBindingId());
         metadata.setDatasourceCode(binding.getDatasourceCode());
+        metadata.setOriginalSqlText(binding.getOriginalSqlText());
+        metadata.setRewriteProgramJson(binding.getRewriteProgramJson());
+        metadata.setTemplateFamilyFingerprint(binding.getTemplateFamilyFingerprint());
         metadata.setStatus(status);
         metadata.setRuleVersion(Long.valueOf(binding.getRuleVersion()));
         metadata.setRuntimeRuleVersion(binding.getRuntimeRuleVersion());

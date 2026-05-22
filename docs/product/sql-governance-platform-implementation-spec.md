@@ -375,6 +375,7 @@ SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-re
 - 推荐前后 SQL 必须提供 diff 视图，覆盖文本 diff、规则级 diff、AST 摘要差异和风险提示；仅展示两个 SQL 代码块不足以满足治理要求。
 - 改写记录必须能在 SQL 历史详情中查询，并支持周期性原 SQL / 推荐 SQL 结果比对；发现差异时记录 `SQL_REWRITE_RESULT_DIVERGENCE` 内部事件并暂停自动应用，不再通过公开告警中心承接。
 - `HARN-143` / `HARN-144` 明确状态边界与证据字段：改写记录只有进入 `ACTIVE` runtime binding 才能表示产品态生效；默认运行时优先应用必须等待 `VERIFIED` / `ACTIVE` 且结果等价、收益有效、schema 未过期；推荐、候选、历史改写记录和内部差异事件 payload 必须保留 `sourceKind` 与 `evidenceLevel`。
+- `USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522` 之后，生产运行时改写不得把激活时的 `recommendedSqlText` 当作不可变整条 SQL 直接替换执行；runtime binding 需要保留原 SQL 模板、推荐 SQL 模板、模板族指纹和 `rewriteProgramJson`，执行时在同租户 `ACTIVE` 安全边界内进行模板匹配，并把当前 SQL 的参数与可迁移 WHERE 条件重放到推荐 SQL 模板。精确指纹仍可作为优先索引，但不是唯一命中条件；跨租户或绕过授权上下文的全局自动套用仍禁止。
 
 ### 4.5 SQL 历史导出与取证
 

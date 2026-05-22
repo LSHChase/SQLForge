@@ -30,6 +30,9 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
         assertTrue(client.values.get(
             JdbcAgentRedisRuleKeys.tenantMetadataKey("sqlforge:jdbc-agent", "tenant-a", "fp-001")
         ).contains("\"status\":\"ACTIVE\""));
+        assertTrue(client.values.get(
+            JdbcAgentRedisRuleKeys.tenantMetadataKey("sqlforge:jdbc-agent", "tenant-a", "fp-001")
+        ).contains("\"originalSqlText\":\"SELECT * FROM orders WHERE tenant_id = 1\""));
     }
 
     @Test
@@ -105,7 +108,10 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
             .sourceId("history-001")
             .sqlFingerprint("fp-001")
             .originalSqlDigest("digest-original-001")
+            .originalSqlText("SELECT * FROM orders WHERE tenant_id = 1")
             .recommendedSqlText("SELECT id FROM orders")
+            .rewriteProgramJson("{\"programVersion\":\"template-replay-v1\"}")
+            .templateFamilyFingerprint("family-001")
             .datasourceCode("hetu_main")
             .ruleVersion(1L)
             .runtimeRuleVersion("runtime-rewrite-v1")

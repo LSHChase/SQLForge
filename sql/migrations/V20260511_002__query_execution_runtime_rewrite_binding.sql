@@ -8,7 +8,11 @@ CREATE TABLE IF NOT EXISTS runtime_rewrite_binding (
   source_id VARCHAR(128) NOT NULL COMMENT '改写来源对象标识符',
   sql_fingerprint VARCHAR(128) NOT NULL COMMENT '用于运行时查找的原始 SQL 指纹',
   original_sql_digest VARCHAR(128) NOT NULL COMMENT '原始 SQL 摘要或摘要哈希',
-  recommended_sql_text MEDIUMTEXT NOT NULL COMMENT '该绑定生效时要应用的已激活 SQL 文本',
+  original_sql_text MEDIUMTEXT DEFAULT NULL COMMENT '激活时生成改写规则程序的原始 SQL 模板',
+  recommended_sql_text MEDIUMTEXT NOT NULL COMMENT '该绑定生效时要应用的已激活 SQL 模板文本',
+  rewrite_match_mode VARCHAR(64) NOT NULL DEFAULT 'EXACT_FINGERPRINT' COMMENT '运行时改写匹配模式：EXACT_FINGERPRINT/TEMPLATE_CONDITION_REPLAY',
+  rewrite_program_json MEDIUMTEXT DEFAULT NULL COMMENT '参数化改写模板、谓词来源、适用前置条件与风险边界证据',
+  template_family_fingerprint VARCHAR(128) DEFAULT NULL COMMENT '忽略可重放 WHERE 条件后的模板族指纹',
   datasource_code VARCHAR(128) NOT NULL COMMENT '运行时数据源或方言证据',
   status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE' COMMENT '运行时改写绑定状态：ACTIVE/PAUSED',
   rule_version BIGINT NOT NULL DEFAULT 1 COMMENT '每租户与 SQL 指纹单调递增的运行时规则版本',
@@ -26,6 +30,8 @@ CREATE TABLE IF NOT EXISTS runtime_rewrite_binding (
   PRIMARY KEY (runtime_binding_id),
   UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key),
   KEY idx_runtime_rewrite_tenant_fingerprint (tenant_id, sql_fingerprint, status),
+  KEY idx_runtime_rewrite_tenant_status (tenant_id, status),
+  KEY idx_runtime_rewrite_template_family (tenant_id, template_family_fingerprint, status),
   KEY idx_runtime_rewrite_record (tenant_id, rewrite_record_id),
   KEY idx_runtime_rewrite_version (tenant_id, sql_fingerprint, rule_version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Query-execution production runtime SQL rewrite binding truth';

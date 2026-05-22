@@ -10,6 +10,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResp
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
+import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateEngine;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.config.RewriteProductionGateProperties;
@@ -770,7 +771,15 @@ public class SqlRewriteRecordApplicationService {
             SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText())
         ));
         request.setOriginalSqlDigest(SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText()));
+        request.setOriginalSqlText(rewriteRecord.getOriginalSqlText());
         request.setRecommendedSqlText(rewriteRecord.getRecommendedSqlText());
+        request.setRewriteProgramJson(RuntimeSqlRewriteTemplateEngine.buildProgramJson(
+            rewriteRecord.getOriginalSqlText(),
+            rewriteRecord.getRecommendedSqlText()
+        ));
+        request.setTemplateFamilyFingerprint(
+            RuntimeSqlRewriteTemplateEngine.templateFamilyFingerprint(rewriteRecord.getOriginalSqlText())
+        );
         request.setDatasourceCode(firstText(rewriteRecord.getDatasourceCode(), "hetu_main"));
         request.setActivatedBy(operator);
         return request;

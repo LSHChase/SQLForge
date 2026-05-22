@@ -35,6 +35,39 @@ class RedisJdbcAgentRewriteRuleProviderTest {
     }
 
     @Test
+    void shouldReplayCurrentPredicatesFromTenantScopedTemplateRule() {
+        MapRedisStringReader reader = new MapRedisStringReader();
+        JdbcAgentProperties properties = properties();
+        JdbcAgentRedisRuleMetadata metadata = metadata("tenant-a", "fp-001", "ACTIVE", null, "hetu_main");
+        metadata.setOriginalSqlText("SELECT * FROM orders WHERE tenant_id = 1 AND status = 'PAID'");
+        reader.values.put(
+            JdbcAgentRedisRuleKeys.tenantMetadataKey(properties.getRedisNamespace(), "tenant-a", "fp-001"),
+            JsonUtils.toJson(metadata)
+        );
+        reader.values.put(
+            JdbcAgentRedisRuleKeys.tenantRewriteKey(properties.getRedisNamespace(), "tenant-a", "fp-001"),
+            "SELECT id FROM orders WHERE tenant_id = 1 AND status = 'PAID'"
+        );
+
+        JdbcAgentRewriteDecision decision =
+            new RedisJdbcAgentRewriteRuleProvider(reader).resolve(
+                observation(
+                    "tenant-a",
+                    "hetu_main",
+                    "SELECT * FROM orders WHERE tenant_id = 8 AND status = 'CANCELLED' AND dt = '2026-05-22'"
+                ),
+                properties
+            );
+
+        assertTrue(decision.isApplied());
+        assertEquals(
+            "SELECT id FROM orders WHERE tenant_id = 8 AND status = 'CANCELLED' AND dt = '2026-05-22'",
+            decision.getRewrittenSql()
+        );
+    }
+
+
+    @Test
     void shouldNotFallbackAcrossTenantsByDefault() {
         MapRedisStringReader reader = new MapRedisStringReader();
         JdbcAgentProperties properties = properties();
@@ -122,10 +155,14 @@ class RedisJdbcAgentRewriteRuleProviderTest {
     }
 
     private JdbcAgentObservation observation(String tenantId, String datasourceCode) {
+        return observation(tenantId, datasourceCode, "SELECT * FROM orders");
+    }
+
+    private JdbcAgentObservation observation(String tenantId, String datasourceCode, String sqlText) {
         return new JdbcAgentObservation(
-            "SELECT * FROM orders",
-            "SELECT * FROM orders",
-            "SELECT * FROM orders",
+            sqlText,
+            sqlText,
+            sqlText,
             "fp-001",
             tenantId,
             datasourceCode,
@@ -141,6 +178,14 @@ class RedisJdbcAgentRewriteRuleProviderTest {
                                 String status,
                                 String expiresAt,
                                 String datasourceCode) {
+        return JsonUtils.toJson(metadata(tenantId, sqlFingerprint, status, expiresAt, datasourceCode));
+    }
+
+    private JdbcAgentRedisRuleMetadata metadata(String tenantId,
+                                                String sqlFingerprint,
+                                                String status,
+                                                String expiresAt,
+                                                String datasourceCode) {
         JdbcAgentRedisRuleMetadata metadata = new JdbcAgentRedisRuleMetadata();
         metadata.setTenantId(tenantId);
         metadata.setSqlFingerprint(sqlFingerprint);
@@ -152,7 +197,7 @@ class RedisJdbcAgentRewriteRuleProviderTest {
         metadata.setUpdatedAt(Instant.now().toString());
         metadata.setExpiresAt(expiresAt);
         metadata.setSyncStatus("SYNCED");
-        return JsonUtils.toJson(metadata);
+        return metadata;
     }
 
     private static final class MapRedisStringReader implements RedisJdbcAgentRewriteRuleProvider.RedisStringReader {

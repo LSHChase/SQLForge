@@ -51,6 +51,7 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
         resolveRequest.setTenantId("tenant-a");
         resolveRequest.setSqlFingerprint("fp-001");
+        resolveRequest.setSqlText("SELECT * FROM orders WHERE tenant_id = 2 AND status = 'CANCELLED'");
         resolveRequest.setDatasourceCode("hetu_main");
         assertEquals("ACTIVE", service.resolveActive(resolveRequest).getStatus());
 
@@ -124,6 +125,48 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         assertEquals(2, syncPort.activatedBindings.size());
     }
 
+    @Test
+    void shouldReplayCurrentPredicatesForExactRuntimeRewriteHit() {
+        setRequestContext();
+        QueryExecutionRuntimeRewriteBindingService service =
+            new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository());
+        service.activate(activationRequest("rewrite-001"));
+
+        RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
+        resolveRequest.setTenantId("tenant-a");
+        resolveRequest.setSqlFingerprint("fp-001");
+        resolveRequest.setSqlText(
+            "SELECT * FROM orders WHERE tenant_id = 8 AND status = 'CANCELLED' AND dt = '2026-05-22'"
+        );
+        RuntimeRewriteBindingResponse response = service.resolveActive(resolveRequest);
+
+        assertEquals("ACTIVE", response.getStatus());
+        assertEquals(
+            "SELECT id FROM orders WHERE tenant_id = 8 AND status = 'CANCELLED' AND dt = '2026-05-22'",
+            response.getRecommendedSqlText()
+        );
+        assertEquals("TEMPLATE_CONDITION_REPLAY", response.getRewriteMatchMode());
+        assertTrue(response.getRewriteProgramJson().contains("template-replay-v1"));
+    }
+
+    @Test
+    void shouldMatchRuntimeRewriteTemplateWhenFingerprintChangesByConditionDelta() {
+        setRequestContext();
+        QueryExecutionRuntimeRewriteBindingService service =
+            new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository());
+        service.activate(activationRequest("rewrite-001"));
+
+        RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
+        resolveRequest.setTenantId("tenant-a");
+        resolveRequest.setSqlFingerprint("fp-current-different");
+        resolveRequest.setSqlText("SELECT * FROM orders WHERE tenant_id = 8");
+        RuntimeRewriteBindingResponse response = service.resolveActive(resolveRequest);
+
+        assertEquals("ACTIVE", response.getStatus());
+        assertEquals("fp-current-different", response.getSqlFingerprint());
+        assertEquals("SELECT id FROM orders WHERE tenant_id = 8", response.getRecommendedSqlText());
+    }
+
     private RuntimeRewriteBindingActivationRequest activationRequest(String rewriteRecordId) {
         RuntimeRewriteBindingActivationRequest request = new RuntimeRewriteBindingActivationRequest();
         request.setTenantId("tenant-a");
@@ -134,6 +177,7 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         request.setSourceId("history-001");
         request.setSqlFingerprint("fp-001");
         request.setOriginalSqlDigest("digest-original-001");
+        request.setOriginalSqlText("SELECT * FROM orders WHERE tenant_id = 1 AND status = 'PAID'");
         request.setRecommendedSqlText("SELECT id FROM orders");
         request.setDatasourceCode("hetu_main");
         request.setActivatedBy("publisher-001");
@@ -199,6 +243,18 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
             List<RuntimeRewriteBinding> result = new ArrayList<RuntimeRewriteBinding>();
             for (RuntimeRewriteBinding binding : bindings.values()) {
                 if (tenantId.equals(binding.getTenantId()) && sqlFingerprint.equals(binding.getSqlFingerprint())) {
+                    result.add(binding);
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public List<RuntimeRewriteBinding> findActiveByTenantId(String tenantId) {
+            List<RuntimeRewriteBinding> result = new ArrayList<RuntimeRewriteBinding>();
+            for (RuntimeRewriteBinding binding : bindings.values()) {
+                if (tenantId.equals(binding.getTenantId())
+                    && binding.getStatus() == RuntimeRewriteBindingStatus.ACTIVE) {
                     result.add(binding);
                 }
             }

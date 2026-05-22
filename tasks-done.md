@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522: 运行时 SQL 改写模板匹配与参数条件重放
+
+- Status: done
+- Completed at: 2026-05-22
+- Commit subject: `USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522 implement runtime rewrite template replay`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将生产运行时改写从精确指纹整条 SQL 替换扩展为受安全边界约束的模板匹配与参数/可迁移条件重放，保留租户授权与 ACTIVE runtime binding 安全约束，补齐规则程序证据、运行时解析、审计和回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522`
+- Progress log:
+  - 2026-05-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增共享运行时 SQL 模板改写引擎；扩展 runtime_rewrite_binding 原 SQL 模板、模板族和 rewriteProgram 证据；query-execution 精确命中和模板族命中均改为参数/WHERE 条件重放；JDBC Agent Redis 兼容出口支持元数据模板重放；补齐 schema、migration、DTO、MyBatis、服务和回归测试。
+  - Validation evidence: python3 scripts/foreman.py preflight; python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed; mvn -pl sqlforge-shared test -Dtest=RuntimeSqlRewriteTemplateEngineTest,RedisJdbcAgentRewriteRuleProviderTest,SqlFingerprintUtilsTest -Dsurefire.failIfNoSpecifiedTests=false; mvn -pl query-execution -am test -Dtest=QueryExecutionRuntimeRewriteBindingServiceTest,QueryExecutionApplicationServiceTest,MybatisRuntimeRewriteBindingRepositoryTest,RuntimeRewriteBindingPersistenceSchemaMappingTest,RedisJdbcAgentRewriteRuleSyncAdapterTest -Dsurefire.failIfNoSpecifiedTests=false; mvn -pl sql-optimization -am test -Dtest=AccelerationRewriteContractApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest,RewriteValidationSchedulerServiceTest,QueryExecutionRuntimeRewriteBindingHttpClientTest -Dsurefire.failIfNoSpecifiedTests=false.
+  - Residual risk: 模板重放当前覆盖 SELECT 顶层 WHERE 的 AND 条件迁移和无 WHERE 模板族匹配；复杂 AST 级谓词改写、多模板歧义和跨授权上下文仍保守跳过。按仓库安全边界保留 tenant/ACTIVE runtime binding/datasource evidence，不实现跨租户或跨角色全局自动套用。
+  - Next step: 后续如需支持 OR、JOIN 谓词下推、CTE/UNION、函数谓词反变换和 Redis 模板族索引，应另起任务扩展 AST/IR 级规则程序。
+
 ### USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522: 查询历史异步写入与 system 最高权限修复
 
 - Status: done

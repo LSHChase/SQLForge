@@ -24,6 +24,9 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(schema, "rule_version BIGINT NOT NULL DEFAULT 1");
         assertContains(schema, "runtime_rule_version VARCHAR(64) NOT NULL");
         assertContains(schema, "recommended_sql_text MEDIUMTEXT NOT NULL");
+        assertContains(schema, "original_sql_text MEDIUMTEXT DEFAULT NULL");
+        assertContains(schema, "rewrite_program_json MEDIUMTEXT DEFAULT NULL");
+        assertContains(schema, "template_family_fingerprint VARCHAR(128) DEFAULT NULL");
         assertContains(schema, "active_binding_key VARCHAR(320) GENERATED ALWAYS AS");
         assertContains(schema, "UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key)");
     }
@@ -38,7 +41,20 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(migration, "运行时改写绑定状态：ACTIVE/PAUSED");
         assertContains(migration, "UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key)");
         assertContains(migration, "KEY idx_runtime_rewrite_tenant_fingerprint");
+        assertContains(migration, "KEY idx_runtime_rewrite_template_family");
         assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "migration 不得新增物理外键约束");
+    }
+
+    @Test
+    void shouldProvideTemplateProgramMigrationWithoutPhysicalForeignKeys() throws IOException {
+        String migration = readRepositoryFile(
+            "sql/migrations/V20260522_001__runtime_rewrite_template_program.sql"
+        );
+
+        assertContains(migration, "ADD COLUMN original_sql_text MEDIUMTEXT DEFAULT NULL");
+        assertContains(migration, "ADD COLUMN rewrite_program_json MEDIUMTEXT DEFAULT NULL");
+        assertContains(migration, "ADD KEY idx_runtime_rewrite_template_family");
+        assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "template migration 不得新增物理外键约束");
     }
 
     @Test
@@ -50,6 +66,8 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(mapper, "AND status = 'ACTIVE'");
         assertContains(mapper, "ORDER BY rule_version DESC, created_at DESC");
         assertContains(mapper, "runtime_rule_version");
+        assertContains(mapper, "rewrite_program_json");
+        assertContains(mapper, "selectActiveByTenantId");
         assertFalse(mapper.contains("${"), "runtime rewrite binding mapper 必须使用绑定参数");
     }
 

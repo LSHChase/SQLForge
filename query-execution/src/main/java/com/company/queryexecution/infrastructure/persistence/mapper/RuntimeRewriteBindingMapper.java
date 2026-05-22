@@ -19,6 +19,8 @@ public interface RuntimeRewriteBindingMapper {
     List<RuntimeRewriteBindingRecord> selectByTenantIdAndSqlFingerprint(@Param("tenantId") String tenantId,
                                                                         @Param("sqlFingerprint") String sqlFingerprint);
 
+    List<RuntimeRewriteBindingRecord> selectActiveByTenantId(@Param("tenantId") String tenantId);
+
     int insert(RuntimeRewriteBindingRecord record);
 
     int update(RuntimeRewriteBindingRecord record);
