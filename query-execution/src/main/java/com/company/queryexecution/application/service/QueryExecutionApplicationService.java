@@ -49,11 +49,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -104,6 +106,7 @@ public class QueryExecutionApplicationService {
     private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
     private final QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
     private final QueryExecutionRewriteProperties rewriteProperties;
+    private final Executor queryHistoryWriteExecutor;
 
     @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -112,7 +115,8 @@ public class QueryExecutionApplicationService {
                                             QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
                                             QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
                                             QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService,
-                                            QueryExecutionRewriteProperties rewriteProperties) {
+                                            QueryExecutionRewriteProperties rewriteProperties,
+                                            @Qualifier("tenantAwareTaskExecutor") Executor queryHistoryWriteExecutor) {
         this.queryExecutionAdapter = queryExecutionAdapter;
         this.governanceCapabilityClient = governanceCapabilityClient;
         this.metricsRecorder = metricsRecorder;
@@ -122,6 +126,28 @@ public class QueryExecutionApplicationService {
         this.rewriteProperties = rewriteProperties == null
             ? new QueryExecutionRewriteProperties()
             : rewriteProperties;
+        this.queryHistoryWriteExecutor = queryHistoryWriteExecutor == null
+            ? directExecutor()
+            : queryHistoryWriteExecutor;
+    }
+
+    public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
+                                            GovernanceCapabilityClient governanceCapabilityClient,
+                                            QueryExecutionMetricsRecorder metricsRecorder,
+                                            QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
+                                            QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
+                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService,
+                                            QueryExecutionRewriteProperties rewriteProperties) {
+        this(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            metricsRecorder,
+            queryExecutionAccelerationRuntimeService,
+            queryExecutionCacheGovernanceRuntimeService,
+            queryExecutionRuntimeRewriteBindingService,
+            rewriteProperties,
+            directExecutor()
+        );
     }
 
     QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -1351,7 +1377,49 @@ public class QueryExecutionApplicationService {
             failureReason,
             response == null || response.getError() == null ? null : response.getError().getMessage()
         ));
-        governanceCapabilityClient.writeQueryExecutionHistory(historyRequest);
+        submitQueryExecutionHistoryWrite(historyRequest, effectiveFingerprint);
+    }
+
+    private void submitQueryExecutionHistoryWrite(final GovernanceQueryExecutionHistoryWriteRequest historyRequest,
+                                                  final String sqlFingerprint) {
+        Runnable historyWriteTask = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    governanceCapabilityClient.writeQueryExecutionHistory(historyRequest);
+                } catch (RuntimeException ex) {
+                    LOGGER.warn(
+                        "操作日志 operation={} entity={} tenantId={} status=HISTORY_WRITE_ASYNC_FAILED reason={}",
+                        OPERATION,
+                        sqlFingerprint,
+                        historyRequest == null ? null : historyRequest.getTenantId(),
+                        ex.getMessage(),
+                        ex
+                    );
+                }
+            }
+        };
+        try {
+            queryHistoryWriteExecutor.execute(historyWriteTask);
+        } catch (RuntimeException ex) {
+            LOGGER.warn(
+                "操作日志 operation={} entity={} tenantId={} status=HISTORY_WRITE_SUBMIT_FAILED reason={}",
+                OPERATION,
+                sqlFingerprint,
+                historyRequest == null ? null : historyRequest.getTenantId(),
+                ex.getMessage(),
+                ex
+            );
+        }
+    }
+
+    private static Executor directExecutor() {
+        return new Executor() {
+            @Override
+            public void execute(Runnable command) {
+                command.run();
+            }
+        };
     }
 
     private Map<String, Object> buildHistoryQueryContext(QueryExecuteRequest request,

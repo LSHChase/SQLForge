@@ -641,6 +641,24 @@ class QueryExecutionApplicationServiceTest {
     }
 
     @Test
+    void shouldNotFailQueryWhenHistoryWriteFails(CapturedOutput output) {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        when(governanceCapabilityClient.writeQueryExecutionHistory(any()))
+            .thenThrow(new IllegalStateException("history route down"));
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(new DeterministicQueryExecutionAdapter(), governanceCapabilityClient);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals("HETU", response.getMetadata().getTargetEngine());
+        assertTrue(output.getOut().contains("status=HISTORY_WRITE_ASYNC_FAILED"));
+        assertTrue(output.getOut().contains("history route down"));
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(any());
+    }
+
+    @Test
     void shouldIncludeHistoryProjectionFieldsInGovernanceWriteRequest() {
         setRequestContext("tenant-a");
         RequestMetadataContext.set("127.0.0.1", "JUnit", "api");

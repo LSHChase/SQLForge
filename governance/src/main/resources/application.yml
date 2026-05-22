@@ -175,6 +175,10 @@ governance:
               - governance.permission.manage
     datasource-authorization-matrix:
       tenant-a:
+        query-trino:
+          state: ACTIVE
+          actions:
+            - USE
         query-hetu:
           state: ACTIVE
           actions:

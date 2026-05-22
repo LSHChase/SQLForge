@@ -111,6 +111,70 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     }
 
     @Test
+    void shouldAllowSystemTenantAsHighestAuthorityForTrinoQuery() {
+        GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
+        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+            new GovernanceAccessProperties(),
+            auditTrailService
+        );
+        service.initializeRuntimeDatasourceMatrix();
+        RequestContext.set(
+            "system",
+            "system-runtime",
+            Arrays.asList("READONLY"),
+            "request-system-trino",
+            "trace-system-trino",
+            "header",
+            100L,
+            200L
+        );
+
+        GovernanceAuthorizationDecisionResponse response =
+            service.decideAuthorization(queryExecutionRequest("system", "query-trino"));
+
+        assertTrue(response.isAllowed());
+        assertEquals("PLATFORM_ADMIN_OVERRIDE", response.getReason());
+    }
+
+    @Test
+    void shouldAllowSystemTenantToChangeDatasourceAuthorizationWithoutManagePermission() {
+        GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
+        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+            new GovernanceAccessProperties(),
+            auditTrailService
+        );
+        service.initializeRuntimeDatasourceMatrix();
+        RequestContext.set(
+            "system",
+            "system-runtime",
+            Arrays.asList("READONLY"),
+            "request-system-permission-change",
+            "trace-system-permission-change",
+            "header",
+            100L,
+            200L
+        );
+
+        DatasourceAuthorizationChangeRequest changeRequest = new DatasourceAuthorizationChangeRequest();
+        changeRequest.setTenantId("tenant-b");
+        changeRequest.setDatasourceId("query-trino");
+        changeRequest.setState("ACTIVE");
+        changeRequest.getActions().add("USE");
+        changeRequest.setChangeReason("system bootstrap");
+
+        DatasourceAuthorizationChangeResponse response =
+            service.applyDatasourceAuthorizationChange(changeRequest);
+
+        assertEquals("UPDATED", response.getStatus());
+        assertTrue(service.isDatasourceActionAllowed("tenant-b", "query-trino", "USE"));
+        ArgumentCaptor<AuditWriteRequest> captor = ArgumentCaptor.forClass(AuditWriteRequest.class);
+        verify(auditTrailService).writeAudit(captor.capture());
+        assertEquals("PERMISSION_CHANGE", captor.getValue().getOperationCode());
+        assertEquals("SUCCESS", captor.getValue().getResultStatus());
+        assertEquals("tenant-b:query-trino", captor.getValue().getResourceId());
+    }
+
+    @Test
     void shouldDenyWhenRolePermissionMissingAndAuditFailure() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
@@ -213,13 +277,17 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     }
 
     private GovernanceAuthorizationDecisionRequest queryExecutionRequest(String tenantId) {
+        return queryExecutionRequest(tenantId, "query-hetu");
+    }
+
+    private GovernanceAuthorizationDecisionRequest queryExecutionRequest(String tenantId, String datasourceId) {
         GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
         request.setServiceCode("QUERY_EXECUTION");
         request.setTenantId(tenantId);
         request.setResourceType("QUERY_EXECUTION_QUERY");
         request.setResourceId("query-fingerprint-001");
         request.setOperationCode("QUERY_EXECUTE_SYNC");
-        request.setDatasourceId("query-hetu");
+        request.setDatasourceId(datasourceId);
         return request;
     }
 

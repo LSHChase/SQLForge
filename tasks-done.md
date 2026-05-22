@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522: 查询历史异步写入与 system 最高权限修复
+
+- Status: done
+- Completed at: 2026-05-22
+- Commit subject: `fix(query): make history writes async and grant system auth`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 查询分析执行链路中查询历史写入同步阻塞主查询响应的问题；保留执行前授权同步门禁；让 system 租户具备最高授权并补齐 TRINO 默认授权映射；补充 query-execution 与 governance 回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522`
+- Progress log:
+  - 2026-05-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 查询执行历史写入改为通过租户感知执行器异步提交并吞掉写入/提交异常；system 租户在治理授权矩阵中具备平台级覆盖权限；补齐 query-execution 与 governance 的 TRINO datasource 映射和回归测试。
+  - Validation evidence: mvn -q -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,GovernanceHttpClientTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -q -pl governance -am -Dtest=GovernanceAuthorizationMatrixApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；python3 scripts/foreman.py validate USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522；git diff --check。
+  - Residual risk: 未连接外部 TRINO/Governance 环境做真实端到端冒烟；当前覆盖单元回归、仓库标准 validate、审计和空白字符检查。
+  - Next step: 外部环境可用后，用 tenant=system、targetEngine=trino 跑一次 SQL 查询分析端到端冒烟，确认授权、执行和历史异步写入日志符合预期。
+
 ### USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522: Fix JDBC driver upload missing file part
 
 - Status: done

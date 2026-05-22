@@ -33,6 +33,7 @@ import org.springframework.util.StringUtils;
 public class GovernanceAuthorizationMatrixApplicationService {
 
     private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
+    private static final String SYSTEM_TENANT_ID = "system";
     private static final String CONTRACT_STAGE_LONG_TERM_BASELINE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE_AUTHORIZATION_MATRIX_BASELINE =
         "AUTHORIZATION_MATRIX_BASELINE";
@@ -88,7 +89,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
         String callerTenantId = requireProtectedTenantContext();
         String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
         String targetTenantId = requireText(request == null ? null : request.getTargetTenantId(), "targetTenantId");
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN) || hasWildcardPermission(resolvePermissions());
+        boolean platformAdmin = hasSystemAuthority(callerTenantId, resolvePermissions());
         if (!platformAdmin && !callerTenantId.equals(tenantId)) {
             return new GovernanceTenantScopeCheckResponseBuilder()
                 .tenantId(tenantId)
@@ -137,7 +138,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
         String state = normalizeState(request == null ? null : request.getState());
         List<String> actions = normalizeActions(request == null ? null : request.getActions());
         Set<String> permissions = resolvePermissions();
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN) || hasWildcardPermission(permissions);
+        boolean platformAdmin = hasSystemAuthority(callerTenantId, permissions);
 
         if (!platformAdmin && !callerTenantId.equals(tenantId)) {
             throw new BizException(
@@ -146,7 +147,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE
             );
         }
-        if (!hasAnyPermission(permissions, Collections.singletonList("governance.permission.manage"))) {
+        if (!platformAdmin && !hasAnyPermission(permissions, Collections.singletonList("governance.permission.manage"))) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
@@ -205,7 +206,7 @@ public class GovernanceAuthorizationMatrixApplicationService {
         String datasourceId = trimToNull(request == null ? null : request.getDatasourceId());
         String resourceId = trimToNull(request == null ? null : request.getResourceId());
         Set<String> permissions = resolvePermissions();
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN) || hasWildcardPermission(permissions);
+        boolean platformAdmin = hasSystemAuthority(callerTenantId, permissions);
         if (!governanceAccessProperties.isEnabled()) {
             return deny(tenantId, resourceType, resourceId, operationCode, datasourceId,
                 REASON_ACCESS_CONTROL_DISABLED, Integer.valueOf(ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED));
@@ -230,12 +231,12 @@ public class GovernanceAuthorizationMatrixApplicationService {
                     REASON_OPERATION_POLICY_MISSING, Integer.valueOf(ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED))
                 : allow(tenantId, resourceType, resourceId, operationCode, datasourceId, REASON_ALLOWED);
         }
-        if (!hasAnyPermission(permissions, operationPolicy.getRequiredPermissions())) {
+        if (!platformAdmin && !hasAnyPermission(permissions, operationPolicy.getRequiredPermissions())) {
             return deny(tenantId, resourceType, resourceId, operationCode, datasourceId,
                 REASON_ROLE_PERMISSION_DENIED, Integer.valueOf(ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED));
         }
         String datasourceAction = trimToNull(operationPolicy.getDatasourceAction());
-        if (StringUtils.hasText(datasourceAction)) {
+        if (!platformAdmin && StringUtils.hasText(datasourceAction)) {
             GovernanceAccessProperties.DatasourceAuthorizationProperties datasourcePolicy =
                 resolveDatasourcePolicy(tenantId, datasourceId);
             if (datasourcePolicy == null) {
@@ -363,6 +364,12 @@ public class GovernanceAuthorizationMatrixApplicationService {
 
     private boolean hasWildcardPermission(Set<String> permissions) {
         return permissions.contains("*");
+    }
+
+    private boolean hasSystemAuthority(String callerTenantId, Set<String> permissions) {
+        return SYSTEM_TENANT_ID.equals(trimToEmpty(callerTenantId))
+            || RequestContext.hasRole(PLATFORM_ADMIN)
+            || hasWildcardPermission(permissions);
     }
 
     private void auditAuthorizationDecision(GovernanceAuthorizationDecisionRequest request,

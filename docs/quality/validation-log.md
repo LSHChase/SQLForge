@@ -5392,3 +5392,13 @@
 2026-05-21T21:40:03-05:00 | USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run lint (projected-precommit)`
 2026-05-21T21:40:03-05:00 | USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run build (projected-precommit)`
 2026-05-21T21:40:03-05:00 | USER-CN-FIX-JDBC-DRIVER-UPLOAD-MISSING-FILE-PART-20260522 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-22T03:08:36-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-22T03:08:36-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-22T03:08:36-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-22T03:10:28-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-22T03:10:28-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 closeout commit | `R-168` | projected | `git commit -m 'fix(query): make history writes async and grant system auth' (projected-precommit)`
+2026-05-22T03:10:28-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-22T03:10:28-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-22T03:12:17-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-22T03:12:17-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-22T03:12:17-05:00 | USER-CN-QUERY-HISTORY-ASYNC-SYSTEM-AUTH-20260522 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`

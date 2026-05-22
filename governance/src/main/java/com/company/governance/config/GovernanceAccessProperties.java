@@ -96,6 +96,7 @@ public class GovernanceAccessProperties {
         );
 
         datasourceAuthorizationMatrix.put("tenant-a", datasourceMatrix(
+            "query-trino", datasource("ACTIVE", "USE"),
             "query-hetu", datasource("ACTIVE", "USE"),
             "query-hive", datasource("ACTIVE", "USE"),
             "optimization-hetu", datasource("ACTIVE", "USE"),
