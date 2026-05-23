@@ -5533,3 +5533,14 @@
 2026-05-23T05:43:24-05:00 | USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run lint (projected-precommit)`
 2026-05-23T05:43:24-05:00 | USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash -lc 'curl -fsS -o /tmp/sqlforge-closeout-recommendations.json http://localhost:3000/api/sql-optimization/recommendations' (projected-precommit)`
 2026-05-23T05:43:24-05:00 | USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `bash -lc 'curl -fsS -o /tmp/sqlforge-closeout-rewrite-records.json http://localhost:3000/api/sql-optimization/rewrite-records' (projected-precommit)`
+2026-05-23T05:56:47-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T05:56:47-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T05:56:47-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-23T05:56:51-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-23T05:56:55-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-23T05:56:55-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 closeout commit | `R-168` | projected | `git commit -m 'build(portable): refresh dist-portable package' (projected-precommit)`
+2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
+2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

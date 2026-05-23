@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260523: 按最新页面全量更新 dist-portable
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `build(portable): refresh dist-portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: Use the existing portable frontend build entrypoint to fully regenerate the tracked dist-portable package from the latest repository source, refresh hashed assets and startup files as needed, and verify the packaged frontend still passes the portable smoke path without changing business behavior.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Regenerated the tracked dist-portable package from the latest repository frontend source, refreshed index.html asset references, and replaced stale hashed portable assets with the new portable build output without changing business behavior.
+  - Validation evidence: npm run build:portable; npm run smoke:portable-frontend; python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260523 --include-task-audit --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout.
+  - Residual risk: dist-portable smoke covers the packaged frontend shell and mock-backed route flow, but it does not validate a live backend environment or destination-host-specific portable-config.json values.
+  - Next step: Before using the refreshed package on another machine, update dist-portable/portable-config.json with the target backend host addresses and run start-portable.sh or start-portable.cmd there.
+
 ### USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523: 修复首页 SQL 优化总览接口错误
 
 - Status: done
