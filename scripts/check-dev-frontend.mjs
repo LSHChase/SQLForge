@@ -938,6 +938,7 @@ const runBrowserSmoke = async baseUrl => {
     if (pathname === '/api/governance/datasources') {
       assertDevHeaders(request, 'tenant-a', [
         'frontend-rewrite-validation-governance-datasources',
+        'frontend-query-datasource-inventory',
         'frontend-parse-workbench-governance-datasources',
         'frontend-parse-record-datasource-options',
         'frontend-sql-history-datasource-options'
@@ -972,7 +973,18 @@ const runBrowserSmoke = async baseUrl => {
               degraded: true,
               implementationStage: 'DEV_BROWSER_SMOKE',
               degradeReason: 'Mock timeout fallback',
-              rows: [{ orderId: 'dev-recovery-order-1', totalAmount: 18.4 }],
+              rows: [
+                {
+                  records: [
+                    { orderId: 'dev-recovery-order-1', totalAmount: 18.4 },
+                    { orderId: 'dev-recovery-order-2', totalAmount: 28.4 }
+                  ],
+                  current: 1,
+                  size: 2,
+                  total: 2,
+                  pages: 1
+                }
+              ],
               retryPath: [
                 { engine: 'HETU', resultStatus: 'TIMEOUT', elapsedMs: 30 },
                 { engine: 'HIVE', resultStatus: 'SUCCESS', elapsedMs: 18 }
@@ -987,7 +999,16 @@ const runBrowserSmoke = async baseUrl => {
               degraded: false,
               implementationStage: 'DEV_BROWSER_SMOKE',
               degradeReason: '',
-              rows: [{ orderId: 'dev-success-order-1', totalAmount: 42.8 }],
+              rows: {
+                records: [
+                  { orderId: 'dev-success-order-1', totalAmount: 42.8 },
+                  { orderId: 'dev-success-order-2', totalAmount: 52.8 }
+                ],
+                pageNo: 1,
+                pageSize: 10,
+                totalCount: 25,
+                pageCount: 3
+              },
               retryPath: [],
               sqlFingerprint: 'query-success-fingerprint',
               metadata: {
@@ -1139,11 +1160,14 @@ const runBrowserSmoke = async baseUrl => {
     await expectTextInLocator(page.locator('.result-rail'), 'SUCCESS')
     await expectTextInLocator(page.locator('.result-rail'), 'HETU')
     await expectTextInLocator(page.locator('.results-stage'), 'dev-success-order-1')
+    await expectTextInLocator(page.locator('.results-stage'), 'dev-success-order-2')
+    await expectTextInLocator(page.getByTestId('query-result-pagination'), '25')
 
     await page.getByTestId('query-flow-submit-recovery').click()
     await expectTextInLocator(page.locator('.result-rail'), 'PARTIAL')
     await expectTextInLocator(page.locator('.result-rail'), 'HIVE')
     await expectTextInLocator(page.locator('.results-stage'), 'dev-recovery-order-1')
+    await expectTextInLocator(page.locator('.results-stage'), 'dev-recovery-order-2')
 
     await page.goto(`${baseUrl}${ROUTE_PATHS.sqlHistory}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('sql-history-page').waitFor({ timeout: defaultTimeoutMs })

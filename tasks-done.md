@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-RESULT-PAGINATION-FIX-20260523: 修复 SQL 查询分析结果分页只展示一行
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `fix(frontend): USER-CN-SQL-QUERY-RESULT-PAGINATION-FIX-20260523 render paged query rows`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 查询分析页面中查询结果实际为多行分页数据时仅展示一行的问题；以分页结果 rows 为展示真值，保持执行摘要、历史、解析和后端语义不变，并补充适用验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-RESULT-PAGINATION-FIX-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 SQL 查询结果分页归一化 helper，兼容 rows 数组、rows.items/records/list/content/resultRows 分页对象以及 rows[0].records 嵌套分页外壳；SQL 查询分析结果表改为展示归一化后的多行 rows、联合列集合和 Element Plus 分页控件；dev browser smoke 与 query workbench contract 覆盖分页对象和嵌套分页对象返回。
+  - Validation evidence: node scripts/check-query-workbench-contract.mjs passed；npm run lint passed；npm run test:frontend-page-governance passed；npm run test:sql-ui-contract passed；npm run build passed；npm run smoke:frontend-dev passed；python3 scripts/foreman.py validate USER-CN-SQL-QUERY-RESULT-PAGINATION-FIX-20260523 passed；git diff --check passed；python3 scripts/task_audit.py --check --phase pre-closeout passed。
+  - Residual risk: 当前 query-execution execute 契约仍是单次 POST 响应；若远端只返回服务器端某一页且未返回其它页数据，前端只能展示当前响应内的多行 rows 和分页总数，跨页重新拉取需要后续后端分页请求契约。
+  - Next step: 如需要 SQL 查询分析结果跨页重新请求真实后端页数据，另立任务为 QueryExecuteRequest/QueryContext 增加 pageNo/pageSize 契约并接入后端执行适配器。
+
 ### USER-CN-BI-V-CATALOG-HETU-REWRITE-20260523: BI_XXX_V catalog qualifier pre-rewrite
 
 - Status: done

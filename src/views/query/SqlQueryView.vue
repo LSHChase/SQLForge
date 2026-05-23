@@ -15,6 +15,11 @@ import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
 import { sqlTemplates, sqlLibrary } from './sqlTemplates'
+import {
+  DEFAULT_QUERY_RESULT_PAGE_SIZE,
+  normalizeQueryResultPage,
+  resolveVisibleQueryRows
+} from './queryResultPage.mjs'
 import { useQueryParameters } from './useQueryParameters'
 import { useQueryHistory } from './useQueryHistory'
 
@@ -53,6 +58,10 @@ const activeExplorerTab = ref('objects')
 const activeResultTab = ref('rows')
 const running = ref(false)
 const result = ref(null)
+const resultPagination = reactive({
+  pageNo: 1,
+  pageSize: DEFAULT_QUERY_RESULT_PAGE_SIZE
+})
 const errorMessage = ref('')
 const queueStatsBefore = ref(null)
 const queueStatsAfter = ref(null)
@@ -62,11 +71,19 @@ const showBoundPreviewDrawer = ref(false)
 const showGovernanceDrawer = ref(false)
 const showExplainDialog = ref(false)
 
-const previewRows = computed(() => result.value?.rows || [])
+const resultPage = computed(() => normalizeQueryResultPage(result.value, resultPagination.pageSize))
+const previewRows = computed(() => resolveVisibleQueryRows(resultPage.value, resultPagination))
 const resultColumns = computed(() => {
-  const firstRow = previewRows.value[0]
-  return firstRow ? Object.keys(firstRow) : []
+  const columns = new Set()
+  for (const row of previewRows.value) {
+    for (const column of Object.keys(row || {})) {
+      columns.add(column)
+    }
+  }
+  return Array.from(columns)
 })
+const resultPaginationDisabled = computed(() => resultPage.value.remotePaged)
+const resultPaginationVisible = computed(() => resultPage.value.totalCount > resultPagination.pageSize)
 const selectedDatasource = computed(() => {
   for (const group of datasourceTree.value) {
     for (const item of group.children || []) {
@@ -110,7 +127,7 @@ const queryHeroMetrics = computed(() => [
   {
     key: 'resultRows',
     label: t('sqlQuery.metrics.resultRows'),
-    value: previewRows.value.length,
+    value: resultPage.value.totalCount,
     trend: result.value?.status || t('sqlQuery.metrics.pending'),
     detail: t('sqlQuery.metrics.resultRowsDetail'),
     tone: previewRows.value.length > 0 ? 'success' : 'neutral'
@@ -289,6 +306,22 @@ const resetEvidence = () => {
   queueStatsBefore.value = null
   queueStatsAfter.value = null
   activeResultTab.value = 'rows'
+  resultPagination.pageNo = 1
+  resultPagination.pageSize = DEFAULT_QUERY_RESULT_PAGE_SIZE
+}
+
+const syncResultPagination = () => {
+  resultPagination.pageNo = resultPage.value.pageNo || 1
+  resultPagination.pageSize = resultPage.value.pageSize || DEFAULT_QUERY_RESULT_PAGE_SIZE
+}
+
+const handleResultPageChange = pageNo => {
+  resultPagination.pageNo = Number(pageNo || 1)
+}
+
+const handleResultPageSizeChange = pageSize => {
+  resultPagination.pageSize = Number(pageSize || DEFAULT_QUERY_RESULT_PAGE_SIZE)
+  resultPagination.pageNo = 1
 }
 
 const runQuery = async scenario => {
@@ -317,6 +350,7 @@ const runQuery = async scenario => {
             }
           : undefined
     })
+    syncResultPagination()
 
     recordExecution(
       result.value?.sqlFingerprint || selectedDatasource.value.label,
@@ -628,7 +662,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
       <el-tabs v-model="activeResultTab">
         <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text065')" name="rows">
           <div v-if="previewRows.length" class="table-shell">
-            <el-table :data="previewRows" border>
+            <el-table :data="previewRows" border data-testid="query-result-table">
               <el-table-column
                 v-for="column in resultColumns"
                 :key="column"
@@ -637,6 +671,24 @@ const formatJson = value => JSON.stringify(value, null, 2)
                 min-width="150"
               />
             </el-table>
+            <div class="table-footer">
+              <div class="footer-status">{{ result?.status || '-' }}</div>
+              <div class="pagination-cluster">
+                <el-pagination
+                  v-if="resultPaginationVisible"
+                  v-model:current-page="resultPagination.pageNo"
+                  background
+                  data-testid="query-result-pagination"
+                  layout="total, sizes, prev, pager, next"
+                  :disabled="resultPaginationDisabled"
+                  :page-sizes="[10, 25, 50, 100]"
+                  :page-size="resultPagination.pageSize"
+                  :total="resultPage.totalCount"
+                  @current-change="handleResultPageChange"
+                  @size-change="handleResultPageSizeChange"
+                />
+              </div>
+            </div>
           </div>
           <p v-else class="empty-copy">{{ t('inline.viewsQuerySqlQueryView.text066') }}</p>
         </el-tab-pane>
@@ -1021,6 +1073,25 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
 .table-shell {
   overflow: auto;
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.footer-status {
+  color: var(--sqlforge-text-secondary);
+  font-size: var(--sqlforge-text-meta);
+}
+
+.pagination-cluster {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .detail-grid {
