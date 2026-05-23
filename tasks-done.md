@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-TEST01-RUNTIME-REWRITE-E2E-20260522: 用 docs/test01.sql 验证推荐激活与运行时模板改写命中
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `Validate docs test01 runtime rewrite variants`
+- Priority: 1
+- Depends on: N/A
+- Scope: 生成 docs/test01.sql 推荐改写并激活，验证原 SQL、替换参数 SQL、增加条件 SQL 的单条执行改写命中和耗时
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-TEST01-RUNTIME-REWRITE-E2E-20260522`
+- Progress log:
+  - 2026-05-22: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 使用 docs/test01.sql 生成推荐改写、创建改写记录、审核并激活 runtime binding，验证原 SQL、替换参数 SQL、增加条件 SQL 的单条执行均命中推荐并成功改写，记录耗时指标。
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ProductionRewriteClosedLoopEndToEndTest#shouldGenerateActivateAndApplyDocsTest01RuntimeRewriteVariantsWithTiming -Dsurefire.failIfNoSpecifiedTests=false test；python3 scripts/foreman.py validate USER-CN-TEST01-RUNTIME-REWRITE-E2E-20260522 --include-task-audit --extra-command <same maven command>；Surefire 输出 TEST01_RUNTIME_REWRITE_METRICS。
+  - Residual risk: 本轮为 repo-closed in-memory/mocked 执行验证，不包含真实 Hetu/MRS 外部环境扫描量和 P99 留证；外部环境证据仍归 HARN-016 / INBOX-002。
+  - Next step: 如需真实环境证据，按 HARN-016 在 Win10 Hetu/MRS 测试环境执行 smoke 并归档外部返回日志。
+
 ### USER-CN-VERIFY-PERSISTENCE-DDL-MYSQL-20260523: 验证持久化 DDL 可在本地 MySQL 执行
 
 - Status: done
