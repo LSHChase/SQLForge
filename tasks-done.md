@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BI-V-CATALOG-HETU-REWRITE-20260523: BI_XXX_V catalog qualifier pre-rewrite
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `USER-CN-BI-V-CATALOG-HETU-REWRITE-20260523 implement BI catalog qualifier pre-rewrite`
+- Priority: 1
+- Depends on: N/A
+- Scope: sqlforge-shared,query-execution,sql-optimization,docs
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BI-V-CATALOG-HETU-REWRITE-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 新增 Java 8u112 兼容的 BI_XXX_V 到 BI_XXX_HETU SQL 前处理工具；接入 shared fingerprint、JDBC Agent、query-execution 执行/只读校验/runtime binding/缓存加速绑定，以及 sql-optimization 结构解析、推荐和改写判断；历史主 SQL 保留原文，actual/bound SQL 使用 effective SQL；补充文档和 raw requirement 归档。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112；mvn -B -pl sqlforge-shared -Dtest=SqlCatalogQualifierRewriteUtilsTest,SqlFingerprintUtilsTest,SqlForgeJdbcAgentTest -Dsurefire.failIfNoSpecifiedTests=false test passed；mvn -B -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test passed；mvn -B -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test passed；git diff --check passed；python3 scripts/foreman.py validate USER-CN-BI-V-CATALOG-HETU-REWRITE-20260523 passed；python3 scripts/task_audit.py --check --phase pre-closeout passed。
+  - Residual risk: 未在真实 Hetu 集群执行 BI_XXX_V 生产 SQL；本任务完成仓库内词法前处理与回归覆盖，真实 catalog 权限、数据源绑定和外部运行时差异仍需环境窗口验证。
+  - Next step: 外部 Hetu/MRS 环境有窗口时，用真实 BI_XXX_V 报表 SQL 走 query-execution 与 sql-optimization smoke，并留存 actualSql、boundSql、parse history 与 runtime binding 证据。
+
 ### USER-CN-CONFIG-COMMENTS-ZH-20260523: 为配置文件配置项补充中文注释
 
 - Status: done

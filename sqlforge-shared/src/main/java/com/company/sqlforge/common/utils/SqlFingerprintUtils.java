@@ -27,7 +27,8 @@ public final class SqlFingerprintUtils {
         if (sql == null || sql.trim().isEmpty()) {
             return "";
         }
-        String withoutComments = stripComments(sql);
+        String rewrittenSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(sql);
+        String withoutComments = stripComments(rewrittenSql);
         String parameterized = parameterizeLiterals(withoutComments);
         String normalized = parameterized.trim().replaceAll("\\s+", " ").toLowerCase();
         while (normalized.endsWith(";")) {

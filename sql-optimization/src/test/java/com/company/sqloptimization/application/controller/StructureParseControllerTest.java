@@ -17,6 +17,7 @@ import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.governance.GovernanceDbViewDependencyRef;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.SqlOptimizationApplication;
 import com.company.sqloptimization.SqlOptimizationTestPersistenceConfiguration;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
@@ -106,6 +107,30 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.sourceType").value("STRUCTURE_PARSE"))
             .andExpect(jsonPath("$.historyType").value("SQL_PARSE_RECORD"));
         verify(governanceCapabilityClient).resolveDbView(any());
+    }
+
+    @Test
+    void shouldParseBiViewCatalogUsingEffectiveHetuQualifierButKeepFunctionalFingerprint() throws Exception {
+        String rawSql = "SELECT order_id FROM BI_SALES_V.orders WHERE dt = DATE '2026-04-01'";
+        String effectiveSql = "SELECT order_id FROM BI_SALES_HETU.orders WHERE dt = DATE '2026-04-01'";
+
+        MvcResult parseResult = mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sqlText\":\"" + rawSql + "\","
+                    + "\"datasourceCode\":\"hetu_main\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
+            .andExpect(jsonPath("$.sqlFingerprint").value(SqlFingerprintUtils.fingerprint(effectiveSql)))
+            .andExpect(jsonPath("$.advancedStructureProfile.tables[0].tableName").value("BI_SALES_HETU.orders"))
+            .andExpect(jsonPath("$.logicalObjectHits[0].objectKey").value("TABLE:bi_sales_hetu.orders"))
+            .andReturn();
+
+        String historyId = JsonTestUtils.readValue(parseResult.getResponse().getContentAsString(), "$.historyId");
+        mockMvc.perform(addProtectedHeaders(get("/api/sql-optimization/parse-history/{historyId}", historyId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sqlText").value(rawSql))
+            .andExpect(jsonPath("$.sqlFingerprint").value(SqlFingerprintUtils.fingerprint(effectiveSql)))
+            .andExpect(jsonPath("$.logicalObjectKeys[0]").value("TABLE:bi_sales_hetu.orders"));
     }
 
     @Test

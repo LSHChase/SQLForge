@@ -79,6 +79,20 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldAnalyzeBiViewCatalogAsHetuCatalogQualifier() {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
+            "SELECT * FROM BI_SALES_V.orders WHERE dt = DATE '2026-04-01'",
+            DataSourceTypeEnum.HETU
+        );
+
+        assertEquals(
+            "SELECT * FROM BI_SALES_HETU.orders WHERE dt = DATE '2026-04-01'",
+            profile.getNormalizedSql()
+        );
+        assertTrue(profile.getTables().contains("BI_SALES_HETU.orders"));
+    }
+
+    @Test
     void shouldRewriteSqlWithSafeAstRules() {
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(
             "SELECT COUNT(1), status FROM orders WHERE tenant_id = 1 AND tenant_id = 1 "

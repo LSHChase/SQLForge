@@ -43,6 +43,17 @@ class SqlFingerprintUtilsTest {
     }
 
     @Test
+    void shouldFingerprintBiViewAndHetuCatalogQualifiersTogether() {
+        String viewCatalog = "SELECT * FROM BI_SALES_V.orders WHERE tenant_id = 1";
+        String hetuCatalog = "select * from BI_SALES_HETU.orders where tenant_id = 2";
+
+        assertEquals(
+            SqlFingerprintUtils.fingerprint(viewCatalog),
+            SqlFingerprintUtils.fingerprint(hetuCatalog)
+        );
+    }
+
+    @Test
     void shouldKeepDifferentQueryShapesApart() {
         String byTenant = "SELECT * FROM orders WHERE tenant_id = 1";
         String byStatus = "SELECT * FROM orders WHERE status = 'PAID'";

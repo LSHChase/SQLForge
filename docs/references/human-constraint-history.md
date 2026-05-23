@@ -316,3 +316,17 @@
   - `scripts/check-developer-copy-language.mjs`
   - `scripts/foreman.py`
   - `scripts/lint-repository-knowledge.js`
+
+## 2026-05-23T00:00:00-05:00
+
+- 事件：人类要求在 SQL 进入执行、解析、推荐和改写判断前，对 `BI_XXX_V.` 库名前缀统一替换为 `BI_XXX_HETU.`。
+- 约束：
+  - 该规则是 SQL 前处理兼容规则，不是 runtime rewrite；不得因此把 `rewriteApplied` 标记为 `true`。
+  - 匹配大小写不敏感，并尽量保留原 `BI_` 前缀、`XXX` 与 `_V` 的大小写风格。
+  - 单引号字符串、`--` 行注释和 `/* ... */` 块注释中的文本不得替换。
+  - 历史、推荐、改写记录中的主 SQL 文本继续保存用户原始 SQL；实际解析、指纹、runtime binding、缓存/加速绑定和执行链路使用替换后的功能性 SQL。
+- 落点：
+  - `sqlforge-shared`
+  - `query-execution`
+  - `sql-optimization`
+  - `docs/product/sql-governance-platform-implementation-spec.md`

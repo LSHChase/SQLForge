@@ -3,6 +3,7 @@ package com.company.sqloptimization.application.service;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqlforge.common.utils.SqlCatalogQualifierRewriteUtils;
 import com.company.sqloptimization.config.RewriteProductionGateProperties;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
@@ -265,12 +266,13 @@ public class SqlOptimizationPipelineService {
                 "请提交原始 SQL 文本，以便执行解析、改写和加速分析。"
             );
         }
+        String effectiveSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(normalizedSql);
         SqlParserMode resolvedMode = (parserMode == null ? resolveDefaultParserMode() : parserMode).structureMode();
         SqlStructureParserAdapter adapter = parserAdapters.get(resolvedMode);
         if (adapter == null) {
             adapter = parserAdapters.get(SqlParserMode.JSQLPARSER);
         }
-        return adapter.analyze(normalizedSql, datasourceType);
+        return adapter.analyze(effectiveSql, datasourceType);
     }
 
     private SqlParserMode resolveDefaultParserMode() {

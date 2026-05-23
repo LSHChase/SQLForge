@@ -34,6 +34,7 @@ import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
+import com.company.sqlforge.common.utils.SqlCatalogQualifierRewriteUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -228,10 +229,11 @@ public class QueryExecutionApplicationService {
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
         long start = System.currentTimeMillis();
         request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
-        String originalSql = normalizeSql(request.getSqlText());
-        String sqlFingerprint = SqlFingerprintUtils.fingerprint(originalSql);
+        String rawSql = normalizeSql(request.getSqlText());
+        String effectiveSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(rawSql);
+        String sqlFingerprint = SqlFingerprintUtils.fingerprint(effectiveSql);
         RuntimeRewriteResolution runtimeRewriteResolution =
-            RuntimeRewriteResolution.noRewrite(originalSql, sqlFingerprint);
+            RuntimeRewriteResolution.noRewrite(rawSql, effectiveSql, sqlFingerprint);
         logStart(request, sqlFingerprint);
         try {
             DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request);
@@ -243,7 +245,7 @@ public class QueryExecutionApplicationService {
                 OPERATION
             );
 
-            ReadonlyQueryAssessment readonlyQueryAssessment = ReadonlyQueryGuard.assess(originalSql);
+            ReadonlyQueryAssessment readonlyQueryAssessment = ReadonlyQueryGuard.assess(effectiveSql);
             if (!readonlyQueryAssessment.isReadonly()) {
                 logStateChange(
                     sqlFingerprint,
@@ -259,7 +261,7 @@ public class QueryExecutionApplicationService {
                     buildFailureResponse(
                         QueryExecutionStatus.FAILED,
                         resolveTargetEngine(primaryEngine, request.getDatasourceType()),
-                        originalSql,
+                        runtimeRewriteResolution,
                         0L,
                         0L,
                         Collections.<QueryRetryStepVO>emptyList(),
@@ -269,8 +271,7 @@ public class QueryExecutionApplicationService {
                             readonlyQueryAssessment.getSuggestedAction(),
                             false
                         ),
-                        sqlFingerprint,
-                        runtimeRewriteResolution
+                        sqlFingerprint
                     ),
                     request,
                     start
@@ -292,7 +293,7 @@ public class QueryExecutionApplicationService {
                     buildFailureResponse(
                         QueryExecutionStatus.FAILED,
                         request.getDatasourceType().name(),
-                        originalSql,
+                        runtimeRewriteResolution,
                         0L,
                         0L,
                         Collections.<QueryRetryStepVO>emptyList(),
@@ -302,8 +303,7 @@ public class QueryExecutionApplicationService {
                             "当前同步基线请使用 TRINO、HETU、HIVE 或 AUTO。",
                             true
                         ),
-                        sqlFingerprint,
-                        runtimeRewriteResolution
+                        sqlFingerprint
                     ),
                     request,
                     start
@@ -312,7 +312,8 @@ public class QueryExecutionApplicationService {
 
             runtimeRewriteResolution = resolveRuntimeRewrite(
                 request,
-                originalSql,
+                rawSql,
+                effectiveSql,
                 sqlFingerprint
             );
             String actualSql = runtimeRewriteResolution.getActualSql();
@@ -407,7 +408,8 @@ public class QueryExecutionApplicationService {
             QueryExecuteRequest executionRequest = normalizeAccelerationRequest(
                 request,
                 activatedAccelerationBinding != null,
-                primaryEngine
+                primaryEngine,
+                actualSql
             );
             QueryExecutionStep primaryStep;
             try {
@@ -1165,48 +1167,55 @@ public class QueryExecutionApplicationService {
     }
 
     private RuntimeRewriteResolution resolveRuntimeRewrite(QueryExecuteRequest request,
-                                                           String originalSql,
-                                                           String originalSqlFingerprint) {
+                                                           String rawSql,
+                                                           String effectiveSql,
+                                                           String effectiveSqlFingerprint) {
         if (queryExecutionRuntimeRewriteBindingService == null) {
-            return RuntimeRewriteResolution.noRewrite(originalSql, originalSqlFingerprint);
+            return RuntimeRewriteResolution.noRewrite(rawSql, effectiveSql, effectiveSqlFingerprint);
         }
         try {
             RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
             resolveRequest.setTenantId(request.getTenantId());
-            resolveRequest.setSqlFingerprint(originalSqlFingerprint);
-            resolveRequest.setSqlText(originalSql);
-            resolveRequest.setDatasourceCode(resolveRuntimeRewriteDatasourceEvidence(request, originalSql));
+            resolveRequest.setSqlFingerprint(effectiveSqlFingerprint);
+            resolveRequest.setSqlText(effectiveSql);
+            resolveRequest.setDatasourceCode(resolveRuntimeRewriteDatasourceEvidence(request, effectiveSql));
             RuntimeRewriteBindingResponse response =
                 queryExecutionRuntimeRewriteBindingService.resolveActive(resolveRequest);
             if (response == null || !response.isActive()) {
                 return RuntimeRewriteResolution.inactive(
-                    originalSql,
-                    originalSqlFingerprint,
+                    rawSql,
+                    effectiveSql,
+                    effectiveSqlFingerprint,
                     response == null ? "MISSING" : response.getStatus(),
                     response == null ? null : response.getRuntimeSummary()
                 );
             }
             if (!request.getTenantId().equals(response.getTenantId())) {
                 return RuntimeRewriteResolution.fallback(
-                    originalSql,
-                    originalSqlFingerprint,
+                    rawSql,
+                    effectiveSql,
+                    effectiveSqlFingerprint,
                     response,
                     "TENANT_MISMATCH"
                 );
             }
-            if (!originalSqlFingerprint.equals(response.getSqlFingerprint())) {
+            if (!effectiveSqlFingerprint.equals(response.getSqlFingerprint())) {
                 return RuntimeRewriteResolution.fallback(
-                    originalSql,
-                    originalSqlFingerprint,
+                    rawSql,
+                    effectiveSql,
+                    effectiveSqlFingerprint,
                     response,
                     "SQL_FINGERPRINT_MISMATCH"
                 );
             }
-            String recommendedSql = normalizeSql(response.getRecommendedSqlText());
+            String recommendedSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(
+                normalizeSql(response.getRecommendedSqlText())
+            );
             if (!StringUtils.hasText(recommendedSql)) {
                 return RuntimeRewriteResolution.fallback(
-                    originalSql,
-                    originalSqlFingerprint,
+                    rawSql,
+                    effectiveSql,
+                    effectiveSqlFingerprint,
                     response,
                     "RECOMMENDED_SQL_EMPTY"
                 );
@@ -1214,15 +1223,16 @@ public class QueryExecutionApplicationService {
             ReadonlyQueryAssessment recommendedAssessment = ReadonlyQueryGuard.assess(recommendedSql);
             if (!recommendedAssessment.isReadonly()) {
                 return RuntimeRewriteResolution.fallback(
-                    originalSql,
-                    originalSqlFingerprint,
+                    rawSql,
+                    effectiveSql,
+                    effectiveSqlFingerprint,
                     response,
                     "RECOMMENDED_SQL_NOT_READONLY"
                 );
             }
             return RuntimeRewriteResolution.applied(
-                originalSql,
-                originalSqlFingerprint,
+                rawSql,
+                effectiveSqlFingerprint,
                 recommendedSql,
                 response
             );
@@ -1230,13 +1240,14 @@ public class QueryExecutionApplicationService {
             LOGGER.warn(
                 "操作日志 operation={} entity={} tenantId={} status=RUNTIME_REWRITE_FALLBACK reason={}",
                 OPERATION,
-                originalSqlFingerprint,
+                effectiveSqlFingerprint,
                 request.getTenantId(),
                 ex.getMessage()
             );
             return RuntimeRewriteResolution.fallback(
-                originalSql,
-                originalSqlFingerprint,
+                rawSql,
+                effectiveSql,
+                effectiveSqlFingerprint,
                 null,
                 "RUNTIME_REWRITE_RESOLVE_FAILED"
             );
@@ -1895,9 +1906,10 @@ public class QueryExecutionApplicationService {
 
     private QueryExecuteRequest normalizeAccelerationRequest(QueryExecuteRequest request,
                                                             boolean accelerationAllowed,
-                                                            DataSourceTypeEnum primaryEngine) {
+                                                            DataSourceTypeEnum primaryEngine,
+                                                            String actualSql) {
         QueryExecuteRequest normalized = new QueryExecuteRequest();
-        normalized.setSqlText(request.getSqlText());
+        normalized.setSqlText(actualSql);
         normalized.setTenantId(request.getTenantId());
         normalized.setDatasourceType(primaryEngine == null ? request.getDatasourceType() : primaryEngine);
         normalized.setDatasourceCode(request.getDatasourceCode());
@@ -1982,11 +1994,15 @@ public class QueryExecutionApplicationService {
         }
 
         static RuntimeRewriteResolution noRewrite(String originalSql, String originalSqlFingerprint) {
+            return noRewrite(originalSql, originalSql, originalSqlFingerprint);
+        }
+
+        static RuntimeRewriteResolution noRewrite(String originalSql, String actualSql, String originalSqlFingerprint) {
             return new RuntimeRewriteResolution(
                 originalSql,
                 originalSqlFingerprint,
-                originalSql,
-                originalSqlFingerprint,
+                actualSql,
+                SqlFingerprintUtils.fingerprint(actualSql),
                 false,
                 "NOT_LOOKED_UP",
                 null,
@@ -1999,14 +2015,15 @@ public class QueryExecutionApplicationService {
         }
 
         static RuntimeRewriteResolution inactive(String originalSql,
+                                                 String actualSql,
                                                  String originalSqlFingerprint,
                                                  String runtimeStatus,
                                                  String summary) {
             return new RuntimeRewriteResolution(
                 originalSql,
                 originalSqlFingerprint,
-                originalSql,
-                originalSqlFingerprint,
+                actualSql,
+                SqlFingerprintUtils.fingerprint(actualSql),
                 false,
                 StringUtils.hasText(runtimeStatus) ? runtimeStatus : "MISSING",
                 null,
@@ -2042,11 +2059,19 @@ public class QueryExecutionApplicationService {
                                                  String originalSqlFingerprint,
                                                  RuntimeRewriteBindingResponse response,
                                                  String reason) {
+            return fallback(originalSql, originalSql, originalSqlFingerprint, response, reason);
+        }
+
+        static RuntimeRewriteResolution fallback(String originalSql,
+                                                 String actualSql,
+                                                 String originalSqlFingerprint,
+                                                 RuntimeRewriteBindingResponse response,
+                                                 String reason) {
             return new RuntimeRewriteResolution(
                 originalSql,
                 originalSqlFingerprint,
-                originalSql,
-                originalSqlFingerprint,
+                actualSql,
+                SqlFingerprintUtils.fingerprint(actualSql),
                 false,
                 response == null ? "LOOKUP_FAILED" : response.getStatus(),
                 response == null ? null : response.getRewriteRecordId(),

@@ -70,6 +70,101 @@ class SqlForgeJdbcAgentTest {
     }
 
     @Test
+    void shouldRewriteBiViewCatalogBeforeObserveDirectExecution() {
+        SqlForgeAccessAuditClient auditClient = auditClient();
+        RestTemplate auditRestTemplate = (RestTemplate) ReflectionTestUtils.getField(auditClient, "restTemplate");
+        MockRestServiceServer auditServer = MockRestServiceServer.bindTo(auditRestTemplate).build();
+        auditServer.expect(requestTo("http://sqlforge.test/api/governance/internal/audit/write"))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        JdbcAgentProperties properties = baseProperties();
+        properties.setAgentMode(JdbcAgentMode.OBSERVE);
+        SqlForgeJdbcAgent agent = new SqlForgeJdbcAgent(
+            properties,
+            queryExecutionClient(),
+            auditClient,
+            new NoopJdbcAgentRewriteRuleProvider()
+        );
+        JdbcAgentSqlRequest request = sampleRequest(
+            "SELECT * FROM BI_SALES_V.orders WHERE query_date = '2026-04-26'"
+        );
+        request.setTemplateSql("SELECT * FROM BI_SALES_V.orders WHERE query_date = ?");
+        request.setBoundSqlText("SELECT * FROM BI_SALES_V.orders WHERE query_date = '2026-04-26'");
+
+        JdbcAgentExecutionResult<String> result = agent.execute(
+            requestContext(AccessChannel.JDBC_AGENT),
+            request,
+            new JdbcAgentDirectExecutor<String>() {
+                @Override
+                public JdbcAgentDirectResult<String> execute(JdbcAgentDirectExecution execution) {
+                    assertFalse(execution.isRewritten());
+                    assertEquals(
+                        "SELECT * FROM BI_SALES_HETU.orders WHERE query_date = '2026-04-26'",
+                        execution.getSqlText()
+                    );
+                    return JdbcAgentDirectResult.success("catalog-rewritten-ok", Integer.valueOf(1));
+                }
+            }
+        );
+
+        assertEquals("catalog-rewritten-ok", result.getDirectResult().getPayload());
+        assertEquals(
+            "SELECT * FROM BI_SALES_V.orders WHERE query_date = '2026-04-26'",
+            result.getMetadata().getObservation().getOriginalSql()
+        );
+        assertEquals(
+            "SELECT * FROM BI_SALES_HETU.orders WHERE query_date = '2026-04-26'",
+            result.getMetadata().getObservation().getBoundSqlText()
+        );
+        auditServer.verify();
+    }
+
+    @Test
+    void shouldRewriteBiViewCatalogBeforeGovernedExecuteRequest() {
+        SqlForgeQueryExecutionClient queryClient = queryExecutionClient();
+        RestTemplate queryRestTemplate = (RestTemplate) ReflectionTestUtils.getField(queryClient, "restTemplate");
+        MockRestServiceServer queryServer = MockRestServiceServer.bindTo(queryRestTemplate).build();
+        queryServer.expect(requestTo("http://sqlforge.test/api/query-execution/queries/execute"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("BI_SALES_HETU.orders")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("BI_SALES_V.orders"))))
+            .andRespond(withSuccess(
+                "{\"status\":\"SUCCESS\",\"rows\":[],\"metadata\":{\"targetEngine\":\"HETU\","
+                    + "\"actualSql\":\"SELECT * FROM BI_SALES_HETU.orders\",\"elapsedMs\":1,"
+                    + "\"scannedRows\":0,\"cacheHit\":false,\"accelerationApplied\":false,"
+                    + "\"executionMode\":\"JDBC\",\"rowCount\":0},\"degraded\":false,"
+                    + "\"sqlFingerprint\":\"fp-001\"}",
+                MediaType.APPLICATION_JSON
+            ));
+        SqlForgeAccessAuditClient auditClient = auditClient();
+        RestTemplate auditRestTemplate = (RestTemplate) ReflectionTestUtils.getField(auditClient, "restTemplate");
+        MockRestServiceServer auditServer = MockRestServiceServer.bindTo(auditRestTemplate).build();
+        auditServer.expect(requestTo("http://sqlforge.test/api/governance/internal/audit/write"))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        JdbcAgentProperties properties = baseProperties();
+        properties.setAgentMode(JdbcAgentMode.GOVERNED_EXECUTE);
+        SqlForgeJdbcAgent agent = new SqlForgeJdbcAgent(
+            properties,
+            queryClient,
+            auditClient,
+            new NoopJdbcAgentRewriteRuleProvider()
+        );
+        JdbcAgentSqlRequest request = sampleRequest("SELECT * FROM BI_SALES_V.orders");
+        request.setBoundSqlText("SELECT * FROM BI_SALES_V.orders");
+
+        JdbcAgentExecutionResult<String> result = agent.execute(
+            requestContext(AccessChannel.JDBC_AGENT),
+            request,
+            null
+        );
+
+        assertEquals("GOVERNED_EXECUTE", result.getMetadata().getEffectiveMode());
+        queryServer.verify();
+        auditServer.verify();
+    }
+
+    @Test
     void shouldFallbackToDirectJdbcWhenGovernedExecuteFails() {
         SqlForgeQueryExecutionClient queryClient = queryExecutionClient();
         RestTemplate queryRestTemplate = (RestTemplate) ReflectionTestUtils.getField(queryClient, "restTemplate");
@@ -246,16 +341,20 @@ class SqlForgeJdbcAgentTest {
     }
 
     private JdbcAgentSqlRequest sampleRequest() {
-        JdbcAgentSqlRequest request = new JdbcAgentSqlRequest();
-        request.setTenantId("tenant-a");
-        request.setDatasourceType(DataSourceTypeEnum.HETU);
-        request.setDatasourceCode("hetu_main");
-        request.setSqlText(
+        return sampleRequest(
             "--report_code=RPT_SALES_DAILY\n"
                 + "--stage=PROD\n"
                 + "--biz_date=2026-04-25\n"
                 + "SELECT * FROM sales WHERE query_date = '2026-04-26'"
         );
+    }
+
+    private JdbcAgentSqlRequest sampleRequest(String sqlText) {
+        JdbcAgentSqlRequest request = new JdbcAgentSqlRequest();
+        request.setTenantId("tenant-a");
+        request.setDatasourceType(DataSourceTypeEnum.HETU);
+        request.setDatasourceCode("hetu_main");
+        request.setSqlText(sqlText);
         request.setTemplateSql("SELECT * FROM sales WHERE query_date = ?");
         request.setBoundSqlText("SELECT * FROM sales WHERE query_date = '2026-04-26'");
         Map<String, Object> params = new LinkedHashMap<String, Object>();

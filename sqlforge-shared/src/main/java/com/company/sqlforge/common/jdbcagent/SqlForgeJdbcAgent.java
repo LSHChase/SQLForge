@@ -10,6 +10,7 @@ import com.company.sqlforge.common.openaccess.SqlForgeAccessAuditClient;
 import com.company.sqlforge.common.openaccess.SqlForgeQueryExecutionClient;
 import com.company.sqlforge.common.openaccess.SqlForgeQueryRequest;
 import com.company.sqlforge.common.openaccess.SqlForgeQueryResponse;
+import com.company.sqlforge.common.utils.SqlCatalogQualifierRewriteUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -119,19 +120,23 @@ public class SqlForgeJdbcAgent {
         String templateSql = StringUtils.hasText(request == null ? null : request.getTemplateSql())
             ? request.getTemplateSql()
             : originalSql;
+        String effectiveBoundSqlText = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(boundSqlText);
+        String effectiveTemplateSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(templateSql);
         Map<String, String> commentContext = JdbcAgentSqlCommentParser.parseLeadingComments(originalSql);
-        JdbcAgentQueryDateSummary queryDateSummary = extractQueryDateSummary(boundSqlText);
+        JdbcAgentQueryDateSummary queryDateSummary = extractQueryDateSummary(effectiveBoundSqlText);
         int parameterCount = request == null || request.getParameterSnapshot() == null ? 0 : request.getParameterSnapshot().size();
         return new JdbcAgentObservation(
             originalSql,
-            templateSql,
-            boundSqlText,
-            SqlFingerprintUtils.fingerprint(boundSqlText),
+            effectiveTemplateSql,
+            effectiveBoundSqlText,
+            SqlFingerprintUtils.fingerprint(effectiveBoundSqlText),
             resolveObservationTenantId(request, requestContext),
             request == null ? null : request.getDatasourceCode(),
             commentContext,
             queryDateSummary,
-            StringUtils.hasText(templateSql) && StringUtils.hasText(boundSqlText) && !templateSql.equals(boundSqlText),
+            StringUtils.hasText(effectiveTemplateSql)
+                && StringUtils.hasText(effectiveBoundSqlText)
+                && !effectiveTemplateSql.equals(effectiveBoundSqlText),
             parameterCount
         );
     }
@@ -215,7 +220,7 @@ public class SqlForgeJdbcAgent {
         metadata.setEffectiveMode(JdbcAgentMode.LOCAL_REWRITE_DIRECT_JDBC.name());
         JdbcAgentRewriteDecision rewriteDecision = resolveRewriteDecision(observation, metadata);
         String effectiveSql = rewriteDecision.isApplied() && StringUtils.hasText(rewriteDecision.getRewrittenSql())
-            ? rewriteDecision.getRewrittenSql()
+            ? SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(rewriteDecision.getRewrittenSql())
             : resolveExecutableSql(request);
         JdbcAgentDirectExecution execution = new JdbcAgentDirectExecution(
             request,
@@ -445,10 +450,13 @@ public class SqlForgeJdbcAgent {
     }
 
     private String resolveExecutableSql(JdbcAgentSqlRequest request) {
-        if (StringUtils.hasText(request.getBoundSqlText())) {
-            return request.getBoundSqlText();
+        String executableSql;
+        if (request != null && StringUtils.hasText(request.getBoundSqlText())) {
+            executableSql = request.getBoundSqlText();
+        } else {
+            executableSql = request == null ? null : request.getSqlText();
         }
-        return request.getSqlText();
+        return SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(executableSql);
     }
 
     private JdbcAgentQueryDateSummary extractQueryDateSummary(String sqlText) {

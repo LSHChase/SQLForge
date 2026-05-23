@@ -281,6 +281,43 @@ class QueryExecutionApplicationServiceTest {
     }
 
     @Test
+    void shouldResolveRuntimeRewriteBindingWithEffectiveBiViewCatalogAndKeepRawMetadata() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        when(rewriteBindingService.resolveActive(any())).thenReturn(missingRuntimeRewriteResponse());
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            newService(adapter, governanceCapabilityClient, rewriteBindingService);
+        String rawSql = "SELECT * FROM BI_SALES_V.orders WHERE dt = DATE '2026-04-01'";
+        String effectiveSql = "SELECT * FROM BI_SALES_HETU.orders WHERE dt = DATE '2026-04-01'";
+        String effectiveFingerprint = SqlFingerprintUtils.fingerprint(effectiveSql);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest(rawSql));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(effectiveSql, adapter.actualSql);
+        assertEquals(rawSql, response.getMetadata().getOriginalSql());
+        assertEquals(effectiveSql, response.getMetadata().getActualSql());
+        assertFalse(response.getMetadata().isRewriteApplied());
+        assertEquals(effectiveFingerprint, response.getSqlFingerprint());
+
+        ArgumentCaptor<RuntimeRewriteBindingResolveRequest> resolveCaptor =
+            ArgumentCaptor.forClass(RuntimeRewriteBindingResolveRequest.class);
+        verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
+        assertEquals(effectiveSql, resolveCaptor.getValue().getSqlText());
+        assertEquals(effectiveFingerprint, resolveCaptor.getValue().getSqlFingerprint());
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(historyCaptor.capture());
+        assertEquals(rawSql, historyCaptor.getValue().getSqlText());
+        assertEquals(effectiveSql, historyCaptor.getValue().getBoundSql());
+        assertEquals(Boolean.FALSE, historyCaptor.getValue().getRewriteApplied());
+    }
+
+    @Test
     void shouldPassDatasourceCodeAndResolvedEngineToExecutionAdapter() {
         setRequestContext("tenant-a");
         GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
@@ -735,6 +772,37 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(submittedSql, historyRequest.getSqlText());
         assertEquals("SELECT * FROM orders /* keep original comment */", historyRequest.getSqlTemplate());
         assertEquals("SELECT * FROM orders /* keep original comment */", historyRequest.getBoundSql());
+    }
+
+    @Test
+    void shouldRewriteBiViewCatalogBeforeExecutionAndPreserveRawHistorySql() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            new QueryExecutionApplicationService(adapter, governanceCapabilityClient);
+        String rawSql = "SELECT * FROM BI_SALES_V.orders WHERE dt = DATE '2026-04-01'";
+        String effectiveSql = "SELECT * FROM BI_SALES_HETU.orders WHERE dt = DATE '2026-04-01'";
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest(rawSql));
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(effectiveSql, adapter.actualSql);
+        assertEquals(effectiveSql, adapter.request.getSqlText());
+        assertEquals(rawSql, response.getMetadata().getOriginalSql());
+        assertEquals(effectiveSql, response.getMetadata().getActualSql());
+        assertFalse(response.getMetadata().isRewriteApplied());
+        assertEquals(SqlFingerprintUtils.fingerprint(effectiveSql), response.getSqlFingerprint());
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> captor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(captor.capture());
+        GovernanceQueryExecutionHistoryWriteRequest historyRequest = captor.getValue();
+        assertEquals(rawSql, historyRequest.getSqlText());
+        assertEquals(rawSql, historyRequest.getSqlTemplate());
+        assertEquals(effectiveSql, historyRequest.getBoundSql());
+        assertEquals(Boolean.FALSE, historyRequest.getRewriteApplied());
+        assertEquals(SqlFingerprintUtils.fingerprint(effectiveSql), historyRequest.getSqlFingerprint());
     }
 
     @Test
