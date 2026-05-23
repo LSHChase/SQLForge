@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   executeQuery,
   formatRuntimeError,
@@ -14,6 +16,9 @@ import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
 
 const { t } = useI18n()
+const router = useRouter()
+
+const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
 const datasourceTree = ref([])
 
@@ -190,7 +195,8 @@ const summaryRows = computed(() => {
     { label: t('inline.viewsQuerySqlQueryView.text014'), value: metadata.elapsedMs == null ? '-' : `${metadata.elapsedMs}ms` }
   ]
 })
-const structureRows = computed(() => {
+const lightweightAnalysisRows = computed(() => {
+  const lightweightParseSummary = result.value?.lightweightParseSummary || {}
   const sqlText = String(form.sqlText || '').toUpperCase()
   const riskTags = []
   if (sqlText.includes('JOIN')) {
@@ -203,10 +209,11 @@ const structureRows = computed(() => {
     riskTags.push('WINDOW')
   }
   return [
-    { label: t('inline.viewsQuerySqlQueryView.text015'), value: validationTips.value.length ? 'REVIEW' : 'VALID' },
-    { label: t('inline.viewsQuerySqlQueryView.text016'), value: sqlText.trim().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT' },
-    { label: t('inline.viewsQuerySqlQueryView.text017'), value: riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE' },
-    { label: t('inline.viewsQuerySqlQueryView.text018'), value: riskTags.length ? riskTags.join(', ') : 'NONE' }
+    { label: t('inline.viewsQuerySqlQueryView.text015'), value: lightweightParseSummary.syntaxStatus || (validationTips.value.length ? 'REVIEW' : 'VALID') },
+    { label: t('inline.viewsQuerySqlQueryView.text016'), value: lightweightParseSummary.sqlType || (sqlText.trim().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT') },
+    { label: t('inline.viewsQuerySqlQueryView.text017'), value: lightweightParseSummary.complexityLevel || (riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE') },
+    { label: t('inline.viewsQuerySqlQueryView.text018'), value: listText(lightweightParseSummary.riskTags || riskTags) },
+    { label: t('inline.viewsQuerySqlQueryView.text083'), value: result.value ? t('inline.viewsQuerySqlQueryView.text084') : t('inline.viewsQuerySqlQueryView.text085') }
   ]
 })
 const routingRows = computed(() => {
@@ -314,6 +321,35 @@ const loadLibrarySql = entry => {
 
 const formatSql = () => {
   form.sqlText = formatSqlText(form.sqlText)
+}
+
+const openDeepParseWorkbench = () => {
+  const seedKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const payload = {
+    tenantId: form.tenantId,
+    datasourceCode: form.datasourceCode,
+    sqlText: boundSqlPreview.value,
+    parserMode: 'JSQLPARSER_WITH_PLAN'
+  }
+  try {
+    window.sessionStorage?.setItem(`${DEEP_PARSE_SESSION_PREFIX}${seedKey}`, JSON.stringify(payload))
+  } catch {
+    // Continue with navigation even when browser storage is unavailable.
+  }
+  const routeQuery = {
+    source: 'queryAnalysis',
+    seedKey,
+    tenantId: form.tenantId,
+    datasourceCode: form.datasourceCode,
+    parserMode: payload.parserMode
+  }
+  if (boundSqlPreview.value.length <= 1600) {
+    routeQuery.sqlText = boundSqlPreview.value
+  }
+  router.push({
+    path: ROUTE_PATHS.acceleration,
+    query: routeQuery
+  })
 }
 
 const resetEvidence = () => {
@@ -611,6 +647,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           <div class="submit-row__helpers">
             <el-button text @click="showBoundPreviewDrawer = true">{{ t('inline.viewsQuerySqlQueryView.text059') }}</el-button>
             <el-button text @click="showGovernanceDrawer = true">{{ t('inline.viewsQuerySqlQueryView.text060') }}</el-button>
+            <el-button text data-testid="query-flow-open-deep-parse" @click="openDeepParseWorkbench">{{ t('inline.viewsQuerySqlQueryView.text086') }}</el-button>
           </div>
         </div>
       </section>
@@ -690,10 +727,10 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text068')" name="structure">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text068')" name="lightweight">
           <div class="detail-grid">
             <div
-              v-for="item in structureRows"
+              v-for="item in lightweightAnalysisRows"
               :key="item.label"
               class="detail-grid__item"
             >
@@ -703,7 +740,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('sqlQuery.resultTabs.access')" name="access">
+        <el-tab-pane :label="t('sqlQuery.resultTabs.access')" name="context">
           <div class="detail-grid">
             <div
               v-for="item in accessRows"

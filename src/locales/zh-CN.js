@@ -390,7 +390,7 @@ export default {
   },
   sqlQuery: {
     title: 'SQL 查询分析',
-    summary: '提供 SQL 输入、格式化、校验、执行、Explain、查询结果、解析摘要、推荐入口与历史关联。',
+    summary: '提供 SQL 输入、格式化、校验、执行、Explain、查询结果、轻量分析、深度解析入口与执行历史关联。',
     hero: {
       eyebrow: '查询分析工作台'
     },
@@ -407,7 +407,7 @@ export default {
       sessionOnly: '本次会话'
     },
     resultTabs: {
-      access: '数据访问解析',
+      access: '执行上下文',
       history: '历史关联'
     },
     access: {
@@ -417,7 +417,7 @@ export default {
       queryDateFields: 'query_date 字段',
       bindingMode: '绑定模式',
       logicalObjects: '命中对象',
-      parseStatus: '轻量解析状态',
+      parseStatus: '轻量分析状态',
       commentContext: '注释上下文'
     },
     historyAssociation: {
@@ -2476,11 +2476,11 @@ export default {
       text061: '当前执行摘要',
       text062: '最近执行',
       text063: '执行后会在这里保留最近 6 条记录。',
-      text064: '结果、摘要、结构解析、路由与推荐',
+      text064: '结果、摘要、轻量分析、路由与推荐',
       text065: '结果',
       text066: '默认先展示结果表，执行后可直接查看返回行。',
       text067: '执行摘要',
-      text068: '结构解析',
+      text068: '轻量分析',
       text069: '路由',
       text070: '推荐',
       text071: '注释模板',
@@ -2494,7 +2494,11 @@ export default {
       text079: '绑定后 SQL',
       text080: '复制',
       text081: '治理摘要',
-      text082: '补偿队列快照'
+      text082: '补偿队列快照',
+      text083: '分析来源',
+      text084: '执行响应轻量分析',
+      text085: '前端输入预校验',
+      text086: '发起深度解析'
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: '全部',

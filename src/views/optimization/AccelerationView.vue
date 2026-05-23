@@ -30,6 +30,7 @@ const router = useRouter()
 const { t, locale } = useI18n()
 
 const combinedTerminalStatuses = new Set(['ACCESS_SUCCEEDED', 'PARTIAL_SUCCEEDED', 'FAILED'])
+const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -1129,6 +1130,45 @@ function statisticsRedirectQuery() {
   }
 }
 
+function firstRouteValue(value) {
+  if (Array.isArray(value)) {
+    return value[0]
+  }
+  return value
+}
+
+function readDeepParseSeed() {
+  const seedKey = String(firstRouteValue(route.query.seedKey) || '').trim()
+  if (!seedKey) {
+    return {}
+  }
+  try {
+    return JSON.parse(window.sessionStorage?.getItem(`${DEEP_PARSE_SESSION_PREFIX}${seedKey}`) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function applyRouteSingleSqlContext() {
+  const seed = readDeepParseSeed()
+  const tenantId = String(seed.tenantId || firstRouteValue(route.query.tenantId) || '').trim()
+  const datasourceCode = String(seed.datasourceCode || firstRouteValue(route.query.datasourceCode) || '').trim()
+  const parserMode = String(seed.parserMode || firstRouteValue(route.query.parserMode) || '').trim()
+  const sqlText = String(seed.sqlText || firstRouteValue(route.query.sqlText) || '').trim()
+  if (tenantId) {
+    form.tenantId = tenantId
+  }
+  if (datasourceCode) {
+    form.datasourceCode = datasourceCode
+  }
+  if (parserMode) {
+    form.parserMode = parserMode
+  }
+  if (sqlText) {
+    form.sqlText = sqlText
+  }
+}
+
 async function loadGovernanceDatasources() {
   try {
     const response = await getGovernanceDatasources(form.tenantId, {
@@ -1161,11 +1201,13 @@ function applyRouteWorkspace() {
 watch(
   () => route.query,
   () => {
+    applyRouteSingleSqlContext()
     applyRouteWorkspace()
   }
 )
 
 onMounted(async () => {
+  applyRouteSingleSqlContext()
   parseBatchForm.tenantId = form.tenantId
   reportBatchForm.tenantId = form.tenantId
   retryForm.datasourceCode = form.datasourceCode

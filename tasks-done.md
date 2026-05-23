@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-PAGE-BOUNDARY-REFOCUS-20260523: SQL 查询分析与解析页面关系收敛
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `USER-CN-SQL-PAGE-BOUNDARY-REFOCUS-20260523: refocus SQL query analysis boundaries`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按人类确认调整 SQL 页面关系：SQL 执行能力继续融入 SQL 查询分析页面；SQL 查询分析展示执行结果、执行摘要、轻量分析、路由和历史关联，并提供深度解析入口但不把前端启发式结果冒充深度解析；SQL 解析页面专注结构解析、访问解析、解析历史、推荐和改写入口；SQL 执行历史与 SQL 解析记录继续分离。实现范围优先覆盖前端路由文案、页面标签、结果 tab 命名、入口跳转和相关契约测试，不改变后端 query-execution/sql-optimization 真值链路。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-PAGE-BOUNDARY-REFOCUS-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: SQL 执行继续融入 SQL 查询分析页面；查询页改为展示执行结果、执行摘要、轻量分析、执行上下文、路由、推荐和深度解析入口；SQL 解析页接收查询页上下文并继续专注深度解析；产品规格补充执行、轻量分析、深度解析和历史真值边界。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-SQL-PAGE-BOUNDARY-REFOCUS-20260523；python3 scripts/task_audit.py --check --phase pre-closeout；npm run lint；npm run build；npm run test:sql-ui-contract；npm run test:frontend-page-governance。
+  - Residual risk: 本次不改变 query-execution/sql-optimization 后端契约；真实 Hetu/MRS 环境验证仍由既有外部环境任务跟踪。
+  - Next step: 如后续需要，可补充端到端浏览器用例覆盖查询页发起深度解析并在 SQL 解析页自动带入 SQL。
+
 ### USER-CN-TEST01-RUNTIME-REWRITE-E2E-20260522: 用 docs/test01.sql 验证推荐激活与运行时模板改写命中
 
 - Status: done

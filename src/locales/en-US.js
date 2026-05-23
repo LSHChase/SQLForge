@@ -406,7 +406,7 @@ export default {
   },
   sqlQuery: {
     title: 'SQL Query Analysis',
-    summary: 'Enter, format, validate, execute, explain, inspect results, review parse summaries, open recommendations, and link history.',
+    summary: 'Enter, format, validate, execute, explain, inspect rows, review lightweight analysis, launch deep parse, and link execution history.',
     hero: {
       eyebrow: 'query analysis workbench'
     },
@@ -423,7 +423,7 @@ export default {
       sessionOnly: 'session'
     },
     resultTabs: {
-      access: 'Access parse',
+      access: 'Execution context',
       history: 'History links'
     },
     access: {
@@ -433,7 +433,7 @@ export default {
       queryDateFields: 'query_date fields',
       bindingMode: 'Binding mode',
       logicalObjects: 'Logical objects',
-      parseStatus: 'Lightweight parse status',
+      parseStatus: 'Lightweight analysis status',
       commentContext: 'Comment context'
     },
     historyAssociation: {
@@ -2492,11 +2492,11 @@ export default {
       text061: 'Current execution summary',
       text062: 'Recent runs',
       text063: 'The last six runs are listed here after execution.',
-      text064: 'Results, summary, structure, routing, and recommendation',
+      text064: 'Rows, summary, lightweight analysis, routing, and recommendation',
       text065: 'Rows',
       text066: 'The result table is the default landing state once execution completes.',
       text067: 'Execution summary',
-      text068: 'Structure parse',
+      text068: 'Lightweight analysis',
       text069: 'Routing',
       text070: 'Recommendation',
       text071: 'Annotation templates',
@@ -2510,7 +2510,11 @@ export default {
       text079: 'Bound SQL',
       text080: 'Copy',
       text081: 'Governance summary',
-      text082: 'Compensation queue snapshots'
+      text082: 'Compensation queue snapshots',
+      text083: 'Analysis source',
+      text084: 'Execution response lightweight analysis',
+      text085: 'Frontend input precheck',
+      text086: 'Launch deep parse'
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: 'All',
