@@ -30,7 +30,6 @@ import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -219,7 +218,6 @@ public class GovernanceAuditTrailService {
         String tenantId = firstNonBlank(RequestContext.getTenantId(), trimToNull(headerValue(request, RequestHeaderConstants.TENANT_ID)), UNKNOWN_VALUE);
         String requestId = firstNonBlank(RequestContext.getRequestId(), trimToNull(headerValue(request, RequestHeaderConstants.REQUEST_ID)), generateFallbackCorrelationId("request"));
         String traceId = firstNonBlank(RequestContext.getTraceId(), trimToNull(headerValue(request, RequestHeaderConstants.TRACE_ID)), generateFallbackCorrelationId("trace"));
-        String roleCodes = trimToNull(headerValue(request, RequestHeaderConstants.ROLE_CODES));
         String authSource = trimToNull(headerValue(request, RequestHeaderConstants.AUTH_SOURCE));
         AccessChannel accessChannel = resolveAccessChannel(trimToNull(headerValue(request, RequestHeaderConstants.ACCESS_CHANNEL)), authSource);
         String requestUri = request == null ? UNKNOWN_VALUE : request.getRequestURI();
@@ -229,7 +227,6 @@ public class GovernanceAuditTrailService {
         authPayload.put("method", request == null ? UNKNOWN_VALUE : request.getMethod());
         authPayload.put("accessChannel", accessChannel.name());
         authPayload.put("authSource", firstNonBlank(authSource, UNKNOWN_VALUE));
-        authPayload.put("roleCodes", firstNonBlank(roleCodes, UNKNOWN_VALUE));
         authPayload.put("sourceIp", resolveSourceIp(request));
         authPayload.put("userAgent", resolveUserAgent(request));
         if (error != null && StringUtils.hasText(error.getMessage())) {
@@ -430,7 +427,6 @@ public class GovernanceAuditTrailService {
         payload.put("authSource", accessAuditContract.getAuthSource());
         payload.put("tenantId", accessAuditContract.getTenantId());
         payload.put("userId", accessAuditContract.getUserId());
-        payload.put("roleCodes", accessAuditContract.getRoleCodes());
         payload.put("requestId", accessAuditContract.getRequestId());
         payload.put("traceId", accessAuditContract.getTraceId());
         payload.put("sourceIp", accessAuditContract.getSourceIp());
@@ -603,7 +599,6 @@ public class GovernanceAuditTrailService {
                 StringUtils.hasText(authSource) ? authSource : baseline.getAuthSource(),
                 baseline.getTenantId(),
                 baseline.getUserId(),
-                baseline.getRoleCodes() == null ? Collections.<String>emptyList() : baseline.getRoleCodes(),
                 baseline.getRequestId(),
                 baseline.getTraceId(),
                 baseline.getSourceIp(),

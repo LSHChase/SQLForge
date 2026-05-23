@@ -180,7 +180,7 @@ class MybatisSqlRewriteRecordRepositoryTest {
             .alertStatus(RewriteAlertStatus.NONE)
             .originalSqlText("SELECT COUNT(1) FROM orders")
             .recommendedSqlText("SELECT COUNT(*) FROM orders")
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T10:00:00Z"))
             .updatedAt(Instant.parse("2026-05-10T10:00:00Z"))
             .ruleChain(Collections.singletonList(rule))
@@ -242,7 +242,7 @@ class MybatisSqlRewriteRecordRepositoryTest {
         record.setAlertStatus("OPEN");
         record.setOriginalSqlText("SELECT * FROM orders");
         record.setRecommendedSqlText("SELECT id FROM orders");
-        record.setCreatedBy("operator-001");
+        record.setCreatedBy("user-001");
         record.setCreatedAt(LocalDateTime.of(2026, 5, 10, 10, 30));
         record.setUpdatedAt(LocalDateTime.of(2026, 5, 10, 10, 31));
         record.setRiskJson("{\"risk\":\"LOW\"}");

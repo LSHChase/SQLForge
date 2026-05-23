@@ -70,18 +70,18 @@ class GovernanceAlertApplicationServiceTest {
         GovernanceAlertDetailVO detail = service.ackAlert(
             "tenant-a",
             "alert-001",
-            "operator-001",
+            "user-001",
             Instant.parse("2026-04-27T16:00:00Z")
         );
 
         assertEquals("ACKED", detail.getAlertStatus());
-        assertEquals("operator-001", detail.getAckedBy());
+        assertEquals("user-001", detail.getAckedBy());
         assertEquals(1, detail.getNotificationLogs().size());
 
         ArgumentCaptor<AlertEventRecord> eventCaptor = ArgumentCaptor.forClass(AlertEventRecord.class);
         verify(alertEventMapper).update(eventCaptor.capture());
         assertEquals("ACKED", eventCaptor.getValue().getAlertStatus());
-        assertEquals("operator-001", eventCaptor.getValue().getAckedBy());
+        assertEquals("user-001", eventCaptor.getValue().getAckedBy());
 
         ArgumentCaptor<AuditLogRecord> auditCaptor = ArgumentCaptor.forClass(AuditLogRecord.class);
         verify(protectedPersistenceService).saveAuditLog(auditCaptor.capture());

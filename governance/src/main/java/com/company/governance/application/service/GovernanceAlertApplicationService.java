@@ -31,7 +31,7 @@ public class GovernanceAlertApplicationService {
     private static final int DEFAULT_PAGE_NO = 1;
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 200;
-    private static final String DEFAULT_OPERATOR = "alert-api";
+    private static final String DEFAULT_ACTOR = "alert-api";
 
     private final AlertEventMapper alertEventMapper;
     private final AlertNotificationLogMapper alertNotificationLogMapper;
@@ -83,29 +83,29 @@ public class GovernanceAlertApplicationService {
     }
 
     @Transactional
-    public GovernanceAlertDetailVO ackAlert(String tenantId, String alertId, String operator, Instant ackedAt) {
+    public GovernanceAlertDetailVO ackAlert(String tenantId, String alertId, String actor, Instant ackedAt) {
         String effectiveTenantId = requireTenantId(tenantId);
         AlertEventRecord current = requireAlertForTenant(effectiveTenantId, alertId);
         AlertEvent event = toDomain(current);
         Instant effectiveAckedAt = ackedAt == null ? Instant.now() : ackedAt;
-        String effectiveOperator = trimToNull(operator) == null ? DEFAULT_OPERATOR : operator.trim();
+        String effectiveActor = trimToNull(actor) == null ? DEFAULT_ACTOR : actor.trim();
         try {
-            event.ack(effectiveAckedAt, effectiveOperator);
+            event.ack(effectiveAckedAt, effectiveActor);
         } catch (IllegalStateException ex) {
             throw new BizException(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, HttpStatus.CONFLICT, ex.getMessage(), ex);
         }
         AlertEventRecord updated = toRecord(event, current);
         alertEventMapper.update(updated);
-        governanceProtectedPersistenceService.saveAuditLog(buildAckAuditLog(updated, effectiveOperator, effectiveAckedAt));
+        governanceProtectedPersistenceService.saveAuditLog(buildAckAuditLog(updated, effectiveActor, effectiveAckedAt));
         return toDetail(updated, alertNotificationLogMapper.selectByAlertId(updated.getAlertId()));
     }
 
-    private AuditLogRecord buildAckAuditLog(AlertEventRecord record, String operator, Instant ackedAt) {
+    private AuditLogRecord buildAckAuditLog(AlertEventRecord record, String actor, Instant ackedAt) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("alertId", record.getAlertId());
         payload.put("alertStatus", record.getAlertStatus());
         payload.put("notifyStatus", record.getNotifyStatus());
-        payload.put("ackedBy", operator);
+        payload.put("ackedBy", actor);
         payload.put("ackedAt", ackedAt.toString());
         AuditLogRecord auditLogRecord = new AuditLogRecord();
         auditLogRecord.setTenantId(record.getTenantId());

@@ -33,6 +33,14 @@
 - Task refs: F-TASK-030, F-TASK-031, F-TASK-032
 - Plan refs: docs/plans/master-execution-plan.md#F-TASK-030, docs/plans/master-execution-plan.md#F-TASK-031, docs/plans/master-execution-plan.md#F-TASK-032
 
+### INBOX-008: 是否破坏性删除代码级 roleCodes 与访问矩阵
+
+- Status: resolved
+- Needed decision: 已于 2026-05-23 由人类确认执行，无待处理判断。
+- Decision: 2026-05-23 人类确认继续执行代码级破坏性删除：删除 `X-Role-Codes`、`roleCodes`、岗位常量、`role-matrix`、`GovernanceAuthorizationMatrixApplicationService` 与 `/api/governance/internal/authorization/*`，采用非角色化执行安全边界 `tenantId + datasourceId + action`，保留跨租户默认拒绝、runtime binding `ACTIVE`、执行留痕、租户隔离、数据源范围和敏感字段加密；同时确认规则文件中相关清理规则允许删除，不受只增改不删除旧约束限制。
+- Task refs: USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523
+- Plan refs: docs/plans/multi-role-permission-cleanup-impact-analysis-2026-05-23.md
+
 ### INBOX-002: 外部 Hetu/MRS 测试环境验证窗口待确认
 
 - Status: open

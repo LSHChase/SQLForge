@@ -83,7 +83,6 @@ class GovernanceAuditTrailServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-01",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "header",
@@ -164,7 +163,6 @@ class GovernanceAuditTrailServiceTest {
         RequestContext.set(
             "tenant-a",
             "platform-admin-01",
-            Arrays.asList("PLATFORM_ADMIN"),
             "request-010",
             "trace-010",
             "gateway",
@@ -179,7 +177,7 @@ class GovernanceAuditTrailServiceTest {
 
         AuditWriteRequest request = new AuditWriteRequest();
         request.setServiceCode("GOVERNANCE");
-        request.setOperationCode("PERMISSION_CHANGE");
+        request.setOperationCode("DATASOURCE_ACCESS_SCOPE_CHANGE");
         request.setResourceType("ROLE_BINDING");
         request.setResourceId("rbac-001");
         request.setResultStatus("SUCCESS");
@@ -191,7 +189,7 @@ class GovernanceAuditTrailServiceTest {
         AuditWriteResponse response = service.writeAudit(request);
 
         assertEquals(Long.valueOf(12L), response.getAuditId());
-        assertEquals("PERMISSION_CHANGE", response.getOperationCode());
+        assertEquals("DATASOURCE_ACCESS_SCOPE_CHANGE", response.getOperationCode());
     }
 
     @Test
@@ -210,7 +208,6 @@ class GovernanceAuditTrailServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-01",
-            Arrays.asList("TENANT_ADMIN"),
             "request-011",
             "trace-011",
             "header",
@@ -250,7 +247,6 @@ class GovernanceAuditTrailServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-01",
-            Arrays.asList("TENANT_ADMIN"),
             "request-012",
             "trace-012",
             "header",
@@ -295,8 +291,7 @@ class GovernanceAuditTrailServiceTest {
         }).when(auditLogMapper).insert(org.mockito.ArgumentMatchers.any(AuditLogRecord.class));
         RequestContext.set(
             "system",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-020",
             "trace-020",
             "header",
@@ -376,7 +371,6 @@ class GovernanceAuditTrailServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-01",
-            Arrays.asList("TENANT_ADMIN"),
             "request-801",
             "trace-801",
             "header",

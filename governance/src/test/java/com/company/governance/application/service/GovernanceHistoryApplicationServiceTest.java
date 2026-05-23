@@ -83,15 +83,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(auditLogMapper.selectRecentBusinessByTenant("tenant-a", 50)).thenReturn(Arrays.asList(
             buildAudit("trace-query", "QUERY_EXECUTION", "PARTIAL", "QUERY", "fp-001",
                 LocalDateTime.parse("2026-04-22T10:00:00"),
@@ -136,15 +135,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(auditLogMapper.selectByTraceId("tenant-a", "trace-query", 5)).thenReturn(Collections.singletonList(
             buildAudit("trace-query", "QUERY_EXECUTION", "PARTIAL", "QUERY", "fp-001",
                 LocalDateTime.parse("2026-04-22T10:00:00"),
@@ -199,15 +197,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryPage(
             "tenant-a",
             "QUERY_EXECUTION",
@@ -225,7 +222,7 @@ class GovernanceHistoryApplicationServiceTest {
             "BUSINESS_VIEW",
             "PAGE",
             "HETU",
-            "analyst-001",
+            "user-002",
             LocalDateTime.parse("2026-04-25T00:00:00"),
             LocalDateTime.parse("2026-04-25T23:59:59"),
             null,
@@ -255,7 +252,7 @@ class GovernanceHistoryApplicationServiceTest {
             "BUSINESS_VIEW",
             "PAGE",
             "HETU",
-            "analyst-001",
+            "user-002",
             LocalDateTime.parse("2026-04-25T00:00:00"),
             LocalDateTime.parse("2026-04-25T23:59:59"),
             null,
@@ -279,7 +276,7 @@ class GovernanceHistoryApplicationServiceTest {
             "BUSINESS_VIEW",
             "PAGE",
             "HETU",
-            "analyst-001",
+            "user-002",
             "2026-04-25T00:00:00",
             "2026-04-25T23:59:59",
             null,
@@ -323,8 +320,7 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
@@ -332,7 +328,7 @@ class GovernanceHistoryApplicationServiceTest {
             200L
         );
         List<String> includeHistoryIds = Collections.singletonList("history-001");
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(sqlOptimizationClient.listRewriteRecords(null, "rec-rewrite-001", "DIVERGED", "QUERY"))
             .thenReturn(Arrays.asList(
                 buildRewriteRecord("rewrite-001", "tenant-a", "history-001", "DIVERGED", "OPEN"),
@@ -448,15 +444,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
             .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
         when(queryHistoryMapper.selectById("history-001"))
@@ -516,15 +511,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
             .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
         when(sqlOptimizationClient.listRewriteRecordsByHistoryId("history-001")).thenReturn(Arrays.asList(
@@ -569,15 +563,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "missing-history")).thenReturn(null);
 
         BizException exception = assertThrows(
@@ -612,15 +605,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-001"))
             .thenReturn(buildHistoryProjection("history-001", "trace-query", "PARTIAL", "PAGE"));
         when(queryHistoryMapper.selectById("history-001"))
@@ -678,15 +670,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         GovernanceQueryHistoryProjection row = buildHistoryProjection("history-legacy-rewrite", "trace-legacy", "SUCCESS", "PAGE");
         row.setRewriteApplied(null);
         row.setRewriteRecordId(null);
@@ -732,15 +723,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         GovernanceQueryHistoryProjection row = buildHistoryProjection("history-legacy", "trace-legacy", "SUCCESS", "PAGE");
         row.setLogicalObjectHits("[\"vw_sales_daily\",\"sales.orders\"]");
         when(queryHistoryMapper.selectHistoryDetail("tenant-a", "history-legacy")).thenReturn(row);
@@ -775,15 +765,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
 
         AuditLogRecord audit = buildAudit(
             "trace-benchmark",
@@ -876,14 +865,13 @@ class GovernanceHistoryApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(auditLogMapper.selectByTraceId("tenant-a", "trace-artifact-op", 5)).thenReturn(Collections.singletonList(
             buildAudit(
                 "trace-artifact-op",
@@ -931,14 +919,13 @@ class GovernanceHistoryApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-batch-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
 
         GovernanceBenchmarkArtifactOperationResponse success = new GovernanceBenchmarkArtifactOperationResponse();
         success.setTenantId("tenant-a");
@@ -1004,15 +991,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
 
         List<AuditLogRecord> recentAudits = new ArrayList<AuditLogRecord>();
         recentAudits.add(buildAudit("trace-auth-1", "GOVERNANCE", "SUCCESS", "AUTH_REQUEST", "/api/governance/history/traces",
@@ -1070,15 +1056,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
 
         when(auditLogMapper.selectRecentBusinessByTenant("tenant-a", 15)).thenReturn(Arrays.asList(
             buildAudit("trace-benchmark-failed", "BENCHMARK_ENGINE", "FAILED", "BENCHMARK_ENGINE_TASK", "task-benchmark-failed",
@@ -1132,15 +1117,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(auditLogMapper.selectTraceHitsByTargetId(
             "tenant-a",
             "task-001",
@@ -1245,15 +1229,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(auditLogMapper.selectTraceHitsByTargetId(
             "tenant-a",
             "task-001",
@@ -1384,15 +1367,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
         when(governanceHistoryLookupIndexMapper.selectTraceHitsByLookupId(
             "tenant-a",
             "TASK",
@@ -1447,15 +1429,14 @@ class GovernanceHistoryApplicationServiceTest {
 
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-request-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
 
         BizException exception = assertThrows(
             BizException.class,
@@ -1481,7 +1462,6 @@ class GovernanceHistoryApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-request-001",
             "header",
@@ -1592,7 +1572,7 @@ class GovernanceHistoryApplicationServiceTest {
         row.setRouteSummary("{\"selectedEngine\":\"HETU\",\"ruleId\":\"route-001\"}");
         row.setCacheSummary("{\"cacheHit\":true}");
         row.setQueryContext("{\"structureParseSummary\":{\"syntaxStatus\":\"VALID\"},\"accessParseSummary\":{\"serviceStatus\":\"AVAILABLE\"}}");
-        row.setSubmittedBy("analyst-001");
+        row.setSubmittedBy("user-002");
         row.setSubmittedAt(LocalDateTime.parse("2026-04-25T12:00:00"));
         row.setCreateTime(LocalDateTime.parse("2026-04-25T12:00:00"));
         row.setResultStatus(resultStatus);

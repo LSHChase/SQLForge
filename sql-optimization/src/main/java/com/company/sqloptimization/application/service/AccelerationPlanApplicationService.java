@@ -94,7 +94,7 @@ public class AccelerationPlanApplicationService {
         OptimizationTask sourceTask = requireEligibleSourceTask(request.getSourceTaskId(), request.getTenantId());
         String planId = UUID.randomUUID().toString();
         try {
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 request.getTenantId(),
                 sourceTask.getDatasourceType(),
                 RESOURCE_TYPE_PLAN,
@@ -146,7 +146,7 @@ public class AccelerationPlanApplicationService {
         AccelerationPlan plan = requirePlan(planId);
         verifyTenantAccess(plan.getTenantId());
         try {
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 plan.getTenantId(),
                 plan.getDatasourceType(),
                 RESOURCE_TYPE_PLAN,
@@ -175,7 +175,7 @@ public class AccelerationPlanApplicationService {
         verifyTenantAccess(plan.getTenantId());
         QueryExecutionAccelerationPlanResponse runtimeResponse = null;
         try {
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 plan.getTenantId(),
                 plan.getDatasourceType(),
                 RESOURCE_TYPE_PLAN,
@@ -218,7 +218,7 @@ public class AccelerationPlanApplicationService {
         AccelerationPlan plan = requirePlan(planId);
         verifyTenantAccess(plan.getTenantId());
         try {
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 plan.getTenantId(),
                 plan.getDatasourceType(),
                 RESOURCE_TYPE_PLAN,

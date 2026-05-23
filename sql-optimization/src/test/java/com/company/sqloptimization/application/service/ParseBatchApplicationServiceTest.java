@@ -37,7 +37,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldCreateReadyParseBatchWithTemplateContract() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         ParseBatchStatusResponse response = service.createBatch(baseRequest("TABULAR_FILE", "XLSX"));
 
@@ -51,7 +51,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldCreateAndIngestApacheCalciteParseBatch() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-005", "trace-005", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-005", "trace-005", "header", 1L, 2L);
 
         ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
         request.setParserMode("APACHE_CALCITE");
@@ -81,7 +81,7 @@ class ParseBatchApplicationServiceTest {
                 Collections.singletonList("sqlExecution=EXPLAIN_ONLY")
             )
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-007", "trace-007", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-007", "trace-007", "header", 1L, 2L);
 
         ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
         request.setParserMode("JSQLPARSER_WITH_PLAN");
@@ -111,7 +111,7 @@ class ParseBatchApplicationServiceTest {
                 Collections.singletonList("datasourceCode=" + datasourceCode)
             )
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-008", "trace-008", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-008", "trace-008", "header", 1L, 2L);
 
         ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
         request.setParserMode("JSQLPARSER_WITH_PLAN");
@@ -141,7 +141,7 @@ class ParseBatchApplicationServiceTest {
             return DatasourceViewMetadataResponse.table();
         };
         ParseBatchApplicationService service = buildService(metadataClient);
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-006", "trace-006", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-006", "trace-006", "header", 1L, 2L);
 
         ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
         ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
@@ -158,7 +158,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldRejectUnsupportedFileTypeForSqlFileMode() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BizException exception = assertThrows(BizException.class, () -> service.createBatch(baseRequest("SQL_FILE", "XLSX")));
 
@@ -168,7 +168,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldIngestSqlFileAndRetryPartialAccessRows() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
 
@@ -196,7 +196,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldSplitSqlFileWithoutBreakingSemicolonsInsideSqlText() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-002", "trace-002", "header", 1L, 2L);
 
         ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
         ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
@@ -220,7 +220,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldExposeBatchSqlFailureLocationForInvalidSql() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-004", "trace-004", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-004", "trace-004", "header", 1L, 2L);
 
         ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
         ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();
@@ -245,7 +245,7 @@ class ParseBatchApplicationServiceTest {
     @Test
     void shouldKeepSingleSqlIssueCodesForComplexBatchSql() {
         ParseBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-003", "trace-003", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-003", "trace-003", "header", 1L, 2L);
 
         ParseBatchStatusResponse created = service.createBatch(baseRequest("SQL_FILE", "SQL"));
         ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();

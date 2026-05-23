@@ -4,10 +4,7 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.UnauthorizedException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.util.CollectionUtils;
@@ -25,7 +22,6 @@ public class HeaderAuthContextSupport {
 
         String tenantId = requireHeader(request, RequestHeaderConstants.TENANT_ID);
         String userId = requireHeader(request, RequestHeaderConstants.USER_ID);
-        List<String> roleCodes = parseRoleCodes(requireHeader(request, RequestHeaderConstants.ROLE_CODES));
         String authSource = requireHeader(request, RequestHeaderConstants.AUTH_SOURCE);
         long issuedAt = parseEpochMilli(request, RequestHeaderConstants.ISSUED_AT);
         long expiresAt = parseEpochMilli(request, RequestHeaderConstants.EXPIRES_AT);
@@ -34,7 +30,7 @@ public class HeaderAuthContextSupport {
         validateAuthSource(authEnabled, trustedAuthSources, authSource);
         validateNotExpired(authEnabled, expiresAt);
 
-        RequestContext.set(tenantId, userId, roleCodes, requestId, traceId, authSource, issuedAt, expiresAt);
+        RequestContext.set(tenantId, userId, requestId, traceId, authSource, issuedAt, expiresAt);
         RequestMetadataContext.set(
             resolveSourceIp(request),
             resolveUserAgent(request),
@@ -55,17 +51,6 @@ public class HeaderAuthContextSupport {
             throw new UnauthorizedException("缺少 " + headerName + " 请求头");
         }
         return headerValue.trim();
-    }
-
-    private List<String> parseRoleCodes(String rawRoleCodes) {
-        List<String> roleCodes = Arrays.stream(rawRoleCodes.split(","))
-            .map(String::trim)
-            .filter(item -> !item.isEmpty())
-            .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(roleCodes)) {
-            throw new UnauthorizedException("缺少 " + RequestHeaderConstants.ROLE_CODES + " 请求头");
-        }
-        return new ArrayList<String>(roleCodes);
     }
 
     private long parseEpochMilli(HttpServletRequest request, String headerName) {

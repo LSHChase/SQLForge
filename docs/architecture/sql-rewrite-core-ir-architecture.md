@@ -25,7 +25,7 @@
 - 不执行用户 SQL，不访问生产数据，不创建 runtime rewrite binding。
 - 不改变推荐记录、改写记录、激活/暂停、真实改写历史的既有产品边界。
 - 不把静态 IR 推导写成真实收益、真实扫描量或生产执行事实。
-- 不把 `L5_BUSINESS_INTENT` 直接作为业务口径审批结果；后续仍需人工复核、验证运行和审计链。
+- 不把 `L5_BUSINESS_INTENT` 直接作为业务口径确认结果；后续仍需人工确认、验证运行和执行留痕。
 
 ## Conflict Handling
 
@@ -299,7 +299,7 @@
 | 选择点 | 已采用方案 | 备选 |
 |:---|:---|:---|
 | 用户算法允许模拟退火或 Beam Search。 | 选择 Beam Search，宽度固定为 4，便于在单元测试和审计报告中保持确定性。 | 模拟退火可探索更多状态，但随机性会降低审计可复现性。 |
-| 规则 DSL 是否允许页面或数据库配置。 | 当前只在后端代码目录固化默认规则，保证与已实现候选类型、语义验证和代价报告一致。 | 直接做动态规则配置会牵涉权限、版本、发布、回滚和页面，不属于本阶段“关键数据结构”闭环。 |
+| 规则 DSL 是否允许页面或数据库配置。 | 当前只在后端代码目录固化默认规则，保证与已实现候选类型、语义验证和代价报告一致。 | 直接做动态规则配置会牵涉受控访问、版本、发布、回滚和页面，不属于本阶段“关键数据结构”闭环。 |
 
 ### No Page / Runtime Impact
 
@@ -390,7 +390,7 @@
 
 | 子能力 | 当前实现 | 边界 |
 |:---|:---|:---|
-| 推荐项结构 | `RewriteRecommendation` 固化 `rewriteId`、`confidence`、`category=STRUCTURAL_OPTIMIZATION`、`severity`、`beforeSummary`、`afterSummary`、`transformations`、`equivalenceProof`、`performance`、`executableSql`、`score`、`rank`、人工审核要求和 score breakdown。 | 推荐项来自静态改写报告，不代表生产 SQL 已经被改写、验证或应用。 |
+| 推荐项结构 | `RewriteRecommendation` 固化 `rewriteId`、`confidence`、`category=STRUCTURAL_OPTIMIZATION`、`severity`、`beforeSummary`、`afterSummary`、`transformations`、`equivalenceProof`、`performance`、`executableSql`、`score`、`rank`、人工确认要求和 score breakdown。 | 推荐项来自静态改写报告，不代表生产 SQL 已经被改写、验证或应用。 |
 | 变更描述 | `beforeSummary / afterSummary` 将候选块扫描数、静态查询块数、嵌套深度、共享 CTE、CASE/FILTER 聚合或 LEFT JOIN unnest 以开发者 diff 摘要呈现。 | 摘要是静态结构概括，不写成真实扫描次数、真实层数或真实执行计划。 |
 | transformations | 基于候选规则输出 `MERGE`、`UNNEST`、`PUSH_DOWN`，并在 JSqlParser 检测到帆软 `SubXX_分组和汇总` 标签时补充 `INLINE`。 | transformation 使用 repo 内 RelNode surrogate 标准形，不是完整 Calcite `RelNode` 对象。 |
 | equivalenceProof | 输出 `STRUCTURAL_HASH + PREDICATE_SUBSUMPTION`、聚合拆解或 join key/group by/null extension 等 proof method，并记录 `ROW_COUNT`、`COLUMN_VALUES`、`AGGREGATION_RESULTS`、`NULL_HANDLING` 维度和 edge cases。 | SMT solver 未接入；proof 是静态证明义务和已有语义验证状态，不替代结果集 diff。 |
@@ -411,7 +411,7 @@ Score = 0.4 * performance_gain
 | 因子 | 当前估算 | 说明 |
 |:---|:---|:---|
 | `performance_gain` | 基于候选源查询块数、Pareto front、cost selected 状态和横向展开 shuffle 降低信号归一化。 | 不使用真实执行耗时。 |
-| `confidence` | 基于候选语义等价验证的最弱状态：`PROVED`、`CONDITIONALLY_PROVED`、`NEEDS_CONSTRAINTS`、`UNSUPPORTED`；`COUNT DISTINCT` 语义会触发人工审核。 | 低于 `0.9` 的候选被列入 `automationFilteredCandidateIds`，仅作提示。 |
+| `confidence` | 基于候选语义等价验证的最弱状态：`PROVED`、`CONDITIONALLY_PROVED`、`NEEDS_CONSTRAINTS`、`UNSUPPORTED`；`COUNT DISTINCT` 语义会触发人工确认。 | 低于 `0.9` 的候选被列入 `automationFilteredCandidateIds`，仅作提示。 |
 | `risk_level` | 结合 confidence、COUNT DISTINCT、规则冲突和 unsupported check 分为 `LOW / MEDIUM / HIGH`。 | 因仓库治理边界，所有推荐 `autoApplyAllowed=false`。 |
 | `readability_improvement` | 基于源块合并数量、纵向折叠、BI 工具标签等静态信号。 | 不声明代码可维护性已经由人工确认。 |
 
@@ -433,7 +433,7 @@ Score = 0.4 * performance_gain
 - `selectedRecommendationId`：排序第一的推荐 id
 - `recommendations`：按 score 降序排列的最终推荐项
 - `automationFilteredCandidateIds`：置信度低于 `0.9`、不得自动应用的候选
-- `manualReviewCandidateIds`：需要人工审核的候选
+- `manualReviewCandidateIds`：需要人工确认的候选
 - `rankingFactors` 与 `weights`：金融级排序因子和权重
 - `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`sqlGenerationBoundary=STATIC_RELNODE_SURROGATE_NOT_REAL_CALCITE_RELTOSQL`
 
@@ -453,7 +453,7 @@ Score = 0.4 * performance_gain
 - 不执行真实 SQL，不读取生产数据。
 - 不调用真实 Calcite `RelToSqlConverter`，不验证 Hetu 方言可执行性。
 - 不新增数据库 schema，不创建、激活或暂停 runtime rewrite binding。
-- 不把最终推荐写成生产自动改写；所有推荐仍需语义验证、结果 diff、人工审核和治理链。
+- 不把最终推荐写成生产自动改写；所有推荐仍需语义验证、结果 diff、人工确认和治理链。
 
 ## Phase 6 Algorithm Conformance and test01 Regression
 

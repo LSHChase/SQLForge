@@ -63,7 +63,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
             governanceCapabilityClient,
             recommendationClient
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         when(recommendationClient.getRecommendation("rec-001")).thenReturn(safeRecommendation());
 
         BenchmarkRecommendationComparisonResponse response = service.submitComparisonBenchmark("rec-001", baseRequest());
@@ -118,7 +118,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
             governanceCapabilityClient,
             recommendationClient
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         when(recommendationClient.getRecommendation("rec-unsafe")).thenReturn(unsafeRecommendation());
 
         BizException ex = org.junit.jupiter.api.Assertions.assertThrows(
@@ -252,7 +252,7 @@ class BenchmarkRecommendationComparisonApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

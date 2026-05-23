@@ -108,7 +108,6 @@ function checkFrontendBoundary() {
       const protectedHeaderMarkers = [
         'X-Tenant-Id',
         'X-User-Id',
-        'X-Role-Codes',
         'X-Request-Id',
         'X-Trace-Id',
         'X-Auth-Source',

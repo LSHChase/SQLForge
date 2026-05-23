@@ -144,7 +144,6 @@ public class EndOfDaySlowSqlParseApplicationService {
         RequestContext.set(
             resolveTenantId(candidate.getTenantId(), query.getTenantId()),
             StringUtils.hasText(candidate.getSubmittedBy()) ? candidate.getSubmittedBy() : "system",
-            Collections.singletonList("SYSTEM"),
             "eod-slow-sql-" + now,
             "eod-slow-sql-" + now,
             AuthSourceConstants.HEADER,

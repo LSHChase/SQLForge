@@ -20,7 +20,7 @@ class AlertEventTest {
             .alertType(AlertEvent.AlertType.DATASOURCE_UNAVAILABLE)
             .datasourceId("hetu-main")
             .summary("Datasource health probe failed")
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(now)
             .build();
 

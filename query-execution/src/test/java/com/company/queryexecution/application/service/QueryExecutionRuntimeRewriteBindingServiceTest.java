@@ -188,7 +188,6 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-001",
             "trace-001",
             "header",

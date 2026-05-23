@@ -274,7 +274,7 @@ public class BenchmarkReportApplicationService {
             );
         }
         verifyTenantAccess(report.getTenantId());
-        assertAuthorization(report);
+        assertDatasourceAccess(report);
         return report;
     }
 
@@ -292,10 +292,10 @@ public class BenchmarkReportApplicationService {
         }
     }
 
-    private void assertAuthorization(BenchmarkReport report) {
+    private void assertDatasourceAccess(BenchmarkReport report) {
         List<BenchmarkEngineProfile> engineProfiles = report.getEngineProfiles();
         if (engineProfiles == null || engineProfiles.isEmpty()) {
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 report.getTenantId(),
                 DataSourceTypeEnum.HETU,
                 RESOURCE_TYPE_REPORT,
@@ -305,7 +305,7 @@ public class BenchmarkReportApplicationService {
             return;
         }
         for (BenchmarkEngineProfile engineProfile : engineProfiles) {
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 report.getTenantId(),
                 engineProfile.getEngine(),
                 RESOURCE_TYPE_REPORT,

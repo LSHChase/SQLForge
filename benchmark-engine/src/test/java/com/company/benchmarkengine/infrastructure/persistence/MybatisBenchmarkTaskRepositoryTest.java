@@ -385,7 +385,7 @@ class MybatisBenchmarkTaskRepositoryTest {
                     "{\"sql_text\":\"DELETE FROM orders\"}"
                 )
             ),
-            "operator-001",
+            "user-001",
             Instant.parse("2026-04-22T07:00:00Z"),
             Instant.parse("2026-04-22T07:05:00Z")
         );

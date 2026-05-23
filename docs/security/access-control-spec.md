@@ -1,6 +1,8 @@
 # Access Control Spec
 
-本文件补全 SQLForge 的身份鉴别、角色模型、资源授权、数据范围控制、审计要求和阶段化实现口径，作为 `R-111`、`R-112`、`R-113`、`R-114`、`R-115` 的专项实现依据。
+本文件补全 SQLForge 的身份鉴别、租户隔离、数据源范围控制、执行留痕和阶段化实现口径，作为 `R-111`、`R-112`、`R-113`、`R-114`、`R-115` 的专项实现依据。
+
+自 `USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523` 起，本文不再定义命名化岗位体系，也不再保留独立访问原则章节。旧请求头、旧岗位上下文字段、旧访问矩阵服务和旧内部授权路径已按影响分析与人工确认删除；当前边界由身份、租户、数据源范围、执行留痕和敏感字段保护承载。
 
 ## 1. Scope
 
@@ -11,18 +13,18 @@
   - 公共管理服务
 - 适用操作：
   - 登录态请求
-  - SQL 提交、压测提交、导出、审计查询、权限变更、加速配置管理
+  - SQL 提交、压测提交、导出、访问范围变更、加速配置管理
 - 不在本文件范围：
   - 第三方 IAM 产品具体采购与部署细节
   - 浏览器端存储策略的 UI 细节
 
-## 2. Security Principles
+## 2. Execution Safety Boundaries
 
-- 后端权威：所有身份、权限、租户、资源范围判断都以服务端为准
-- 默认拒绝：缺失身份、租户、角色、资源授权时一律拒绝
+- 后端权威：所有身份、租户、资源范围和执行风险判断都以服务端为准
+- 默认拒绝：缺失身份、租户、资源范围或数据源范围时一律拒绝
 - 显式租户：所有核心请求都必须有显式租户上下文
-- 最小权限：用户只授予完成职责所需的最小资源范围
-- 全程审计：认证失败、越权失败、成功访问和权限变更都必须审计
+- 最小访问面：请求只能触达本次执行所需的最小资源范围
+- 全程留痕：认证失败、越界失败、成功访问和访问范围变更都必须记录
 - 敏感最小暴露：日志、错误返回和导出不泄露明文敏感信息
 
 ## 3. Identity Model
@@ -33,7 +35,6 @@
 
 - `tenantId`
 - `userId`
-- `roleCodes`
 - `requestId` / `traceId`
 - `authSource`
 - `issuedAt` / `expiresAt`
@@ -49,24 +50,9 @@
 - 默认不允许匿名访问业务接口
 - 健康检查、静态资源等极少数公开接口应单独显式列白名单
 
-## 4. Role Model
+## 4. No Product Persona Model
 
-建议的基础角色如下：
-
-| Role | Scope | Typical capabilities |
-|:---|:---|:---|
-| `PLATFORM_ADMIN` | 平台级 | 管理平台级配置、全局监控、租户开通 |
-| `TENANT_ADMIN` | 租户级 | 管理本租户用户、数据源、配额、加速配置审批 |
-| `OPERATOR` | 租户级 | 发起查询、查看历史、提交优化和导出 |
-| `ANALYST` | 租户级 | 提交查询、查看解析/优化结果、受限导出 |
-| `AUDITOR` | 租户级或平台级 | 查看审计日志、合规报表、恢复记录 |
-| `READONLY` | 租户级 | 只读查看授权资源和历史摘要 |
-
-角色扩展规则：
-
-- 平台级角色必须与租户级角色分离
-- 单用户可拥有多个角色，但权限按最小并集控制
-- 角色变更属于高敏感操作，必须进入审计日志
+核心引擎只识别请求身份、租户、资源和数据源范围，不在产品规格中定义岗位、职能或审查人群差异。任何页面、接口或脚本若需要差异化行为，必须以服务端返回的执行状态、资源状态或明确错误结果为准。
 
 ## 5. Resource Model
 
@@ -90,7 +76,7 @@
 - `resourceType`
 - `owner` 或 `createdBy`
 
-## 6. Authorization Model
+## 6. Access Evaluation Model
 
 ### 6.1 Evaluation order
 
@@ -98,9 +84,9 @@
 
 1. 校验请求是否在公开白名单
 2. 解析并校验身份凭证
-3. 建立 `tenantId`、`userId`、`roleCodes` 上下文
+3. 建立 `tenantId`、`userId` 和链路上下文
 4. 校验请求目标资源是否属于当前租户
-5. 校验角色是否具备该操作权限
+5. 校验当前上下文声明是否满足该操作的后端访问规则
 6. 校验数据范围或数据源范围
 7. 记录成功或失败审计日志
 
@@ -108,31 +94,31 @@
 
 - 所有核心表和核心资源都必须绑定 `tenantId`
 - 跨租户查询默认拒绝
-- 平台管理员如需跨租户查看，也必须走显式管理接口并记录审计
+- 跨租户查看必须走显式管理接口并记录执行留痕
 
-### 6.3 Datasource authorization
+### 6.3 Datasource scope
 
-数据源授权至少包含：
+数据源访问范围至少包含：
 
 - 可见性：是否能查看数据源元数据
 - 使用权：是否能使用该数据源发起查询或压测
-- 管理权：是否能更新数据源、连接池、权限范围
+- 管理范围：是否能更新数据源、连接池、访问范围
 - 导出权：是否能导出相关结果或历史
 
 ### 6.4 Operation matrix
 
-| Operation | Minimum role | Additional checks |
+| Operation | Required backend checks | Additional checks |
 |:---|:---|:---|
-| 查询提交 | `ANALYST` | 数据源授权、SQL 风险规则、租户配额 |
-| 压测提交 | `OPERATOR` | 影子环境、只读约束、额外审批 |
-| 数据源管理 | `TENANT_ADMIN` | 仅本租户数据源 |
-| 审计查询 | `AUDITOR` | 敏感字段脱敏与范围过滤 |
-| 角色/权限变更 | `TENANT_ADMIN` 或 `PLATFORM_ADMIN` | 强审计、双重确认建议 |
-| 平台配置管理 | `PLATFORM_ADMIN` | 平台级操作审计 |
+| 查询提交 | 身份、租户、数据源使用范围 | SQL 风险规则、租户配额 |
+| 压测提交 | 身份、租户、数据源使用范围 | 影子环境、只读约束、额外确认 |
+| 数据源管理 | 身份、租户、数据源管理范围 | 仅本租户数据源 |
+| 执行历史查询 | 身份、租户、历史读取范围 | 敏感字段脱敏与范围过滤 |
+| 访问范围变更 | 身份、租户、变更确认 | 强留痕、双重确认建议 |
+| 平台配置管理 | 身份、配置范围 | 平台级操作留痕 |
 
 ## 7. SQL Governance Controls
 
-权限控制不只校验“谁可以访问”，还要校验“允许做什么”：
+访问控制不只校验“谁可以访问”，还要校验“允许做什么”：
 
 - 默认禁止 DDL、DCL 和高风险写操作进入当前治理边界
 - 返回行数、超时时间、导出范围受租户配额约束
@@ -147,8 +133,8 @@
 - SQL 提交、取消、失败、降级、导出
 - 压测提交、取消、报告导出
 - 数据源创建、更新、删除
-- 角色、权限、配额和租户配置变更
-- 审计查询与恢复操作
+- 访问范围、配额和租户配置变更
+- 执行历史查询与恢复操作
 
 审计最少字段：
 
@@ -167,39 +153,34 @@
 - 密码、API 密钥、Token 和连接密文禁止明文落库
 - 错误响应不得返回明文凭据、数据库密码和内部堆栈细节
 - 审计日志记录 SQL 时必须遵守脱敏规则
-- 导出结果中的敏感列必须遵守角色与脱敏策略
+- 导出结果中的敏感列必须遵守数据源范围与脱敏策略
 
 ## 10. Failure Handling
 
 - 未认证：返回统一 JSON 错误，状态码和错误码明确
 - 无租户上下文：直接拒绝并审计
-- 越权访问：直接拒绝并审计
-- 数据源授权缺失：拒绝并返回明确错误原因
+- 越界访问：直接拒绝并审计
+- 数据源访问范围缺失：拒绝并返回明确错误原因
 - 鉴权系统异常：默认拒绝，不允许 fail-open
 
 ## 11. Current Implementation Baseline
 
 当前仓库现状：
 
-- `governance` 已把授权真值收口到 `governance.access-control.role-matrix`、`resource-model` 与 `datasource-authorization-matrix`
-- 当前统一授权入口为 `/api/governance/internal/authorization/decide`，由 `GovernanceAuthorizationMatrixApplicationService` 执行“租户校验 -> 角色权限 -> 数据源动作”三段式决策
-- `query-execution`、`sql-optimization`、`benchmark-engine` 已统一复用上述授权入口，不再各自维护占位式 datasource check
-- 当前资源模型已覆盖 `SQL_REWRITE_RECORD`，使 SQL 历史聚合改写记录时可按 `optimization.status.read` 或 `governance.history.read` 读取，同步把创建、审批、发布、暂停、撤销和验证创建限制在优化提交权限与数据源 `USE` 授权内
-- 数据源授权变更通过 `/api/governance/internal/authorization/datasource/change` 在运行态更新矩阵，支持吊销/恢复验证与权限变更审计
+- `governance` 已删除旧访问矩阵实现，内部受保护入口改为 `/api/governance/internal/datasource-access/check` 与 `/api/governance/internal/datasource-access/scope/change`
+- `query-execution`、`sql-optimization`、`benchmark-engine` 已改为调用数据源范围检查，不再调用旧授权决策路径
+- 当前资源模型已覆盖 `SQL_REWRITE_RECORD`，使 SQL 历史聚合改写记录时可按后端访问规则读取，同步把创建、确认、发布、暂停、撤销和验证创建限制在优化提交访问规则与数据源 `USE` 范围内
+- 数据源访问范围变更由内部受保护通道承担，必须在系统租户上下文执行并写入审计
 - 当前 header-based stateless auth 已把每次受保护请求的鉴权建立/释放记录为 `LOGIN` / `LOGOUT` 审计事件；鉴权前置失败会记录失败型 `LOGIN` 审计事件
 - 当前 `governance` 已通过共享 AES-256 基线把密码 / token / key 类字段接入统一持久化保护入口：
   - `system_config` 敏感键写入 `value_ciphertext`
   - `config_snapshot/result_payload/query_context/export_options` 的敏感叶子节点写入密文 envelope
   - `audit_log.request_params/response_summary` 与导出地址、错误文本仅保留脱敏内容
-- 当前统一授权决策契约在拒绝时必须返回显式错误码：
-  - 角色权限不满足：`20000` `GOVERNANCE_ACCESS_DENIED`
-  - 跨租户目标不匹配：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
-  - 数据源绑定缺失、动作不允许或已吊销：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
 - 当前治理服务已固定以下失败错误码：
-  - 角色不满足治理访问要求：`20000` `GOVERNANCE_ACCESS_DENIED`
+  - 访问规则不满足治理访问要求：`20000` `GOVERNANCE_ACCESS_DENIED`
   - 跨租户访问拒绝：`20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
-  - 数据源绑定或授权拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
-- 当前实现已完成角色矩阵、资源模型、数据源授权矩阵和统一授权入口基线；真实 IAM/SSO、动态持久化授权配置与更多审批流仍待后续任务补齐
+  - 数据源绑定或访问范围拒绝：`20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
+- 旧矩阵和旧访问决策入口不再作为当前实现或目标契约的一部分保留
 
 ## 12. Target Completion Definition
 
@@ -207,19 +188,19 @@
 
 - 所有受保护接口都经过后端身份鉴别
 - 所有核心资源都绑定租户并执行租户隔离
-- 角色矩阵与数据源授权矩阵可配置且可验证
+- 数据源访问范围可配置且可验证
 - 审计日志覆盖认证失败、越权失败和关键成功操作
 - 敏感配置加密存储且不泄露到日志/导出
-- 备份恢复文档和演练记录纳入交付
+- 备份恢复文档和验证记录纳入交付
 
 ## 13. Validation Scenarios
 
 - 未登录访问受保护接口被拒绝
 - 缺失 `tenantId` 的请求被拒绝
-- 普通分析用户无法管理数据源
-- 普通操作员无法读取高敏感审计详情
+- 缺失数据源管理范围的请求无法管理数据源
+- 缺失历史读取范围的请求无法读取高敏感执行详情
 - 跨租户资源访问被拒绝
-- 已吊销数据源权限的用户无法继续查询
+- 已移出数据源访问范围的用户无法继续查询
 - 压测任务不能直接对生产写路径执行
 - 认证失败、越权失败和成功访问都有审计记录
 

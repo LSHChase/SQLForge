@@ -96,7 +96,7 @@
   - `sql-governance-data-model-extension.md`：SQL 治理产品线新增对象、扩表现状、JSON/结构化字段取舍与落表策略。
   - `sql-rewrite-core-ir-architecture.md`：SQL 改写核心 L1-L5 IR 架构骨架、QBDAG 查询块分解、结构哈希、L4 关系代数改写候选、语义等价验证报告、抽象代价模型、帕累托改写排序、规则 DSL、规则冲突消解、Calcite/JSqlParser 双解析栈融合、Hetu 计划适配、最终改写推荐输出、算法链路一致性报告、层级契约和与既有推荐规则等级的命名冲突处理。
 - `product/`
-  产品实施规格与页面、流程、角色、分期设计权威入口。
+  产品实施规格与页面、流程、核心功能面、分期设计权威入口。
   - `sql-governance-platform-implementation-spec.md`：SQL 治理中后台 + 开放接入平台实施规格。
   - `sql-rewrite-function-boundary-design.md`：SQL 改写验证、推荐结果 / 改写记录、真实 SQL 改写历史的产品分层、边界和联动方案。
   - `frontend-retrospective-gap-closure-baseline.md`：前端复盘、规格补漏与 repo-closed 边界基线。

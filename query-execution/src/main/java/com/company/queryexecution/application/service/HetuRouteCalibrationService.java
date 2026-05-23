@@ -128,7 +128,7 @@ public class HetuRouteCalibrationService {
             clusterEvidence.getEvidenceRef(),
             clusterEvidence.getReadonlyBoundary(),
             clusterEvidence.getLiveVerificationStatus(),
-            clusterEvidence.getOperatorNotes()
+            clusterEvidence.getEvidenceNotes()
         );
     }
 

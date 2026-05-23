@@ -3,7 +3,7 @@ package com.company.governance.application.controller.vo;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DatasourceAuthorizationChangeResponse {
+public class DatasourceAccessScopeChangeResponse {
 
     private String tenantId;
     private String datasourceId;
@@ -13,16 +13,16 @@ public class DatasourceAuthorizationChangeResponse {
     private String contractStage;
     private String implementationStage;
 
-    public DatasourceAuthorizationChangeResponse() {
+    public DatasourceAccessScopeChangeResponse() {
     }
 
-    public DatasourceAuthorizationChangeResponse(String tenantId,
-                                                 String datasourceId,
-                                                 String state,
-                                                 List<String> actions,
-                                                 String status,
-                                                 String contractStage,
-                                                 String implementationStage) {
+    public DatasourceAccessScopeChangeResponse(String tenantId,
+                                               String datasourceId,
+                                               String state,
+                                               List<String> actions,
+                                               String status,
+                                               String contractStage,
+                                               String implementationStage) {
         this.tenantId = tenantId;
         this.datasourceId = datasourceId;
         this.state = state;

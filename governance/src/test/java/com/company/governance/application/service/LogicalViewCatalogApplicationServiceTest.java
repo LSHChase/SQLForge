@@ -42,8 +42,8 @@ class LogicalViewCatalogApplicationServiceTest {
             tenantAccessLogic
         );
 
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "req-1", "trace-1", "header", 1L, 2L);
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main")).thenReturn(true);
+        RequestContext.set("tenant-a", "user-002", "req-1", "trace-1", "header", 1L, 2L);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main", "USE")).thenReturn(true);
         when(viewRepository.findByTenantAndDatasource("tenant-a", "hetu_main"))
             .thenReturn(Collections.singletonList(buildView("view-001", "RPT_SALES_DAILY")));
         when(mappingRepository.findByTenantAndLogicalViewId("tenant-a", "view-001"))
@@ -70,7 +70,7 @@ class LogicalViewCatalogApplicationServiceTest {
             tenantAccessLogic
         );
 
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "req-1", "trace-1", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-002", "req-1", "trace-1", "header", 1L, 2L);
 
         assertThrows(BizException.class, () -> service.findLogicalView("tenant-b", "RPT_SALES_DAILY"));
     }

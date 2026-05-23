@@ -22,7 +22,6 @@ class TenantAccessLogicImplTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "header",
@@ -30,7 +29,7 @@ class TenantAccessLogicImplTest {
             2L
         );
 
-        assertTrue(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config"));
+        assertTrue(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ"));
     }
 
     @Test
@@ -38,8 +37,7 @@ class TenantAccessLogicImplTest {
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(new GovernanceAccessProperties());
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("OPERATOR"),
+            "user-001",
             "request-002",
             "trace-002",
             "header",
@@ -47,7 +45,7 @@ class TenantAccessLogicImplTest {
             2L
         );
 
-        assertFalse(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config"));
+        assertFalse(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ"));
     }
 
     @Test
@@ -55,8 +53,7 @@ class TenantAccessLogicImplTest {
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(new GovernanceAccessProperties());
         RequestContext.set(
             "tenant-a",
-            "analyst-001",
-            Arrays.asList("ANALYST"),
+            "user-002",
             "request-003",
             "trace-003",
             "header",
@@ -64,18 +61,17 @@ class TenantAccessLogicImplTest {
             2L
         );
 
-        assertTrue(logic.validateDataSourceAccess("tenant-a", "query-hetu"));
+        assertTrue(logic.validateDataSourceAccess("tenant-a", "query-hetu", "USE"));
     }
 
     @Test
     void shouldRejectRevokedOrUnknownDatasource() {
         GovernanceAccessProperties properties = new GovernanceAccessProperties();
-        properties.getDatasourceAuthorizationMatrix().get("tenant-a").get("query-hetu").setState("REVOKED");
+        properties.getDatasourceScopes().get("tenant-a").get("query-hetu").setState("REVOKED");
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(properties);
         RequestContext.set(
             "tenant-a",
-            "analyst-001",
-            Arrays.asList("ANALYST"),
+            "user-002",
             "request-004",
             "trace-004",
             "header",
@@ -83,8 +79,8 @@ class TenantAccessLogicImplTest {
             2L
         );
 
-        assertFalse(logic.validateDataSourceAccess("tenant-a", "query-hetu"));
-        assertFalse(logic.validateDataSourceAccess("tenant-a", "missing-datasource"));
-        assertFalse(logic.validateDataSourceAccess("", "query-hetu"));
+        assertFalse(logic.validateDataSourceAccess("tenant-a", "query-hetu", "USE"));
+        assertFalse(logic.validateDataSourceAccess("tenant-a", "missing-datasource", "USE"));
+        assertFalse(logic.validateDataSourceAccess("", "query-hetu", "USE"));
     }
 }

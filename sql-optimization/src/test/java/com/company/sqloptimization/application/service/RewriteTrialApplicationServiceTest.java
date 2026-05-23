@@ -53,7 +53,7 @@ class RewriteTrialApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         trialRepository = new InMemoryRewriteTrialRepository();
         batchRepository = new InMemoryParseBatchRepository();
         batchItemRepository = new InMemoryParseBatchItemRepository();
@@ -350,7 +350,7 @@ class RewriteTrialApplicationServiceTest {
             "hetu_main",
             "JSQLPARSER",
             true,
-            "operator-001",
+            "user-001",
             Instant.now()
         );
     }

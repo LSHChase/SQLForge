@@ -42,8 +42,7 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
             );
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -113,7 +112,7 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
         assertEquals("2026-04-27", history.getQueryDateStart().toString());
         assertEquals("2026-04-27", history.getQueryDateEnd().toString());
         assertEquals("RESOLVED", history.getQueryDateStatus());
-        assertEquals("operator-001", history.getSubmittedBy());
+        assertEquals("user-001", history.getSubmittedBy());
 
         AuditLogRecord audit = auditCaptor.getValue();
         assertEquals("QUERY_EXECUTION", audit.getServiceCode());
@@ -139,8 +138,7 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
             );
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -230,7 +228,7 @@ class GovernanceQueryExecutionHistoryApplicationServiceTest {
         request.setTraceId("trace-001");
         request.setRequestId("request-001");
         request.setSagaId("query-execution-001");
-        request.setSubmittedBy("operator-001");
+        request.setSubmittedBy("user-001");
         request.setStartedAt("2026-05-08T00:00:00Z");
         request.setFinishedAt("2026-05-08T00:00:01Z");
         request.setElapsedMs(Long.valueOf(42L));

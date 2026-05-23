@@ -26,7 +26,7 @@ class RecommendationTraceApplicationServiceTest {
 
     @Test
     void shouldReturnTenantScopedRecommendationTraceReferencesAndDispatchEvents() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         InMemoryAccelerationRecommendationRepository recommendationRepository = new InMemoryAccelerationRecommendationRepository();
         InMemoryDispatchEventRepository dispatchEventRepository = new InMemoryDispatchEventRepository();
         recommendationRepository.save(recommendation("rec-001", "tenant-a"));
@@ -51,7 +51,7 @@ class RecommendationTraceApplicationServiceTest {
 
     @Test
     void shouldRejectCrossTenantTraceAccess() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         InMemoryAccelerationRecommendationRepository recommendationRepository = new InMemoryAccelerationRecommendationRepository();
         InMemoryDispatchEventRepository dispatchEventRepository = new InMemoryDispatchEventRepository();
         recommendationRepository.save(recommendation("rec-002", "tenant-b"));
@@ -93,10 +93,10 @@ class RecommendationTraceApplicationServiceTest {
             "hetu_main",
             "RPT_SALES_DAILY",
             "BUSINESS_VIEW:sales_daily",
-            "operator-001",
+            "user-001",
             Instant.now()
         );
-        event.publish(Instant.now(), "operator-001");
+        event.publish(Instant.now(), "user-001");
         return event;
     }
 }

@@ -79,16 +79,16 @@ class AccelerationPlanApplicationServiceTest {
         actionRequest.setReason("activate ready plan");
         AccelerationPlanStatusResponse activated = service.activatePlan(submitResponse.getPlanId(), actionRequest);
         assertEquals("ACTIVE", activated.getStatus().name());
-        assertEquals("operator-001", activated.getActivatedBy());
+        assertEquals("user-001", activated.getActivatedBy());
         assertEquals("cfg-plan-001", activated.getConfigSnapshotId());
         assertTrue(activated.getActivationEvidenceJson().contains("\"runtimeStatus\":\"ACTIVE\""));
 
         AccelerationPlanStatusResponse paused = service.pausePlan(submitResponse.getPlanId(), actionRequest);
         assertEquals("PAUSED", paused.getStatus().name());
-        assertEquals("operator-001", paused.getPausedBy());
+        assertEquals("user-001", paused.getPausedBy());
         assertTrue(paused.getPauseEvidenceJson().contains("\"runtimeStatus\":\"PAUSED\""));
 
-        verify(governanceClient).assertAuthorization("tenant-a", DataSourceTypeEnum.HETU, "SQL_ACCELERATION_PLAN", submitResponse.getPlanId(), "ACCELERATION_PLAN_SUBMIT");
+        verify(governanceClient).assertDatasourceAccess("tenant-a", DataSourceTypeEnum.HETU, "SQL_ACCELERATION_PLAN", submitResponse.getPlanId(), "ACCELERATION_PLAN_SUBMIT");
         verify(runtimeClient).activate(any());
         verify(runtimeClient).pause(any());
     }
@@ -236,7 +236,7 @@ class AccelerationPlanApplicationServiceTest {
         traceResponse.setConfigSnapshotId("cfg-plan-001");
         traceResponse.setResultId("result-plan-001");
         traceResponse.setHistoryId("history-plan-001");
-        doNothing().when(governanceClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceClient).writeAudit(any());
         when(governanceClient.writeAccelerationPlanTrace(any())).thenReturn(traceResponse);
         return governanceClient;
@@ -330,8 +330,7 @@ class AccelerationPlanApplicationServiceTest {
     private void setRequestContext(String tenantId) {
         RequestContext.set(
             tenantId,
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",

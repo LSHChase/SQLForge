@@ -17,7 +17,6 @@
 |:---|:---|:---|:---|
 | `tenantId` | Yes | 当前租户标识 | 公共管理服务统一校验，所有服务消费 |
 | `userId` | Yes | 当前操作者标识 | 公共管理服务统一校验，所有服务消费 |
-| `roleCodes` | Yes | 当前角色集合 | 公共管理服务统一校验，所有服务消费 |
 | `requestId` | Yes | 请求级唯一标识 | 调用方生成，链路透传 |
 | `traceId` | Yes | 分布式追踪标识 | 网关或入口服务生成，链路透传 |
 | `authSource` | Yes | 鉴权来源，如 gateway/token/header | 公共管理服务定义 |
@@ -29,7 +28,6 @@
 - 当前 `governance` 对所有受保护接口统一要求以下请求头：
   - `X-Tenant-Id`
   - `X-User-Id`
-  - `X-Role-Codes`
   - `X-Request-Id`
   - `X-Trace-Id`
   - `X-Auth-Source`
@@ -47,7 +45,7 @@
 | `12000-12999` | 查询执行系统错误 | 查询执行服务 | 路由、缓存、轻量解析、执行控制系统错误 |
 | `13000-13999` | SQL 优化系统错误 | SQL 优化服务 | 异步解析、建议生成、物化视图系统错误 |
 | `14000-14999` | 压测系统错误 | 压测引擎服务 | 压测任务、调度、隔离、报告系统错误 |
-| `20000-20999` | 公共管理业务错误 | 公共管理服务 | 权限不足、租户越权、配额不足、数据源授权失败等 |
+| `20000-20999` | 公共管理业务错误 | 公共管理服务 | 访问拒绝、租户越权、配额不足、数据源范围校验失败等 |
 | `21000-21999` | 查询执行业务错误 | 查询执行服务 | 查询风险拒绝、路由拒绝、结果集超限等 |
 | `22000-22999` | SQL 优化业务错误 | SQL 优化服务 | 任务非法、建议不可用、激活前不可使用等 |
 | `23000-23999` | 压测业务错误 | 压测引擎服务 | 非影子环境拒绝、只读限制、阈值不满足等 |
@@ -62,9 +60,9 @@
 
 | Interaction | Transport | Contract owner | Required DTO / response baseline | Current status |
 |:---|:---|:---|:---|:---|
-| 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
-| SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
-| 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceAuthorizationDecisionRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
+| 查询执行服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceDatasourceAccessCheckRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
+| SQL 优化服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceDatasourceAccessCheckRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
+| 压测引擎服务 -> 公共管理服务 | HTTP | 公共管理服务 | `GovernanceTenantScopeCheckRequest/Response`, `GovernanceDatasourceAccessCheckRequest/Response`, `GovernanceAuditWriteRequest`, `AuditWriteResponse` | Baseline |
 | 查询执行服务 -> SQL 优化服务 | HTTP / async callback | SQL 优化服务 | `OptimizationTaskSubmitRequest/Response`, `OptimizationTaskStatusResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
 | SQL 优化服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryExecutionAccelerationPlanActivationRequest`, `QueryExecutionAccelerationPlanPauseRequest`, `QueryExecutionAccelerationPlanResponse` | `ACCELERATION_PLAN_GOVERNANCE_BASELINE` |
 | 压测引擎服务 -> 查询执行服务 | HTTP | 查询执行服务 | `QueryFingerprintLookupRequest/Response`, `RoutingRuleSnapshotRequest/Response` | Planned |
@@ -76,27 +74,23 @@
 - 若跨服务契约变化具有兼容风险，必须先更新本文件和主计划，再进入实现。
 - 当前 `governance` 已提供内部契约入口：
   - `/api/governance/internal/tenant-scope/check`
-  - `/api/governance/internal/authorization/decide`
-  - `/api/governance/internal/authorization/datasource/change`
+  - `/api/governance/internal/datasource-access/check`
+  - `/api/governance/internal/datasource-access/scope/change`
   - `/api/governance/internal/audit/write`
   - `/api/governance/internal/acceleration-plan/trace/write`
   - `/api/governance/internal/benchmark/report-trace/write`
   - `/api/governance/internal/alerts/benchmark-regression/emit`
   - `/api/governance/internal/alerts/sql-rewrite-divergence/emit`
   - `/api/governance/internal/schedule/extensions`
-- 当前授权决策已由治理服务本地矩阵配置驱动：
-  - 角色矩阵把角色映射到权限集合
-  - 资源模型把服务操作映射到所需权限与数据源动作
-  - 数据源授权矩阵把租户数据源映射到 `ACTIVE/REVOKED` 与动作集合
-  - 未命中显式规则时默认拒绝
+当前核心接口契约不再定义岗位集合、访问矩阵或独立访问原则。受保护调用统一使用租户、用户、请求、追踪、认证来源和时间窗上下文；执行安全边界由租户范围和数据源范围接口承载。
 
 治理内部契约当前收口如下：
 
 | Endpoint | Contract stage | Current implementation stage | Required baseline | Current notes |
 |:---|:---|:---|:---|:---|
-| `/api/governance/internal/tenant-scope/check` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `tenantId`,`targetTenantId`; response: `tenantId`,`targetTenantId`,`allowed`,`reason` | 保留租户隔离显式检查能力，供治理和扩展链路单独复用 |
-| `/api/governance/internal/authorization/decide` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `serviceCode`,`tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`; response: `tenantId`,`resourceType`,`resourceId`,`operationCode`,`datasourceId`,`allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 三个业务服务统一复用的授权决策入口；当前执行角色矩阵、资源模型和数据源动作授权 |
-| `/api/governance/internal/authorization/datasource/change` | `LONG_TERM_BASELINE` | `AUTHORIZATION_MATRIX_BASELINE` | request: `tenantId`,`datasourceId`,`state`,`actions[]`,`changeReason`; response: `tenantId`,`datasourceId`,`state`,`actions[]`,`status`,`contractStage`,`implementationStage` | 运行态更新数据源授权矩阵，并写入权限变更审计 |
+| `/api/governance/internal/tenant-scope/check` | `LONG_TERM_BASELINE` | `DATASOURCE_ACCESS_SCOPE_BASELINE` | request: `tenantId`,`targetTenantId`; response: `tenantId`,`targetTenantId`,`allowed`,`reason` | 保留租户隔离显式检查能力，供治理和扩展链路单独复用 |
+| `/api/governance/internal/datasource-access/check` | `LONG_TERM_BASELINE` | `DATASOURCE_ACCESS_SCOPE_BASELINE` | request: `tenantId`,`datasourceId`,`action`, optional `resourceType`,`resourceId`,`operationCode`; response: `tenantId`,`datasourceId`,`action`,`allowed`,`reason`,`errorCode`,`contractStage`,`implementationStage` | 替代旧访问矩阵决策入口；按 `tenantId + datasourceId + action` 校验数据源范围，跨租户、缺失范围、撤销状态或动作不匹配均默认拒绝 |
+| `/api/governance/internal/datasource-access/scope/change` | `LONG_TERM_BASELINE` | `DATASOURCE_ACCESS_SCOPE_BASELINE` | request: `tenantId`,`datasourceId`,`state`,`actions[]`, optional `changeReason`; response: `tenantId`,`datasourceId`,`state`,`actions[]`,`status`,`contractStage`,`implementationStage` | 内部受保护通道的数据源范围变更入口；只能在系统租户上下文调用，变更写入审计 |
 | `/api/governance/internal/audit/write` | `LONG_TERM_BASELINE` | `DATABASE_AUDIT_WRITE_BASELINE` | request: required `serviceCode`,`operationCode`,`resourceType`,`resourceId`,`resultStatus`,`elapsedMs`,`sourceIp`,`userAgent`; optional `sagaId`,`configSnapshotId`,`resultId`,`historyId`,`exportId`,`requestParams`,`responseSummary`; response: `auditId`,`status`,`messageTopic`,`deliveryMode`,`contractStage`,`implementationStage` | 长期保留为跨服务审计写入入口；当前已同步写入 `audit_log`、统一脱敏 `requestParams/responseSummary` 并保留共享消息抽象扩散 |
 | `/api/governance/internal/query-execution-history/write` | `LONG_TERM_BASELINE` | `QUERY_EXECUTION_HISTORY_PERSISTENCE_BASELINE` | request: `tenantId`,`sqlText`,`sqlTemplate`,`boundSql`,`sqlFingerprint`,`datasourceCode`,`datasourceType`,`historyType=QUERY_EXECUTION`,`resultStatus`,`targetEngine`,`returnedRowCount`,`cacheHit`,`rewriteApplied`,`rewriteRecordId`,`runtimeBindingId`,`rewriteRuleVersion`,`runtimeRuleVersion`,`runtimeRewriteStatus`,`rewriteActivationStatusSnapshot`,`rewriteFallbackReason`,`accelerationApplied`,`accessChannel`,`commentContext`,`queryDateSummary`,`bindingSummary`,`logicalObjectHits`,`routeSummary`,`cacheSummary`,`queryContext`,`traceId`,`requestId`,`sagaId`,`submittedBy`,`startedAt`,`finishedAt`,`elapsedMs`,`errorCode`,`errorMessage`; response: `configSnapshotId`,`resultId`,`historyId`,`auditId`,`traceId`,`requestId`,`sagaId`,`contractStage`,`implementationStage` | query-execution 只提交执行证据；governance 在自身事务边界写入 `execution_result`、`query_history` 与审计引用，并通过受保护持久化服务加密 SQL 与敏感 query context；SQL 历史详情/导出通过后端 `rewriteAudit` 面暴露改写审计链，前端不得由 SQL 文本自行推断 |
 | `/api/governance/internal/acceleration-plan/trace/write` | `LONG_TERM_BASELINE` | `ACCELERATION_PLAN_TRACEABILITY_BASELINE` | request: `planId`,`sourceTaskId`,`sqlFingerprint`,`datasourceType`,`sqlText`,`planStatus`,`snapshotPayloadJson`,`resultSummaryJson`,`resultPayloadJson`,`queryContextJson`,`createdAt`,`updatedAt`,`errorCode`,`errorMessage`; response: `configSnapshotId`,`resultId`,`historyId`,`traceId`,`requestId`,`sagaId`,`contractStage`,`implementationStage` | acceleration plan 生命周期通过治理受保护入口落 `config/result/history` 追溯链；当前 `config_snapshot` 与 `query_history` 幂等创建，`execution_result` 随 activate/pause 状态更新 |
@@ -185,7 +179,7 @@
 
 | Endpoint | Request baseline | Response baseline | Current implementation stage |
 |:---|:---|:---|:---|
-| `/api/query-execution/internal/hetu/route-calibration` | `GET`, no request body, protected headers required | `HetuRouteCalibrationResponse` with `hetuEnabled`,`routeProfile`,`declaredAllowedModes[]`,`effectiveRouteOrder[]`,`skipUnreadyModes`,`evidenceSource`,`liveVerificationStatus`,`readonlyBoundary`,`summary`,`clusterEvidence`,`modeCalibrations[]`,`contractStage`,`implementationStage`; `clusterEvidence` carries `evidenceSource`,`environmentLabel`,`clusterName`,`coordinatorEndpoint`,`runbookRef`,`evidenceRef`,`readonlyBoundary`,`liveVerificationStatus`,`operatorNotes`; `modeCalibrations[]` carries `mode`,`priority`,`allowed`,`calibrationPreferred`,`adapterAvailable`,`configured`,`ready`,`willAttemptInCurrentPolicy`,`readinessStatus`,`readinessReason`,`routeParameters` | `HETU_ROUTE_CALIBRATION_BASELINE` |
+| `/api/query-execution/internal/hetu/route-calibration` | `GET`, no request body, protected headers required | `HetuRouteCalibrationResponse` with `hetuEnabled`,`routeProfile`,`declaredAllowedModes[]`,`effectiveRouteOrder[]`,`skipUnreadyModes`,`evidenceSource`,`liveVerificationStatus`,`readonlyBoundary`,`summary`,`clusterEvidence`,`modeCalibrations[]`,`contractStage`,`implementationStage`; `clusterEvidence` carries `evidenceSource`,`environmentLabel`,`clusterName`,`coordinatorEndpoint`,`runbookRef`,`evidenceRef`,`readonlyBoundary`,`liveVerificationStatus`,`evidenceNotes`; `modeCalibrations[]` carries `mode`,`priority`,`allowed`,`calibrationPreferred`,`adapterAvailable`,`configured`,`ready`,`willAttemptInCurrentPolicy`,`readinessStatus`,`readinessReason`,`routeParameters` | `HETU_ROUTE_CALIBRATION_BASELINE` |
 
 说明：
 
@@ -735,17 +729,9 @@
   - `10009` `SYSTEM_AUDIT_CONTRACT_INVALID`
   - `11002` `GOVERNANCE_SYSTEM_MESSAGE_ROUTE_INVALID`
 
-## 6. Authorization Decision Contract Baseline
+## 6. Removed Access Matrix Contract
 
-当前治理内部 `authorization/decide` 契约返回规则：
-
-- `allowed=true` 时必须返回 `reason`，并显式返回 `contractStage` 与 `implementationStage`
-- `allowed=false` 时必须返回显式 `errorCode`
-- 当前失败错误码已固定：
-  - `20000` `GOVERNANCE_ACCESS_DENIED`
-  - `20001` `GOVERNANCE_TENANT_ACCESS_DENIED`
-  - `20002` `GOVERNANCE_DATASOURCE_ACCESS_DENIED`
-- 当前 `authorization/datasource/change` 契约必须返回 `status=UPDATED`，并把权限变更写入 `audit_log`
+核心接口契约不再把访问矩阵或岗位集合写成长线目标。旧授权矩阵路径已由 `datasource-access` 契约替换，三项业务服务运行时调用统一落到 `tenantId + datasourceId + action` 的数据源范围检查。
 
 ## 7. Related Documents
 

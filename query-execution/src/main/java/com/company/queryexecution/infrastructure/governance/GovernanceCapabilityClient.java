@@ -8,7 +8,7 @@ import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse
 
 public interface GovernanceCapabilityClient {
 
-    void assertAuthorization(String tenantId,
+    void assertDatasourceAccess(String tenantId,
                              DataSourceTypeEnum datasourceType,
                              String resourceType,
                              String resourceId,

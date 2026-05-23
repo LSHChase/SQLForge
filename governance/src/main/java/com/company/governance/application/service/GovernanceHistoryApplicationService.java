@@ -64,9 +64,7 @@ import org.springframework.util.StringUtils;
 public class GovernanceHistoryApplicationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GovernanceHistoryApplicationService.class);
-    private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
-    private static final String TENANT_ADMIN = "TENANT_ADMIN";
-    private static final String OPERATOR = "OPERATOR";
+    private static final String SYSTEM_TENANT_ID = "system";
     private static final String BATCH_OPERATION_RETENTION = "EXECUTE_RETENTION_BATCH";
     private static final String BATCH_OPERATION_RECOVERY = "RECOVER_ARTIFACT_BATCH";
     private static final String ITEM_OPERATION_CLEANUP = "CLEANUP_ARTIFACT";
@@ -986,9 +984,6 @@ public class GovernanceHistoryApplicationService {
 
     private String resolveAuthorizedTenantId(String tenantId) {
         String currentTenantId = TenantContext.get();
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN);
-        boolean tenantAdmin = RequestContext.hasRole(TENANT_ADMIN);
-        boolean operator = RequestContext.hasRole(OPERATOR);
         if (!StringUtils.hasText(currentTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
@@ -996,23 +991,16 @@ public class GovernanceHistoryApplicationService {
                 "租户上下文缺失"
             );
         }
-        if (!platformAdmin && !tenantAdmin && !operator) {
-            throw new BizException(
-                ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
-                HttpStatus.FORBIDDEN,
-                "当前角色无权读取治理历史记录"
-            );
-        }
 
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId.trim() : currentTenantId;
-        if (!platformAdmin && !currentTenantId.equals(effectiveTenantId)) {
+        if (!currentTenantId.equals(effectiveTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE
             );
         }
-        if (!platformAdmin && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, DEFAULT_DATA_SOURCE_ID)) {
+        if (!tenantAccessLogic.validateDataSourceAccess(currentTenantId, DEFAULT_DATA_SOURCE_ID, "READ")) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
@@ -1023,13 +1011,13 @@ public class GovernanceHistoryApplicationService {
     }
 
     private void assertArtifactOperationRole() {
-        if (RequestContext.hasRole(PLATFORM_ADMIN) || RequestContext.hasRole(TENANT_ADMIN)) {
+        if (SYSTEM_TENANT_ID.equals(RequestContext.getTenantId())) {
             return;
         }
         throw new BizException(
             ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
             HttpStatus.FORBIDDEN,
-            "当前角色无权触发产物清理或恢复"
+            "当前请求不允许触发产物清理或恢复"
         );
     }
 

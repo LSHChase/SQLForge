@@ -6,8 +6,8 @@ import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
@@ -44,7 +44,7 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     @Override
-    public void assertAuthorization(String tenantId,
+    public void assertDatasourceAccess(String tenantId,
                                     DataSourceTypeEnum datasourceType,
                                     String resourceType,
                                     String resourceId,
@@ -60,15 +60,16 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
             );
         }
 
-        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+        GovernanceDatasourceAccessCheckRequest request = new GovernanceDatasourceAccessCheckRequest();
         request.setServiceCode(ServiceCodeConstants.QUERY_EXECUTION);
         request.setTenantId(tenantId);
         request.setResourceType(resourceType);
         request.setResourceId(resourceId);
         request.setOperationCode(operationCode);
         request.setDatasourceId(datasourceId);
-        GovernanceAuthorizationDecisionResponse response =
-            post("/authorization/decide", request, GovernanceAuthorizationDecisionResponse.class);
+        request.setAction(resolveDatasourceAction(operationCode));
+        GovernanceDatasourceAccessCheckResponse response =
+            post("/datasource-access/check", request, GovernanceDatasourceAccessCheckResponse.class);
         if (response == null || !response.isAllowed()) {
             throw new AccessDeniedException(
                 response == null || !StringUtils.hasText(response.getReason())
@@ -132,6 +133,10 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
 
     private HttpHeaders buildProtectedHeaders() {
         return ProtectedGovernanceRequestSupport.buildProtectedHeaders();
+    }
+
+    private String resolveDatasourceAction(String operationCode) {
+        return "USE";
     }
 
     private String normalizeBaseUrl() {

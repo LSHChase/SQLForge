@@ -16,7 +16,7 @@ class AlertPolicyBaselineTest {
     void shouldGeneratePoliciesForAllAlertTypes() {
         Instant now = Instant.parse("2026-04-27T13:00:00Z");
 
-        List<AlertPolicy> policies = AlertPolicyBaseline.defaultPoliciesForTenant("tenant-a", "operator-001", now);
+        List<AlertPolicy> policies = AlertPolicyBaseline.defaultPoliciesForTenant("tenant-a", "user-001", now);
 
         assertEquals(AlertEvent.AlertType.values().length, policies.size());
         AlertPolicy datasourcePolicy = findPolicy(policies, AlertEvent.AlertType.DATASOURCE_UNAVAILABLE);
@@ -32,7 +32,7 @@ class AlertPolicyBaselineTest {
     void shouldMatchPolicyToSameTenantAndAlertType() {
         Instant now = Instant.parse("2026-04-27T13:00:00Z");
         AlertPolicy policy = findPolicy(
-            AlertPolicyBaseline.defaultPoliciesForTenant("tenant-a", "operator-001", now),
+            AlertPolicyBaseline.defaultPoliciesForTenant("tenant-a", "user-001", now),
             AlertEvent.AlertType.REPORT_SQL_RESOLVE_FAILURE
         );
         AlertEvent matchingEvent = AlertEvent.builder()
@@ -45,7 +45,7 @@ class AlertPolicyBaselineTest {
             .build();
 
         assertTrue(policy.appliesTo(matchingEvent));
-        assertEquals("TENANT_ADMIN", policy.getOwnerRole());
+            assertEquals("TENANT_SCOPE", policy.getOwnerScope());
     }
 
     private AlertPolicy findPolicy(List<AlertPolicy> policies, AlertEvent.AlertType type) {

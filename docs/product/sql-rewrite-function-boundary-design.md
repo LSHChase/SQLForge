@@ -39,7 +39,7 @@ SQL 改写能力应拆成三个功能面：
 
 ### Positioning
 
-`SQL 改写验证` 是面向分析人员、DBA、优化人员和审核人员的试算工作台。它回答：
+`SQL 改写验证` 是面向 SQL 改写试算与结果验证流程的工作台。它回答：
 
 - 输入 SQL 是否存在可改写点。
 - 可改写规则是什么。
@@ -210,13 +210,13 @@ SQL 改写能力应拆成三个功能面：
 1. 解析、执行历史、慢 SQL 或人工输入生成 recommendation。
 2. 用户或策略把 recommendation 转换成 `sql_rewrite_record`。
 3. 改写记录进入待激活状态；人工复核只是证据，不是强制激活门禁。
-4. 激活和暂停必须先走统一授权入口和后端状态接口，再调用 query-execution runtime binding。
+4. 激活和暂停必须先走统一受控访问入口和后端状态接口，再调用 query-execution runtime binding。
 5. 激活动作只有在 runtime binding 返回 `ACTIVE` 后才能把 `activationStatus` 置为 `ACTIVE`；暂停动作只有在 runtime 返回 `PAUSED` 后才能把 `activationStatus` 置为 `PAUSED`。
 6. 激活资格、验证结果和告警是后端门禁和审计证据，页面按钮不得绕过这些接口直接改状态。
 7. 周期比对失败时，运行时暂停走 runtime binding；若暂停失败，只能记录失败 trace 和告警，不得直接改数据库状态伪造运行时暂停。
 8. 生产 runtime binding 的推荐 SQL 表达为模板 / 规则程序，不得只保存为固定整条替换文本；执行时可在同租户 `ACTIVE` 安全边界内按模板族匹配，并把当前 SQL 参数和可迁移 WHERE 条件重放到推荐 SQL 模板。
 
-`manualReviewRequired=true` 只表示需要人工查看，不表示已激活或已授权生产运行。
+`manualReviewRequired=true` 只表示需要人工查看，不表示已激活或已进入生产运行。
 
 ### Boundaries
 

@@ -14,7 +14,6 @@ import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilit
 import com.company.sqloptimization.infrastructure.governance.OptimizationAuditRecord;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +82,6 @@ public class RewriteValidationSchedulerService {
             RequestContext.set(
                 candidate.getTenantId(),
                 "rewrite-validation-scheduler",
-                Arrays.asList("SERVICE"),
                 "rewrite-validation-" + candidate.getRewriteRecordId() + "-" + now.toEpochMilli(),
                 "rewrite-validation-" + candidate.getRewriteRecordId(),
                 "scheduler",
@@ -113,7 +111,6 @@ public class RewriteValidationSchedulerService {
             RequestContext.set(
                 candidate.getTenantId(),
                 "rewrite-validation-scheduler",
-                Arrays.asList("SERVICE"),
                 "rewrite-divergence-audit-" + candidate.getRewriteRecordId() + "-" + now.toEpochMilli(),
                 "rewrite-divergence-audit-" + candidate.getRewriteRecordId(),
                 "scheduler",
@@ -162,7 +159,6 @@ public class RewriteValidationSchedulerService {
             RequestContext.set(
                 candidate.getTenantId(),
                 "rewrite-validation-scheduler",
-                Arrays.asList("SERVICE"),
                 "rewrite-divergence-alert-" + candidate.getRewriteRecordId() + "-" + now.toEpochMilli(),
                 "rewrite-divergence-alert-" + candidate.getRewriteRecordId(),
                 "scheduler",

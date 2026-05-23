@@ -78,11 +78,11 @@
 
 | Service / data domain | Trigger conditions | Target RPO | Target RTO | Primary owner | Secondary owner | Acceptance evidence |
 |:---|:---|:---|:---|:---|:---|:---|
-| `governance` / MySQL 主库与核心追溯链 | 主库损坏、主从复制断裂、误删元数据、迁移失败后需要回退 | `< 1小时` | `< 4小时` | `DBA / Platform Ops` | `Governance service owner` | 恢复后 `config_snapshot/execution_result/query_history/export_record` 行数与抽样关联键一致；schema 版本与 migration 清单匹配 |
-| `governance` / `audit_log` | 审计表损坏、审计留痕缺口、误删或归档回灌 | `< 1小时` | `< 4小时` | `DBA / Compliance Ops` | `Governance service owner` | 指定时间窗审计记录连续；`LOGIN` / `LOGOUT` 与 `audit/write` 抽样写入成功；恢复动作自身留痕 |
-| `governance` / `export_record` 与归档索引 | 导出元数据损坏、归档索引丢失、导出记录与对象存储不一致 | `< 1小时` | `< 4小时` | `DBA / Storage Ops` | `Governance service owner` | 抽样 `export_record` 可追溯到 `history_id/result_id`；对象清单与脱敏 `storage_uri` 摘要可匹配 |
-| `governance` / `kafka_message_queue` | 审计主路由失败后 backlog 丢失、数据库队列损坏、补偿重试中断 | `< 1小时` | `< 4小时` | `DBA / Messaging Ops` | `Governance service owner` | 恢复后 `pending/failed` 统计可读取；必要时可执行重试；恢复窗口内无未解释的 backlog 丢失 |
-| `governance` / `system_config` 密文与 `keyId` 映射 | 密文列损坏、密钥轮换后无法解密、误把明文写回配置表 | 与对应备份批次同步 | 与对应备份批次同步 | `Security Ops` | `DBA / Governance service owner` | 敏感配置仍留在 `value_ciphertext`；`encryption_key_id` 可解析；无敏感值回流到 `config_value` |
+| `governance` / MySQL 主库与核心追溯链 | 主库损坏、主从复制断裂、误删元数据、迁移失败后需要回退 | `< 1小时` | `< 4小时` | `Database operations owner / Platform Ops` | `Governance service owner` | 恢复后 `config_snapshot/execution_result/query_history/export_record` 行数与抽样关联键一致；schema 版本与 migration 清单匹配 |
+| `governance` / `audit_log` | 审计表损坏、审计留痕缺口、误删或归档回灌 | `< 1小时` | `< 4小时` | `Database operations owner / Compliance Ops` | `Governance service owner` | 指定时间窗审计记录连续；`LOGIN` / `LOGOUT` 与 `audit/write` 抽样写入成功；恢复动作自身留痕 |
+| `governance` / `export_record` 与归档索引 | 导出元数据损坏、归档索引丢失、导出记录与对象存储不一致 | `< 1小时` | `< 4小时` | `Database operations owner / Storage Ops` | `Governance service owner` | 抽样 `export_record` 可追溯到 `history_id/result_id`；对象清单与脱敏 `storage_uri` 摘要可匹配 |
+| `governance` / `kafka_message_queue` | 审计主路由失败后 backlog 丢失、数据库队列损坏、补偿重试中断 | `< 1小时` | `< 4小时` | `Database operations owner / Messaging Ops` | `Governance service owner` | 恢复后 `pending/failed` 统计可读取；必要时可执行重试；恢复窗口内无未解释的 backlog 丢失 |
+| `governance` / `system_config` 密文与 `keyId` 映射 | 密文列损坏、密钥轮换后无法解密、误把明文写回配置表 | 与对应备份批次同步 | 与对应备份批次同步 | `Security Ops` | `Database operations owner / Governance service owner` | 敏感配置仍留在 `value_ciphertext`；`encryption_key_id` 可解析；无敏感值回流到 `config_value` |
 
 ### Service-Level Recovery Acceptance
 
@@ -135,9 +135,9 @@
 
 | Drill type | Baseline frequency | Required participants | Mandatory scope |
 |:---|:---|:---|:---|
-| Full metadata restore drill | 每季度至少 1 次 | `DBA / Platform Ops / Governance service owner` | MySQL 备份恢复、核心追溯链、`audit_log`、`export_record`、`system_config` 密文、恢复后观测验收 |
+| Full metadata restore drill | 每季度至少 1 次 | `Database operations owner / Platform Ops / Governance service owner` | MySQL 备份恢复、核心追溯链、`audit_log`、`export_record`、`system_config` 密文、恢复后观测验收 |
 | Queue compensation drill | 每季度至少 1 次，可与全量恢复同窗执行 | `Messaging Ops / Governance service owner` | `kafka_message_queue` 或治理 fallback backlog 的恢复、重试与统计核对 |
-| Key rotation compatibility drill | 每次密钥轮换前后都要执行 | `Security Ops / DBA / Governance service owner` | `value_ciphertext`、`encryption_key_id`、历史备份可解密性抽样验证 |
+| Key rotation compatibility drill | 每次密钥轮换前后都要执行 | `Security Ops / Database operations owner / Governance service owner` | `value_ciphertext`、`encryption_key_id`、历史备份可解密性抽样验证 |
 | Incident-driven drill | 每次真实恢复事件后 5 个工作日内补录 | 事故责任人与恢复责任人 | 真实故障窗口、恢复动作、证据与残余风险复盘 |
 
 ## Drill Record Template
@@ -164,7 +164,7 @@
 
 - Primary owner:
 - Secondary owner:
-- DBA:
+- Database operations owner:
 - Security Ops:
 - Governance service owner:
 - Observer / approver:

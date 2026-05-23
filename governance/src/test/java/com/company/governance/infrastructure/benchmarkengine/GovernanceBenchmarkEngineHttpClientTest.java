@@ -39,7 +39,6 @@ class GovernanceBenchmarkEngineHttpClientTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "header",
@@ -74,7 +73,6 @@ class GovernanceBenchmarkEngineHttpClientTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "header",

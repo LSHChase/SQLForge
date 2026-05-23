@@ -43,7 +43,7 @@ class BenchmarkTestSetApplicationServiceTest {
             repository,
             governanceCapabilityClient
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkTestSetResponse created = service.createTestSet(baseRequest(
             "case_name,sql_text,report_code,tags\n"
@@ -66,7 +66,7 @@ class BenchmarkTestSetApplicationServiceTest {
         assertEquals(created.getTestSetId(), loaded.getTestSetId());
         assertEquals(2, loaded.getCases().size());
         assertEquals("comparison", loaded.getCases().get(0).getTags().get(0));
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertAuthorization(
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.any(),
             org.mockito.Mockito.eq("BENCHMARK_ENGINE_TEST_SET"),
@@ -83,7 +83,7 @@ class BenchmarkTestSetApplicationServiceTest {
             new InMemoryBenchmarkTaskRepository(),
             mockGovernanceClient()
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkTestSetResponse created = service.createTestSet(baseRequest(
             "case_name,sql_text,report_code,tags\nunsafe,DELETE FROM orders,report-002,unsafe\n"
@@ -136,7 +136,7 @@ class BenchmarkTestSetApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

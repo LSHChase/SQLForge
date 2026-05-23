@@ -48,7 +48,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
             governanceCapabilityClient,
             parseResultClient
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         when(parseResultClient.getParseBatch("batch-001")).thenReturn(batchStatus());
         when(parseResultClient.getImportantUrgentSqls()).thenReturn(batchStatistics());
@@ -66,7 +66,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
         assertTrue(created.getCases().get(1).getRejectionReason().contains("只读压测边界"));
         assertEquals(created.getTestSetId(), repository.findTestSetByTestSetId(created.getTestSetId()).getTestSetId());
 
-        verify(governanceCapabilityClient).assertAuthorization(
+        verify(governanceCapabilityClient).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.any(),
             org.mockito.Mockito.eq("BENCHMARK_ENGINE_TEST_SET"),
@@ -86,7 +86,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
             governanceCapabilityClient,
             parseResultClient
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         when(parseResultClient.getCombinedParseStatus("parse-001")).thenReturn(combinedParseStatus());
 
@@ -108,7 +108,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
             governanceCapabilityClient,
             parseResultClient
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         when(parseResultClient.getCombinedParseStatus("parse-001")).thenReturn(combinedParseStatus());
 
@@ -229,7 +229,7 @@ class BenchmarkParseResultTestSetApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

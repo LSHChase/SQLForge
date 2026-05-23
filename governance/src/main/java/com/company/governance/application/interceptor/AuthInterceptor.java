@@ -7,10 +7,7 @@ import com.company.sqlforge.common.config.RequestHeaderConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.UnauthorizedException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -43,7 +40,6 @@ public class AuthInterceptor implements HandlerInterceptor {
 
             String tenantId = requireHeader(request, RequestHeaderConstants.TENANT_ID);
             String userId = requireHeader(request, RequestHeaderConstants.USER_ID);
-            List<String> roleCodes = parseRoleCodes(requireHeader(request, RequestHeaderConstants.ROLE_CODES));
             String authSource = requireHeader(request, RequestHeaderConstants.AUTH_SOURCE);
             long issuedAt = parseEpochMilli(request, RequestHeaderConstants.ISSUED_AT);
             long expiresAt = parseEpochMilli(request, RequestHeaderConstants.EXPIRES_AT);
@@ -52,17 +48,16 @@ public class AuthInterceptor implements HandlerInterceptor {
             validateAuthSource(authSource);
             validateNotExpired(expiresAt);
 
-            RequestContext.set(tenantId, userId, roleCodes, requestId, traceId, authSource, issuedAt, expiresAt);
+            RequestContext.set(tenantId, userId, requestId, traceId, authSource, issuedAt, expiresAt);
             RequestMetadataContext.set(resolveSourceIp(request), resolveUserAgent(request), resolveAccessChannel(request));
             response.setHeader(RequestHeaderConstants.REQUEST_ID, requestId);
             response.setHeader(RequestHeaderConstants.TRACE_ID, traceId);
 
-            LOGGER.info("已解析请求上下文，requestId={}, traceId={}, tenantId={}, userId={}, roleCodes={}, uri={}",
+            LOGGER.info("已解析请求上下文，requestId={}, traceId={}, tenantId={}, userId={}, uri={}",
                 requestId,
                 traceId,
                 tenantId,
                 userId,
-                roleCodes,
                 request.getRequestURI());
         } catch (RuntimeException ex) {
             try {
@@ -116,17 +111,6 @@ public class AuthInterceptor implements HandlerInterceptor {
             throw new UnauthorizedException("缺少 " + headerName + " 请求头");
         }
         return headerValue.trim();
-    }
-
-    private List<String> parseRoleCodes(String rawRoleCodes) {
-        List<String> roleCodes = Arrays.stream(rawRoleCodes.split(","))
-            .map(String::trim)
-            .filter(item -> !item.isEmpty())
-            .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(roleCodes)) {
-            throw new UnauthorizedException("缺少 " + RequestHeaderConstants.ROLE_CODES + " 请求头");
-        }
-        return new ArrayList<String>(roleCodes);
     }
 
     private long parseEpochMilli(HttpServletRequest request, String headerName) {

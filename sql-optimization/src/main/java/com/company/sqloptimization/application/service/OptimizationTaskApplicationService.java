@@ -74,7 +74,7 @@ public class OptimizationTaskApplicationService {
         try {
             validateCallbackUrl(request);
             request.setSqlFingerprint(normalizedFingerprint);
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 request.getTenantId(),
                 request.getDatasourceType(),
                 RESOURCE_TYPE_TASK,
@@ -155,7 +155,7 @@ public class OptimizationTaskApplicationService {
                 );
             }
             verifyTenantAccess(task.getTenantId());
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 task.getTenantId(),
                 task.getDatasourceType(),
                 RESOURCE_TYPE_TASK,

@@ -28,7 +28,7 @@ class DispatchEventApplicationServiceTest {
 
     @Test
     void shouldCreatePublishPullAndAckDispatchEventWithoutExecutingSql() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         InMemoryAccelerationRecommendationRepository recommendationRepository = new InMemoryAccelerationRecommendationRepository();
         InMemoryDispatchEventRepository dispatchEventRepository = new InMemoryDispatchEventRepository();
         recommendationRepository.save(recommendation("rec-001", RecommendationType.PREWARM));
@@ -51,7 +51,7 @@ class DispatchEventApplicationServiceTest {
 
     @Test
     void shouldRejectInvalidStateTransition() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         InMemoryAccelerationRecommendationRepository recommendationRepository = new InMemoryAccelerationRecommendationRepository();
         InMemoryDispatchEventRepository dispatchEventRepository = new InMemoryDispatchEventRepository();
         recommendationRepository.save(recommendation("rec-002", RecommendationType.CREATE_TABLE));
@@ -92,7 +92,7 @@ class DispatchEventApplicationServiceTest {
             .benefitLevel(BenefitLevel.HIGH)
             .riskLevel(RiskLevel.LOW)
             .requiresDispatch(true)
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.now())
             .build();
     }

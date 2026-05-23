@@ -199,7 +199,7 @@
 2026-04-21T02:11:33-05:00 | D-TASK-012 closeout static-check | `R-040`, `R-113`, `R-144` | passed | `mvn -B -pl governance -am validate pmd:pmd checkstyle:check`
 2026-04-21T02:11:33-05:00 | D-TASK-012 closeout separation | `R-124`, `R-133` | passed | `node scripts/check-frontend-backend-separation.js`
 2026-04-21T02:11:33-05:00 | D-TASK-012 closeout knowledge | `R-113`, `R-133`, `R-161` | passed | `node scripts/lint-repository-knowledge.js`
-2026-04-21T02:11:33-05:00 | D-TASK-012 closeout audit-path-coverage | `R-113`, `R-144` | passed | `GovernanceAuditTrailServiceTest`, `GovernanceCapabilityApplicationServiceTest`, `AuthInterceptorTest`, and `AuthWebMvcTest` cover persisted SQL audit writes, invalid traceability foreign keys, login accepted/rejected, logout completion, and `PERMISSION_CHANGE` payload delivery through `POST /api/governance/internal/audit/write`
+2026-04-21T02:11:33-05:00 | D-TASK-012 closeout audit-path-coverage | `R-113`, `R-144` | passed | `GovernanceAuditTrailServiceTest`, `GovernanceCapabilityApplicationServiceTest`, `AuthInterceptorTest`, and `AuthWebMvcTest` cover persisted SQL audit writes, invalid traceability foreign keys, login accepted/rejected, logout completion, and `DATASOURCE_ACCESS_SCOPE_CHANGE` payload delivery through `POST /api/governance/internal/audit/write`
 2026-04-21T02:11:33-05:00 | D-TASK-012 closeout doc-sync | `R-113`, `R-126`, `R-133`, `R-144` | passed | `service-interface-contract-baseline.md`, `service-capability-map.md`, `document-truth-baseline.md`, `access-control-spec.md`, `persistence.md`, `init.md`, `repo-map.md`, `tasks-done.md`, and `validation-log.md` synced to the persisted governance audit trail baseline
 2026-04-21T02:13:33-05:00 | D-TASK-012 post-closeout task-audit | `R-156`, `R-160` | passed | `python3 scripts/task_audit.py --check`
 2026-04-21T02:31:10-05:00 | D-TASK-013 closeout test | `R-114`, `R-119` | passed | `mvn -B -pl governance -am test`
@@ -5408,3 +5408,73 @@
 2026-05-22T03:59:07-05:00 | USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-22T03:59:07-05:00 | USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522 closeout commit | `R-168` | projected | `git commit -m 'USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522 implement runtime rewrite template replay' (projected-precommit)`
 2026-05-22T03:59:07-05:00 | USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-23T00:05:37-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T00:05:37-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T00:05:38-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T00:05:42-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T00:05:42-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T00:05:42-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T00:05:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T00:05:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T00:06:37-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T00:06:37-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T00:06:39-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T00:06:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T00:06:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T00:06:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T00:06:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T00:06:44-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T01:37:54-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T01:37:54-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T01:37:55-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T01:38:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T01:38:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T01:38:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T01:38:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T01:38:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T01:58:57-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T01:58:57-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T01:58:58-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T01:59:02-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T01:59:03-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T01:59:03-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T01:59:03-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T01:59:03-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T01:59:09-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `mvn -pl sqlforge-shared,governance,query-execution,sql-optimization,benchmark-engine -DskipTests compile`
+2026-05-23T02:58:53-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T02:58:53-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T02:58:55-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T02:58:59-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T02:58:59-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T02:58:59-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T02:58:59-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T02:58:59-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T03:00:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T03:00:43-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T03:00:44-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T03:00:49-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T03:00:49-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T03:00:49-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T03:00:49-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T03:00:49-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T03:11:06-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T03:11:06-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T03:11:07-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T03:11:12-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T03:11:12-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T03:11:12-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T03:11:12-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T03:11:12-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T03:12:45-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T03:12:45-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T03:12:46-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T03:12:50-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T03:12:50-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T03:12:51-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T03:12:51-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T03:12:51-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --all`
+2026-05-23T03:12:52-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 validate | `R-133`, `R-168` | passed | `mvn -q -pl query-execution -am -DskipTests compile`
+2026-05-23T03:14:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-23T03:14:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 closeout commit | `R-168` | projected | `git commit -m 'refactor(core): remove role matrix access model' (projected-precommit)`
+2026-05-23T03:14:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-23T03:14:00-05:00 | USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

@@ -20,7 +20,6 @@ build_protected_headers() {
   printf '%s\n' \
     "-H" "X-Tenant-Id: ${REQUEST_TENANT_ID}" \
     "-H" "X-User-Id: ${REQUEST_USER_ID}" \
-    "-H" "X-Role-Codes: ${REQUEST_ROLE_CODES}" \
     "-H" "X-Request-Id: ${request_id}" \
     "-H" "X-Trace-Id: ${trace_id}" \
     "-H" "X-Auth-Source: ${REQUEST_AUTH_SOURCE}" \

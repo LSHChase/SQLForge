@@ -792,7 +792,7 @@ public class SqlRewriteRecordApplicationService {
         request.setTenantId(rewriteRecord.getTenantId());
         request.setRuntimeBindingId(rewriteRecord.getRuntimeBindingId());
         request.setSqlFingerprint(rewriteRecord.getSqlFingerprint());
-        request.setOperatorId(operator);
+        request.setActorId(operator);
         request.setReason(reason);
         return request;
     }
@@ -904,7 +904,7 @@ public class SqlRewriteRecordApplicationService {
         if (governanceCapabilityClient == null) {
             return;
         }
-        governanceCapabilityClient.assertAuthorization(
+        governanceCapabilityClient.assertDatasourceAccess(
             tenantId,
             datasourceType,
             RESOURCE_TYPE_REWRITE_RECORD,

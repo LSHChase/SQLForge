@@ -47,7 +47,7 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
                 queryHistoryMapper,
                 exportRecordMapper
             );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         when(configSnapshotMapper.selectById("cfg-benchmark-report-001")).thenReturn(null);
         when(executionResultMapper.selectById("result-benchmark-report-001")).thenReturn(null);
         when(queryHistoryMapper.selectById("history-benchmark-report-001")).thenReturn(null);
@@ -145,7 +145,7 @@ class GovernanceBenchmarkTraceabilityApplicationServiceTest {
                 queryHistoryMapper,
                 exportRecordMapper
             );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         when(configSnapshotMapper.selectById("cfg-benchmark-report-002")).thenReturn(new ConfigSnapshotRecord());
         when(executionResultMapper.selectById("result-benchmark-report-002")).thenReturn(new ExecutionResultRecord());
         when(queryHistoryMapper.selectById("history-benchmark-report-002")).thenReturn(new QueryHistoryRecord());

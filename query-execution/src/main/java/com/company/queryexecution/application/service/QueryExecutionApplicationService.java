@@ -235,7 +235,7 @@ public class QueryExecutionApplicationService {
         logStart(request, sqlFingerprint);
         try {
             DataSourceTypeEnum primaryEngine = resolvePrimaryEngine(request);
-            governanceCapabilityClient.assertAuthorization(
+            governanceCapabilityClient.assertDatasourceAccess(
                 request.getTenantId(),
                 request.getDatasourceType(),
                 RESOURCE_TYPE_QUERY,

@@ -42,7 +42,7 @@ class RedisJdbcAgentRewriteRuleSyncAdapterTest {
         RedisJdbcAgentRewriteRuleSyncAdapter adapter = new RedisJdbcAgentRewriteRuleSyncAdapter(properties, client);
         RuntimeRewriteBinding paused = binding()
             .status(com.company.queryexecution.domain.rewrite.RuntimeRewriteBindingStatus.PAUSED)
-            .pausedBy("operator-001")
+            .pausedBy("user-001")
             .pausedAt(Instant.now())
             .build();
 

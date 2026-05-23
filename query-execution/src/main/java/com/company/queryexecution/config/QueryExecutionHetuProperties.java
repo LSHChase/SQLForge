@@ -146,7 +146,7 @@ public class QueryExecutionHetuProperties {
         private String evidenceRef = "HARN-016/INBOX-002";
         private String readonlyBoundary = "REPO_CLOSED_DEFAULT";
         private String liveVerificationStatus = "PENDING_ENV_WINDOW";
-        private String operatorNotes = "";
+        private String evidenceNotes = "";
 
         public String getEvidenceSource() {
             return evidenceSource;
@@ -212,12 +212,12 @@ public class QueryExecutionHetuProperties {
             this.liveVerificationStatus = liveVerificationStatus;
         }
 
-        public String getOperatorNotes() {
-            return operatorNotes;
+        public String getEvidenceNotes() {
+            return evidenceNotes;
         }
 
-        public void setOperatorNotes(String operatorNotes) {
-            this.operatorNotes = operatorNotes;
+        public void setEvidenceNotes(String evidenceNotes) {
+            this.evidenceNotes = evidenceNotes;
         }
     }
 

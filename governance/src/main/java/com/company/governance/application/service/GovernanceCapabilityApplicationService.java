@@ -1,9 +1,9 @@
 package com.company.governance.application.service;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
-import com.company.governance.application.controller.dto.DatasourceAuthorizationChangeRequest;
+import com.company.governance.application.controller.dto.DatasourceAccessScopeChangeRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
-import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
+import com.company.governance.application.controller.vo.DatasourceAccessScopeChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.config.MessagingProperties;
 import com.company.governance.domain.tenant.entity.TenantConfig;
@@ -15,12 +15,12 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
@@ -55,7 +55,7 @@ public class GovernanceCapabilityApplicationService {
     private static final String STATUS_TEST_ONLY = "TEST_ONLY";
     private static final String GOVERNANCE_SCHEDULE_EXTENSION_POINT = "governance.schedule.dispatch";
 
-    private final GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService;
+    private final GovernanceDatasourceAccessApplicationService governanceDatasourceAccessApplicationService;
     private final GovernanceAuditTrailService governanceAuditTrailService;
     private final GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService;
     private final GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService;
@@ -68,7 +68,7 @@ public class GovernanceCapabilityApplicationService {
     private final TenantConfigRepository tenantConfigRepository;
 
     public GovernanceCapabilityApplicationService(
-                                                  GovernanceAuthorizationMatrixApplicationService governanceAuthorizationMatrixApplicationService,
+                                                  GovernanceDatasourceAccessApplicationService governanceDatasourceAccessApplicationService,
                                                   GovernanceAuditTrailService governanceAuditTrailService,
                                                   GovernanceBenchmarkTraceabilityApplicationService governanceBenchmarkTraceabilityApplicationService,
                                                   GovernanceBenchmarkRegressionAlertApplicationService governanceBenchmarkRegressionAlertApplicationService,
@@ -79,7 +79,7 @@ public class GovernanceCapabilityApplicationService {
                                                   DatasourceConfigApplicationService datasourceConfigApplicationService,
                                                   MessagingProperties messagingProperties,
                                                   TenantConfigRepository tenantConfigRepository) {
-        this.governanceAuthorizationMatrixApplicationService = governanceAuthorizationMatrixApplicationService;
+        this.governanceDatasourceAccessApplicationService = governanceDatasourceAccessApplicationService;
         this.governanceAuditTrailService = governanceAuditTrailService;
         this.governanceBenchmarkTraceabilityApplicationService = governanceBenchmarkTraceabilityApplicationService;
         this.governanceBenchmarkRegressionAlertApplicationService = governanceBenchmarkRegressionAlertApplicationService;
@@ -94,19 +94,19 @@ public class GovernanceCapabilityApplicationService {
 
     public GovernanceTenantScopeCheckResponse checkTenantScope(GovernanceTenantScopeCheckRequest request) {
         requireProtectedTenantContext();
-        return governanceAuthorizationMatrixApplicationService.checkTenantScope(request);
+        return governanceDatasourceAccessApplicationService.checkTenantScope(request);
     }
 
-    public GovernanceAuthorizationDecisionResponse decideAuthorization(GovernanceAuthorizationDecisionRequest request) {
+    public GovernanceDatasourceAccessCheckResponse checkDatasourceAccess(GovernanceDatasourceAccessCheckRequest request) {
         requireProtectedTenantContext();
-        return governanceAuthorizationMatrixApplicationService.decideAuthorization(request);
+        return governanceDatasourceAccessApplicationService.checkDatasourceAccess(request);
     }
 
-    public DatasourceAuthorizationChangeResponse changeDatasourceAuthorization(
-        DatasourceAuthorizationChangeRequest request
+    public DatasourceAccessScopeChangeResponse changeDatasourceAccessScope(
+        DatasourceAccessScopeChangeRequest request
     ) {
         requireProtectedTenantContext();
-        return governanceAuthorizationMatrixApplicationService.applyDatasourceAuthorizationChange(request);
+        return governanceDatasourceAccessApplicationService.applyDatasourceAccessScopeChange(request);
     }
 
     public AuditWriteResponse publishAuditEvent(AuditWriteRequest request) {

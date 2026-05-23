@@ -42,8 +42,7 @@ class AccelerationRecommendationApplicationServiceTest {
     void shouldCreateReadonlyRecommendationWithBenefitAndRiskModel() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -129,8 +128,7 @@ class AccelerationRecommendationApplicationServiceTest {
     void shouldPageFilterSortAndKeepLegacyRecommendationList() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -235,8 +233,7 @@ class AccelerationRecommendationApplicationServiceTest {
     void shouldFilterRecommendationPageBySourceCategoryAndLinkedObject() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -377,8 +374,7 @@ class AccelerationRecommendationApplicationServiceTest {
     void shouldPersistAndReuseSameAdvancedMvArtifactForDetailAndDiff() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -424,8 +420,7 @@ class AccelerationRecommendationApplicationServiceTest {
     void shouldRejectCrossTenantRecommendationCreation() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",
@@ -475,7 +470,7 @@ class AccelerationRecommendationApplicationServiceTest {
             .validationStatus(validationStatus)
             .autoApplyAllowed(Boolean.FALSE)
             .manualReviewRequired(Boolean.valueOf(manualReviewRequired))
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(createdAt)
             .updatedAt(createdAt)
             .build();
@@ -511,7 +506,7 @@ class AccelerationRecommendationApplicationServiceTest {
             .validationStatus(RewriteValidationStatus.NOT_VALIDATED)
             .autoApplyAllowed(Boolean.FALSE)
             .manualReviewRequired(Boolean.TRUE)
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(createdAt)
             .updatedAt(createdAt)
             .build();

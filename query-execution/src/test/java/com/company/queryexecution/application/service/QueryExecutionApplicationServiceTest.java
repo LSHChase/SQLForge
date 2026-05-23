@@ -631,7 +631,7 @@ class QueryExecutionApplicationServiceTest {
         QueryExecuteResponse response = service.executeSynchronously(baseRequest("SELECT * FROM orders"));
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
-        verify(governanceCapabilityClient).assertAuthorization(
+        verify(governanceCapabilityClient).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.eq(DataSourceTypeEnum.HETU),
             org.mockito.Mockito.eq("QUERY_EXECUTION_QUERY"),
@@ -719,7 +719,7 @@ class QueryExecutionApplicationServiceTest {
         AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> service.executeSynchronously(request));
 
         assertEquals("请求 tenantId 与已认证租户上下文不一致", ex.getMessage());
-        verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertAuthorization(any(), any(), any(), any(), any());
+        verify(governanceCapabilityClient, org.mockito.Mockito.never()).assertDatasourceAccess(any(), any(), any(), any(), any());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeAudit(any());
         verify(governanceCapabilityClient, org.mockito.Mockito.never()).writeQueryExecutionHistory(any());
     }
@@ -746,7 +746,7 @@ class QueryExecutionApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         when(governanceCapabilityClient.writeQueryExecutionHistory(any()))
             .thenReturn(new GovernanceQueryExecutionHistoryWriteResponse());
@@ -844,8 +844,7 @@ class QueryExecutionApplicationServiceTest {
     private void setRequestContext(String tenantId) {
         RequestContext.set(
             tenantId,
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",

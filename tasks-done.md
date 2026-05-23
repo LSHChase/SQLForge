@@ -4,6 +4,26 @@
 
 ## Done
 
+### USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523: 清理核心引擎多角色与权限原则
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `refactor(core): remove role matrix access model`
+- Priority: 1
+- Depends on: N/A
+- Scope: 深入检索文档、规则、要求、代码、脚本与验证入口中 DBA、审核员、分析员、Operator、Auditor 等多角色/权限原则内容；清理核心引擎文档、规则、要求、代码、脚本和验证中的角色化表述与权限原则；按已确认方案执行代码级破坏性删除，并采用 `tenantId + datasourceId + action` 的非角色化替代边界。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523`
+- Progress log:
+  - 2026-05-22: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-23: 已归档原始需求，清理核心产品 / 架构 / 安全 / 规则 / 验证 / 前端文案中的多角色和权限原则表述，补充影响分析与 `INBOX-008`；代码级删除会影响受保护请求、跨服务治理调用、smoke 和测试，已取得人类确认。
+  - 2026-05-23: 人类确认继续执行代码级破坏性删除，删除 `X-Role-Codes` / `roleCodes` / 岗位常量 / `role-matrix` / `GovernanceAuthorizationMatrixApplicationService` / `/api/governance/internal/authorization/*`，并采用 `tenantId + datasourceId + action` 的非角色化替代边界；同时确认规则文件中相关清理规则允许删除，不受只增改不删除旧约束限制。
+- Context closeout:
+  - Completed scope: 清理核心引擎多角色与权限原则表述，删除旧岗位请求头、roleCodes、岗位矩阵、旧授权 DTO/服务/路径和脚本默认岗位，改为 tenantId + datasourceId + action 的数据源范围检查，并同步三项业务服务、测试、smoke、前端文案、便携产物和文档台账。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523；mvn -q -pl query-execution -am -DskipTests compile；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未运行真实外部环境 smoke；生产规模压测证据中的 verifierOperator 和推荐对比里的 benchmarkSqlRole 按影响分析保留为非产品岗位字段。
+  - Next step: 后续真实环境按 smoke runbook 复核数据源范围与审计链路。
+
 ### USER-CN-RUNTIME-REWRITE-TEMPLATE-MATCH-20260522: 运行时 SQL 改写模板匹配与参数条件重放
 
 - Status: done

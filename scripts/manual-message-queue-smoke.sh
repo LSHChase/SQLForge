@@ -8,8 +8,7 @@ MYSQL_DATABASE="${MYSQL_DATABASE:-sqlforge}"
 MYSQL_USER="${MYSQL_USER:-sqlforge}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-sqlforge}"
 REQUEST_TENANT_ID="${REQUEST_TENANT_ID:-system}"
-REQUEST_USER_ID="${REQUEST_USER_ID:-operator-001}"
-REQUEST_ROLE_CODES="${REQUEST_ROLE_CODES:-TENANT_ADMIN,OPERATOR}"
+REQUEST_USER_ID="${REQUEST_USER_ID:-message-smoke-user-001}"
 REQUEST_AUTH_SOURCE="${REQUEST_AUTH_SOURCE:-header}"
 
 MESSAGE_ID=""
@@ -83,7 +82,6 @@ build_protected_headers() {
   printf '%s\n' \
     "-H" "${REQUEST_HEADER_TENANT_ID:-X-Tenant-Id}: ${REQUEST_TENANT_ID}" \
     "-H" "${REQUEST_HEADER_USER_ID:-X-User-Id}: ${REQUEST_USER_ID}" \
-    "-H" "${REQUEST_HEADER_ROLE_CODES:-X-Role-Codes}: ${REQUEST_ROLE_CODES}" \
     "-H" "${REQUEST_HEADER_REQUEST_ID:-X-Request-Id}: ${request_id}" \
     "-H" "${REQUEST_HEADER_TRACE_ID:-X-Trace-Id}: ${trace_id}" \
     "-H" "${REQUEST_HEADER_AUTH_SOURCE:-X-Auth-Source}: ${REQUEST_AUTH_SOURCE}" \

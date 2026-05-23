@@ -18,10 +18,7 @@ import org.springframework.util.StringUtils;
 public class TenantConfigApplicationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantConfigApplicationService.class);
-    private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
-    private static final String TENANT_ADMIN = "TENANT_ADMIN";
     private static final String DEFAULT_DATA_SOURCE_ID = "governance-tenant-config";
-    private static final String TENANT_CONFIG_ACCESS_DENIED_MESSAGE = "当前角色无权读取租户配置";
 
     private final TenantConfigRepository tenantConfigRepository;
     private final TenantAccessLogic tenantAccessLogic;
@@ -37,7 +34,6 @@ public class TenantConfigApplicationService {
 
     public TenantConfigVO findByTenantId(String tenantId) {
         String currentTenantId = TenantContext.get();
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN);
         if (!StringUtils.hasText(currentTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
@@ -52,21 +48,14 @@ public class TenantConfigApplicationService {
                 "租户 ID 不能为空"
             );
         }
-        if (!platformAdmin && !RequestContext.hasRole(TENANT_ADMIN)) {
-            throw new BizException(
-                ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED,
-                HttpStatus.FORBIDDEN,
-                TENANT_CONFIG_ACCESS_DENIED_MESSAGE
-            );
-        }
-        if (!currentTenantId.equals(tenantId) && !platformAdmin) {
+        if (!currentTenantId.equals(tenantId)) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE
             );
         }
-        if (!platformAdmin && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, DEFAULT_DATA_SOURCE_ID)) {
+        if (!tenantAccessLogic.validateDataSourceAccess(currentTenantId, DEFAULT_DATA_SOURCE_ID, "READ")) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,

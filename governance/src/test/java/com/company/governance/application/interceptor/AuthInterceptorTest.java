@@ -16,7 +16,6 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
 import com.company.sqlforge.common.exception.UnauthorizedException;
-import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -45,11 +44,10 @@ class AuthInterceptorTest {
 
         assertTrue(authInterceptor.preHandle(request, response, new Object()));
         assertEquals("system", TenantContext.get());
-        assertEquals("operator-001", RequestContext.getUserId());
+        assertEquals("user-001", RequestContext.getUserId());
         assertNotNull(RequestContext.getTraceId());
         assertEquals(RequestContext.getTraceId(), response.getHeader(RequestHeaderConstants.TRACE_ID));
         assertEquals(RequestContext.getRequestId(), response.getHeader(RequestHeaderConstants.REQUEST_ID));
-        assertEquals(Arrays.asList("TENANT_ADMIN", "OPERATOR"), RequestContext.getRoleCodes());
         verify(governanceAuditTrailService).recordAuthenticationAccepted(request);
 
         authInterceptor.postHandle(request, response, new Object(), null);
@@ -114,8 +112,7 @@ class AuthInterceptorTest {
     private void addProtectedHeaders(MockHttpServletRequest request) {
         long now = System.currentTimeMillis();
         request.addHeader(RequestHeaderConstants.TENANT_ID, "system");
-        request.addHeader(RequestHeaderConstants.USER_ID, "operator-001");
-        request.addHeader(RequestHeaderConstants.ROLE_CODES, "TENANT_ADMIN,OPERATOR");
+        request.addHeader(RequestHeaderConstants.USER_ID, "user-001");
         request.addHeader(RequestHeaderConstants.REQUEST_ID, "request-001");
         request.addHeader(RequestHeaderConstants.TRACE_ID, "trace-001");
         request.addHeader(RequestHeaderConstants.AUTH_SOURCE, AuthSourceConstants.HEADER);

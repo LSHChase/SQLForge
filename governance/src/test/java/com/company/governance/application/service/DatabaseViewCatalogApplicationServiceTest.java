@@ -37,8 +37,8 @@ class DatabaseViewCatalogApplicationServiceTest {
             new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
-        RequestContext.set("tenant-a", "service-user", Arrays.asList("SERVICE"), "req-1", "trace-1", "header", 1L, 2L);
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main")).thenReturn(true);
+        RequestContext.set("tenant-a", "service-user", "req-1", "trace-1", "header", 1L, 2L);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main", "USE")).thenReturn(true);
         when(databaseViewRepository.findByTenantDatasourceAndViewName("tenant-a", "hetu_main", "vw_sales_daily"))
             .thenReturn(Optional.of(buildDbView()));
         when(databaseViewDependencyRepository.findByTenantAndDbViewId("tenant-a", "dbview-001"))
@@ -61,7 +61,7 @@ class DatabaseViewCatalogApplicationServiceTest {
             new InMemoryMetadataSnapshotRepository(),
             mock(TenantAccessLogic.class)
         );
-        RequestContext.set("tenant-a", "service-user", Arrays.asList("SERVICE"), "req-1", "trace-1", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "service-user", "req-1", "trace-1", "header", 1L, 2L);
         GovernanceDbViewResolveRequest request = new GovernanceDbViewResolveRequest();
         request.setTenantId("tenant-b");
         request.setDatasourceCode("hetu_main");

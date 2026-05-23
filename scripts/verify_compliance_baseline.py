@@ -31,7 +31,7 @@ def main() -> int:
 
     require_text("docs/security/compliance.md", "## R-115 备份恢复", errors)
     require_text("docs/security/compliance.md", "数据库中不存在明文密码、Token、密钥。", errors)
-    require_text("docs/security/access-control-spec.md", "AUDITOR", errors)
+    require_text("docs/security/access-control-spec.md", "Execution Safety Boundaries", errors)
     require_text("docs/deployments/backup-recovery-baseline.md", "## Recovery Objectives", errors)
     require_text("docs/deployments/backup-recovery-baseline.md", "Restore Validation Checklist", errors)
     require_text("docs/deployments/observability-baseline.md", "SQLForge Observability Baseline", errors)

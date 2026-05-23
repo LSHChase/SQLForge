@@ -62,4 +62,36 @@ class RuntimeSqlRewriteTemplateEngineTest {
             result.getRewrittenSql()
         );
     }
+
+    @Test
+    void shouldReplayLiteralsIntoWithRecommendationWhenSourceHasNestedWhereOnly() {
+        RuntimeSqlRewriteTemplateResult result = RuntimeSqlRewriteTemplateEngine.rewrite(
+            "SELECT org_no FROM (SELECT org_no FROM fact WHERE 1 = 1 AND org_no = '41H006' "
+                + "AND dte >= '20260430' GROUP BY org_no) s GROUP BY org_no",
+            "WITH raw_customer_snapshot AS (SELECT org_no FROM fact WHERE org_level = 4 "
+                + "AND org_no = '41H006' AND dte >= '20260430' GROUP BY org_no) SELECT org_no FROM raw_customer_snapshot",
+            "SELECT org_no FROM (SELECT org_no FROM fact WHERE 1 = 1 AND org_no = '41H007' "
+                + "AND dte >= '20260501' GROUP BY org_no) s GROUP BY org_no"
+        );
+
+        assertTrue(result.isApplied());
+        assertTrue(result.getRewrittenSql().contains("org_no = '41H007'"));
+        assertTrue(result.getRewrittenSql().contains("dte >= '20260501'"));
+    }
+
+    @Test
+    void shouldInjectPortableNestedResidualPredicateIntoRawSnapshotCte() {
+        RuntimeSqlRewriteTemplateResult result = RuntimeSqlRewriteTemplateEngine.rewrite(
+            "SELECT org_no FROM (SELECT org_no FROM fact WHERE 1 = 1 AND org_no = '41H006' "
+                + "GROUP BY org_no) s GROUP BY org_no",
+            "WITH raw_customer_snapshot AS (SELECT org_no FROM fact WHERE org_level = 4 "
+                + "AND org_no = '41H006' GROUP BY org_no) SELECT org_no FROM raw_customer_snapshot",
+            "SELECT org_no FROM (SELECT org_no FROM fact WHERE 1 = 1 AND channel_code = 'MOBILE' "
+                + "AND org_no = '41H006' GROUP BY org_no) s GROUP BY org_no"
+        );
+
+        assertTrue(result.isApplied());
+        assertTrue(result.getRewrittenSql().contains("AND channel_code = 'MOBILE'"));
+        assertTrue(result.getRewrittenSql().indexOf("channel_code") < result.getRewrittenSql().indexOf("GROUP BY"));
+    }
 }

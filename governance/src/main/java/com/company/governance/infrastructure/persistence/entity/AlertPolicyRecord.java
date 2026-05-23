@@ -13,7 +13,7 @@ public class AlertPolicyRecord {
     private Integer dedupeWindowSeconds;
     private String notifyChannel;
     private String initialNotifyStatus;
-    private String ownerRole;
+    private String ownerScope;
     private Boolean enabled;
     private String ruleConfigJson;
     private String createdBy;
@@ -38,8 +38,8 @@ public class AlertPolicyRecord {
     public void setNotifyChannel(String notifyChannel) { this.notifyChannel = notifyChannel; }
     public String getInitialNotifyStatus() { return initialNotifyStatus; }
     public void setInitialNotifyStatus(String initialNotifyStatus) { this.initialNotifyStatus = initialNotifyStatus; }
-    public String getOwnerRole() { return ownerRole; }
-    public void setOwnerRole(String ownerRole) { this.ownerRole = ownerRole; }
+    public String getOwnerScope() { return ownerScope; }
+    public void setOwnerScope(String ownerScope) { this.ownerScope = ownerScope; }
     public Boolean getEnabled() { return enabled; }
     public void setEnabled(Boolean enabled) { this.enabled = enabled; }
     public String getRuleConfigJson() { return ruleConfigJson; }

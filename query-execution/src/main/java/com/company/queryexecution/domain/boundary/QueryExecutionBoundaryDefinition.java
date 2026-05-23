@@ -26,7 +26,7 @@ public final class QueryExecutionBoundaryDefinition {
      * 明确排除在查询执行服务之外的能力。
      */
     public enum ExcludedCapability {
-        TENANT_AND_ROLE_ADMINISTRATION,
+        TENANT_ADMINISTRATION,
         DATASOURCE_POLICY_GOVERNANCE,
         ASYNC_DEEP_OPTIMIZATION,
         ACCELERATION_STRATEGY_MANAGEMENT,
@@ -113,7 +113,7 @@ public final class QueryExecutionBoundaryDefinition {
             ),
             Collections.unmodifiableList(
                 Arrays.asList(
-                    ExcludedCapability.TENANT_AND_ROLE_ADMINISTRATION,
+                    ExcludedCapability.TENANT_ADMINISTRATION,
                     ExcludedCapability.DATASOURCE_POLICY_GOVERNANCE,
                     ExcludedCapability.ASYNC_DEEP_OPTIMIZATION,
                     ExcludedCapability.ACCELERATION_STRATEGY_MANAGEMENT,

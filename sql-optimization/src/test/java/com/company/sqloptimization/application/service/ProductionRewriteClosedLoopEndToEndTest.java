@@ -33,11 +33,13 @@ import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRe
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
+import com.company.sqloptimization.application.controller.dto.RewriteTrialRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordCreateRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordActivationActionRequest;
 import com.company.sqloptimization.application.controller.dto.SqlRewriteRecordReviewRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
+import com.company.sqloptimization.application.controller.vo.RewriteTrialRunVO;
 import com.company.sqloptimization.application.controller.vo.RewriteValidationRunVO;
 import com.company.sqloptimization.application.controller.vo.SqlRewriteRecordVO;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
@@ -47,6 +49,7 @@ import com.company.sqloptimization.domain.governance.RewriteActivationStatus;
 import com.company.sqloptimization.domain.governance.RewriteRecordStatus;
 import com.company.sqloptimization.domain.governance.RewriteReviewStatus;
 import com.company.sqloptimization.domain.governance.RewriteValidationStatus;
+import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.BenefitLevel;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationStatus;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation.RecommendationType;
@@ -54,8 +57,15 @@ import com.company.sqloptimization.domain.recommendation.AccelerationRecommendat
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionResultDigestClient;
 import com.company.sqloptimization.infrastructure.queryexecution.QueryExecutionRuntimeRewriteBindingClient;
 import com.company.sqloptimization.infrastructure.repository.InMemoryAccelerationRecommendationRepository;
+import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchItemRepository;
+import com.company.sqloptimization.infrastructure.repository.InMemoryParseBatchRepository;
+import com.company.sqloptimization.infrastructure.repository.InMemoryRewriteTrialRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlRewriteRecordRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -89,7 +99,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
 
     @Test
     void shouldCloseProductionRewriteLoopThroughRuntimeBindingFlow() {
-        setRequestContext("operator-001", "request-prw-012", "trace-prw-012");
+        setRequestContext("user-001", "request-prw-012", "trace-prw-012");
         InMemoryRuntimeRewriteBindingRepository runtimeRepository = new InMemoryRuntimeRewriteBindingRepository();
         QueryExecutionRuntimeRewriteBindingService runtimeBindingService =
             new QueryExecutionRuntimeRewriteBindingService(runtimeRepository);
@@ -173,7 +183,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
 
     @Test
     void shouldCloseMaterializedViewRuntimeRewriteLoopThroughArtifactRewriteSql() {
-        setRequestContext("operator-001", "request-mv-runtime", "trace-mv-runtime");
+        setRequestContext("user-001", "request-mv-runtime", "trace-mv-runtime");
         InMemoryRuntimeRewriteBindingRepository runtimeRepository = new InMemoryRuntimeRewriteBindingRepository();
         QueryExecutionRuntimeRewriteBindingService runtimeBindingService =
             new QueryExecutionRuntimeRewriteBindingService(runtimeRepository);
@@ -238,6 +248,224 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertEquals(MV_ORIGINAL_SQL, governanceClient.getLastHistoryRequest().getSqlTemplate());
         assertEquals(MV_REWRITE_SQL, governanceClient.getLastHistoryRequest().getBoundSql());
         assertEquals(published.getRuntimeBindingId(), governanceClient.getLastHistoryRequest().getRuntimeBindingId());
+    }
+
+    @Test
+    void shouldGenerateActivateAndApplyDocsTest01RuntimeRewriteVariantsWithTiming() throws Exception {
+        setRequestContext("user-001", "request-test01-runtime", "trace-test01-runtime");
+        String originalSql = readRepositorySqlFixture("docs/test01.sql");
+        InMemoryAccelerationRecommendationRepository recommendationRepository =
+            new InMemoryAccelerationRecommendationRepository();
+        RewriteTrialApplicationService trialService = new RewriteTrialApplicationService(
+            new InMemoryRewriteTrialRepository(),
+            new InMemoryParseBatchRepository(),
+            new InMemoryParseBatchItemRepository(),
+            recommendationRepository,
+            new SqlOptimizationPipelineService(),
+            null
+        );
+
+        long generationStart = System.nanoTime();
+        RewriteTrialRunVO trialRun = trialService.createTrial(test01TrialRequest(originalSql));
+        long generationMicros = elapsedMicros(generationStart);
+        String recommendationId = trialRun.getItems().get(0).getRecommendationId();
+        AccelerationRecommendation recommendation = recommendationRepository.findByRecommendationId(recommendationId);
+        assertEquals("RECOMMENDED", trialRun.getTrialStatus());
+        assertNotNull(recommendation);
+        assertTrue(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
+        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+
+        InMemoryRuntimeRewriteBindingRepository runtimeRepository = new InMemoryRuntimeRewriteBindingRepository();
+        QueryExecutionRuntimeRewriteBindingService runtimeBindingService =
+            new QueryExecutionRuntimeRewriteBindingService(runtimeRepository);
+        RuntimeBindingClientBridge runtimeClient = new RuntimeBindingClientBridge(runtimeBindingService);
+        SequencedResultDigestClient digestClient = new SequencedResultDigestClient(
+            digest("schema-test01", Long.valueOf(8L), "checksum-test01", row("org", "深圳市分行"), 1200L, 1000000L),
+            digest("schema-test01", Long.valueOf(8L), "checksum-test01", row("org", "深圳市分行"), 120L, 10000L)
+        );
+        SqlRewriteRecordApplicationService rewriteRecordService =
+            new SqlRewriteRecordApplicationService(
+                new InMemorySqlRewriteRecordRepository(),
+                digestClient,
+                new ResultDigestComparisonEngine(),
+                new com.company.sqloptimization.domain.rewrite.policy.RewriteActivationEligibilityPolicy(),
+                runtimeClient,
+                null,
+                recommendationRepository
+            );
+        SqlRewriteRecordVO rewriteRecord =
+            rewriteRecordService.createRewriteRecord(test01RewriteRecordRequest(recommendation));
+        SqlRewriteRecordVO approved = rewriteRecordService.reviewRewriteRecord(
+            rewriteRecord.getRewriteRecordId(),
+            reviewRequest(RewriteReviewStatus.APPROVED, "docs/test01.sql runtime template replay approved")
+        );
+        RewriteValidationRunVO validationRun =
+            rewriteRecordService.createValidationRun(approved.getRewriteRecordId(), validationRequest());
+        long activationStart = System.nanoTime();
+        SqlRewriteRecordVO published = rewriteRecordService.activateRewriteRecord(
+            approved.getRewriteRecordId(),
+            publishRequest("activate docs/test01.sql runtime template replay")
+        );
+        long activationMicros = elapsedMicros(activationStart);
+        assertEquals("EQUIVALENT", validationRun.getComparisonStatus());
+        assertEquals("ACTIVE", published.getActivationStatus());
+
+        CapturingGovernanceCapabilityClient governanceClient = new CapturingGovernanceCapabilityClient(null);
+        RecordingQueryExecutionAdapter queryAdapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService queryExecutionService = new QueryExecutionApplicationService(
+            queryAdapter,
+            governanceClient,
+            new QueryExecutionMetricsRecorder(new SimpleMeterRegistry()),
+            new QueryExecutionAccelerationRuntimeService(),
+            new QueryExecutionCacheGovernanceRuntimeService(),
+            runtimeBindingService
+        );
+
+        String parameterSql = originalSql
+            .replace("'41H006'", "'41H007'")
+            .replace("'20260430'", "'20260501'")
+            .replace("'20260519'", "'20260521'");
+        String residualPredicate =
+            "BIO_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM__CUST_NO IS NOT NULL";
+        String conditionSql = addBaseScanCondition(originalSql, residualPredicate);
+
+        TimedResolve originalResolve = resolveTimed(runtimeBindingService, originalSql);
+        TimedExecution originalExecution = executeTimed(queryExecutionService, originalSql);
+        TimedResolve parameterResolve = resolveTimed(runtimeBindingService, parameterSql);
+        TimedExecution parameterExecution = executeTimed(queryExecutionService, parameterSql);
+        TimedResolve conditionResolve = resolveTimed(runtimeBindingService, conditionSql);
+        TimedExecution conditionExecution = executeTimed(queryExecutionService, conditionSql);
+
+        assertRuntimeRewriteApplied(originalResolve, originalExecution, "original");
+        assertRuntimeRewriteApplied(parameterResolve, parameterExecution, "parameter");
+        assertRuntimeRewriteApplied(conditionResolve, conditionExecution, "condition");
+        assertTrue(parameterExecution.getActualSql().contains("'41H007'"), parameterExecution.getActualSql());
+        assertTrue(parameterExecution.getActualSql().contains("'20260501'"), parameterExecution.getActualSql());
+        assertTrue(parameterExecution.getActualSql().contains("'20260521'"), parameterExecution.getActualSql());
+        assertTrue(conditionExecution.getActualSql().contains(residualPredicate), conditionExecution.getActualSql());
+        assertEquals(SqlFingerprintUtils.fingerprint(conditionSql), conditionResolve.getResponse().getSqlFingerprint());
+
+        assertTrue(originalResolve.getElapsedMicros() < 2000000L, "原始 SQL 解析耗时微秒=" + originalResolve.getElapsedMicros());
+        assertTrue(parameterResolve.getElapsedMicros() < 2000000L, "参数 SQL 解析耗时微秒=" + parameterResolve.getElapsedMicros());
+        assertTrue(conditionResolve.getElapsedMicros() < 2000000L, "条件 SQL 解析耗时微秒=" + conditionResolve.getElapsedMicros());
+        System.out.println("TEST01_RUNTIME_REWRITE_METRICS "
+            + "generation_us=" + generationMicros
+            + " activation_us=" + activationMicros
+            + " resolve_original_us=" + originalResolve.getElapsedMicros()
+            + " execute_original_us=" + originalExecution.getElapsedMicros()
+            + " resolve_parameter_us=" + parameterResolve.getElapsedMicros()
+            + " execute_parameter_us=" + parameterExecution.getElapsedMicros()
+            + " resolve_condition_us=" + conditionResolve.getElapsedMicros()
+            + " execute_condition_us=" + conditionExecution.getElapsedMicros());
+    }
+
+    private RewriteTrialRequest test01TrialRequest(String sqlText) {
+        RewriteTrialRequest request = new RewriteTrialRequest();
+        request.setTenantId(TENANT_ID);
+        request.setSqlText(sqlText);
+        request.setDatasourceCode("hetu_main");
+        request.setSourceKind("STRUCTURE_PARSE");
+        request.setParseTaskId("parse-task-test01-runtime");
+        request.setParseHistoryId("parse-history-test01-runtime");
+        request.setSourceId("parse-history-test01-runtime");
+        return request;
+    }
+
+    private SqlRewriteRecordCreateRequest test01RewriteRecordRequest(AccelerationRecommendation recommendation) {
+        SqlRewriteRecordCreateRequest request = new SqlRewriteRecordCreateRequest();
+        request.setTenantId(TENANT_ID);
+        request.setRecommendationId(recommendation.getRecommendationId());
+        request.setSourceType(firstValue(recommendation.getSourceType(), GovernanceSourceType.PARSE));
+        request.setSourceKind(firstValue(recommendation.getSourceKind(), GovernanceSourceKind.STRUCTURE_PARSE));
+        request.setSourceId(firstText(recommendation.getSourceId(), recommendation.getSourceSqlId(), "parse-history-test01-runtime"));
+        request.setEvidenceLevel(firstValue(recommendation.getEvidenceLevel(), EvidenceLevel.STATIC_PARSE));
+        request.setHistoryId(recommendation.getHistoryId());
+        request.setParseHistoryId("parse-history-test01-runtime");
+        request.setSqlFingerprint(recommendation.getSqlFingerprint());
+        request.setDatasourceCode(firstText(recommendation.getTargetDatasource(), "hetu_main"));
+        request.setStatus(RewriteRecordStatus.READY);
+        request.setValidationStatus(RewriteValidationStatus.NOT_VALIDATED);
+        request.setActivationStatus(RewriteActivationStatus.INACTIVE);
+        request.setAutoApplyAllowed(Boolean.TRUE);
+        request.setManualReviewRequired(Boolean.TRUE);
+        request.setValidationPolicyId("TEST01_RUNTIME_TEMPLATE_POLICY");
+        request.setOriginalSqlText(recommendation.getSourceSqlText());
+        request.setRecommendedSqlText(recommendation.getRecommendedSqlText());
+        request.setRuleChain(recommendation.getRuleChain());
+        request.setSourceProblems(recommendation.getSourceProblems());
+        request.setIssueRuleLinks(recommendation.getIssueRuleLinks());
+        Map<String, Object> traceRefs = new LinkedHashMap<String, Object>();
+        traceRefs.put("recommendationEvidence", recommendation.getRecommendationId());
+        traceRefs.put("testFixture", "docs/test01.sql");
+        request.setTraceRefs(traceRefs);
+        return request;
+    }
+
+    private String addBaseScanCondition(String sql, String predicate) {
+        return sql.replace(
+            "WHERE 1 = 1\nAND\n(",
+            "WHERE 1 = 1\nAND " + predicate + "\nAND\n("
+        );
+    }
+
+    private TimedResolve resolveTimed(QueryExecutionRuntimeRewriteBindingService service, String sqlText) {
+        RuntimeRewriteBindingResolveRequest request = new RuntimeRewriteBindingResolveRequest();
+        request.setTenantId(TENANT_ID);
+        request.setSqlFingerprint(SqlFingerprintUtils.fingerprint(sqlText));
+        request.setSqlText(sqlText);
+        long start = System.nanoTime();
+        RuntimeRewriteBindingResponse response = service.resolveActive(request);
+        return new TimedResolve(response, elapsedMicros(start));
+    }
+
+    private TimedExecution executeTimed(QueryExecutionApplicationService service, String sqlText) {
+        long start = System.nanoTime();
+        QueryExecuteResponse response = service.executeSynchronously(queryRequest(sqlText));
+        return new TimedExecution(response, elapsedMicros(start));
+    }
+
+    private void assertRuntimeRewriteApplied(TimedResolve resolve,
+                                             TimedExecution execution,
+                                             String label) {
+        assertEquals("ACTIVE", resolve.getResponse().getStatus(), label + " 解析状态");
+        assertTrue(resolve.getResponse().isActive(), label + " 解析已激活");
+        assertEquals(QueryExecutionStatus.SUCCESS, execution.getResponse().getStatus(), label + " execute status");
+        assertTrue(execution.getResponse().getMetadata().isRewriteApplied(), label + " rewriteApplied");
+        assertEquals("ACTIVE", execution.getResponse().getMetadata().getRuntimeRewriteStatus(),
+            label + " runtimeRewriteStatus");
+        assertTrue(execution.getActualSql().contains("base_100_anchor"), label + " actualSql");
+        assertTrue(execution.getActualSql().contains("report_customer_snapshot"), label + " actualSql");
+    }
+
+    private long elapsedMicros(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1000L;
+    }
+
+    private String readRepositorySqlFixture(String relativePath) throws Exception {
+        Path root = Paths.get("").toAbsolutePath();
+        Path fixture = root.resolve(relativePath);
+        if (!Files.exists(fixture)) {
+            fixture = root.resolve("..").resolve(relativePath).normalize();
+        }
+        return new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+    }
+
+    private String firstText(String first, String second) {
+        return firstText(first, second, null);
+    }
+
+    private String firstText(String first, String second, String third) {
+        if (first != null && first.trim().length() > 0) {
+            return first.trim();
+        }
+        if (second != null && second.trim().length() > 0) {
+            return second.trim();
+        }
+        return third == null ? null : third.trim();
+    }
+
+    private <T> T firstValue(T first, T second) {
+        return first == null ? second : first;
     }
 
     private AccelerationRecommendationCreateRequest recommendationRequest() {
@@ -409,7 +637,6 @@ class ProductionRewriteClosedLoopEndToEndTest {
         RequestContext.set(
             TENANT_ID,
             userId,
-            Arrays.asList("SERVICE"),
             requestId,
             traceId,
             "header",
@@ -466,6 +693,46 @@ class ProductionRewriteClosedLoopEndToEndTest {
         Map<String, Object> row = new LinkedHashMap<String, Object>();
         row.put(key, value);
         return row;
+    }
+
+    private static final class TimedResolve {
+        private final RuntimeRewriteBindingResponse response;
+        private final long elapsedMicros;
+
+        private TimedResolve(RuntimeRewriteBindingResponse response, long elapsedMicros) {
+            this.response = response;
+            this.elapsedMicros = elapsedMicros;
+        }
+
+        private RuntimeRewriteBindingResponse getResponse() {
+            return response;
+        }
+
+        private long getElapsedMicros() {
+            return elapsedMicros;
+        }
+    }
+
+    private static final class TimedExecution {
+        private final QueryExecuteResponse response;
+        private final long elapsedMicros;
+
+        private TimedExecution(QueryExecuteResponse response, long elapsedMicros) {
+            this.response = response;
+            this.elapsedMicros = elapsedMicros;
+        }
+
+        private QueryExecuteResponse getResponse() {
+            return response;
+        }
+
+        private long getElapsedMicros() {
+            return elapsedMicros;
+        }
+
+        private String getActualSql() {
+            return response.getMetadata().getActualSql();
+        }
     }
 
     private static final class RuntimeBindingClientBridge implements QueryExecutionRuntimeRewriteBindingClient {
@@ -527,14 +794,16 @@ class ProductionRewriteClosedLoopEndToEndTest {
         }
 
         @Override
-        public void assertAuthorization(String tenantId,
+        public void assertDatasourceAccess(String tenantId,
                                         DataSourceTypeEnum datasourceType,
                                         String resourceType,
                                         String resourceId,
                                         String operationCode) {
             assertEquals(TENANT_ID, tenantId);
             assertEquals(DataSourceTypeEnum.HETU, datasourceType);
-            assertEquals(expectedSqlFingerprint, resourceId);
+            if (expectedSqlFingerprint != null) {
+                assertEquals(expectedSqlFingerprint, resourceId);
+            }
         }
 
         @Override

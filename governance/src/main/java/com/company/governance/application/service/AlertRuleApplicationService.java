@@ -16,38 +16,38 @@ import org.springframework.stereotype.Service;
 @Service
 public class AlertRuleApplicationService {
 
-    private static final String DEFAULT_OPERATOR = "alert-rule-engine";
+    private static final String DEFAULT_ACTOR = "alert-rule-engine";
 
     public List<AlertEvent> evaluate(AlertSignalSnapshot snapshot) {
-        return evaluate(snapshot, null, DEFAULT_OPERATOR, Instant.now());
+        return evaluate(snapshot, null, DEFAULT_ACTOR, Instant.now());
     }
 
     public List<AlertEvent> evaluate(AlertSignalSnapshot snapshot,
                                      List<AlertPolicy> policies,
-                                     String operator,
+                                     String actor,
                                      Instant evaluatedAt) {
         requireSnapshot(snapshot);
-        String effectiveOperator = normalize(operator, DEFAULT_OPERATOR);
+        String effectiveActor = normalize(actor, DEFAULT_ACTOR);
         Instant effectiveEvaluatedAt = evaluatedAt == null ? Instant.now() : evaluatedAt;
         List<AlertPolicy> effectivePolicies = (policies == null || policies.isEmpty())
-            ? AlertPolicyBaseline.defaultPoliciesForTenant(snapshot.getTenantId(), effectiveOperator, effectiveEvaluatedAt)
+            ? AlertPolicyBaseline.defaultPoliciesForTenant(snapshot.getTenantId(), effectiveActor, effectiveEvaluatedAt)
             : policies;
         Map<String, AlertEvent> alerts = new LinkedHashMap<String, AlertEvent>();
-        evaluateMassFailures(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateDatasourceAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateServiceAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateReportResolve(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateRedisAvailability(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateDispatchCoordination(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateAuditWrites(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateSqlRewriteDivergence(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
-        evaluateBenchmarkRegression(snapshot, effectivePolicies, effectiveOperator, effectiveEvaluatedAt, alerts);
+        evaluateMassFailures(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateDatasourceAvailability(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateServiceAvailability(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateReportResolve(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateRedisAvailability(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateDispatchCoordination(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateAuditWrites(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateSqlRewriteDivergence(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
+        evaluateBenchmarkRegression(snapshot, effectivePolicies, effectiveActor, effectiveEvaluatedAt, alerts);
         return new ArrayList<AlertEvent>(alerts.values());
     }
 
     private void evaluateMassFailures(AlertSignalSnapshot snapshot,
                                       List<AlertPolicy> policies,
-                                      String operator,
+                                      String actor,
                                       Instant evaluatedAt,
                                       Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.MassFailureSignal signal : snapshot.getMassFailureSignals()) {
@@ -64,7 +64,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.SQL_EXECUTION_MASS_FAILURE,
-                operator,
+                actor,
                 evaluatedAt,
                 signal.getSourceService(),
                 "检测到大量失败："
@@ -89,7 +89,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateDatasourceAvailability(AlertSignalSnapshot snapshot,
                                                 List<AlertPolicy> policies,
-                                                String operator,
+                                                String actor,
                                                 Instant evaluatedAt,
                                                 Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.DatasourceAvailabilitySignal signal : snapshot.getDatasourceAvailabilitySignals()) {
@@ -105,7 +105,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.DATASOURCE_UNAVAILABLE,
-                operator,
+                actor,
                 evaluatedAt,
                 "governance-datasource",
                 "数据源不可用："
@@ -128,7 +128,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateServiceAvailability(AlertSignalSnapshot snapshot,
                                              List<AlertPolicy> policies,
-                                             String operator,
+                                             String actor,
                                              Instant evaluatedAt,
                                              Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.ServiceAvailabilitySignal signal : snapshot.getServiceAvailabilitySignals()) {
@@ -144,7 +144,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 alertType,
-                operator,
+                actor,
                 evaluatedAt,
                 normalize(signal.getServiceCode(), "governance"),
                 "服务不可用："
@@ -167,7 +167,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateReportResolve(AlertSignalSnapshot snapshot,
                                        List<AlertPolicy> policies,
-                                       String operator,
+                                       String actor,
                                        Instant evaluatedAt,
                                        Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.ReportResolveSignal signal : snapshot.getReportResolveSignals()) {
@@ -184,7 +184,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.REPORT_SQL_RESOLVE_FAILURE,
-                operator,
+                actor,
                 evaluatedAt,
                 "report-interface",
                 "报表 SQL 解析失败：数据源="
@@ -208,7 +208,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateRedisAvailability(AlertSignalSnapshot snapshot,
                                            List<AlertPolicy> policies,
-                                           String operator,
+                                           String actor,
                                            Instant evaluatedAt,
                                            Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.RedisRuleAvailabilitySignal signal : snapshot.getRedisRuleAvailabilitySignals()) {
@@ -225,7 +225,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.REDIS_RULE_SOURCE_UNAVAILABLE,
-                operator,
+                actor,
                 evaluatedAt,
                 "redis-rule-source",
                 "Redis 规则来源不可用："
@@ -248,7 +248,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateDispatchCoordination(AlertSignalSnapshot snapshot,
                                               List<AlertPolicy> policies,
-                                              String operator,
+                                              String actor,
                                               Instant evaluatedAt,
                                               Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.DispatchCoordinationSignal signal : snapshot.getDispatchCoordinationSignals()) {
@@ -266,7 +266,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.DISPATCH_COORDINATION_FAILED,
-                operator,
+                actor,
                 evaluatedAt,
                 "dispatch-event",
                 "分发协同失败：事件="
@@ -289,7 +289,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateAuditWrites(AlertSignalSnapshot snapshot,
                                      List<AlertPolicy> policies,
-                                     String operator,
+                                     String actor,
                                      Instant evaluatedAt,
                                      Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.AuditWriteSignal signal : snapshot.getAuditWriteSignals()) {
@@ -304,7 +304,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.AUDIT_WRITE_EXCEPTION,
-                operator,
+                actor,
                 evaluatedAt,
                 normalize(signal.getSourceService(), "audit-log"),
                 "检测到审计写入异常：失败数="
@@ -327,7 +327,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateBenchmarkRegression(AlertSignalSnapshot snapshot,
                                              List<AlertPolicy> policies,
-                                             String operator,
+                                             String actor,
                                              Instant evaluatedAt,
                                              Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.BenchmarkRegressionSignal signal : snapshot.getBenchmarkRegressionSignals()) {
@@ -351,7 +351,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.BENCHMARK_REGRESSION_FAILED,
-                operator,
+                actor,
                 evaluatedAt,
                 "benchmark-engine",
                 normalize(signal.getSummary(), "压测回归失败"),
@@ -372,7 +372,7 @@ public class AlertRuleApplicationService {
 
     private void evaluateSqlRewriteDivergence(AlertSignalSnapshot snapshot,
                                               List<AlertPolicy> policies,
-                                              String operator,
+                                              String actor,
                                               Instant evaluatedAt,
                                               Map<String, AlertEvent> alerts) {
         for (AlertSignalSnapshot.SqlRewriteDivergenceSignal signal : snapshot.getSqlRewriteDivergenceSignals()) {
@@ -399,7 +399,7 @@ public class AlertRuleApplicationService {
                 snapshot.getTenantId(),
                 policies,
                 AlertEvent.AlertType.SQL_REWRITE_RESULT_DIVERGENCE,
-                operator,
+                actor,
                 evaluatedAt,
                 "sql-optimization",
                 normalize(
@@ -430,7 +430,7 @@ public class AlertRuleApplicationService {
     private AlertEvent buildAlert(String tenantId,
                                   List<AlertPolicy> policies,
                                   AlertEvent.AlertType alertType,
-                                  String operator,
+                                  String actor,
                                   Instant evaluatedAt,
                                   String sourceService,
                                   String summary,
@@ -465,7 +465,7 @@ public class AlertRuleApplicationService {
             .datasourceId(datasourceId)
             .sqlFingerprint(sqlFingerprint)
             .evidenceJson(evidenceJson)
-            .createdBy(operator)
+            .createdBy(actor)
             .createdAt(evaluatedAt)
             .notifyStatus(policy == null ? null : policy.getInitialNotifyStatus())
             .build();

@@ -252,7 +252,7 @@ class RewriteValidationSchedulerServiceTest {
             .alertStatus(RewriteAlertStatus.NONE)
             .originalSqlText(originalSql)
             .recommendedSqlText(recommendedSql)
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T10:00:00Z"))
             .updatedAt(Instant.parse("2026-05-10T10:00:00Z"))
             .build();

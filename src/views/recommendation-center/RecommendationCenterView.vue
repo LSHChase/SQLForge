@@ -1224,7 +1224,7 @@ const buildRewriteValidationRunPayload = rewriteRecordId => {
     }),
     executionEvidence: compactObject({
       source: 'RECOMMENDATION_CENTER',
-      validationMethod: 'READONLY_RESULT_DIGEST_OR_OPERATOR_CONFIRMED',
+      validationMethod: 'READONLY_RESULT_DIGEST_OR_MANUAL_CONFIRMATION',
       rewriteRecordId,
       recommendationId,
       historyId,

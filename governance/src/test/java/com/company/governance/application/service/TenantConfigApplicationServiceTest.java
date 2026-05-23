@@ -42,8 +42,8 @@ class TenantConfigApplicationServiceTest {
             new TenantConfigConverter()
         );
 
-        RequestContext.set("system", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
-        when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config")).thenReturn(false);
+        RequestContext.set("system", "user-001", "request-001", "trace-001", "header", 1L, 2L);
+        when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config", "READ")).thenReturn(false);
 
         BizException ex = assertThrows(BizException.class, () -> service.findByTenantId("system"));
 
@@ -74,22 +74,21 @@ class TenantConfigApplicationServiceTest {
 
         RequestContext.set(
             "system",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-id-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config", "READ")).thenReturn(true);
         when(repository.findByTenantId(eq("system"))).thenReturn(Optional.of(tenantConfig));
 
         TenantConfigVO result = service.findByTenantId("system");
 
         assertEquals("system", result.getTenantId());
         assertEquals("HETU", result.getDefaultEngine());
-        verify(tenantAccessLogic).validateDataSourceAccess("system", "governance-tenant-config");
+        verify(tenantAccessLogic).validateDataSourceAccess("system", "governance-tenant-config", "READ");
         verify(repository).findByTenantId("system");
     }
 
@@ -105,8 +104,7 @@ class TenantConfigApplicationServiceTest {
 
         RequestContext.set(
             "system",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-id-001",
             "header",
@@ -132,8 +130,7 @@ class TenantConfigApplicationServiceTest {
 
         RequestContext.set(
             "system",
-            "operator-001",
-            Arrays.asList("OPERATOR"),
+            "user-001",
             "request-001",
             "trace-id-001",
             "header",
@@ -145,7 +142,7 @@ class TenantConfigApplicationServiceTest {
 
         assertEquals(ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED, ex.getCode());
         verify(repository, never()).findByTenantId("system");
-        verify(tenantAccessLogic, never()).validateDataSourceAccess("system", "governance-tenant-config");
+        verify(tenantAccessLogic, never()).validateDataSourceAccess("system", "governance-tenant-config", "READ");
     }
 
     @Test
@@ -164,7 +161,6 @@ class TenantConfigApplicationServiceTest {
         RequestContext.set(
             "system",
             "platform-admin-001",
-            Arrays.asList("PLATFORM_ADMIN"),
             "request-001",
             "trace-id-001",
             "gateway",
@@ -177,6 +173,6 @@ class TenantConfigApplicationServiceTest {
 
         assertEquals("tenant-b", result.getTenantId());
         verify(repository, times(1)).findByTenantId("tenant-b");
-        verify(tenantAccessLogic, never()).validateDataSourceAccess("system", "governance-tenant-config");
+        verify(tenantAccessLogic, never()).validateDataSourceAccess("system", "governance-tenant-config", "READ");
     }
 }

@@ -20,7 +20,7 @@ class DispatchPolicyApplicationServiceTest {
 
     @Test
     void shouldCreateAndListDispatchPolicies() {
-        RequestContext.set("tenant-a", "admin-011", Arrays.asList("TENANT_ADMIN"), "request-041", "trace-041", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-011", "request-041", "trace-041", "header", 1L, 2L);
         DispatchPolicyApplicationService service = new DispatchPolicyApplicationService(new InMemoryDispatchPolicyRepository());
 
         DispatchPolicyUpsertRequest request = new DispatchPolicyUpsertRequest();

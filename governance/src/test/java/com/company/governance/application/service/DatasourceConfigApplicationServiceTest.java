@@ -30,7 +30,7 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldCreateListAndTestHealthyJdbcDatasource() {
-        RequestContext.set("tenant-a", "admin-001", Arrays.asList("TENANT_ADMIN"), "request-010", "trace-010", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-001", "request-010", "trace-010", "header", 1L, 2L);
         DatasourceConfigApplicationService service =
             newService(new InMemoryDatasourceConfigRepository(), successfulProbe());
 
@@ -50,7 +50,7 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldReturnFailedHealthCheckForUnreachableApiDatasource() {
-        RequestContext.set("tenant-a", "admin-002", Arrays.asList("TENANT_ADMIN"), "request-011", "trace-011", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-002", "request-011", "trace-011", "header", 1L, 2L);
         DatasourceConfigApplicationService service =
             newService(new InMemoryDatasourceConfigRepository(), successfulProbe());
 
@@ -77,7 +77,7 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldEncryptPasswordAndResolvePlaintextOnlyForInternalJdbcEndpoint() {
-        RequestContext.set("tenant-a", "service-001", Arrays.asList("TENANT_ADMIN"), "request-012", "trace-012", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "service-001", "request-012", "trace-012", "header", 1L, 2L);
         InMemoryDatasourceConfigRepository repository = new InMemoryDatasourceConfigRepository();
         DatasourceConfigApplicationService service = newService(repository, successfulProbe());
 
@@ -101,7 +101,7 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldReturnFailedRealJdbcProbeReason() {
-        RequestContext.set("tenant-a", "admin-003", Arrays.asList("TENANT_ADMIN"), "request-013", "trace-013", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-003", "request-013", "trace-013", "header", 1L, 2L);
         DatasourceConfigApplicationService service = newService(
             new InMemoryDatasourceConfigRepository(),
             (config, password, timeoutMs) -> new DatasourceJdbcConnectionProbe.JdbcProbeResult(false, "JDBC_CONNECT_FAILED: refused", 11L)

@@ -98,7 +98,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
             .datasourceCode(requireText(request.getDatasourceCode(), "datasourceCode"))
             .ruleVersion(nextRuleVersion)
             .runtimeRuleVersion(RULE_VERSION_PREFIX + nextRuleVersion)
-            .activatedBy(resolveOperator(request.getActivatedBy()))
+            .activatedBy(resolveActor(request.getActivatedBy()))
             .activatedAt(now)
             .createdAt(now)
             .updatedAt(now)
@@ -122,7 +122,7 @@ public class QueryExecutionRuntimeRewriteBindingService {
                 "没有可暂停的运行时改写绑定。");
         }
         RuntimeRewriteBinding paused =
-            binding.pause(resolveOperator(request.getOperatorId()), request.getReason(), Instant.now());
+            binding.pause(resolveActor(request.getActorId()), request.getReason(), Instant.now());
         runtimeRewriteBindingRepository.save(paused);
         JdbcAgentRewriteRuleSyncResult syncResult = syncDisable(paused);
         return responseFrom(
@@ -393,11 +393,11 @@ public class QueryExecutionRuntimeRewriteBindingService {
         }
     }
 
-    private String resolveOperator(String operatorId) {
-        if (StringUtils.hasText(operatorId)) {
-            return operatorId.trim();
+    private String resolveActor(String actorId) {
+        if (StringUtils.hasText(actorId)) {
+            return actorId.trim();
         }
-        return requireText(RequestContext.getUserId(), "operatorId");
+        return requireText(RequestContext.getUserId(), "actorId");
     }
 
     private String requireText(String value, String fieldName) {

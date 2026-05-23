@@ -43,7 +43,7 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/activate"))
             .andExpect(method(HttpMethod.POST))
             .andExpect(header(RequestHeaderConstants.TENANT_ID, "tenant-a"))
-            .andExpect(header(RequestHeaderConstants.USER_ID, "operator-001"))
+            .andExpect(header(RequestHeaderConstants.USER_ID, "user-001"))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"rewriteRecordId\":\"rewrite-001\"")))
             .andRespond(withSuccess(activeResponse(), MediaType.APPLICATION_JSON));
         server.expect(requestTo("http://query-execution.test/api/query-execution/internal/rewrite-bindings/pause"))
@@ -91,7 +91,7 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         request.setOriginalSqlDigest("fp-001");
         request.setRecommendedSqlText("SELECT id FROM orders");
         request.setDatasourceCode("hetu_main");
-        request.setActivatedBy("operator-001");
+        request.setActivatedBy("user-001");
         return request;
     }
 
@@ -100,7 +100,7 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
         request.setTenantId("tenant-a");
         request.setRuntimeBindingId("rwb-001");
         request.setSqlFingerprint("fp-001");
-        request.setOperatorId("operator-001");
+        request.setActorId("user-001");
         request.setReason(reason);
         return request;
     }
@@ -122,8 +122,7 @@ class QueryExecutionRuntimeRewriteBindingHttpClientTest {
     private void setRequestContext() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",

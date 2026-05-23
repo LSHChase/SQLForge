@@ -9,20 +9,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
-import com.company.governance.application.controller.dto.DatasourceAuthorizationChangeRequest;
-import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
+import com.company.governance.application.controller.dto.DatasourceAccessScopeChangeRequest;
+import com.company.governance.application.controller.vo.DatasourceAccessScopeChangeResponse;
 import com.company.governance.config.GovernanceAccessProperties;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
-import java.util.Arrays;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-class GovernanceAuthorizationMatrixApplicationServiceTest {
+class GovernanceDatasourceAccessApplicationServiceTest {
 
     @AfterEach
     void tearDown() {
@@ -32,15 +31,14 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     @Test
     void shouldAllowAuthorizedRequestAndAuditSuccess() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "header",
@@ -48,28 +46,27 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        GovernanceAuthorizationDecisionResponse response = service.decideAuthorization(queryExecutionRequest("tenant-a"));
+        GovernanceDatasourceAccessCheckResponse response = service.checkDatasourceAccess(queryExecutionRequest("tenant-a"));
 
         assertTrue(response.isAllowed());
         assertEquals("ALLOWED", response.getReason());
         ArgumentCaptor<AuditWriteRequest> captor = ArgumentCaptor.forClass(AuditWriteRequest.class);
         verify(auditTrailService).writeAudit(captor.capture());
-        assertEquals("AUTHORIZATION_DECISION", captor.getValue().getOperationCode());
+        assertEquals("DATASOURCE_ACCESS_CHECK", captor.getValue().getOperationCode());
         assertEquals("SUCCESS", captor.getValue().getResultStatus());
     }
 
     @Test
     void shouldAllowRewriteRecordListForHistoryReaders() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "tenant-a",
             "auditor-001",
-            Arrays.asList("AUDITOR"),
             "request-rewrite-record-list",
             "trace-rewrite-record-list",
             "header",
@@ -77,8 +74,8 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        GovernanceAuthorizationDecisionResponse response =
-            service.decideAuthorization(rewriteRecordListRequest("tenant-a"));
+        GovernanceDatasourceAccessCheckResponse response =
+            service.checkDatasourceAccess(rewriteRecordListRequest("tenant-a"));
 
         assertTrue(response.isAllowed());
         assertEquals("ALLOWED", response.getReason());
@@ -87,15 +84,14 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     @Test
     void shouldAllowRewriteRecordActivationForSubmitters() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "tenant-a",
             "operator-activate-001",
-            Arrays.asList("OPERATOR"),
             "request-rewrite-record-activate",
             "trace-rewrite-record-activate",
             "header",
@@ -103,25 +99,24 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        GovernanceAuthorizationDecisionResponse response =
-            service.decideAuthorization(rewriteRecordActivationRequest("tenant-a"));
+        GovernanceDatasourceAccessCheckResponse response =
+            service.checkDatasourceAccess(rewriteRecordActivationRequest("tenant-a"));
 
         assertTrue(response.isAllowed());
         assertEquals("ALLOWED", response.getReason());
     }
 
     @Test
-    void shouldAllowSystemTenantAsHighestAuthorityForTrinoQuery() {
+    void shouldDenySystemTenantForUnscopedQueryDatasource() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "system",
             "system-runtime",
-            Arrays.asList("READONLY"),
             "request-system-trino",
             "trace-system-trino",
             "header",
@@ -129,25 +124,24 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        GovernanceAuthorizationDecisionResponse response =
-            service.decideAuthorization(queryExecutionRequest("system", "query-trino"));
+        GovernanceDatasourceAccessCheckResponse response =
+            service.checkDatasourceAccess(queryExecutionRequest("system", "query-trino"));
 
-        assertTrue(response.isAllowed());
-        assertEquals("PLATFORM_ADMIN_OVERRIDE", response.getReason());
+        assertFalse(response.isAllowed());
+        assertEquals("DATASOURCE_SCOPE_MISSING", response.getReason());
     }
 
     @Test
-    void shouldAllowSystemTenantToChangeDatasourceAuthorizationWithoutManagePermission() {
+    void shouldAllowSystemTenantToChangeDatasourceAccessScope() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "system",
             "system-runtime",
-            Arrays.asList("READONLY"),
             "request-system-permission-change",
             "trace-system-permission-change",
             "header",
@@ -155,37 +149,36 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        DatasourceAuthorizationChangeRequest changeRequest = new DatasourceAuthorizationChangeRequest();
+        DatasourceAccessScopeChangeRequest changeRequest = new DatasourceAccessScopeChangeRequest();
         changeRequest.setTenantId("tenant-b");
         changeRequest.setDatasourceId("query-trino");
         changeRequest.setState("ACTIVE");
         changeRequest.getActions().add("USE");
         changeRequest.setChangeReason("system bootstrap");
 
-        DatasourceAuthorizationChangeResponse response =
-            service.applyDatasourceAuthorizationChange(changeRequest);
+        DatasourceAccessScopeChangeResponse response =
+            service.applyDatasourceAccessScopeChange(changeRequest);
 
         assertEquals("UPDATED", response.getStatus());
         assertTrue(service.isDatasourceActionAllowed("tenant-b", "query-trino", "USE"));
         ArgumentCaptor<AuditWriteRequest> captor = ArgumentCaptor.forClass(AuditWriteRequest.class);
         verify(auditTrailService).writeAudit(captor.capture());
-        assertEquals("PERMISSION_CHANGE", captor.getValue().getOperationCode());
+        assertEquals("DATASOURCE_ACCESS_SCOPE_CHANGE", captor.getValue().getOperationCode());
         assertEquals("SUCCESS", captor.getValue().getResultStatus());
         assertEquals("tenant-b:query-trino", captor.getValue().getResourceId());
     }
 
     @Test
-    void shouldDenyWhenRolePermissionMissingAndAuditFailure() {
+    void shouldDenyWhenDatasourceActionMissingAndAuditFailure() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "tenant-a",
             "readonly-001",
-            Arrays.asList("READONLY"),
             "request-002",
             "trace-002",
             "header",
@@ -193,11 +186,13 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        GovernanceAuthorizationDecisionResponse response = service.decideAuthorization(queryExecutionRequest("tenant-a"));
+        GovernanceDatasourceAccessCheckRequest request = queryExecutionRequest("tenant-a");
+        request.setAction("EXPORT");
+        GovernanceDatasourceAccessCheckResponse response = service.checkDatasourceAccess(request);
 
         assertFalse(response.isAllowed());
-        assertEquals("ROLE_PERMISSION_DENIED", response.getReason());
-        assertEquals(Integer.valueOf(ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED), response.getErrorCode());
+        assertEquals("DATASOURCE_ACTION_DENIED", response.getReason());
+        assertEquals(Integer.valueOf(ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED), response.getErrorCode());
         ArgumentCaptor<AuditWriteRequest> captor = ArgumentCaptor.forClass(AuditWriteRequest.class);
         verify(auditTrailService).writeAudit(captor.capture());
         assertEquals("FAILED", captor.getValue().getResultStatus());
@@ -206,15 +201,14 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     @Test
     void shouldDenyCrossTenantRequest() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "tenant-a",
             "tenant-admin-002",
-            Arrays.asList("TENANT_ADMIN"),
             "request-003",
             "trace-003",
             "header",
@@ -222,7 +216,7 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        GovernanceAuthorizationDecisionResponse response = service.decideAuthorization(queryExecutionRequest("tenant-b"));
+        GovernanceDatasourceAccessCheckResponse response = service.checkDatasourceAccess(queryExecutionRequest("tenant-b"));
 
         assertFalse(response.isAllowed());
         assertEquals("CALLER_TENANT_MISMATCH", response.getReason());
@@ -232,15 +226,14 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
     @Test
     void shouldDenyRevokedDatasourceAfterPermissionChangeAndAuditMutation() {
         GovernanceAuditTrailService auditTrailService = mock(GovernanceAuditTrailService.class);
-        GovernanceAuthorizationMatrixApplicationService service = new GovernanceAuthorizationMatrixApplicationService(
+        GovernanceDatasourceAccessApplicationService service = new GovernanceDatasourceAccessApplicationService(
             new GovernanceAccessProperties(),
             auditTrailService
         );
-        service.initializeRuntimeDatasourceMatrix();
+        service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
             "tenant-a",
-            "tenant-admin-003",
-            Arrays.asList("TENANT_ADMIN"),
+            "system-runtime",
             "request-004",
             "trace-004",
             "header",
@@ -248,15 +241,24 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
             200L
         );
 
-        DatasourceAuthorizationChangeRequest changeRequest = new DatasourceAuthorizationChangeRequest();
+        DatasourceAccessScopeChangeRequest changeRequest = new DatasourceAccessScopeChangeRequest();
         changeRequest.setTenantId("tenant-a");
         changeRequest.setDatasourceId("query-hetu");
         changeRequest.setState("REVOKED");
         changeRequest.setChangeReason("incident revoke");
 
-        DatasourceAuthorizationChangeResponse changeResponse =
-            service.applyDatasourceAuthorizationChange(changeRequest);
-        GovernanceAuthorizationDecisionResponse decisionResponse = service.decideAuthorization(
+        DatasourceAccessScopeChangeResponse changeResponse =
+            service.applyDatasourceAccessScopeChange(changeRequest);
+        RequestContext.set(
+            "tenant-a",
+            "service-user",
+            "request-005",
+            "trace-005",
+            "header",
+            100L,
+            200L
+        );
+        GovernanceDatasourceAccessCheckResponse decisionResponse = service.checkDatasourceAccess(
             queryExecutionRequest("tenant-a")
         );
 
@@ -272,44 +274,47 @@ class GovernanceAuthorizationMatrixApplicationServiceTest {
         ArgumentCaptor<AuditWriteRequest> captor = ArgumentCaptor.forClass(AuditWriteRequest.class);
         verify(auditTrailService, atLeastOnce()).writeAudit(captor.capture());
         List<AuditWriteRequest> auditRequests = captor.getAllValues();
-        assertTrue(hasAuditEvent(auditRequests, "PERMISSION_CHANGE", "SUCCESS", "tenant-a:query-hetu"));
-        assertTrue(hasAuditEvent(auditRequests, "AUTHORIZATION_DECISION", "FAILED", "query-fingerprint-001"));
+        assertTrue(hasAuditEvent(auditRequests, "DATASOURCE_ACCESS_SCOPE_CHANGE", "SUCCESS", "tenant-a:query-hetu"));
+        assertTrue(hasAuditEvent(auditRequests, "DATASOURCE_ACCESS_CHECK", "FAILED", "query-fingerprint-001"));
     }
 
-    private GovernanceAuthorizationDecisionRequest queryExecutionRequest(String tenantId) {
+    private GovernanceDatasourceAccessCheckRequest queryExecutionRequest(String tenantId) {
         return queryExecutionRequest(tenantId, "query-hetu");
     }
 
-    private GovernanceAuthorizationDecisionRequest queryExecutionRequest(String tenantId, String datasourceId) {
-        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+    private GovernanceDatasourceAccessCheckRequest queryExecutionRequest(String tenantId, String datasourceId) {
+        GovernanceDatasourceAccessCheckRequest request = new GovernanceDatasourceAccessCheckRequest();
         request.setServiceCode("QUERY_EXECUTION");
         request.setTenantId(tenantId);
         request.setResourceType("QUERY_EXECUTION_QUERY");
         request.setResourceId("query-fingerprint-001");
         request.setOperationCode("QUERY_EXECUTE_SYNC");
         request.setDatasourceId(datasourceId);
+        request.setAction("USE");
         return request;
     }
 
-    private GovernanceAuthorizationDecisionRequest rewriteRecordListRequest(String tenantId) {
-        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+    private GovernanceDatasourceAccessCheckRequest rewriteRecordListRequest(String tenantId) {
+        GovernanceDatasourceAccessCheckRequest request = new GovernanceDatasourceAccessCheckRequest();
         request.setServiceCode("SQL_OPTIMIZATION");
         request.setTenantId(tenantId);
         request.setResourceType("SQL_REWRITE_RECORD");
         request.setResourceId("history-001");
         request.setOperationCode("SQL_REWRITE_RECORD_LIST");
         request.setDatasourceId("optimization-hetu");
+        request.setAction("USE");
         return request;
     }
 
-    private GovernanceAuthorizationDecisionRequest rewriteRecordActivationRequest(String tenantId) {
-        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+    private GovernanceDatasourceAccessCheckRequest rewriteRecordActivationRequest(String tenantId) {
+        GovernanceDatasourceAccessCheckRequest request = new GovernanceDatasourceAccessCheckRequest();
         request.setServiceCode("SQL_OPTIMIZATION");
         request.setTenantId(tenantId);
         request.setResourceType("SQL_REWRITE_RECORD");
         request.setResourceId("rewrite-001");
         request.setOperationCode("SQL_REWRITE_RECORD_ACTIVATE");
         request.setDatasourceId("optimization-hetu");
+        request.setAction("USE");
         return request;
     }
 

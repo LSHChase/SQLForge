@@ -2,9 +2,6 @@ package com.company.sqlforge.common.access;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.springframework.util.StringUtils;
 
 public final class AccessAuditContract {
@@ -13,7 +10,6 @@ public final class AccessAuditContract {
     private final String authSource;
     private final String tenantId;
     private final String userId;
-    private final List<String> roleCodes;
     private final String requestId;
     private final String traceId;
     private final String sourceIp;
@@ -23,7 +19,6 @@ public final class AccessAuditContract {
                                String authSource,
                                String tenantId,
                                String userId,
-                               List<String> roleCodes,
                                String requestId,
                                String traceId,
                                String sourceIp,
@@ -32,9 +27,6 @@ public final class AccessAuditContract {
         this.authSource = authSource;
         this.tenantId = tenantId;
         this.userId = userId;
-        this.roleCodes = Collections.unmodifiableList(new ArrayList<String>(
-            roleCodes == null ? Collections.<String>emptyList() : roleCodes
-        ));
         this.requestId = requestId;
         this.traceId = traceId;
         this.sourceIp = sourceIp;
@@ -51,7 +43,6 @@ public final class AccessAuditContract {
             trimToNull(RequestContext.getAuthSource()),
             trimToNull(RequestContext.getTenantId()),
             trimToNull(RequestContext.getUserId()),
-            RequestContext.getRoleCodes(),
             trimToNull(RequestContext.getRequestId()),
             trimToNull(RequestContext.getTraceId()),
             trimToNull(RequestMetadataContext.getSourceIp()),
@@ -77,10 +68,6 @@ public final class AccessAuditContract {
 
     public String getUserId() {
         return userId;
-    }
-
-    public List<String> getRoleCodes() {
-        return roleCodes;
     }
 
     public String getRequestId() {

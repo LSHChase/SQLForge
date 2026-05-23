@@ -27,7 +27,6 @@ import org.springframework.util.StringUtils;
 public class LogicalViewCatalogApplicationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LogicalViewCatalogApplicationService.class);
-    private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
 
     private final BusinessLogicalViewRepository businessLogicalViewRepository;
     private final LogicalObjectMappingRepository logicalObjectMappingRepository;
@@ -86,7 +85,6 @@ public class LogicalViewCatalogApplicationService {
 
     private String resolveAndAuthorizeTenant(String tenantId, String datasourceCode) {
         String currentTenantId = TenantContext.get();
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN);
         if (!StringUtils.hasText(currentTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
@@ -95,15 +93,15 @@ public class LogicalViewCatalogApplicationService {
             );
         }
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : currentTenantId;
-        if (!platformAdmin && !currentTenantId.equals(effectiveTenantId)) {
+        if (!currentTenantId.equals(effectiveTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE
             );
         }
-        if (!platformAdmin && StringUtils.hasText(datasourceCode)
-            && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, datasourceCode)) {
+        if (StringUtils.hasText(datasourceCode)
+            && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, datasourceCode, "USE")) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,

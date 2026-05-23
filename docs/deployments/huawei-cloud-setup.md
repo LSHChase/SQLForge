@@ -162,7 +162,6 @@ messaging:
 export QUERY_EXECUTION_BASE_URL="https://query-execution.example.com"
 export REQUEST_TENANT_ID="tenant-a"
 export REQUEST_USER_ID="hetu-smoke-bot"
-export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
 
 bash scripts/run-hetu-env-smoke.sh
 ```

@@ -29,6 +29,7 @@ public class JdbcDriverArtifactApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "JDBC_DRIVER_ARTIFACT_BASELINE";
+    private static final String SYSTEM_TENANT_ID = "system";
     private static final List<String> SUPPORTED_ENGINES = Arrays.asList("TRINO", "HETU", "HIVE");
 
     private final JdbcDriverArtifactRepository repository;
@@ -156,10 +157,10 @@ public class JdbcDriverArtifactApplicationService {
     }
 
     private void requireDatasourceAdmin() {
-        if (RequestContext.hasRole("PLATFORM_ADMIN") || RequestContext.hasRole("TENANT_ADMIN")) {
+        if (SYSTEM_TENANT_ID.equals(RequestContext.getTenantId())) {
             return;
         }
-        throw new AccessDeniedException("当前请求缺少数据源驱动管理权限");
+        throw new AccessDeniedException("当前请求不允许管理数据源驱动");
     }
 
     private String requireTenant(String requestTenantId) {

@@ -186,7 +186,6 @@ class SqlForgeJdbcAgentGovernedExecuteTest {
         return new OpenAccessRequestContext(
             "tenant-a",
             "agent-user",
-            Arrays.asList("TENANT_ADMIN", "ANALYST"),
             "request-002",
             "trace-002",
             "header",

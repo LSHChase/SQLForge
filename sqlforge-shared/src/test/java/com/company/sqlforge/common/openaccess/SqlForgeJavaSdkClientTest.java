@@ -71,7 +71,6 @@ class SqlForgeJavaSdkClientTest {
         return new OpenAccessRequestContext(
             "tenant-a",
             "sdk-user",
-            Arrays.asList("TENANT_ADMIN", "ANALYST"),
             "request-002",
             "trace-002",
             "header",

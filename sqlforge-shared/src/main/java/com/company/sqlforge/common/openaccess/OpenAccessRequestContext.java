@@ -1,15 +1,11 @@
 package com.company.sqlforge.common.openaccess;
 
 import com.company.sqlforge.common.access.AccessChannel;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class OpenAccessRequestContext {
 
     private final String tenantId;
     private final String userId;
-    private final List<String> roleCodes;
     private final String requestId;
     private final String traceId;
     private final String authSource;
@@ -21,7 +17,6 @@ public class OpenAccessRequestContext {
 
     public OpenAccessRequestContext(String tenantId,
                                     String userId,
-                                    List<String> roleCodes,
                                     String requestId,
                                     String traceId,
                                     String authSource,
@@ -32,9 +27,6 @@ public class OpenAccessRequestContext {
                                     AccessChannel accessChannel) {
         this.tenantId = tenantId;
         this.userId = userId;
-        this.roleCodes = Collections.unmodifiableList(new ArrayList<String>(
-            roleCodes == null ? Collections.<String>emptyList() : roleCodes
-        ));
         this.requestId = requestId;
         this.traceId = traceId;
         this.authSource = authSource;
@@ -49,7 +41,6 @@ public class OpenAccessRequestContext {
         return new OpenAccessRequestContext(
             tenantId,
             userId,
-            roleCodes,
             requestId,
             traceId,
             authSource,
@@ -67,10 +58,6 @@ public class OpenAccessRequestContext {
 
     public String getUserId() {
         return userId;
-    }
-
-    public List<String> getRoleCodes() {
-        return roleCodes;
     }
 
     public String getRequestId() {

@@ -65,7 +65,7 @@ class SqlDiffApplicationServiceTest {
             .ruleChain(Collections.singletonList(rule("PRECOMPUTE_MV", "L2", "PULL_ONLY_CANDIDATE")))
             .manualReviewRequired(Boolean.TRUE)
             .autoApplyAllowed(false)
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
             .build();
 
@@ -243,7 +243,7 @@ class SqlDiffApplicationServiceTest {
             .semanticRisks(semanticRisks)
             .manualReviewRequired(Boolean.valueOf(manualReviewRequired))
             .autoApplyAllowed(false)
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
             .build();
     }
@@ -266,7 +266,7 @@ class SqlDiffApplicationServiceTest {
             .ruleChain(Collections.singletonList(rule("PRECOMPUTE_MV", "L2", "PULL_ONLY_CANDIDATE")))
             .manualReviewRequired(Boolean.TRUE)
             .autoApplyAllowed(false)
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
             .build();
     }

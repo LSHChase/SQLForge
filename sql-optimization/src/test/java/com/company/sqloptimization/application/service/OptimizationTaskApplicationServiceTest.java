@@ -44,7 +44,7 @@ class OptimizationTaskApplicationServiceTest {
             mockGovernanceClient(),
             new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         OptimizationTaskSubmitResponse response = service.submitTask(baseRequest("SELECT * FROM orders"));
 
@@ -63,7 +63,7 @@ class OptimizationTaskApplicationServiceTest {
             mockGovernanceClient(),
             new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BizException ex = assertThrows(BizException.class, () -> service.getTaskStatus("missing-task"));
 
@@ -82,19 +82,19 @@ class OptimizationTaskApplicationServiceTest {
             governanceCapabilityClient,
             new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         OptimizationTaskSubmitResponse response = service.submitTask(baseRequest("SELECT * FROM orders"));
         service.getTaskStatus(response.getTaskId());
 
-        verify(governanceCapabilityClient).assertAuthorization(
+        verify(governanceCapabilityClient).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.eq(DataSourceTypeEnum.HETU),
             org.mockito.Mockito.eq("SQL_OPTIMIZATION_TASK"),
             org.mockito.ArgumentMatchers.anyString(),
             org.mockito.Mockito.eq("OPTIMIZATION_TASK_SUBMIT")
         );
-        verify(governanceCapabilityClient).assertAuthorization(
+        verify(governanceCapabilityClient).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.eq(DataSourceTypeEnum.HETU),
             org.mockito.Mockito.eq("SQL_OPTIMIZATION_TASK"),
@@ -113,7 +113,7 @@ class OptimizationTaskApplicationServiceTest {
             governanceCapabilityClient,
             new OptimizationMetricsRecorder(new SimpleMeterRegistry())
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         RequestMetadataContext.set("127.0.0.1", "JUnit", "api");
 
         service.submitTask(baseRequest("SELECT * FROM orders"));
@@ -133,7 +133,7 @@ class OptimizationTaskApplicationServiceTest {
             mockGovernanceClient(),
             new OptimizationMetricsRecorder(meterRegistry)
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         service.submitTask(baseRequest("SELECT * FROM orders"));
 
@@ -155,7 +155,7 @@ class OptimizationTaskApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

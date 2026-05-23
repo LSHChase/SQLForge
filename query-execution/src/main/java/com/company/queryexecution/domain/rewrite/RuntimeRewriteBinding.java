@@ -64,14 +64,14 @@ public class RuntimeRewriteBinding {
         return new Builder();
     }
 
-    public RuntimeRewriteBinding pause(String operatorId, String reason, Instant now) {
+    public RuntimeRewriteBinding pause(String actorId, String reason, Instant now) {
         if (status == RuntimeRewriteBindingStatus.PAUSED) {
             return this;
         }
         Instant changedAt = now == null ? Instant.now() : now;
         return copyBuilder()
             .status(RuntimeRewriteBindingStatus.PAUSED)
-            .pausedBy(requireText(operatorId, "operatorId"))
+            .pausedBy(requireText(actorId, "actorId"))
             .pausedAt(changedAt)
             .pauseReason(trimToNull(reason))
             .updatedAt(changedAt)

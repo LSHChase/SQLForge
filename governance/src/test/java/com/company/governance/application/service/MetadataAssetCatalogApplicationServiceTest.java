@@ -24,12 +24,12 @@ class MetadataAssetCatalogApplicationServiceTest {
     @Test
     void shouldListSchemaAndTableAssetsFromSnapshots() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main", "USE")).thenReturn(true);
         MetadataAssetCatalogApplicationService service = new MetadataAssetCatalogApplicationService(
             new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "request-030", "trace-030", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-002", "request-030", "trace-030", "header", 1L, 2L);
 
         List<MetadataSchemaAssetVO> schemas = service.listSchemas("tenant-a", "hetu_main");
         List<MetadataTableAssetVO> tables = service.listTables("tenant-a", "hetu_main", "sales");
@@ -45,12 +45,12 @@ class MetadataAssetCatalogApplicationServiceTest {
     @Test
     void shouldResolveSchemaAndTableDetails() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main", "USE")).thenReturn(true);
         MetadataAssetCatalogApplicationService service = new MetadataAssetCatalogApplicationService(
             new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "request-031", "trace-031", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-002", "request-031", "trace-031", "header", 1L, 2L);
 
         MetadataSchemaAssetVO schema = service.findSchema("tenant-a", "hetu_main", "analytics");
         MetadataTableAssetVO table = service.findTable("tenant-a", "hetu_main", "sales", "orders");

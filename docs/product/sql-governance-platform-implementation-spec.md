@@ -2,19 +2,17 @@
 
 ## Summary
 
-本规格把 SQLForge 后续新增的 SQL 治理中后台与开放接入能力统一收口为一套可实施、可拆任务、可验证的产品权威输入。本文档覆盖产品目标、角色、模块、页面、业务规则、开放接入、降级边界与分期；不把目标能力写成当前已实现事实，不新增微服务。
+本规格把 SQLForge 后续新增的 SQL 治理中后台与开放接入能力统一收口为一套可实施、可拆任务、可验证的产品权威输入。本文档覆盖产品目标、核心功能面、页面、业务规则、开放接入、降级边界与分期；不把目标能力写成当前已实现事实，不新增微服务。
 
 ## 1. Product Positioning
 
 - 产品定位：`SQL 治理中后台 + 开放接入平台`
-- 目标用户：
-  - `ANALYST`
-  - `ARCHITECT`
-  - `TENANT_ADMIN`
-  - `PLATFORM_ADMIN`
-  - `OPERATOR`
-  - `AUDITOR`
-  - 预留：`PRODUCT_VIEWER`、`BUSINESS_VIEWER`
+- 目标使用场景：
+  - SQL 查询与执行历史追踪
+  - SQL 结构解析与解析记录查询
+  - 推荐结果、改写记录与真实改写历史管理
+  - 压测任务、报告查询与开放接入
+  - 系统参数、数据源和运行配置维护
 - 服务边界：
   - 只扩展 `query-execution`
   - 只扩展 `sql-optimization`
@@ -370,7 +368,7 @@ SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-re
   - 目标引擎
   - 适用对象
   - 是否需装数协同
-- 解析驱动与查询驱动仍可产生推荐、改写记录、验证运行和差异暂停证据，但不再由独立工作台页面或告警中心承接；面向 operator 的入口以推荐结果、SQL 历史查询和 SQL 改写验证为准。
+- 解析驱动与查询驱动仍可产生推荐、改写记录、验证运行和差异暂停证据，但不再由独立工作台页面或告警中心承接；核心入口以推荐结果、SQL 历史查询和 SQL 改写验证为准。
 - 推荐 SQL 必须从简单替换升级为 L0 安全语法改写、L1 结构改写、L2 引擎/物理协同建议三层输出，并显式标注前置条件、语义风险、未采用规则、验证方式和是否允许自动应用。
 - 推荐前后 SQL 必须提供 diff 视图，覆盖文本 diff、规则级 diff、AST 摘要差异和风险提示；仅展示两个 SQL 代码块不足以满足治理要求。
 - 改写记录必须能在 SQL 历史详情中查询，并支持周期性原 SQL / 推荐 SQL 结果比对；发现差异时记录 `SQL_REWRITE_RESULT_DIVERGENCE` 内部事件并暂停自动应用，不再通过公开告警中心承接。
@@ -458,7 +456,7 @@ SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-re
 - Redis 规则源
 - 差异暂停与运行证据只在推荐 / 改写 / SQL 历史主链路展示，不再提供告警中心产品入口
 - 装数协同配置
-- 权限与审计
+- 身份上下文与执行留痕
 - 系统参数
 
 ### 4.9 开放接入
@@ -564,7 +562,7 @@ Parser 边界：
 
 - `featureSummary` 可输出子查询数、SELECT 标量子查询数、嵌套子查询深度、相关子查询数、OR 谓词数、函数包裹谓词数、前导通配符 LIKE 数、随机排序数和重复表扫描数。
 - `riskChecklist/issues/riskTags` 可覆盖 `SCALAR_SUBQUERY_IN_SELECT`、`NESTED_SUBQUERY_RISK`、`CORRELATED_SUBQUERY_RISK`、`FUNCTION_WRAPPED_PREDICATE`、`NOT_EXISTS_ANTI_JOIN_RISK`、`LEADING_WILDCARD_LIKE_RISK`、`OR_PREDICATE_INDEX_RISK`、`ORDER_BY_RANDOM_RISK`、`REPEATED_TABLE_SCAN_RISK` 和 `COMPLEX_QUERY_GRAPH_RISK`。
-- 上述信号全部来自静态 SQL AST，不证明真实索引存在性、对象规模或执行计划成本；涉及字段存在性、权限、分区可用性和真实计划仍属于 access parse / benchmark 边界。
+- 上述信号全部来自静态 SQL AST，不证明真实索引存在性、对象规模或执行计划成本；涉及字段存在性、数据源访问范围、分区可用性和真实计划仍属于 access parse / benchmark 边界。
 
 `HARN-091` 继续补齐结构解析静态风险分析，但不把静态结果伪装成真实执行指标：
 
@@ -592,7 +590,7 @@ Parser 边界：
 - 返回：
   - 对象存在性
   - 字段存在性
-  - 权限
+  - 数据源访问范围
   - 方言兼容
   - 执行计划摘要
   - 分区 / 数据到位 / SLA

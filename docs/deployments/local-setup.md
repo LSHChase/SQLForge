@@ -159,8 +159,7 @@ now=$(date +%s000)
 expires_at=$((now + 600000))
 curl http://localhost:8080/api/governance/admin/messages/stats \
   -H "X-Tenant-Id: system" \
-  -H "X-User-Id: operator-001" \
-  -H "X-Role-Codes: TENANT_ADMIN,OPERATOR" \
+  -H "X-User-Id: local-user-001" \
   -H "X-Request-Id: local-request-001" \
   -H "X-Trace-Id: local-trace-001" \
   -H "X-Auth-Source: header" \

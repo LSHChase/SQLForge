@@ -44,7 +44,7 @@ class AccelerationPlanControllerTest {
 
     @Test
     void shouldExecuteGovernedAccelerationPlanLifecycle() throws Exception {
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         GovernanceAccelerationPlanTraceResponse traceResponse = new GovernanceAccelerationPlanTraceResponse();
         traceResponse.setConfigSnapshotId("cfg-plan-001");
@@ -77,19 +77,19 @@ class AccelerationPlanControllerTest {
                 .content("{\"reason\":\"activate ready binding\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ACTIVE"))
-            .andExpect(jsonPath("$.activatedBy").value("operator-001"));
+            .andExpect(jsonPath("$.activatedBy").value("user-001"));
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/acceleration-plans/{planId}/pause", planId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"reason\":\"pause binding\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PAUSED"))
-            .andExpect(jsonPath("$.pausedBy").value("operator-001"));
+            .andExpect(jsonPath("$.pausedBy").value("user-001"));
     }
 
     @Test
     void shouldRejectPauseBeforeActivation() throws Exception {
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         GovernanceAccelerationPlanTraceResponse traceResponse = new GovernanceAccelerationPlanTraceResponse();
         traceResponse.setConfigSnapshotId("cfg-plan-002");
@@ -157,8 +157,7 @@ class AccelerationPlanControllerTest {
         long now = System.currentTimeMillis();
         return builder
             .header(RequestHeaderConstants.TENANT_ID, "tenant-a")
-            .header(RequestHeaderConstants.USER_ID, "operator-001")
-            .header(RequestHeaderConstants.ROLE_CODES, "TENANT_ADMIN,OPERATOR")
+            .header(RequestHeaderConstants.USER_ID, "user-001")
             .header(RequestHeaderConstants.REQUEST_ID, "request-001")
             .header(RequestHeaderConstants.TRACE_ID, "trace-001")
             .header(RequestHeaderConstants.AUTH_SOURCE, AuthSourceConstants.HEADER)

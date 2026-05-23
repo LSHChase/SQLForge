@@ -246,7 +246,7 @@
 - 当结构解析请求携带 `datasourceCode` 时，SQL 优化服务应优先通过目标数据源只读元数据实时判断命中对象是否为底层数据库 View，并读取 View definition SQL。
 - 实时命中 DB View 时，`logicalObjectHits` 保留该 View 的 `DB_VIEW` hit，`matchSource=LIVE_DB_VIEW_METADATA`；View definition 中递归解析出的最终叶子表追加为 `TABLE` hit，`matchSource=DB_VIEW_DEFINITION`。
 - `mappedPhysicalTargets` 对 DB View 表示最终叶子 `TABLE:*` keys，而不是原 SQL 中的 View 名；`featureSummary.tableCount` 与解析历史 `logicalObjectKeys` 使用最终唯一 `TABLE:*` keys。
-- 递归展开默认最大深度为 5，并按规范化对象 key 防循环；循环、无权限、无配置、元数据查询失败或 View definition 不可解析时，结构解析不得失败，应保留原对象 hit，并通过 `DB_VIEW_DEFINITION_UNRESOLVED` risk/issue 标识降级原因。
+- 递归展开默认最大深度为 5，并按规范化对象 key 防循环；循环、缺少访问范围、无配置、元数据查询失败或 View definition 不可解析时，结构解析不得失败，应保留原对象 hit，并通过 `DB_VIEW_DEFINITION_UNRESOLVED` risk/issue 标识降级原因。
 - governance 的 `database_view_ref/dependency` 目录只能作为实时元数据不可用时的缓存/降级证据；使用该目录时 `matchSource=DB_VIEW_CATALOG_FALLBACK`，不得写成实时 View definition 结果。
 
 `issues[]` 子字段：
@@ -835,7 +835,7 @@ repo-side 基线：
 - `BLOCKED` 必须返回 `blockingReasons[]`，不得生成可激活 runtime binding 草案。
 - `REVIEW_REQUIRED` 必须返回 `reviewWarnings[]`，只能进入人工复核，不能自动激活。
 - 高级证据字段包括 `joinGraph[]`、`externalizedPredicates[]`、`retainedPredicates[]`、`securityPredicates[]`、`blockedPredicates[]`；`coverage` 至少覆盖 `coversProjection`、`coversFilters`、`coversGrouping`、`coversMeasures`、`coversSecurity`。
-- 谓词分类中 `tenant_id` 按普通参数过滤进入 `externalizedPredicates[]`；`securityPredicates[]` 只承载 SQL 中显式出现的非租户安全边界过滤（权限域、数据域、访问域等）。缺少显式非租户安全谓词不得单独阻断 `GENERATED`，但已出现的安全谓词不得在 MV 产物或 rewrite 过滤中丢失。
+- 谓词分类中 `tenant_id` 按普通参数过滤进入 `externalizedPredicates[]`；`securityPredicates[]` 只承载 SQL 中显式出现的非租户安全边界过滤（数据域、访问域等）。缺少显式非租户安全谓词不得单独阻断 `GENERATED`，但已出现的安全谓词不得在 MV 产物或 rewrite 过滤中丢失。
 - `rewriteSql` 必须查询 MV 或 MV 派生对象，不能仍访问原始基表。
 - `runtimeRewriteBinding` 在 L2 产物中默认为 `NOT_CREATED`；L2 产物本身不表示已建 MV、已刷新、已验证或 runtime 已生效。
 
@@ -1043,7 +1043,6 @@ repo-side 基线：
 
 - 受保护入口必须携带 `X-Tenant-Id`
 - 受保护入口必须携带 `X-User-Id`
-- 受保护入口必须携带 `X-Role-Codes`
 - 受保护入口必须携带 `X-Request-Id`
 - 受保护入口必须携带 `X-Trace-Id`
 - 受保护入口必须携带 `X-Auth-Source`

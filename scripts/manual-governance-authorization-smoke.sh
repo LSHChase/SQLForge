@@ -11,10 +11,8 @@ MYSQL_DATABASE="${MYSQL_DATABASE:-sqlforge}"
 MYSQL_USER="${MYSQL_USER:-sqlforge}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-sqlforge}"
 REQUEST_TENANT_ID="${REQUEST_TENANT_ID:-tenant-a}"
-REQUEST_USER_ID="${REQUEST_USER_ID:-tenant-admin-001}"
-REQUEST_ROLE_CODES="${REQUEST_ROLE_CODES:-TENANT_ADMIN}"
+REQUEST_USER_ID="${REQUEST_USER_ID:-datasource-access-user-001}"
 REQUEST_AUTH_SOURCE="${REQUEST_AUTH_SOURCE:-header}"
-READONLY_ROLE_CODES="${READONLY_ROLE_CODES:-READONLY}"
 CLEANUP=false
 DATASOURCE_REVOKED=false
 
@@ -46,14 +44,17 @@ restore_datasource_policy() {
   fi
 
   local issued_at expires_at
+  local original_tenant_id
   local -a restore_headers
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
-  REQUEST_ROLE_CODES="TENANT_ADMIN"
+  original_tenant_id="${REQUEST_TENANT_ID}"
+  REQUEST_TENANT_ID="system"
   mapfile -t restore_headers < <(build_protected_headers "${RESTORE_CHANGE_REQUEST_ID}" "${RESTORE_CHANGE_REQUEST_ID}" "${issued_at}" "${expires_at}")
+  REQUEST_TENANT_ID="${original_tenant_id}"
 
   set +e
-  curl -sS -X POST "${GOVERNANCE_API_BASE_URL}/api/governance/internal/authorization/datasource/change" \
+  curl -sS -X POST "${GOVERNANCE_API_BASE_URL}/api/governance/internal/datasource-access/scope/change" \
     "${restore_headers[@]}" \
     --data '{"tenantId":"tenant-a","datasourceId":"query-hetu","state":"ACTIVE","actions":["USE"],"changeReason":"runtime smoke restore"}' \
     >/dev/null
@@ -66,7 +67,7 @@ cleanup_rows() {
     return
   fi
 
-  print_step "Cleaning up governance authorization audit rows"
+  print_step "清理 governance 数据源访问 smoke 审计行"
   mysql_exec "DELETE FROM audit_log WHERE request_id IN ('${SUCCESS_REQUEST_ID}','${DENY_REQUEST_ID}','${CROSS_TENANT_REQUEST_ID}','${REVOKE_CHANGE_REQUEST_ID}','${REVOKED_ACCESS_REQUEST_ID}','${RESTORE_CHANGE_REQUEST_ID}');"
 }
 
@@ -80,7 +81,7 @@ main() {
   local success_response deny_response cross_tenant_response revoke_response revoked_response
   local success_row deny_row cross_tenant_row revoke_row revoked_row
   local -a admin_headers readonly_headers cross_tenant_headers revoke_headers revoked_headers
-  local original_role_codes
+  local original_tenant_id
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -108,72 +109,71 @@ main() {
 
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
-  SUCCESS_REQUEST_ID="gov-authz-success-$(date +%Y%m%d%H%M%S)"
-  DENY_REQUEST_ID="gov-authz-deny-$(date +%Y%m%d%H%M%S)"
-  CROSS_TENANT_REQUEST_ID="gov-authz-cross-tenant-$(date +%Y%m%d%H%M%S)"
-  REVOKE_CHANGE_REQUEST_ID="gov-authz-revoke-$(date +%Y%m%d%H%M%S)"
-  REVOKED_ACCESS_REQUEST_ID="gov-authz-revoked-access-$(date +%Y%m%d%H%M%S)"
-  RESTORE_CHANGE_REQUEST_ID="gov-authz-restore-$(date +%Y%m%d%H%M%S)"
+  SUCCESS_REQUEST_ID="gov-datasource-success-$(date +%Y%m%d%H%M%S)"
+  DENY_REQUEST_ID="gov-datasource-deny-$(date +%Y%m%d%H%M%S)"
+  CROSS_TENANT_REQUEST_ID="gov-datasource-cross-tenant-$(date +%Y%m%d%H%M%S)"
+  REVOKE_CHANGE_REQUEST_ID="gov-datasource-revoke-$(date +%Y%m%d%H%M%S)"
+  REVOKED_ACCESS_REQUEST_ID="gov-datasource-revoked-access-$(date +%Y%m%d%H%M%S)"
+  RESTORE_CHANGE_REQUEST_ID="gov-datasource-restore-$(date +%Y%m%d%H%M%S)"
 
-  original_role_codes="${REQUEST_ROLE_CODES}"
-  REQUEST_ROLE_CODES="${original_role_codes}"
   mapfile -t admin_headers < <(build_protected_headers "${SUCCESS_REQUEST_ID}" "${SUCCESS_REQUEST_ID}" "${issued_at}" "${expires_at}")
-  REQUEST_ROLE_CODES="${READONLY_ROLE_CODES}"
   mapfile -t readonly_headers < <(build_protected_headers "${DENY_REQUEST_ID}" "${DENY_REQUEST_ID}" "${issued_at}" "${expires_at}")
-  REQUEST_ROLE_CODES="${original_role_codes}"
   mapfile -t cross_tenant_headers < <(build_protected_headers "${CROSS_TENANT_REQUEST_ID}" "${CROSS_TENANT_REQUEST_ID}" "${issued_at}" "${expires_at}")
+  original_tenant_id="${REQUEST_TENANT_ID}"
+  REQUEST_TENANT_ID="system"
   mapfile -t revoke_headers < <(build_protected_headers "${REVOKE_CHANGE_REQUEST_ID}" "${REVOKE_CHANGE_REQUEST_ID}" "${issued_at}" "${expires_at}")
+  REQUEST_TENANT_ID="${original_tenant_id}"
   mapfile -t revoked_headers < <(build_protected_headers "${REVOKED_ACCESS_REQUEST_ID}" "${REVOKED_ACCESS_REQUEST_ID}" "${issued_at}" "${expires_at}")
 
-  print_step "Verifying governance authorization success path"
-  success_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/authorization/decide" \
-    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-a","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-001","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu"}' \
+  print_step "验证 governance 数据源访问放行路径"
+  success_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/datasource-access/check" \
+    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-a","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-001","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu","action":"USE"}' \
     "${admin_headers[@]}")"
   echo "${success_response}"
   json_assert "${success_response}" 'payload["allowed"] is True'
   json_assert "${success_response}" 'payload["reason"] == "ALLOWED"'
 
-  success_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'AUTHORIZATION_DECISION' ORDER BY id DESC LIMIT 1;")"
+  success_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${SUCCESS_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'DATASOURCE_ACCESS_CHECK' ORDER BY id DESC LIMIT 1;")"
   echo "${success_row}"
   if [[ "${success_row}" != SUCCESS$'\t'query-fingerprint-001 ]]; then
-    echo "Expected SUCCESS authorization audit row for ${SUCCESS_REQUEST_ID}" >&2
+    echo "未找到 ${SUCCESS_REQUEST_ID} 对应的 SUCCESS 数据源访问审计行" >&2
     exit 1
   fi
 
-  print_step "Verifying governance authorization denial path"
-  deny_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/authorization/decide" \
-    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-a","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-002","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu"}' \
+  print_step "验证 governance 数据源动作拒绝路径"
+  deny_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/datasource-access/check" \
+    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-a","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-002","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu","action":"EXPORT"}' \
     "${readonly_headers[@]}")"
   echo "${deny_response}"
   json_assert "${deny_response}" 'payload["allowed"] is False'
-  json_assert "${deny_response}" 'payload["reason"] == "ROLE_PERMISSION_DENIED"'
-  json_assert "${deny_response}" 'payload["errorCode"] == 20000'
+  json_assert "${deny_response}" 'payload["reason"] == "DATASOURCE_ACTION_DENIED"'
+  json_assert "${deny_response}" 'payload["errorCode"] == 20002'
 
-  deny_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${DENY_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'AUTHORIZATION_DECISION' ORDER BY id DESC LIMIT 1;")"
+  deny_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${DENY_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'DATASOURCE_ACCESS_CHECK' ORDER BY id DESC LIMIT 1;")"
   echo "${deny_row}"
   if [[ "${deny_row}" != FAILED$'\t'query-fingerprint-002 ]]; then
-    echo "Expected FAILED authorization audit row for ${DENY_REQUEST_ID}" >&2
+    echo "未找到 ${DENY_REQUEST_ID} 对应的 FAILED 数据源访问审计行" >&2
     exit 1
   fi
 
-  print_step "Verifying cross-tenant authorization denial path"
-  cross_tenant_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/authorization/decide" \
-    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-b","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-003","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu"}' \
+  print_step "验证跨租户数据源访问拒绝路径"
+  cross_tenant_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/datasource-access/check" \
+    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-b","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-003","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu","action":"USE"}' \
     "${cross_tenant_headers[@]}")"
   echo "${cross_tenant_response}"
   json_assert "${cross_tenant_response}" 'payload["allowed"] is False'
   json_assert "${cross_tenant_response}" 'payload["reason"] == "CALLER_TENANT_MISMATCH"'
   json_assert "${cross_tenant_response}" 'payload["errorCode"] == 20001'
 
-  cross_tenant_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${CROSS_TENANT_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'AUTHORIZATION_DECISION' ORDER BY id DESC LIMIT 1;")"
+  cross_tenant_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${CROSS_TENANT_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'DATASOURCE_ACCESS_CHECK' ORDER BY id DESC LIMIT 1;")"
   echo "${cross_tenant_row}"
   if [[ "${cross_tenant_row}" != FAILED$'\t'query-fingerprint-003 ]]; then
-    echo "Expected FAILED cross-tenant authorization audit row for ${CROSS_TENANT_REQUEST_ID}" >&2
+    echo "未找到 ${CROSS_TENANT_REQUEST_ID} 对应的 FAILED 跨租户数据源访问审计行" >&2
     exit 1
   fi
 
-  print_step "Revoking datasource authorization through governance mutation endpoint"
-  revoke_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/authorization/datasource/change" \
+  print_step "通过 governance 变更接口撤销数据源访问范围"
+  revoke_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/datasource-access/scope/change" \
     '{"tenantId":"tenant-a","datasourceId":"query-hetu","state":"REVOKED","changeReason":"runtime smoke revoke"}' \
     "${revoke_headers[@]}")"
   DATASOURCE_REVOKED=true
@@ -181,10 +181,10 @@ main() {
   json_assert "${revoke_response}" 'payload["status"] == "UPDATED"'
   json_assert "${revoke_response}" 'payload["state"] == "REVOKED"'
 
-  revoke_row="$(mysql_exec "SELECT status, target_id, request_params FROM audit_log WHERE request_id = '${REVOKE_CHANGE_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'PERMISSION_CHANGE' ORDER BY id DESC LIMIT 1;")"
+  revoke_row="$(mysql_exec "SELECT status, target_id, request_params FROM audit_log WHERE request_id = '${REVOKE_CHANGE_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'DATASOURCE_ACCESS_SCOPE_CHANGE' ORDER BY id DESC LIMIT 1;")"
   echo "${revoke_row}"
   if [[ "${revoke_row}" != SUCCESS$'\t'tenant-a:query-hetu$'\t'* ]]; then
-    echo "Expected SUCCESS permission change audit row for ${REVOKE_CHANGE_REQUEST_ID}" >&2
+    echo "未找到 ${REVOKE_CHANGE_REQUEST_ID} 对应的 SUCCESS 数据源范围变更审计行" >&2
     exit 1
   fi
   python3 - "${revoke_row}" <<'PY'
@@ -197,24 +197,24 @@ if payload.get("state") != "REVOKED":
     raise SystemExit(1)
 PY
 
-  print_step "Verifying revoked datasource blocks subsequent authorization"
-  revoked_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/authorization/decide" \
-    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-a","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-004","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu"}' \
+  print_step "验证已撤销数据源会拒绝后续访问"
+  revoked_response="$(assert_post_json "${GOVERNANCE_API_BASE_URL}/api/governance/internal/datasource-access/check" \
+    '{"serviceCode":"QUERY_EXECUTION","tenantId":"tenant-a","resourceType":"QUERY_EXECUTION_QUERY","resourceId":"query-fingerprint-004","operationCode":"QUERY_EXECUTE_SYNC","datasourceId":"query-hetu","action":"USE"}' \
     "${revoked_headers[@]}")"
   echo "${revoked_response}"
   json_assert "${revoked_response}" 'payload["allowed"] is False'
   json_assert "${revoked_response}" 'payload["reason"] == "DATASOURCE_ACCESS_REVOKED"'
   json_assert "${revoked_response}" 'payload["errorCode"] == 20002'
 
-  revoked_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${REVOKED_ACCESS_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'AUTHORIZATION_DECISION' ORDER BY id DESC LIMIT 1;")"
+  revoked_row="$(mysql_exec "SELECT status, target_id FROM audit_log WHERE request_id = '${REVOKED_ACCESS_REQUEST_ID}' AND service_code = 'GOVERNANCE' AND operation_type = 'DATASOURCE_ACCESS_CHECK' ORDER BY id DESC LIMIT 1;")"
   echo "${revoked_row}"
   if [[ "${revoked_row}" != FAILED$'\t'query-fingerprint-004 ]]; then
-    echo "Expected FAILED revoked authorization audit row for ${REVOKED_ACCESS_REQUEST_ID}" >&2
+    echo "未找到 ${REVOKED_ACCESS_REQUEST_ID} 对应的 FAILED 已撤销数据源访问审计行" >&2
     exit 1
   fi
 
   restore_datasource_policy
-  print_step "Governance authorization smoke test completed"
+  print_step "Governance 数据源访问 smoke 已完成"
 }
 
 main "$@"

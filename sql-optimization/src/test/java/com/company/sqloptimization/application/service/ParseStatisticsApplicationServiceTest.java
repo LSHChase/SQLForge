@@ -30,7 +30,7 @@ class ParseStatisticsApplicationServiceTest {
 
     @Test
     void shouldAggregateOverviewSceneAndSqlStatisticsWithinTenant() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         InMemoryParseBatchRepository batchRepository = new InMemoryParseBatchRepository();
         InMemoryParseBatchItemRepository itemRepository = new InMemoryParseBatchItemRepository();
         Instant now = Instant.now();
@@ -45,7 +45,7 @@ class ParseStatisticsApplicationServiceTest {
             "hetu_main",
             "JSQLPARSER",
             false,
-            "operator-001",
+            "user-001",
             now
         );
         ParseBatch otherTenantBatch = ParseBatch.initialize(

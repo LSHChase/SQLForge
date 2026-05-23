@@ -5,12 +5,12 @@ import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyRequest;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import com.company.sqlforge.common.governance.ProtectedGovernanceRequestSupport;
@@ -47,7 +47,7 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     }
 
     @Override
-    public void assertAuthorization(String tenantId,
+    public void assertDatasourceAccess(String tenantId,
                                     DataSourceTypeEnum datasourceType,
                                     String resourceType,
                                     String resourceId,
@@ -63,15 +63,16 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
             );
         }
 
-        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+        GovernanceDatasourceAccessCheckRequest request = new GovernanceDatasourceAccessCheckRequest();
         request.setServiceCode(ServiceCodeConstants.BENCHMARK_ENGINE);
         request.setTenantId(tenantId);
         request.setResourceType(resourceType);
         request.setResourceId(resourceId);
         request.setOperationCode(operationCode);
         request.setDatasourceId(datasourceId);
-        GovernanceAuthorizationDecisionResponse response =
-            post("/authorization/decide", request, GovernanceAuthorizationDecisionResponse.class);
+        request.setAction(resolveDatasourceAction(operationCode));
+        GovernanceDatasourceAccessCheckResponse response =
+            post("/datasource-access/check", request, GovernanceDatasourceAccessCheckResponse.class);
         if (response == null || !response.isAllowed()) {
             throw new AccessDeniedException(
                 response == null || !StringUtils.hasText(response.getReason())
@@ -170,7 +171,6 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Tenant-Id", fallbackTenantId);
         headers.set("X-User-Id", "benchmark-engine-service");
-        headers.set("X-Role-Codes", "SERVICE");
         headers.set("X-Request-Id", syntheticTraceId);
         headers.set("X-Trace-Id", syntheticTraceId);
         headers.set("X-Auth-Source", "header");
@@ -182,13 +182,15 @@ public class GovernanceHttpClient implements GovernanceCapabilityClient {
     private boolean hasProtectedRequestContext() {
         return StringUtils.hasText(RequestContext.getTenantId())
             && StringUtils.hasText(RequestContext.getUserId())
-            && RequestContext.getRoleCodes() != null
-            && !RequestContext.getRoleCodes().isEmpty()
             && StringUtils.hasText(RequestContext.getRequestId())
             && StringUtils.hasText(RequestContext.getTraceId())
             && StringUtils.hasText(RequestContext.getAuthSource())
             && RequestContext.getIssuedAt() > 0L
             && RequestContext.getExpiresAt() > 0L;
+    }
+
+    private String resolveDatasourceAction(String operationCode) {
+        return "BENCHMARK_REPORT_QUERY".equals(operationCode) ? "EXPORT" : "USE";
     }
 
     private String normalizeBaseUrl() {

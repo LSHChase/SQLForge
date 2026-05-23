@@ -83,7 +83,7 @@ public class BenchmarkTestSetApplicationService {
                 Instant.now(),
                 RequestContext.getUserId()
             );
-            assertAuthorization(testSet.getTenantId(), testSetId, CREATE_OPERATION);
+            assertDatasourceAccess(testSet.getTenantId(), testSetId, CREATE_OPERATION);
             benchmarkTestSetRepository.saveTestSet(testSet);
             BenchmarkTestSetResponse response = benchmarkTestSetModelApplicationService.buildResponse(testSet);
             writeAudit(
@@ -120,7 +120,7 @@ public class BenchmarkTestSetApplicationService {
                 );
             }
             verifyTenantAccess(testSet.getTenantId(), "当前认证租户无权访问该压测测试集");
-            assertAuthorization(testSet.getTenantId(), testSetId, QUERY_OPERATION);
+            assertDatasourceAccess(testSet.getTenantId(), testSetId, QUERY_OPERATION);
             BenchmarkTestSetResponse response = benchmarkTestSetModelApplicationService.buildResponse(testSet);
             writeAudit(
                 QUERY_OPERATION,
@@ -386,8 +386,8 @@ public class BenchmarkTestSetApplicationService {
         }
     }
 
-    private void assertAuthorization(String tenantId, String resourceId, String operationCode) {
-        governanceCapabilityClient.assertAuthorization(
+    private void assertDatasourceAccess(String tenantId, String resourceId, String operationCode) {
+        governanceCapabilityClient.assertDatasourceAccess(
             tenantId,
             DataSourceTypeEnum.HETU,
             RESOURCE_TYPE_TEST_SET,

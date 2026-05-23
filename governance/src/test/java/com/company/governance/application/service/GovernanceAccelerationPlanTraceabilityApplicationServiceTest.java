@@ -43,7 +43,7 @@ class GovernanceAccelerationPlanTraceabilityApplicationServiceTest {
                 executionResultMapper,
                 queryHistoryMapper
             );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         when(configSnapshotMapper.selectById("cfg-acceleration-plan-plan-001")).thenReturn(null);
         when(executionResultMapper.selectById("result-acceleration-plan-plan-001")).thenReturn(null);
         when(queryHistoryMapper.selectById("history-acceleration-plan-plan-001")).thenReturn(null);
@@ -99,7 +99,7 @@ class GovernanceAccelerationPlanTraceabilityApplicationServiceTest {
                 executionResultMapper,
                 queryHistoryMapper
             );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-002", "trace-002", "header", 1L, 2L);
         when(configSnapshotMapper.selectById("cfg-acceleration-plan-plan-002")).thenReturn(new ConfigSnapshotRecord());
         when(executionResultMapper.selectById("result-acceleration-plan-plan-002")).thenReturn(new ExecutionResultRecord());
         when(queryHistoryMapper.selectById("history-acceleration-plan-plan-002")).thenReturn(new QueryHistoryRecord());

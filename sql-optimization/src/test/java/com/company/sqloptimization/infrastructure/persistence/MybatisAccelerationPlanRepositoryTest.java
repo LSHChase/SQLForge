@@ -29,7 +29,7 @@ class MybatisAccelerationPlanRepositoryTest {
         AccelerationPlan plan = samplePlan("plan-db-001");
 
         plan.attachGovernanceTrace("cfg-001", "result-001", "history-001");
-        plan.markActivated("{\"runtimeStatus\":\"ACTIVE\"}", "operator-001", Instant.parse("2026-04-25T05:00:10Z"));
+        plan.markActivated("{\"runtimeStatus\":\"ACTIVE\"}", "user-001", Instant.parse("2026-04-25T05:00:10Z"));
 
         repository.save(plan);
 
@@ -65,10 +65,10 @@ class MybatisAccelerationPlanRepositoryTest {
         record.setHistoryId("history-002");
         record.setActivationEvidenceJson("{\"runtimeStatus\":\"ACTIVE\"}");
         record.setActivatedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 20));
-        record.setActivatedBy("operator-001");
+        record.setActivatedBy("user-001");
         record.setPauseEvidenceJson("{\"runtimeStatus\":\"PAUSED\"}");
         record.setPausedAt(LocalDateTime.of(2026, 4, 25, 5, 0, 30));
-        record.setPausedBy("operator-001");
+        record.setPausedBy("user-001");
         record.setStatusHistoryJson("["
             + "{\"previousStatus\":null,\"currentStatus\":\"READY\",\"occurredAt\":\"2026-04-25T05:00:00Z\",\"note\":\"PLAN_SUBMITTED\"},"
             + "{\"previousStatus\":\"READY\",\"currentStatus\":\"ACTIVE\",\"occurredAt\":\"2026-04-25T05:00:20Z\",\"note\":\"PLAN_ACTIVATED\"},"
@@ -85,7 +85,7 @@ class MybatisAccelerationPlanRepositoryTest {
         assertEquals(Instant.parse("2026-04-25T05:00:00Z"), restored.getCreatedAt());
         assertEquals(DataSourceTypeEnum.HETU, restored.getDatasourceType());
         assertEquals(AccelerationSuggestionType.PRECOMPUTE, restored.getSelectedSuggestionTypes().get(0));
-        assertEquals("operator-001", restored.getPausedBy());
+        assertEquals("user-001", restored.getPausedBy());
         assertEquals("PLAN_PAUSED", restored.getStatusHistory().get(2).getNote());
     }
 

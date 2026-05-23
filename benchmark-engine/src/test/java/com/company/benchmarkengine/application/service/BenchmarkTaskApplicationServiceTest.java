@@ -49,7 +49,7 @@ class BenchmarkTaskApplicationServiceTest {
             new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
             queueService(repository)
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         service.submitTask(baseRequest("SELECT * FROM orders"));
 
@@ -69,7 +69,7 @@ class BenchmarkTaskApplicationServiceTest {
             new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
             queueService(repository)
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BizException ex = assertThrows(BizException.class, () -> service.getTaskStatus("missing-task"));
 
@@ -90,12 +90,12 @@ class BenchmarkTaskApplicationServiceTest {
             new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
             queueService(repository)
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         String taskId = service.submitTask(baseRequest("SELECT * FROM orders")).getTaskId();
         service.getTaskStatus(taskId);
 
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertAuthorization(
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.any(),
             org.mockito.Mockito.eq("BENCHMARK_ENGINE_TASK"),
@@ -116,7 +116,7 @@ class BenchmarkTaskApplicationServiceTest {
             new BenchmarkMetricsRecorder(meterRegistry),
             queueService(repository)
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         service.submitTask(baseRequest("SELECT * FROM orders"));
 
@@ -141,7 +141,7 @@ class BenchmarkTaskApplicationServiceTest {
             new BenchmarkMetricsRecorder(new SimpleMeterRegistry()),
             new BenchmarkTaskQueueService(repository, queueProperties, executionProperties)
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         String taskId = service.submitTask(baseRequest("SELECT * FROM orders")).getTaskId();
 
@@ -162,7 +162,7 @@ class BenchmarkTaskApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

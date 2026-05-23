@@ -29,7 +29,6 @@ import org.springframework.util.StringUtils;
 public class DatabaseViewCatalogApplicationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseViewCatalogApplicationService.class);
-    private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
 
     private final DatabaseViewRepository databaseViewRepository;
     private final DatabaseViewDependencyRepository databaseViewDependencyRepository;
@@ -100,20 +99,19 @@ public class DatabaseViewCatalogApplicationService {
 
     private String resolveAndAuthorizeTenant(String tenantId, String datasourceCode) {
         String currentTenantId = TenantContext.get();
-        boolean platformAdmin = RequestContext.hasRole(PLATFORM_ADMIN);
         if (!StringUtils.hasText(currentTenantId)) {
             throw new BizException(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, HttpStatus.UNAUTHORIZED, "租户上下文缺失");
         }
         String effectiveTenantId = StringUtils.hasText(tenantId) ? tenantId : currentTenantId;
-        if (!platformAdmin && !currentTenantId.equals(effectiveTenantId)) {
+        if (!currentTenantId.equals(effectiveTenantId)) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
                 ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED_MESSAGE
             );
         }
-        if (!platformAdmin && StringUtils.hasText(datasourceCode)
-            && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, datasourceCode)) {
+        if (StringUtils.hasText(datasourceCode)
+            && !tenantAccessLogic.validateDataSourceAccess(currentTenantId, datasourceCode, "USE")) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,

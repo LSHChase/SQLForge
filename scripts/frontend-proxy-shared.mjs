@@ -31,8 +31,7 @@ export const removeProxyHeader = (proxyReq, headerName) => {
 }
 
 export const resolveProxyDefaults = env => ({
-  userId: env.SQLFORGE_DEV_PROXY_USER_ID || env.userId || 'frontend-operator',
-  roleCodes: env.SQLFORGE_DEV_PROXY_ROLE_CODES || env.roleCodes || 'TENANT_ADMIN,OPERATOR',
+  userId: env.SQLFORGE_DEV_PROXY_USER_ID || env.userId || 'frontend-user',
   authSource: env.SQLFORGE_DEV_PROXY_AUTH_SOURCE || env.authSource || 'frontend-portable-proxy',
   ttlMs: Number(env.SQLFORGE_DEV_PROXY_TTL_MS || env.ttlMs || 600000)
 })
@@ -64,7 +63,6 @@ export const buildProtectedProxyHeaders = (
     headers: {
       'X-Tenant-Id': tenantId,
       'X-User-Id': proxyDefaults.userId,
-      'X-Role-Codes': proxyDefaults.roleCodes,
       'X-Request-Id': requestId,
       'X-Trace-Id': traceId,
       'X-Auth-Source': proxyDefaults.authSource,

@@ -30,7 +30,6 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-a",
-            Collections.singletonList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "unit-test",
@@ -67,7 +66,6 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-a",
-            Collections.singletonList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "unit-test",
@@ -95,7 +93,6 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-a",
-            Collections.singletonList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "unit-test",
@@ -129,7 +126,6 @@ class QueryExecutionCacheGovernanceRuntimeServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-a",
-            Collections.singletonList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "unit-test",

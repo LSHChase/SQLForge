@@ -58,22 +58,22 @@ export default {
     localeToggleToChinese: '中',
     adaptiveNavigation: 'Adaptive navigation',
     defaultTenantName: 'System Tenant',
-    defaultUserName: 'Platform Admin'
+    defaultUserName: 'System User'
   },
   dashboard: {
     title: 'Overview',
     summary: 'Surface core SQL workflow tasks, recent queries, recent parses, recommendation results, and rewrite-risk summaries.',
     eyebrow: 'core overview',
     heroTitle: 'Use the homepage to assess the core SQL workflow first.',
-    heroSummary: 'The overview centralizes query load, parser stability, recommendation results, rewrite risk, and audit signals so operators can decide whether the platform is ready, traceable, and actionable.',
+    heroSummary: 'The overview centralizes query load, parser stability, recommendation results, rewrite risk, and audit signals so the current workflow state is ready, traceable, and actionable.',
     heroPrimary: 'Open SQL Query Analysis',
     heroSecondary: 'View Benchmark Report',
     heroFootnote: 'Dark-mode-native dashboard baseline',
     operatorHeroTitle: 'Overview focused on the core SQL workflow',
     operatorHeroSummary: 'The homepage only summarizes and routes query, history, parsing, parse history, recommendation results, and rewrite records. Every number still comes from the current API response, window sample, or PULL_ONLY coordination fact.',
-    operatorFocusEyebrow: 'operator focus',
+    operatorFocusEyebrow: 'workflow focus',
     openRisksTitle: 'Open risks',
-    openRisksSummary: 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendation results are merged into one operator focus here.',
+    openRisksSummary: 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendation results are merged into one workflow focus here.',
     coreAttentionTitle: 'Core task sample',
     coreAttentionSummary: 'Merges current query failures, parse failures, urgent SQL, high-risk recommendations, and rewrite-record attention items without inferring full-tenant risk.',
     coreKpiTitle: 'Core KPI',
@@ -245,19 +245,19 @@ export default {
         {
           ruleId: 'R-111',
           title: 'Identity authentication',
-          summary: 'Every user action must be authenticated by the backend, with separate privilege models for administrators and standard users.',
-          items: ['HTTP and API requests must carry verifiable credentials', 'Unauthenticated or failed-auth requests return explicit JSON errors', 'Authentication failures and privilege abuse both enter the audit trail']
+          summary: 'Every protected action must be authenticated by the backend; the core engine no longer defines product role tiers.',
+          items: ['HTTP and API requests must carry verifiable credentials', 'Unauthenticated or failed-auth requests return explicit JSON errors', 'Authentication failures and scope violations both enter the evidence trail']
         },
         {
           ruleId: 'R-112',
           title: 'Access control',
-          summary: 'The system isolates data by tenant ID and revalidates authorization across routing, execution, export and benchmark operations.',
-          items: ['All core requests carry explicit tenant context', 'Data sources, query tasks, audit records and export records are tenant-bound', 'Unauthorized access is denied by default with no implicit allow path']
+          summary: 'The system isolates data by tenant ID and revalidates datasource scope across routing, execution, export and benchmark operations.',
+          items: ['All core requests carry explicit tenant context', 'Data sources, query tasks, audit records and export records are tenant-bound', 'Requests without datasource scope are denied by default with no implicit allow path']
         },
         {
           ruleId: 'R-113',
           title: 'Security audit',
-          summary: 'SQL actions, sign-in or sign-out events, and permission changes must be recorded in audit logs that stay immutable for at least 180 days.',
+          summary: 'SQL actions, sign-in or sign-out events, and access-scope changes must be recorded in audit logs that stay immutable for at least 180 days.',
           items: ['Audit entries include time, tenant, user, object, result, latency and trace ID', 'Sensitive content must be masked or encrypted before logging', 'Audit storage is backed up independently and protected from direct mutation']
         },
         {
@@ -309,7 +309,7 @@ export default {
         {
           title: 'Pages & boundaries',
           summary: 'The overview summarizes and routes while major workflows stay on independent pages; frontend can prevalidate, but backend remains the authority for rules and history.',
-          items: ['Pages are organized around context, state, result and next step', 'Multiple core workflows should not collapse back into one long page', 'Delivered capabilities must stay visible on operator-facing pages']
+          items: ['Pages are organized around context, state, result and next step', 'Multiple core workflows should not collapse back into one long page', 'Delivered capabilities must stay visible on workflow pages']
         },
         {
           title: 'Validation & extension',
@@ -2586,7 +2586,7 @@ export default {
       text057: 'Action',
       text058: 'View',
       text059: 'Edit',
-      text060: 'Tenant params / permission',
+      text060: 'Tenant params / access scope',
       text061: 'Connection test result',
       text062: 'Real JDBC probe',
       text063: 'Connection status',

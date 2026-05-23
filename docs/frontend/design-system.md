@@ -442,7 +442,7 @@
 
 ## 12. Management Console Page Engineering Patterns
 
-本节约束 SQLForge 的 CRUD、配置、历史、任务、审计、数据源、权限、报表接口等管理后台页面。Dashboard、首页总览和 KPI 摘要仍按前文 Dashboard 信息架构执行；管理后台主路径默认不以卡片堆叠承载主要功能。
+本节约束 SQLForge 的 CRUD、配置、历史、任务、审计、数据源、访问范围、报表接口等管理后台页面。Dashboard、首页总览和 KPI 摘要仍按前文 Dashboard 信息架构执行；管理后台主路径默认不以卡片堆叠承载主要功能。
 
 ### 12.1 Default Page Skeleton
 
@@ -468,7 +468,7 @@
 - 列定义应包含 `prop`、`labelKey`、宽度 / 最小宽度、对齐、formatter、sortable、slotName 和可见性等必要元数据。
 - 表格排序使用 Element Plus `sortable` / `@sort-change`，并与 `pageInfo` / sort state 绑定后重新获取数据。
 - 复杂展示必须通过自定义插槽承载，例如状态标签、进度条、SQL 摘要、风险等级、批量操作状态和行操作按钮。
-- 行操作按钮只做体验层展示或禁用；最终权限、状态机和业务校验以服务端结果为准。
+- 行操作按钮只做体验层展示或禁用；最终受控访问、状态机和业务校验以服务端结果为准。
 
 ### 12.4 Pagination And State Bar
 
@@ -508,7 +508,7 @@
 
 - API 放在 services、api module 或 composable；页面只编排查询、提交、刷新和状态切换。
 - 页面状态必须拆分为搜索表单、分页排序、表格数据、弹窗表单、loading / error / empty / success。
-- 权限能力、候选值、字典、跨页面缓存和当前租户上下文必须来自后端或共享状态模块，不得在页面中各自复制一份事实源。
+- 访问能力、候选值、字典、跨页面缓存和当前租户上下文必须来自后端或共享状态模块，不得在页面中各自复制一份事实源。
 - 国际化 key 必须覆盖页面标题、操作按钮、表格列、表单 label、提示、错误兜底和空状态文案。
 
 ## 13. Full Page Refactor Baseline
@@ -540,7 +540,7 @@
 ### 13.3 Non-Implementation Boundaries
 
 - 不更换 Vue SFC + JavaScript + Element Plus + 自研组件栈。
-- 不改变后端 API、SQL 执行 payload、parser payload、历史查询、审计追溯、权限或持久化语义。
+- 不改变后端 API、SQL 执行 payload、parser payload、历史查询、审计追溯、受控访问或持久化语义。
 - SQL 输入输出继续以 `SqlEditorField` 与 `SqlCodeBlock` 为契约；raw SQL 展示面必须保留不自动格式化语义。
 - 页面中文/英文文案应逐步迁入现有 i18n 文件；不得新增平行国际化系统或继续扩大 `isChinese ? ...` 本地三元文案债务。
 

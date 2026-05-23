@@ -65,7 +65,6 @@ bash scripts/run-env-smoke.sh
 - `FRONTEND_BASE_URL`
 - `REQUEST_TENANT_ID`
 - `REQUEST_USER_ID`
-- `REQUEST_ROLE_CODES`
 
 常见可选项：
 
@@ -116,7 +115,6 @@ export BENCHMARK_ENGINE_BASE_URL="https://benchmark-engine.test.example.com"
 export FRONTEND_BASE_URL="https://sqlforge.test.example.com"
 export REQUEST_TENANT_ID="tenant-a"
 export REQUEST_USER_ID="smoke-bot"
-export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
 
 bash scripts/run-env-smoke.sh
 ```
@@ -133,7 +131,6 @@ bash scripts/run-env-smoke.sh --check-config
 export QUERY_EXECUTION_BASE_URL="https://query-execution.test.example.com"
 export REQUEST_TENANT_ID="tenant-a"
 export REQUEST_USER_ID="hetu-smoke-bot"
-export REQUEST_ROLE_CODES="TENANT_ADMIN,ANALYST"
 
 bash scripts/run-hetu-env-smoke.sh
 ```

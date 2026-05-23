@@ -25,7 +25,6 @@ import org.springframework.util.StringUtils;
 @Service
 public class MetadataAssetCatalogApplicationService {
 
-    private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "DATA_ASSET_CATALOG_BASELINE";
 
@@ -176,8 +175,7 @@ public class MetadataAssetCatalogApplicationService {
                 "已认证请求上下文缺少 tenantId");
         }
         String normalized = trimToNull(requestTenantId);
-        if (StringUtils.hasText(normalized) && !contextTenantId.equals(normalized)
-            && !RequestContext.hasRole(PLATFORM_ADMIN)) {
+        if (StringUtils.hasText(normalized) && !contextTenantId.equals(normalized)) {
             throw new AccessDeniedException("请求 tenantId 与已认证租户上下文不一致");
         }
         return StringUtils.hasText(normalized) ? normalized : contextTenantId;
@@ -185,10 +183,10 @@ public class MetadataAssetCatalogApplicationService {
 
     private void authorizeDatasource(String tenantId, String datasourceCode) {
         String normalizedDatasourceCode = trimToNull(datasourceCode);
-        if (!StringUtils.hasText(normalizedDatasourceCode) || RequestContext.hasRole(PLATFORM_ADMIN)) {
+        if (!StringUtils.hasText(normalizedDatasourceCode)) {
             return;
         }
-        if (!tenantAccessLogic.validateDataSourceAccess(tenantId, normalizedDatasourceCode)) {
+        if (!tenantAccessLogic.validateDataSourceAccess(tenantId, normalizedDatasourceCode, "USE")) {
             throw new BizException(
                 ErrorCodeConstants.GOVERNANCE_DATASOURCE_ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,

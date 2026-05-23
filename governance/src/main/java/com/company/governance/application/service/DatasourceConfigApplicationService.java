@@ -40,6 +40,7 @@ public class DatasourceConfigApplicationService {
     private static final int DEFAULT_TIMEOUT_MS = 3000;
     private static final String DEFAULT_ENGINE_TYPE = "HETU";
     private static final String DEFAULT_DRIVER_SOURCE_TYPE = "CLASSPATH";
+    private static final String SYSTEM_TENANT_ID = "system";
     private static final List<String> SUPPORTED_CONNECTION_MODES = Arrays.asList("JDBC", "API", "REST", "CLIENT", "GATEWAY", "PROXY");
     private static final List<String> ROUTE_ORDER = Arrays.asList("TRINO", "HETU", "HIVE");
 
@@ -412,10 +413,10 @@ public class DatasourceConfigApplicationService {
     }
 
     private void requireDatasourceAdmin() {
-        if (RequestContext.hasRole("PLATFORM_ADMIN") || RequestContext.hasRole("TENANT_ADMIN")) {
+        if (SYSTEM_TENANT_ID.equals(RequestContext.getTenantId())) {
             return;
         }
-        throw new AccessDeniedException("当前请求缺少数据源管理权限");
+        throw new AccessDeniedException("当前请求不允许管理数据源配置");
     }
 
     private DatasourceConfig findDatasourceByCodeAndEngine(String tenantId, String datasourceCode, String engineType) {

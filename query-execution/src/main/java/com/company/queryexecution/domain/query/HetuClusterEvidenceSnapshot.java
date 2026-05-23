@@ -10,7 +10,7 @@ public class HetuClusterEvidenceSnapshot {
     private final String evidenceRef;
     private final String readonlyBoundary;
     private final String liveVerificationStatus;
-    private final String operatorNotes;
+    private final String evidenceNotes;
 
     public HetuClusterEvidenceSnapshot(String evidenceSource,
                                        String environmentLabel,
@@ -20,7 +20,7 @@ public class HetuClusterEvidenceSnapshot {
                                        String evidenceRef,
                                        String readonlyBoundary,
                                        String liveVerificationStatus,
-                                       String operatorNotes) {
+                                       String evidenceNotes) {
         this.evidenceSource = evidenceSource;
         this.environmentLabel = environmentLabel;
         this.clusterName = clusterName;
@@ -29,7 +29,7 @@ public class HetuClusterEvidenceSnapshot {
         this.evidenceRef = evidenceRef;
         this.readonlyBoundary = readonlyBoundary;
         this.liveVerificationStatus = liveVerificationStatus;
-        this.operatorNotes = operatorNotes;
+        this.evidenceNotes = evidenceNotes;
     }
 
     public String getEvidenceSource() {
@@ -64,7 +64,7 @@ public class HetuClusterEvidenceSnapshot {
         return liveVerificationStatus;
     }
 
-    public String getOperatorNotes() {
-        return operatorNotes;
+    public String getEvidenceNotes() {
+        return evidenceNotes;
     }
 }

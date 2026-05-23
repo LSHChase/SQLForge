@@ -93,7 +93,6 @@ const requireProxyHeaders = request => {
   const requiredHeaders = [
     'x-tenant-id',
     'x-user-id',
-    'x-role-codes',
     'x-request-id',
     'x-trace-id',
     'x-auth-source'
@@ -452,8 +451,7 @@ const createPortableConfig = (portablePort, backendPort) => {
       {
         host: '127.0.0.1',
         port: portablePort,
-        userId: 'frontend-operator',
-        roleCodes: 'TENANT_ADMIN,OPERATOR',
+        userId: 'frontend-user',
         authSource: 'portable-frontend-proxy',
         ttlMs: 600000,
         queryExecutionBaseUrl: backendBaseUrl,

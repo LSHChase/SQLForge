@@ -13,7 +13,7 @@ public class AlertPolicy {
     private final int dedupeWindowSeconds;
     private final NotifyChannel notifyChannel;
     private final AlertEvent.NotifyStatus initialNotifyStatus;
-    private final String ownerRole;
+    private final String ownerScope;
     private final boolean enabled;
     private final String ruleConfigJson;
     private final String createdBy;
@@ -34,7 +34,7 @@ public class AlertPolicy {
         this.initialNotifyStatus = builder.initialNotifyStatus == null
             ? AlertEvent.NotifyStatus.SIMULATED_PENDING_NOTIFY
             : builder.initialNotifyStatus;
-        this.ownerRole = trimToNull(builder.ownerRole) == null ? "TENANT_ADMIN" : builder.ownerRole.trim();
+        this.ownerScope = trimToNull(builder.ownerScope) == null ? "TENANT_SCOPE" : builder.ownerScope.trim();
         this.enabled = builder.enabled == null || builder.enabled.booleanValue();
         this.ruleConfigJson = trimToNull(builder.ruleConfigJson);
         this.createdBy = trimToNull(builder.createdBy);
@@ -106,7 +106,7 @@ public class AlertPolicy {
     public int getDedupeWindowSeconds() { return dedupeWindowSeconds; }
     public NotifyChannel getNotifyChannel() { return notifyChannel; }
     public AlertEvent.NotifyStatus getInitialNotifyStatus() { return initialNotifyStatus; }
-    public String getOwnerRole() { return ownerRole; }
+    public String getOwnerScope() { return ownerScope; }
     public boolean isEnabled() { return enabled; }
     public String getRuleConfigJson() { return ruleConfigJson; }
     public String getCreatedBy() { return createdBy; }
@@ -131,7 +131,7 @@ public class AlertPolicy {
         private int dedupeWindowSeconds;
         private NotifyChannel notifyChannel;
         private AlertEvent.NotifyStatus initialNotifyStatus;
-        private String ownerRole;
+        private String ownerScope;
         private Boolean enabled;
         private String ruleConfigJson;
         private String createdBy;
@@ -150,7 +150,7 @@ public class AlertPolicy {
         public Builder dedupeWindowSeconds(int dedupeWindowSeconds) { this.dedupeWindowSeconds = dedupeWindowSeconds; return this; }
         public Builder notifyChannel(NotifyChannel notifyChannel) { this.notifyChannel = notifyChannel; return this; }
         public Builder initialNotifyStatus(AlertEvent.NotifyStatus initialNotifyStatus) { this.initialNotifyStatus = initialNotifyStatus; return this; }
-        public Builder ownerRole(String ownerRole) { this.ownerRole = ownerRole; return this; }
+        public Builder ownerScope(String ownerScope) { this.ownerScope = ownerScope; return this; }
         public Builder enabled(Boolean enabled) { this.enabled = enabled; return this; }
         public Builder ruleConfigJson(String ruleConfigJson) { this.ruleConfigJson = ruleConfigJson; return this; }
         public Builder createdBy(String createdBy) { this.createdBy = createdBy; return this; }

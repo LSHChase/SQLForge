@@ -161,7 +161,6 @@ class SqlForgeJdbcAgentObserveTest {
         return new OpenAccessRequestContext(
             "tenant-a",
             "agent-user",
-            Arrays.asList("TENANT_ADMIN", "ANALYST"),
             "request-001",
             "trace-001",
             "header",

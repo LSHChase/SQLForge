@@ -26,7 +26,6 @@ public final class OpenAccessHeaderSupport {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(RequestHeaderConstants.TENANT_ID, requiredValue(requestContext.getTenantId(), "tenantId"));
         headers.set(RequestHeaderConstants.USER_ID, requiredValue(requestContext.getUserId(), "userId"));
-        headers.set(RequestHeaderConstants.ROLE_CODES, String.join(",", requestContext.getRoleCodes()));
         headers.set(RequestHeaderConstants.REQUEST_ID, requiredValue(requestContext.getRequestId(), "requestId"));
         headers.set(RequestHeaderConstants.TRACE_ID, requiredValue(requestContext.getTraceId(), "traceId"));
         headers.set(RequestHeaderConstants.AUTH_SOURCE, requiredValue(requestContext.getAuthSource(), "authSource"));

@@ -10,7 +10,7 @@ public final class AlertPolicyBaseline {
     private AlertPolicyBaseline() {
     }
 
-    public static List<AlertPolicy> defaultPoliciesForTenant(String tenantId, String operator, Instant occurredAt) {
+    public static List<AlertPolicy> defaultPoliciesForTenant(String tenantId, String actor, Instant occurredAt) {
         if (tenantId == null || tenantId.trim().isEmpty()) {
             throw new IllegalArgumentException("tenantId 为必填项");
         }
@@ -30,10 +30,10 @@ public final class AlertPolicyBaseline {
                 .dedupeWindowSeconds(type.defaultDedupeWindowSeconds())
                 .notifyChannel(AlertPolicy.NotifyChannel.SIMULATED_EMAIL)
                 .initialNotifyStatus(AlertEvent.NotifyStatus.SIMULATED_PENDING_NOTIFY)
-                .ownerRole("TENANT_ADMIN")
+                .ownerScope("TENANT_SCOPE")
                 .enabled(Boolean.TRUE)
                 .ruleConfigJson(buildRuleConfig(type))
-                .createdBy(operator)
+                .createdBy(actor)
                 .createdAt(occurredAt)
                 .updatedAt(occurredAt)
                 .build());

@@ -28,7 +28,7 @@ class ParseTriggeredRewriteRecommendationServiceTest {
 
     @Test
     void shouldSubmitRewriteTaskForTargetParseIssueAfterHistoryWrite() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         OptimizationTaskApplicationService taskApplicationService = mock(OptimizationTaskApplicationService.class);
         ParseTriggeredRewriteRecommendationService service = new ParseTriggeredRewriteRecommendationService(
             taskApplicationService,
@@ -61,7 +61,7 @@ class ParseTriggeredRewriteRecommendationServiceTest {
 
     @Test
     void shouldSkipRewriteTaskWhenNoTargetIssueMatched() {
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
         OptimizationTaskApplicationService taskApplicationService = mock(OptimizationTaskApplicationService.class);
         ParseTriggeredRewriteRecommendationService service = new ParseTriggeredRewriteRecommendationService(
             taskApplicationService,

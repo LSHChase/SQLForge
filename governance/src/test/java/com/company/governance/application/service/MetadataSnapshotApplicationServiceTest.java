@@ -25,12 +25,12 @@ class MetadataSnapshotApplicationServiceTest {
     @Test
     void shouldListSnapshotsAndNormalizeUnknownEvidenceState() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main", "USE")).thenReturn(true);
         MetadataSnapshotApplicationService service = new MetadataSnapshotApplicationService(
             new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "request-020", "trace-020", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-002", "request-020", "trace-020", "header", 1L, 2L);
 
         List<MetadataSnapshotVO> snapshots = service.list("tenant-a", "hetu_main", null, null, null, null, null, null);
 
@@ -49,12 +49,12 @@ class MetadataSnapshotApplicationServiceTest {
     @Test
     void shouldSupportSnapshotFilters() {
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "hetu_main", "USE")).thenReturn(true);
         MetadataSnapshotApplicationService service = new MetadataSnapshotApplicationService(
             new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "request-021", "trace-021", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-002", "request-021", "trace-021", "header", 1L, 2L);
 
         List<MetadataSnapshotVO> snapshots = service.list(
             "tenant-a",
@@ -78,7 +78,7 @@ class MetadataSnapshotApplicationServiceTest {
             new InMemoryMetadataSnapshotRepository(),
             tenantAccessLogic
         );
-        RequestContext.set("tenant-a", "analyst-001", Arrays.asList("ANALYST"), "request-022", "trace-022", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-002", "request-022", "trace-022", "header", 1L, 2L);
 
         assertThrows(BizException.class, () -> service.list("tenant-b", null, null, null, null, null, null, null));
     }

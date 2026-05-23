@@ -62,7 +62,7 @@ class BenchmarkReportApplicationServiceTest {
                 new BenchmarkMetricsRecorder(meterRegistry)
             );
         BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-001", storageService);
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkRenderedReport pdf = service.renderReport(report.getReportId(), BenchmarkReportFormat.PDF);
         BenchmarkRenderedReport html = service.renderReport(report.getReportId(), BenchmarkReportFormat.HTML);
@@ -74,7 +74,7 @@ class BenchmarkReportApplicationServiceTest {
         assertEquals("text/html", html.getMediaType().toString());
         assertTrue(new String(html.getContent()).contains("SQLForge 压测报告"));
         assertTrue(new String(html.getContent()).contains(report.getReportId()));
-        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertAuthorization(
+        verify(governanceCapabilityClient, org.mockito.Mockito.atLeast(2)).assertDatasourceAccess(
             org.mockito.Mockito.eq("tenant-a"),
             org.mockito.Mockito.any(),
             org.mockito.Mockito.eq("BENCHMARK_ENGINE_REPORT"),
@@ -121,7 +121,7 @@ class BenchmarkReportApplicationServiceTest {
                 new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
             );
         BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-raw-001", storageService);
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkRenderedReport rawData = service.downloadRawDataReport(report.getReportId());
 
@@ -147,7 +147,7 @@ class BenchmarkReportApplicationServiceTest {
                 mockGovernanceClient(),
                 new BenchmarkMetricsRecorder(new SimpleMeterRegistry())
             );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BizException invalidFormat = assertThrows(BizException.class, () -> service.parseFormat("CSV"));
         BizException missingReport = assertThrows(BizException.class, () -> service.getJsonReport("missing-report"));
@@ -177,7 +177,7 @@ class BenchmarkReportApplicationServiceTest {
         BenchmarkReport report = storeReport(modelService, repository, "benchmark-report-recover-001", storageService);
         BenchmarkReportArtifact pdfArtifact = report.findArtifact(BenchmarkReportFormat.PDF);
         Files.delete(Paths.get(URI.create(pdfArtifact.getStorageUri())));
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         BenchmarkRenderedReport recovered = service.renderReport(report.getReportId(), BenchmarkReportFormat.PDF);
 
@@ -246,7 +246,7 @@ class BenchmarkReportApplicationServiceTest {
 
     private GovernanceCapabilityClient mockGovernanceClient() {
         GovernanceCapabilityClient governanceCapabilityClient = mock(GovernanceCapabilityClient.class);
-        doNothing().when(governanceCapabilityClient).assertAuthorization(any(), any(), any(), any(), any());
+        doNothing().when(governanceCapabilityClient).assertDatasourceAccess(any(), any(), any(), any(), any());
         doNothing().when(governanceCapabilityClient).writeAudit(any());
         return governanceCapabilityClient;
     }

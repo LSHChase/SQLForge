@@ -359,7 +359,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         SqlRewriteRecordVO approved = service.reviewRewriteRecord(created.getRewriteRecordId(), approveRequest);
 
         assertEquals("APPROVED", approved.getReviewStatus());
-        assertEquals("operator-001", approved.getReviewedBy());
+        assertEquals("user-001", approved.getReviewedBy());
         assertNotNull(approved.getReviewedAt());
         assertEquals(Boolean.TRUE, approved.getAutoApplyAllowed());
         assertEquals(Boolean.TRUE, approved.getManualReviewRequired());
@@ -772,7 +772,7 @@ class AccelerationRewriteContractApplicationServiceTest {
             .activationStatus(RewriteActivationStatus.INACTIVE)
             .originalSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
             .recommendedSqlText("SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id")
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
             .traceRefs(Collections.<String, Object>singletonMap(
                 "accelerationArtifact",
@@ -900,7 +900,7 @@ class AccelerationRewriteContractApplicationServiceTest {
             .recommendedSqlText("CREATE MATERIALIZED VIEW mv_sales_daily AS SELECT ...")
             .targetDatasource("hetu_main")
             .accelerationArtifact(generatedMvArtifact(rewriteSql))
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T00:00:00Z"))
             .build();
     }
@@ -1036,8 +1036,7 @@ class AccelerationRewriteContractApplicationServiceTest {
     private void setTenant(String tenantId) {
         RequestContext.set(
             tenantId,
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN", "OPERATOR"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",

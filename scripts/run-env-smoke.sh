@@ -18,8 +18,7 @@ BENCHMARK_ENGINE_HEALTH_URL="${BENCHMARK_ENGINE_HEALTH_URL:-${BENCHMARK_ENGINE_B
 GOVERNANCE_PROTECTED_CHECK_URL="${GOVERNANCE_PROTECTED_CHECK_URL:-${GOVERNANCE_BASE_URL%/}/api/governance/admin/messages/stats}"
 
 REQUEST_TENANT_ID="${REQUEST_TENANT_ID:-tenant-a}"
-REQUEST_USER_ID="${REQUEST_USER_ID:-analyst-001}"
-REQUEST_ROLE_CODES="${REQUEST_ROLE_CODES:-TENANT_ADMIN,ANALYST}"
+REQUEST_USER_ID="${REQUEST_USER_ID:-smoke-user-001}"
 REQUEST_AUTH_SOURCE="${REQUEST_AUTH_SOURCE:-header}"
 POLL_ATTEMPTS="${ENV_SMOKE_POLL_ATTEMPTS:-30}"
 POLL_INTERVAL_SECONDS="${ENV_SMOKE_POLL_INTERVAL_SECONDS:-1}"
@@ -45,7 +44,6 @@ Environment variables:
                                Optional explicit protected governance URL override.
   REQUEST_TENANT_ID             Tenant header value for protected calls.
   REQUEST_USER_ID               User header value for protected calls.
-  REQUEST_ROLE_CODES            Comma-separated role codes for protected calls.
   REQUEST_AUTH_SOURCE           Auth source header value.
   ENV_SMOKE_POLL_ATTEMPTS       Poll attempts for async task status checks.
   ENV_SMOKE_POLL_INTERVAL_SECONDS
@@ -115,7 +113,6 @@ Effective env smoke configuration:
   protected governance URL: ${GOVERNANCE_PROTECTED_CHECK_URL}
   request tenant: ${REQUEST_TENANT_ID}
   request user: ${REQUEST_USER_ID}
-  request roles: ${REQUEST_ROLE_CODES}
   auth source: ${REQUEST_AUTH_SOURCE}
   poll attempts: ${POLL_ATTEMPTS}
   poll interval seconds: ${POLL_INTERVAL_SECONDS}
@@ -137,8 +134,8 @@ validate_config() {
   require_http_url "BENCHMARK_ENGINE_HEALTH_URL" "${BENCHMARK_ENGINE_HEALTH_URL}"
   require_http_url "GOVERNANCE_PROTECTED_CHECK_URL" "${GOVERNANCE_PROTECTED_CHECK_URL}"
 
-  if [[ -z "${REQUEST_TENANT_ID}" || -z "${REQUEST_USER_ID}" || -z "${REQUEST_ROLE_CODES}" || -z "${REQUEST_AUTH_SOURCE}" ]]; then
-    echo "受保护请求上下文必须定义租户、用户、角色代码和认证来源。" >&2
+  if [[ -z "${REQUEST_TENANT_ID}" || -z "${REQUEST_USER_ID}" || -z "${REQUEST_AUTH_SOURCE}" ]]; then
+    echo "受保护请求上下文必须定义租户、用户和认证来源。" >&2
     exit 1
   fi
 

@@ -20,7 +20,7 @@ class RedisRuleSourceApplicationServiceTest {
 
     @Test
     void shouldCreateUpdateAndListRedisRuleSourceConfigs() {
-        RequestContext.set("tenant-a", "admin-010", Arrays.asList("TENANT_ADMIN"), "request-040", "trace-040", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-010", "request-040", "trace-040", "header", 1L, 2L);
         RedisRuleSourceApplicationService service = new RedisRuleSourceApplicationService(new InMemoryRedisRuleSourceRepository());
 
         RedisRuleSourceUpsertRequest create = new RedisRuleSourceUpsertRequest();

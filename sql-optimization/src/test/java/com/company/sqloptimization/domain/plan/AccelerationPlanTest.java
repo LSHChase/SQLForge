@@ -32,12 +32,12 @@ class AccelerationPlanTest {
             baseTime
         );
 
-        plan.markActivated("{\"runtimeStatus\":\"ACTIVE\"}", "operator-001", baseTime.plusSeconds(20));
-        plan.markPaused("{\"runtimeStatus\":\"PAUSED\"}", "operator-001", baseTime.plusSeconds(40));
+        plan.markActivated("{\"runtimeStatus\":\"ACTIVE\"}", "user-001", baseTime.plusSeconds(20));
+        plan.markPaused("{\"runtimeStatus\":\"PAUSED\"}", "user-001", baseTime.plusSeconds(40));
 
         assertEquals(AccelerationPlanStatus.PAUSED, plan.getStatus());
-        assertEquals("operator-001", plan.getActivatedBy());
-        assertEquals("operator-001", plan.getPausedBy());
+        assertEquals("user-001", plan.getActivatedBy());
+        assertEquals("user-001", plan.getPausedBy());
         assertEquals(3, plan.getStatusHistory().size());
         assertEquals("PLAN_SUBMITTED", plan.getStatusHistory().get(0).getNote());
         assertEquals("PLAN_ACTIVATED", plan.getStatusHistory().get(1).getNote());
@@ -66,7 +66,7 @@ class AccelerationPlanTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> plan.markPaused("{\"runtimeStatus\":\"PAUSED\"}", "operator-001", baseTime.plusSeconds(20))
+            () -> plan.markPaused("{\"runtimeStatus\":\"PAUSED\"}", "user-001", baseTime.plusSeconds(20))
         );
 
         assertEquals("加速方案暂停前必须处于 ACTIVE、PAUSED 或 PAUSE_FAILED 状态。", ex.getMessage());

@@ -299,8 +299,7 @@ build_protected_headers() {
   expires_at="$((now_ms + 600000))"
   printf '%s\n' \
     "-H" "X-Tenant-Id: system" \
-    "-H" "X-User-Id: kafka-operator-001" \
-    "-H" "X-Role-Codes: TENANT_ADMIN,OPERATOR" \
+    "-H" "X-User-Id: kafka-runtime-user-001" \
     "-H" "X-Request-Id: ${request_id}" \
     "-H" "X-Trace-Id: ${trace_id}" \
     "-H" "X-Auth-Source: gateway" \
@@ -376,8 +375,7 @@ run_runtime_smoke() {
   print_step "Checking governance schedule extension state in KAFKA mode"
   assert_http_ok "http://localhost:8080/api/governance/internal/schedule/extensions" "${schedule_response}" \
     -H "X-Tenant-Id: system" \
-    -H "X-User-Id: kafka-operator-001" \
-    -H "X-Role-Codes: TENANT_ADMIN,OPERATOR" \
+    -H "X-User-Id: kafka-runtime-user-001" \
     -H "X-Request-Id: kafka-schedule-001" \
     -H "X-Trace-Id: kafka-schedule-001" \
     -H "X-Auth-Source: gateway" \

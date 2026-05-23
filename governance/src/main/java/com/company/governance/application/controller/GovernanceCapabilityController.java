@@ -1,20 +1,20 @@
 package com.company.governance.application.controller;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
-import com.company.governance.application.controller.dto.DatasourceAuthorizationChangeRequest;
+import com.company.governance.application.controller.dto.DatasourceAccessScopeChangeRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
-import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
+import com.company.governance.application.controller.vo.DatasourceAccessScopeChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
 import com.company.governance.application.service.GovernanceSqlRewriteDivergenceAlertApplicationService;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
@@ -56,18 +56,18 @@ public class GovernanceCapabilityController {
         return governanceCapabilityApplicationService.checkTenantScope(request);
     }
 
-    @PostMapping({"/authorization/decide", "/datasource-access/check"})
-    public GovernanceAuthorizationDecisionResponse decideAuthorization(
-        @RequestBody GovernanceAuthorizationDecisionRequest request
+    @PostMapping("/datasource-access/check")
+    public GovernanceDatasourceAccessCheckResponse checkDatasourceAccess(
+        @RequestBody GovernanceDatasourceAccessCheckRequest request
     ) {
-        return governanceCapabilityApplicationService.decideAuthorization(request);
+        return governanceCapabilityApplicationService.checkDatasourceAccess(request);
     }
 
-    @PostMapping("/authorization/datasource/change")
-    public DatasourceAuthorizationChangeResponse changeDatasourceAuthorization(
-        @RequestBody DatasourceAuthorizationChangeRequest request
+    @PostMapping("/datasource-access/scope/change")
+    public DatasourceAccessScopeChangeResponse changeDatasourceAccessScope(
+        @RequestBody DatasourceAccessScopeChangeRequest request
     ) {
-        return governanceCapabilityApplicationService.changeDatasourceAuthorization(request);
+        return governanceCapabilityApplicationService.changeDatasourceAccessScope(request);
     }
 
     @PostMapping("/audit/write")

@@ -20,7 +20,6 @@ public final class ProtectedGovernanceRequestSupport {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(RequestHeaderConstants.TENANT_ID, requiredContextValue(RequestContext.getTenantId(), "tenantId"));
         headers.set(RequestHeaderConstants.USER_ID, requiredContextValue(RequestContext.getUserId(), "userId"));
-        headers.set(RequestHeaderConstants.ROLE_CODES, String.join(",", RequestContext.getRoleCodes()));
         headers.set(RequestHeaderConstants.REQUEST_ID, requiredContextValue(RequestContext.getRequestId(), "requestId"));
         headers.set(RequestHeaderConstants.TRACE_ID, requiredContextValue(RequestContext.getTraceId(), "traceId"));
         headers.set(RequestHeaderConstants.AUTH_SOURCE, requiredContextValue(RequestContext.getAuthSource(), "authSource"));

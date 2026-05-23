@@ -144,7 +144,7 @@ class BenchmarkPersistenceRecordTest {
         record.setFieldMappingsJson("[{\"field\":\"SQL_TEXT\",\"columnName\":\"sql_text\"}]");
         record.setTestSetLabelsJson("[{\"type\":\"SCENARIO\",\"value\":\"COMPARISON\"}]");
         record.setTestSetSourceRefsJson("[{\"type\":\"IMPORT_BATCH\",\"referenceId\":\"import-001\"}]");
-        record.setCreatedBy("operator-001");
+        record.setCreatedBy("user-001");
         record.setCreatedAt(now);
         record.setUpdatedAt(now.plusMinutes(1));
         record.setCreateTime(now.plusMinutes(2));
@@ -167,7 +167,7 @@ class BenchmarkPersistenceRecordTest {
         assertEquals("[{\"field\":\"SQL_TEXT\",\"columnName\":\"sql_text\"}]", record.getFieldMappingsJson());
         assertEquals("[{\"type\":\"SCENARIO\",\"value\":\"COMPARISON\"}]", record.getTestSetLabelsJson());
         assertEquals("[{\"type\":\"IMPORT_BATCH\",\"referenceId\":\"import-001\"}]", record.getTestSetSourceRefsJson());
-        assertEquals("operator-001", record.getCreatedBy());
+        assertEquals("user-001", record.getCreatedBy());
         assertEquals(now, record.getCreatedAt());
         assertEquals(now.plusMinutes(1), record.getUpdatedAt());
         assertEquals(now.plusMinutes(2), record.getCreateTime());

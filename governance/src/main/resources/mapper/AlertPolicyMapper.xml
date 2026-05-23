@@ -14,7 +14,7 @@
         <result property="dedupeWindowSeconds" column="dedupe_window_seconds"/>
         <result property="notifyChannel" column="notify_channel"/>
         <result property="initialNotifyStatus" column="initial_notify_status"/>
-        <result property="ownerRole" column="owner_role"/>
+        <result property="ownerScope" column="owner_scope"/>
         <result property="enabled" column="enabled"/>
         <result property="ruleConfigJson" column="rule_config_json"/>
         <result property="createdBy" column="created_by"/>
@@ -33,7 +33,7 @@
             dedupe_window_seconds,
             notify_channel,
             initial_notify_status,
-            owner_role,
+            owner_scope,
             enabled,
             rule_config_json,
             created_by,
@@ -49,7 +49,7 @@
             #{dedupeWindowSeconds},
             #{notifyChannel},
             #{initialNotifyStatus},
-            #{ownerRole},
+            #{ownerScope},
             #{enabled},
             #{ruleConfigJson},
             #{createdBy},
@@ -66,7 +66,7 @@
             dedupe_window_seconds = #{dedupeWindowSeconds},
             notify_channel = #{notifyChannel},
             initial_notify_status = #{initialNotifyStatus},
-            owner_role = #{ownerRole},
+            owner_scope = #{ownerScope},
             enabled = #{enabled},
             rule_config_json = #{ruleConfigJson},
             updated_at = #{updatedAt}
@@ -84,7 +84,7 @@
             dedupe_window_seconds,
             notify_channel,
             initial_notify_status,
-            owner_role,
+            owner_scope,
             enabled,
             rule_config_json,
             created_by,
@@ -105,7 +105,7 @@
             dedupe_window_seconds,
             notify_channel,
             initial_notify_status,
-            owner_role,
+            owner_scope,
             enabled,
             rule_config_json,
             created_by,
@@ -127,7 +127,7 @@
             dedupe_window_seconds,
             notify_channel,
             initial_notify_status,
-            owner_role,
+            owner_scope,
             enabled,
             rule_config_json,
             created_by,

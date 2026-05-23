@@ -51,7 +51,7 @@ class AlertEmissionApplicationServiceTest {
             .thenReturn(Collections.<AlertEventRecord>emptyList());
 
         AlertEmissionApplicationService.AlertEmissionResult result =
-            service.emit(snapshot, "operator-001", emittedAt);
+            service.emit(snapshot, "user-001", emittedAt);
 
         assertEquals(1, result.getCandidateCount());
         assertEquals(1, result.getEmittedCount());
@@ -116,7 +116,7 @@ class AlertEmissionApplicationServiceTest {
             .thenReturn(Collections.singletonList(existing));
 
         AlertEmissionApplicationService.AlertEmissionResult result =
-            service.emit(snapshot, "operator-001", emittedAt);
+            service.emit(snapshot, "user-001", emittedAt);
 
         assertEquals(1, result.getCandidateCount());
         assertEquals(0, result.getEmittedCount());

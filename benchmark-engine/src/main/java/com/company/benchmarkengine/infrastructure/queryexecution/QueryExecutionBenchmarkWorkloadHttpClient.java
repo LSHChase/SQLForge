@@ -72,7 +72,6 @@ public class QueryExecutionBenchmarkWorkloadHttpClient implements QueryExecution
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Tenant-Id", fallbackTenantId);
         headers.set("X-User-Id", "benchmark-engine-service");
-        headers.set("X-Role-Codes", "SERVICE");
         headers.set("X-Request-Id", syntheticTraceId);
         headers.set("X-Trace-Id", syntheticTraceId);
         headers.set("X-Auth-Source", "header");
@@ -84,8 +83,6 @@ public class QueryExecutionBenchmarkWorkloadHttpClient implements QueryExecution
     private boolean hasProtectedRequestContext() {
         return StringUtils.hasText(RequestContext.getTenantId())
             && StringUtils.hasText(RequestContext.getUserId())
-            && RequestContext.getRoleCodes() != null
-            && !RequestContext.getRoleCodes().isEmpty()
             && StringUtils.hasText(RequestContext.getRequestId())
             && StringUtils.hasText(RequestContext.getTraceId())
             && StringUtils.hasText(RequestContext.getAuthSource())

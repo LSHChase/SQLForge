@@ -1,8 +1,7 @@
 {
   "host": "127.0.0.1",
   "port": 3001,
-  "userId": "frontend-operator",
-  "roleCodes": "TENANT_ADMIN,OPERATOR",
+  "userId": "frontend-user",
   "authSource": "portable-frontend-proxy",
   "ttlMs": 600000,
   "queryExecutionBaseUrl": "http://127.0.0.1:8081",

@@ -3,7 +3,7 @@ package com.company.governance.application.controller.dto;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DatasourceAuthorizationChangeRequest {
+public class DatasourceAccessScopeChangeRequest {
 
     private String tenantId;
     private String datasourceId;

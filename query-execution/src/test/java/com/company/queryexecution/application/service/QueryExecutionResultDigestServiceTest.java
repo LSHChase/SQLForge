@@ -79,7 +79,6 @@ class QueryExecutionResultDigestServiceTest {
         RequestContext.set(
             tenantId,
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-001",
             "trace-001",
             "header",
@@ -124,7 +123,7 @@ class QueryExecutionResultDigestServiceTest {
     private static final class NoopGovernanceCapabilityClient implements GovernanceCapabilityClient {
 
         @Override
-        public void assertAuthorization(String tenantId,
+        public void assertDatasourceAccess(String tenantId,
                                         DataSourceTypeEnum datasourceType,
                                         String resourceType,
                                         String resourceId,

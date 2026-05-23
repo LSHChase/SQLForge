@@ -91,7 +91,7 @@ public class BenchmarkParseResultTestSetApplicationService {
                 Instant.now(),
                 RequestContext.getUserId()
             );
-            assertAuthorization(testSet.getTenantId(), testSet.getTestSetId(), CREATE_OPERATION);
+            assertDatasourceAccess(testSet.getTenantId(), testSet.getTestSetId(), CREATE_OPERATION);
             repository.saveTestSet(testSet);
             BenchmarkTestSetResponse response = modelService.buildResponse(testSet);
             writeAudit(
@@ -417,8 +417,8 @@ public class BenchmarkParseResultTestSetApplicationService {
         return labels;
     }
 
-    private void assertAuthorization(String tenantId, String resourceId, String operationCode) {
-        governanceCapabilityClient.assertAuthorization(
+    private void assertDatasourceAccess(String tenantId, String resourceId, String operationCode) {
+        governanceCapabilityClient.assertDatasourceAccess(
             tenantId,
             DataSourceTypeEnum.HETU,
             RESOURCE_TYPE_TEST_SET,

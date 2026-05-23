@@ -16,8 +16,8 @@ import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceTenantArtifactPolicyResponse;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
@@ -103,7 +103,7 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andExpect(method(HttpMethod.POST))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"serviceCode\":\"BENCHMARK_ENGINE\"")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"resourceType\":\"BENCHMARK_ENGINE_TASK\"")))
@@ -112,7 +112,7 @@ class GovernanceHttpClientTest {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceId\":\"benchmark-hetu\"")))
             .andRespond(withSuccess("{\"allowed\":true,\"reason\":\"ok\"}", MediaType.APPLICATION_JSON));
 
-        client.assertAuthorization(
+        client.assertDatasourceAccess(
             "tenant-a",
             DataSourceTypeEnum.HETU,
             "BENCHMARK_ENGINE_TASK",
@@ -129,16 +129,16 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andRespond(withSuccess(
                 "{\"allowed\":false,\"reason\":\"datasource denied\",\"errorCode\":403,"
-                    + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"AUTHORIZATION_MATRIX_BASELINE\"}",
+                    + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"DATASOURCE_ACCESS_SCOPE_BASELINE\"}",
                 MediaType.APPLICATION_JSON
             ));
 
         AccessDeniedException ex = assertThrows(
             AccessDeniedException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HETU,
                 "BENCHMARK_ENGINE_TASK",
@@ -159,7 +159,7 @@ class GovernanceHttpClientTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HIVE,
                 "BENCHMARK_ENGINE_TASK",
@@ -178,12 +178,12 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andRespond(withServerError());
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HETU,
                 "BENCHMARK_ENGINE_TASK",
@@ -205,7 +205,7 @@ class GovernanceHttpClientTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HETU,
                 "BENCHMARK_ENGINE_TASK",
@@ -220,7 +220,7 @@ class GovernanceHttpClientTest {
 
     @Test
     void shouldExposeGovernanceContractBeans() {
-        GovernanceAuthorizationDecisionRequest authorizationRequest = new GovernanceAuthorizationDecisionRequest();
+        GovernanceDatasourceAccessCheckRequest authorizationRequest = new GovernanceDatasourceAccessCheckRequest();
         authorizationRequest.setServiceCode("BENCHMARK_ENGINE");
         authorizationRequest.setTenantId("tenant-a");
         authorizationRequest.setResourceType("BENCHMARK_ENGINE_TASK");
@@ -234,7 +234,7 @@ class GovernanceHttpClientTest {
         assertEquals("BENCHMARK_TASK_SUBMIT", authorizationRequest.getOperationCode());
         assertEquals("benchmark-hetu", authorizationRequest.getDatasourceId());
 
-        GovernanceAuthorizationDecisionResponse authorizationResponse = new GovernanceAuthorizationDecisionResponse();
+        GovernanceDatasourceAccessCheckResponse authorizationResponse = new GovernanceDatasourceAccessCheckResponse();
         authorizationResponse.setTenantId("tenant-a");
         authorizationResponse.setResourceType("BENCHMARK_ENGINE_TASK");
         authorizationResponse.setResourceId("task-001");
@@ -244,7 +244,7 @@ class GovernanceHttpClientTest {
         authorizationResponse.setReason("denied");
         authorizationResponse.setErrorCode(Integer.valueOf(403));
         authorizationResponse.setContractStage("LONG_TERM_BASELINE");
-        authorizationResponse.setImplementationStage("AUTHORIZATION_MATRIX_BASELINE");
+        authorizationResponse.setImplementationStage("DATASOURCE_ACCESS_SCOPE_BASELINE");
         assertEquals("tenant-a", authorizationResponse.getTenantId());
         assertEquals("BENCHMARK_ENGINE_TASK", authorizationResponse.getResourceType());
         assertEquals("task-001", authorizationResponse.getResourceId());
@@ -254,7 +254,7 @@ class GovernanceHttpClientTest {
         assertEquals("denied", authorizationResponse.getReason());
         assertEquals(Integer.valueOf(403), authorizationResponse.getErrorCode());
         assertEquals("LONG_TERM_BASELINE", authorizationResponse.getContractStage());
-        assertEquals("AUTHORIZATION_MATRIX_BASELINE", authorizationResponse.getImplementationStage());
+        assertEquals("DATASOURCE_ACCESS_SCOPE_BASELINE", authorizationResponse.getImplementationStage());
 
         GovernanceAuditWriteRequest auditWriteRequest = new GovernanceAuditWriteRequest();
         auditWriteRequest.setServiceCode("BENCHMARK_ENGINE");
@@ -292,8 +292,7 @@ class GovernanceHttpClientTest {
     private void setProtectedRequestContext() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",

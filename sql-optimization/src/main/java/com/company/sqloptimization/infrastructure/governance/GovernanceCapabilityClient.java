@@ -16,7 +16,7 @@ import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAler
 
 public interface GovernanceCapabilityClient {
 
-    void assertAuthorization(String tenantId,
+    void assertDatasourceAccess(String tenantId,
                              DataSourceTypeEnum datasourceType,
                              String resourceType,
                              String resourceId,

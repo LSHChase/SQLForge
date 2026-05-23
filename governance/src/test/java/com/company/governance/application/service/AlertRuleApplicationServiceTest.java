@@ -22,7 +22,7 @@ class AlertRuleApplicationServiceTest {
             .addDispatchCoordinationSignal(new AlertSignalSnapshot.DispatchCoordinationSignal("dispatch-001", "FAILED", "hetu-main", "external loader rejected event", 20, 15))
             .build();
 
-        List<AlertEvent> alerts = service.evaluate(snapshot, null, "operator-001", Instant.parse("2026-04-27T14:00:00Z"));
+        List<AlertEvent> alerts = service.evaluate(snapshot, null, "user-001", Instant.parse("2026-04-27T14:00:00Z"));
 
         assertEquals(3, alerts.size());
         assertHasType(alerts, AlertEvent.AlertType.SQL_EXECUTION_MASS_FAILURE);
@@ -40,7 +40,7 @@ class AlertRuleApplicationServiceTest {
             .addAuditWriteSignal(new AlertSignalSnapshot.AuditWriteSignal("governance-audit", 2, 1))
             .build();
 
-        List<AlertEvent> alerts = service.evaluate(snapshot, null, "operator-001", Instant.parse("2026-04-27T14:05:00Z"));
+        List<AlertEvent> alerts = service.evaluate(snapshot, null, "user-001", Instant.parse("2026-04-27T14:05:00Z"));
 
         assertEquals(4, alerts.size());
         assertHasType(alerts, AlertEvent.AlertType.DATASOURCE_UNAVAILABLE);
@@ -56,7 +56,7 @@ class AlertRuleApplicationServiceTest {
             .addServiceAvailabilitySignal(new AlertSignalSnapshot.ServiceAvailabilitySignal("access_parse_service", "access-parse", false, "TIMEOUT"))
             .build();
 
-        List<AlertEvent> alerts = service.evaluate(snapshot, null, "operator-001", Instant.parse("2026-04-27T14:10:00Z"));
+        List<AlertEvent> alerts = service.evaluate(snapshot, null, "user-001", Instant.parse("2026-04-27T14:10:00Z"));
 
         assertEquals(1, alerts.size());
         assertEquals(AlertEvent.AlertType.ACCESS_PARSE_SERVICE_UNAVAILABLE, alerts.get(0).getAlertType());
@@ -70,7 +70,7 @@ class AlertRuleApplicationServiceTest {
             .addDispatchCoordinationSignal(new AlertSignalSnapshot.DispatchCoordinationSignal("dispatch-002", "FAILED", "hetu-main", "failure", 20, 15))
             .build();
 
-        List<AlertEvent> alerts = service.evaluate(snapshot, null, "operator-001", Instant.parse("2026-04-27T14:15:00Z"));
+        List<AlertEvent> alerts = service.evaluate(snapshot, null, "user-001", Instant.parse("2026-04-27T14:15:00Z"));
 
         assertEquals(1, alerts.size());
         assertTrue(alerts.get(0).getDedupeKey().contains("dispatch=dispatch-002"));
@@ -100,7 +100,7 @@ class AlertRuleApplicationServiceTest {
             )
             .build();
 
-        List<AlertEvent> alerts = service.evaluate(snapshot, null, "operator-001", Instant.parse("2026-04-27T14:20:00Z"));
+        List<AlertEvent> alerts = service.evaluate(snapshot, null, "user-001", Instant.parse("2026-04-27T14:20:00Z"));
 
         assertEquals(1, alerts.size());
         assertEquals(AlertEvent.AlertType.BENCHMARK_REGRESSION_FAILED, alerts.get(0).getAlertType());

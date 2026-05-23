@@ -73,7 +73,7 @@ class MybatisAccelerationCandidateRepositoryTest {
         record.setPriority(Integer.valueOf(8));
         record.setEvidenceLevel("RUNTIME_HISTORY");
         record.setSchemaVersion("v1");
-        record.setCreatedBy("operator-001");
+        record.setCreatedBy("user-001");
         record.setCreatedAt(LocalDateTime.of(2026, 5, 10, 9, 1));
         record.setUpdatedAt(LocalDateTime.of(2026, 5, 10, 9, 2));
         record.setRuntimeEvidenceJson("{\"p99Ms\":1200}");
@@ -114,7 +114,7 @@ class MybatisAccelerationCandidateRepositoryTest {
             .priority(Integer.valueOf(10))
             .evidenceLevel(EvidenceLevel.STATIC_PARSE)
             .schemaVersion("v1")
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-10T09:00:00Z"))
             .updatedAt(Instant.parse("2026-05-10T09:00:00Z"))
             .sourceEvidence(sourceEvidence)

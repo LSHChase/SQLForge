@@ -7,9 +7,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.governance.application.controller.dto.AuditWriteRequest;
-import com.company.governance.application.controller.dto.DatasourceAuthorizationChangeRequest;
+import com.company.governance.application.controller.dto.DatasourceAccessScopeChangeRequest;
 import com.company.governance.application.controller.vo.AuditWriteResponse;
-import com.company.governance.application.controller.vo.DatasourceAuthorizationChangeResponse;
+import com.company.governance.application.controller.vo.DatasourceAccessScopeChangeResponse;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
 import com.company.governance.config.MessagingProperties;
 import com.company.governance.domain.tenant.entity.TenantConfig;
@@ -20,8 +20,8 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkRegressionAlertResponse;
 import com.company.sqlforge.common.governance.GovernanceDbViewResolveRequest;
@@ -48,8 +48,8 @@ class GovernanceCapabilityApplicationServiceTest {
 
     @Test
     void shouldDelegateAuthorizationEntryPointsToMatrixService() {
-        GovernanceAuthorizationMatrixApplicationService matrixService =
-            mock(GovernanceAuthorizationMatrixApplicationService.class);
+        GovernanceDatasourceAccessApplicationService matrixService =
+            mock(GovernanceDatasourceAccessApplicationService.class);
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
@@ -74,7 +74,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "tenant-admin-001",
-            Arrays.asList("TENANT_ADMIN"),
             "request-001",
             "trace-001",
             "header",
@@ -91,14 +90,14 @@ class GovernanceCapabilityApplicationServiceTest {
         tenantScopeResponse.setAllowed(true);
         tenantScopeResponse.setReason("ALLOWED");
 
-        GovernanceAuthorizationDecisionRequest decisionRequest = new GovernanceAuthorizationDecisionRequest();
+        GovernanceDatasourceAccessCheckRequest decisionRequest = new GovernanceDatasourceAccessCheckRequest();
         decisionRequest.setServiceCode("QUERY_EXECUTION");
         decisionRequest.setTenantId("tenant-a");
         decisionRequest.setResourceType("QUERY_EXECUTION_QUERY");
         decisionRequest.setResourceId("fp-001");
         decisionRequest.setOperationCode("QUERY_EXECUTE_SYNC");
         decisionRequest.setDatasourceId("query-hetu");
-        GovernanceAuthorizationDecisionResponse decisionResponse = new GovernanceAuthorizationDecisionResponse();
+        GovernanceDatasourceAccessCheckResponse decisionResponse = new GovernanceDatasourceAccessCheckResponse();
         decisionResponse.setTenantId("tenant-a");
         decisionResponse.setResourceType("QUERY_EXECUTION_QUERY");
         decisionResponse.setResourceId("fp-001");
@@ -107,41 +106,41 @@ class GovernanceCapabilityApplicationServiceTest {
         decisionResponse.setAllowed(true);
         decisionResponse.setReason("ALLOWED");
 
-        DatasourceAuthorizationChangeRequest changeRequest = new DatasourceAuthorizationChangeRequest();
+        DatasourceAccessScopeChangeRequest changeRequest = new DatasourceAccessScopeChangeRequest();
         changeRequest.setTenantId("tenant-a");
         changeRequest.setDatasourceId("query-hetu");
         changeRequest.setState("REVOKED");
         changeRequest.setChangeReason("runtime revoke");
-        DatasourceAuthorizationChangeResponse changeResponse = new DatasourceAuthorizationChangeResponse(
+        DatasourceAccessScopeChangeResponse changeResponse = new DatasourceAccessScopeChangeResponse(
             "tenant-a",
             "query-hetu",
             "REVOKED",
             java.util.Collections.<String>emptyList(),
             "UPDATED",
             "LONG_TERM_BASELINE",
-            "AUTHORIZATION_MATRIX_BASELINE"
+            "DATASOURCE_ACCESS_SCOPE_BASELINE"
         );
 
         when(matrixService.checkTenantScope(tenantScopeRequest)).thenReturn(tenantScopeResponse);
-        when(matrixService.decideAuthorization(decisionRequest)).thenReturn(decisionResponse);
-        when(matrixService.applyDatasourceAuthorizationChange(changeRequest)).thenReturn(changeResponse);
+        when(matrixService.checkDatasourceAccess(decisionRequest)).thenReturn(decisionResponse);
+        when(matrixService.applyDatasourceAccessScopeChange(changeRequest)).thenReturn(changeResponse);
 
         GovernanceTenantScopeCheckResponse actualTenantScope = service.checkTenantScope(tenantScopeRequest);
-        GovernanceAuthorizationDecisionResponse actualDecision = service.decideAuthorization(decisionRequest);
-        DatasourceAuthorizationChangeResponse actualChange = service.changeDatasourceAuthorization(changeRequest);
+        GovernanceDatasourceAccessCheckResponse actualDecision = service.checkDatasourceAccess(decisionRequest);
+        DatasourceAccessScopeChangeResponse actualChange = service.changeDatasourceAccessScope(changeRequest);
 
         assertEquals("ALLOWED", actualTenantScope.getReason());
         assertEquals("ALLOWED", actualDecision.getReason());
         assertEquals("UPDATED", actualChange.getStatus());
         verify(matrixService).checkTenantScope(tenantScopeRequest);
-        verify(matrixService).decideAuthorization(decisionRequest);
-        verify(matrixService).applyDatasourceAuthorizationChange(changeRequest);
+        verify(matrixService).checkDatasourceAccess(decisionRequest);
+        verify(matrixService).applyDatasourceAccessScopeChange(changeRequest);
     }
 
     @Test
     void shouldDelegateAuditWriteAndResolveScheduleStatus() {
-        GovernanceAuthorizationMatrixApplicationService matrixService =
-            mock(GovernanceAuthorizationMatrixApplicationService.class);
+        GovernanceDatasourceAccessApplicationService matrixService =
+            mock(GovernanceDatasourceAccessApplicationService.class);
         GovernanceAuditTrailService governanceAuditTrailService = mock(GovernanceAuditTrailService.class);
         GovernanceBenchmarkTraceabilityApplicationService benchmarkTraceabilityApplicationService =
             mock(GovernanceBenchmarkTraceabilityApplicationService.class);
@@ -168,7 +167,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "user-01",
-            Arrays.asList("TENANT_ADMIN"),
             "request-010",
             "trace-010",
             "header",
@@ -208,7 +206,7 @@ class GovernanceCapabilityApplicationServiceTest {
     @Test
     void shouldRejectWhenProtectedContextMissing() {
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
@@ -220,14 +218,14 @@ class GovernanceCapabilityApplicationServiceTest {
             databaseMessaging(),
             mock(TenantConfigRepository.class)
         );
-        GovernanceAuthorizationDecisionRequest request = new GovernanceAuthorizationDecisionRequest();
+        GovernanceDatasourceAccessCheckRequest request = new GovernanceDatasourceAccessCheckRequest();
         request.setServiceCode("QUERY_EXECUTION");
         request.setTenantId("tenant-a");
         request.setResourceType("QUERY_EXECUTION_QUERY");
         request.setOperationCode("QUERY_EXECUTE_SYNC");
         request.setDatasourceId("query-hetu");
 
-        BizException ex = assertThrows(BizException.class, () -> service.decideAuthorization(request));
+        BizException ex = assertThrows(BizException.class, () -> service.checkDatasourceAccess(request));
 
         assertEquals(ErrorCodeConstants.SYSTEM_CONTEXT_MISSING, ex.getCode());
     }
@@ -236,7 +234,7 @@ class GovernanceCapabilityApplicationServiceTest {
     void shouldResolveTenantArtifactPolicyFromTenantConfig() {
         TenantConfigRepository tenantConfigRepository = mock(TenantConfigRepository.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
@@ -251,7 +249,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-020",
             "trace-020",
             "header",
@@ -280,7 +277,7 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceAccelerationPlanTraceabilityApplicationService accelerationPlanTraceabilityApplicationService =
             mock(GovernanceAccelerationPlanTraceabilityApplicationService.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
@@ -295,7 +292,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-030",
             "trace-030",
             "header",
@@ -323,7 +319,7 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceQueryExecutionHistoryApplicationService queryExecutionHistoryApplicationService =
             mock(GovernanceQueryExecutionHistoryApplicationService.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
@@ -338,7 +334,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-031",
             "trace-031",
             "header",
@@ -366,7 +361,7 @@ class GovernanceCapabilityApplicationServiceTest {
         DatabaseViewCatalogApplicationService databaseViewCatalogApplicationService =
             mock(DatabaseViewCatalogApplicationService.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
@@ -381,7 +376,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-040",
             "trace-040",
             "header",
@@ -407,7 +401,7 @@ class GovernanceCapabilityApplicationServiceTest {
         ReportInterfaceConfigApplicationService reportInterfaceConfigApplicationService =
             mock(ReportInterfaceConfigApplicationService.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class),
@@ -422,7 +416,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-050",
             "trace-050",
             "header",
@@ -448,7 +441,7 @@ class GovernanceCapabilityApplicationServiceTest {
         GovernanceBenchmarkRegressionAlertApplicationService regressionAlertApplicationService =
             mock(GovernanceBenchmarkRegressionAlertApplicationService.class);
         GovernanceCapabilityApplicationService service = new GovernanceCapabilityApplicationService(
-            mock(GovernanceAuthorizationMatrixApplicationService.class),
+            mock(GovernanceDatasourceAccessApplicationService.class),
             mock(GovernanceAuditTrailService.class),
             mock(GovernanceBenchmarkTraceabilityApplicationService.class),
             regressionAlertApplicationService,
@@ -463,7 +456,6 @@ class GovernanceCapabilityApplicationServiceTest {
         RequestContext.set(
             "tenant-a",
             "service-user",
-            Arrays.asList("SERVICE"),
             "request-060",
             "trace-060",
             "header",

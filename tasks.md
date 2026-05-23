@@ -16,7 +16,16 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### USER-CN-TEST01-RUNTIME-REWRITE-E2E-20260522: 用 docs/test01.sql 验证推荐激活与运行时模板改写命中
+
+- Status: in_progress
+- Priority: 1
+- Depends on: N/A
+- Scope: 生成 docs/test01.sql 推荐改写并激活，验证原 SQL、替换参数 SQL、增加条件 SQL 的单条执行改写命中和耗时
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-TEST01-RUNTIME-REWRITE-E2E-20260522`
+- Progress log:
+  - 2026-05-22: instantiated from foreman CLI using repository truth and task matrices.
 
 
 ## In Review

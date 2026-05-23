@@ -117,8 +117,7 @@ class AccessParseControllerTest {
         long now = System.currentTimeMillis();
         return builder
             .header(RequestHeaderConstants.TENANT_ID, "tenant-a")
-            .header(RequestHeaderConstants.USER_ID, "operator-001")
-            .header(RequestHeaderConstants.ROLE_CODES, "TENANT_ADMIN,OPERATOR")
+            .header(RequestHeaderConstants.USER_ID, "user-001")
             .header(RequestHeaderConstants.REQUEST_ID, "request-access-001")
             .header(RequestHeaderConstants.TRACE_ID, "trace-access-001")
             .header(RequestHeaderConstants.AUTH_SOURCE, AuthSourceConstants.HEADER)

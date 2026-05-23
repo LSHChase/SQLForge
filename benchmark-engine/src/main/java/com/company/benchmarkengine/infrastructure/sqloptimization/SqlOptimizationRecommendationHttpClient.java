@@ -68,8 +68,6 @@ public class SqlOptimizationRecommendationHttpClient implements SqlOptimizationR
     private boolean hasProtectedRequestContext() {
         return StringUtils.hasText(RequestContext.getTenantId())
             && StringUtils.hasText(RequestContext.getUserId())
-            && RequestContext.getRoleCodes() != null
-            && !RequestContext.getRoleCodes().isEmpty()
             && StringUtils.hasText(RequestContext.getRequestId())
             && StringUtils.hasText(RequestContext.getTraceId())
             && StringUtils.hasText(RequestContext.getAuthSource())

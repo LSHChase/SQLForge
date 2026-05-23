@@ -146,7 +146,7 @@ class RewriteActivationEligibilityPolicyTest {
             .alertStatus(RewriteAlertStatus.NONE)
             .originalSqlText("SELECT * FROM orders")
             .recommendedSqlText("SELECT id FROM orders")
-            .createdBy("operator-001")
+            .createdBy("user-001")
             .createdAt(Instant.parse("2026-05-11T00:00:00Z"));
     }
 

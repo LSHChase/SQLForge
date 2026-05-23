@@ -322,7 +322,7 @@ const historyRow = () => ({
   hasRewriteRecord: true,
   rewriteRecordId,
   recommendationId,
-  submittedBy: 'operator-001',
+  submittedBy: 'runtime-user-001',
   submittedAt: '2026-05-12T01:12:00Z',
   auditEventCount: 3
 })
@@ -580,7 +580,7 @@ const runBrowserSmoke = async baseUrl => {
         runtimeRuleVersion,
         runtimeBindingScope: 'TENANT_SQL_FINGERPRINT',
         runtimeBindingAt: '2026-05-12T01:12:20Z',
-        runtimeBindingBy: 'operator-001',
+        runtimeBindingBy: 'runtime-user-001',
         traceRefs: {
           ...rewriteRecord.traceRefs,
           activationEvidence: {

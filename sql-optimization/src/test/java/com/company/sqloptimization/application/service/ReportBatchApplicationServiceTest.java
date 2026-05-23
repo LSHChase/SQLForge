@@ -41,7 +41,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldImportMockReportCatalogAndResolveSqls() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-001", "header", 1L, 2L);
 
         ReportBatchImportRequest request = new ReportBatchImportRequest();
         request.setTenantId("tenant-a");
@@ -73,7 +73,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldPropagateApacheCalciteIntoReportBatchStructureParsing() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-014", "trace-014", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-014", "trace-014", "header", 1L, 2L);
 
         ReportBatchImportRequest request = baseRequest(
             "calcite-report-csv",
@@ -102,7 +102,7 @@ class ReportBatchApplicationServiceTest {
                 Collections.singletonList("sqlExecution=EXPLAIN_ONLY")
             )
         );
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-015", "trace-015", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-015", "trace-015", "header", 1L, 2L);
 
         ReportBatchImportRequest request = baseRequest(
             "plan-report-csv",
@@ -123,7 +123,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldImportWideCsvReportSqlColumnsAsSqlItems() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-002", "trace-002", "header", 1L, 2L);
 
         StringBuilder csv = new StringBuilder("report_code");
         for (int index = 1; index <= 120; index++) {
@@ -147,7 +147,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldKeepLargeReportImportSummaryFullWhileCappingReturnedItemPreview() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-009", "trace-009", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-009", "trace-009", "header", 1L, 2L);
 
         StringBuilder csv = new StringBuilder("report_code");
         for (int index = 1; index <= 650; index++) {
@@ -191,7 +191,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldImportEveryNonEmptyCsvCellAfterFirstColumnAsSql() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-005", "trace-005", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-005", "trace-005", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "arbitrary-header-csv",
@@ -212,7 +212,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldExtractInlineDashCommentPreambleBeforeParsingReportSql() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-011", "trace-011", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-011", "trace-011", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "comment-preamble-csv",
@@ -238,7 +238,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldImportHeaderlessCsvRowsByFirstColumnPosition() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-006", "trace-006", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-006", "trace-006", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "headerless-csv",
@@ -263,7 +263,7 @@ class ReportBatchApplicationServiceTest {
             resolverCalls.incrementAndGet();
             return MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE");
         });
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-003", "trace-003", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-003", "trace-003", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "inline-csv",
@@ -319,7 +319,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldKeepStructureDetailWhenReportSqlAccessParseIsUnavailable() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-013", "trace-013", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-013", "trace-013", "header", 1L, 2L);
 
         ReportBatchImportRequest request = baseRequest(
             "access-unavailable-csv",
@@ -349,7 +349,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldExposeFailedReportSqlDetailForResultInspection() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-008", "trace-008", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-008", "trace-008", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "failed-report-detail",
@@ -385,7 +385,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldPersistHeuristicObjectEvidenceForInvalidReportSql() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-016", "trace-016", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-016", "trace-016", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "invalid-report-object-detail",
@@ -410,7 +410,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldExposeReportImportFailureLocationAfterInlineCommentExtraction() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-012", "trace-012", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-012", "trace-012", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "comment-preamble-invalid-csv",
@@ -439,7 +439,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldKeepSingleSqlIssueCodesForComplexReportBatchSql() {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-010", "trace-010", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-010", "trace-010", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "complex-report-csv",
@@ -475,7 +475,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldImportWideWorkbookReportSqlColumns() throws Exception {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-004", "trace-004", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-004", "trace-004", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "wide-xlsx",
@@ -492,7 +492,7 @@ class ReportBatchApplicationServiceTest {
     @Test
     void shouldImportWorkbookRowsByFirstColumnPositionWhenHeaderIsLocalized() throws Exception {
         ReportBatchApplicationService service = buildService();
-        RequestContext.set("tenant-a", "operator-001", Arrays.asList("TENANT_ADMIN"), "request-007", "trace-007", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "user-001", "request-007", "trace-007", "header", 1L, 2L);
 
         ReportBatchStatusResponse imported = service.importBatch(baseRequest(
             "localized-xlsx",

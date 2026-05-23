@@ -15,8 +15,8 @@ import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionRequest;
-import com.company.sqlforge.common.governance.GovernanceAuthorizationDecisionResponse;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
+import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceSqlRewriteDivergenceAlertRequest;
@@ -73,7 +73,7 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andExpect(method(HttpMethod.POST))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"serviceCode\":\"SQL_OPTIMIZATION\"")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"resourceType\":\"SQL_OPTIMIZATION_TASK\"")))
@@ -82,7 +82,7 @@ class GovernanceHttpClientTest {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceId\":\"optimization-hive\"")))
             .andRespond(withSuccess("{\"allowed\":true,\"reason\":\"ok\"}", MediaType.APPLICATION_JSON));
 
-        client.assertAuthorization(
+        client.assertDatasourceAccess(
             "tenant-a",
             DataSourceTypeEnum.HIVE,
             "SQL_OPTIMIZATION_TASK",
@@ -99,16 +99,16 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andRespond(withSuccess(
                 "{\"allowed\":false,\"reason\":\"datasource denied\",\"errorCode\":403,"
-                    + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"AUTHORIZATION_MATRIX_BASELINE\"}",
+                    + "\"contractStage\":\"LONG_TERM_BASELINE\",\"implementationStage\":\"DATASOURCE_ACCESS_SCOPE_BASELINE\"}",
                 MediaType.APPLICATION_JSON
             ));
 
         AccessDeniedException ex = assertThrows(
             AccessDeniedException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HIVE,
                 "SQL_OPTIMIZATION_TASK",
@@ -129,7 +129,7 @@ class GovernanceHttpClientTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HIVE,
                 "SQL_OPTIMIZATION_TASK",
@@ -148,12 +148,12 @@ class GovernanceHttpClientTest {
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
         setProtectedRequestContext();
-        server.expect(requestTo("http://governance.test/api/governance/internal/authorization/decide"))
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasource-access/check"))
             .andRespond(withServerError());
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HIVE,
                 "SQL_OPTIMIZATION_TASK",
@@ -240,7 +240,7 @@ class GovernanceHttpClientTest {
 
         BizException ex = assertThrows(
             BizException.class,
-            () -> client.assertAuthorization(
+            () -> client.assertDatasourceAccess(
                 "tenant-a",
                 DataSourceTypeEnum.HIVE,
                 "SQL_OPTIMIZATION_TASK",
@@ -255,7 +255,7 @@ class GovernanceHttpClientTest {
 
     @Test
     void shouldExposeGovernanceContractBeans() {
-        GovernanceAuthorizationDecisionRequest authorizationRequest = new GovernanceAuthorizationDecisionRequest();
+        GovernanceDatasourceAccessCheckRequest authorizationRequest = new GovernanceDatasourceAccessCheckRequest();
         authorizationRequest.setServiceCode("SQL_OPTIMIZATION");
         authorizationRequest.setTenantId("tenant-a");
         authorizationRequest.setResourceType("SQL_OPTIMIZATION_TASK");
@@ -269,7 +269,7 @@ class GovernanceHttpClientTest {
         assertEquals("OPTIMIZATION_TASK_SUBMIT", authorizationRequest.getOperationCode());
         assertEquals("optimization-hive", authorizationRequest.getDatasourceId());
 
-        GovernanceAuthorizationDecisionResponse authorizationResponse = new GovernanceAuthorizationDecisionResponse();
+        GovernanceDatasourceAccessCheckResponse authorizationResponse = new GovernanceDatasourceAccessCheckResponse();
         authorizationResponse.setTenantId("tenant-a");
         authorizationResponse.setResourceType("SQL_OPTIMIZATION_TASK");
         authorizationResponse.setResourceId("task-001");
@@ -279,7 +279,7 @@ class GovernanceHttpClientTest {
         authorizationResponse.setReason("denied");
         authorizationResponse.setErrorCode(Integer.valueOf(403));
         authorizationResponse.setContractStage("LONG_TERM_BASELINE");
-        authorizationResponse.setImplementationStage("AUTHORIZATION_MATRIX_BASELINE");
+        authorizationResponse.setImplementationStage("DATASOURCE_ACCESS_SCOPE_BASELINE");
         assertEquals("tenant-a", authorizationResponse.getTenantId());
         assertEquals("SQL_OPTIMIZATION_TASK", authorizationResponse.getResourceType());
         assertEquals("task-001", authorizationResponse.getResourceId());
@@ -289,7 +289,7 @@ class GovernanceHttpClientTest {
         assertEquals("denied", authorizationResponse.getReason());
         assertEquals(Integer.valueOf(403), authorizationResponse.getErrorCode());
         assertEquals("LONG_TERM_BASELINE", authorizationResponse.getContractStage());
-        assertEquals("AUTHORIZATION_MATRIX_BASELINE", authorizationResponse.getImplementationStage());
+        assertEquals("DATASOURCE_ACCESS_SCOPE_BASELINE", authorizationResponse.getImplementationStage());
 
         GovernanceAuditWriteRequest auditWriteRequest = new GovernanceAuditWriteRequest();
         auditWriteRequest.setServiceCode("SQL_OPTIMIZATION");
@@ -327,8 +327,7 @@ class GovernanceHttpClientTest {
     private void setProtectedRequestContext() {
         RequestContext.set(
             "tenant-a",
-            "operator-001",
-            Arrays.asList("TENANT_ADMIN"),
+            "user-001",
             "request-001",
             "trace-001",
             "header",

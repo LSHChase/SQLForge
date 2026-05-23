@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AlertEmissionApplicationService {
 
-    private static final String DEFAULT_OPERATOR = "alert-emitter";
+    private static final String DEFAULT_ACTOR = "alert-emitter";
     private static final String SIMULATED_EMAIL_TEMPLATE = "governance-alert-simulated-email-v1";
     private static final String DEDUPE_TEMPLATE = "governance-alert-dedupe-suppressed-v1";
 
@@ -49,34 +49,34 @@ public class AlertEmissionApplicationService {
     }
 
     public AlertEmissionResult emit(AlertSignalSnapshot snapshot) {
-        return emit(snapshot, DEFAULT_OPERATOR, Instant.now());
+        return emit(snapshot, DEFAULT_ACTOR, Instant.now());
     }
 
     @Transactional
-    public AlertEmissionResult emit(AlertSignalSnapshot snapshot, String operator, Instant emittedAt) {
+    public AlertEmissionResult emit(AlertSignalSnapshot snapshot, String actor, Instant emittedAt) {
         requireSnapshot(snapshot);
-        String effectiveOperator = normalize(operator, DEFAULT_OPERATOR);
+        String effectiveActor = normalize(actor, DEFAULT_ACTOR);
         Instant effectiveEmittedAt = emittedAt == null ? Instant.now() : emittedAt;
-        List<AlertPolicy> policies = resolvePolicies(snapshot.getTenantId(), effectiveOperator, effectiveEmittedAt);
+        List<AlertPolicy> policies = resolvePolicies(snapshot.getTenantId(), effectiveActor, effectiveEmittedAt);
         Map<AlertEvent.AlertType, AlertPolicy> policyByType = indexPolicies(policies);
         List<AlertEvent> evaluatedAlerts = alertRuleApplicationService.evaluate(
             snapshot,
             policies,
-            effectiveOperator,
+            effectiveActor,
             effectiveEmittedAt
         );
         List<AlertEvent> emittedAlerts = new ArrayList<AlertEvent>();
         List<AlertNotificationLogRecord> notificationLogs = new ArrayList<AlertNotificationLogRecord>();
         int dedupeSuppressedCount = 0;
         for (AlertEvent alert : evaluatedAlerts) {
-            AlertPolicy policy = resolvePolicy(policyByType, alert, effectiveOperator, effectiveEmittedAt);
+            AlertPolicy policy = resolvePolicy(policyByType, alert, effectiveActor, effectiveEmittedAt);
             AlertEventRecord dedupeSource = findDedupeSource(alert, policy, effectiveEmittedAt);
             if (dedupeSource != null) {
                 AlertNotificationLogRecord dedupeLog = buildDedupeSuppressedLog(
                     dedupeSource,
                     alert,
                     policy,
-                    effectiveOperator,
+                    effectiveActor,
                     effectiveEmittedAt
                 );
                 alertNotificationLogMapper.insert(dedupeLog);
@@ -94,7 +94,7 @@ public class AlertEmissionApplicationService {
                 continue;
             }
             alertEventMapper.insert(toRecord(alert));
-            AlertNotificationLogRecord notifyLog = buildSimulatedNotifyLog(alert, policy, effectiveOperator, effectiveEmittedAt);
+            AlertNotificationLogRecord notifyLog = buildSimulatedNotifyLog(alert, policy, effectiveActor, effectiveEmittedAt);
             alertNotificationLogMapper.insert(notifyLog);
             alert.markNotified(effectiveEmittedAt, notifyLog.getDeliverySummary());
             alertEventMapper.update(toRecord(alert));
@@ -119,10 +119,10 @@ public class AlertEmissionApplicationService {
         );
     }
 
-    private List<AlertPolicy> resolvePolicies(String tenantId, String operator, Instant emittedAt) {
+    private List<AlertPolicy> resolvePolicies(String tenantId, String actor, Instant emittedAt) {
         List<AlertPolicyRecord> records = alertPolicyMapper.selectEnabledByTenantId(tenantId);
         if (records == null || records.isEmpty()) {
-            return AlertPolicyBaseline.defaultPoliciesForTenant(tenantId, operator, emittedAt);
+            return AlertPolicyBaseline.defaultPoliciesForTenant(tenantId, actor, emittedAt);
         }
         List<AlertPolicy> policies = new ArrayList<AlertPolicy>();
         for (AlertPolicyRecord record : records) {
@@ -132,7 +132,7 @@ public class AlertEmissionApplicationService {
             }
         }
         return policies.isEmpty()
-            ? AlertPolicyBaseline.defaultPoliciesForTenant(tenantId, operator, emittedAt)
+            ? AlertPolicyBaseline.defaultPoliciesForTenant(tenantId, actor, emittedAt)
             : policies;
     }
 
@@ -146,13 +146,13 @@ public class AlertEmissionApplicationService {
 
     private AlertPolicy resolvePolicy(Map<AlertEvent.AlertType, AlertPolicy> policyByType,
                                       AlertEvent alert,
-                                      String operator,
+                                      String actor,
                                       Instant emittedAt) {
         AlertPolicy policy = policyByType.get(alert.getAlertType());
         if (policy != null) {
             return policy;
         }
-        return AlertPolicyBaseline.defaultPoliciesForTenant(alert.getTenantId(), operator, emittedAt)
+        return AlertPolicyBaseline.defaultPoliciesForTenant(alert.getTenantId(), actor, emittedAt)
             .stream()
             .filter(candidate -> candidate.getAlertType() == alert.getAlertType())
             .findFirst()
@@ -179,7 +179,7 @@ public class AlertEmissionApplicationService {
 
     private AlertNotificationLogRecord buildSimulatedNotifyLog(AlertEvent alert,
                                                                AlertPolicy policy,
-                                                               String operator,
+                                                               String actor,
                                                                Instant emittedAt) {
         String subject = "[SQLForge][" + alert.getAlertLevel().name() + "] " + alert.getAlertType().name();
         String body = "通知已模拟发送\n"
@@ -212,7 +212,7 @@ public class AlertEmissionApplicationService {
         record.setMessageBody(body);
         record.setDeliverySummary("通知已通过模拟方式发送：" + policy.getNotifyChannel().name() + "，模板=" + SIMULATED_EMAIL_TEMPLATE);
         record.setPayloadJson(JsonUtils.toJson(payload));
-        record.setCreatedBy(operator);
+        record.setCreatedBy(actor);
         record.setCreatedAt(toLocalDateTime(emittedAt));
         return record;
     }
@@ -220,7 +220,7 @@ public class AlertEmissionApplicationService {
     private AlertNotificationLogRecord buildDedupeSuppressedLog(AlertEventRecord source,
                                                                 AlertEvent suppressed,
                                                                 AlertPolicy policy,
-                                                                String operator,
+                                                                String actor,
                                                                 Instant emittedAt) {
         String subject = "[SQLForge][DEDUPE_SUPPRESSED] " + suppressed.getAlertType().name();
         String body = "去重抑制已触发\n"
@@ -252,7 +252,7 @@ public class AlertEmissionApplicationService {
         record.setMessageBody(body);
         record.setDeliverySummary("去重抑制已触发，sourceAlertId=" + source.getAlertId());
         record.setPayloadJson(JsonUtils.toJson(payload));
-        record.setCreatedBy(operator);
+        record.setCreatedBy(actor);
         record.setCreatedAt(toLocalDateTime(emittedAt));
         return record;
     }
@@ -334,7 +334,7 @@ public class AlertEmissionApplicationService {
                 .initialNotifyStatus(record.getInitialNotifyStatus() == null
                     ? null
                     : AlertEvent.NotifyStatus.valueOf(record.getInitialNotifyStatus()))
-                .ownerRole(record.getOwnerRole())
+                .ownerScope(record.getOwnerScope())
                 .enabled(record.getEnabled())
                 .ruleConfigJson(record.getRuleConfigJson())
                 .createdBy(record.getCreatedBy())

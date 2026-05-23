@@ -20,7 +20,7 @@ class ReportInterfaceConfigApplicationServiceTest {
 
     @Test
     void shouldUpsertAndResolveBestMatchingReportInterfaceConfig() {
-        RequestContext.set("tenant-a", "admin-001", Arrays.asList("TENANT_ADMIN"), "request-001", "trace-001", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-001", "request-001", "trace-001", "header", 1L, 2L);
         ReportInterfaceConfigApplicationService service =
             new ReportInterfaceConfigApplicationService(new InMemoryReportInterfaceConfigRepository());
 
@@ -52,7 +52,7 @@ class ReportInterfaceConfigApplicationServiceTest {
 
     @Test
     void shouldUpdateExistingReportInterfaceConfig() {
-        RequestContext.set("tenant-a", "admin-003", Arrays.asList("TENANT_ADMIN"), "request-003", "trace-003", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-003", "request-003", "trace-003", "header", 1L, 2L);
         ReportInterfaceConfigApplicationService service =
             new ReportInterfaceConfigApplicationService(new InMemoryReportInterfaceConfigRepository());
 
@@ -76,7 +76,7 @@ class ReportInterfaceConfigApplicationServiceTest {
 
     @Test
     void shouldReturnMockFallbackWhenNoConfigExists() {
-        RequestContext.set("tenant-a", "admin-001", Arrays.asList("TENANT_ADMIN"), "request-002", "trace-002", "header", 1L, 2L);
+        RequestContext.set("tenant-a", "admin-001", "request-002", "trace-002", "header", 1L, 2L);
         ReportInterfaceConfigApplicationService service =
             new ReportInterfaceConfigApplicationService(new InMemoryReportInterfaceConfigRepository());
 
