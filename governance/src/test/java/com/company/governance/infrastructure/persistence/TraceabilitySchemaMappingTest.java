@@ -40,6 +40,10 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "target_object_key VARCHAR(255) NOT NULL");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS database_view_ref");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS database_view_dependency");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS metadata_snapshot");
+        assertContains(schema, "upstream_refs_json JSON DEFAULT NULL");
+        assertContains(schema, "downstream_refs_json JSON DEFAULT NULL");
+        assertContains(schema, "uk_metadata_snapshot_tenant_object");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS export_record");
         assertContains(schema, "config_snapshot_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "result_id VARCHAR(64) DEFAULT NULL");
@@ -57,6 +61,12 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "sensitive_flag TINYINT(1) NOT NULL DEFAULT 0");
         assertContains(schema, "value_ciphertext TEXT DEFAULT NULL");
         assertContains(schema, "encryption_key_id VARCHAR(64) DEFAULT NULL");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_interface_config");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS redis_rule_source");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS dispatch_policy");
+        assertContains(schema, "idx_report_interface_match");
+        assertContains(schema, "idx_redis_rule_source_tenant_enabled");
+        assertContains(schema, "idx_dispatch_policy_target");
     }
 
     @Test
@@ -130,6 +140,26 @@ class TraceabilitySchemaMappingTest {
     }
 
     @Test
+    void shouldProvideIncrementalMigrationForGovernanceConfigAndMetadataPersistence() throws IOException {
+        String migration = readRepositoryFile(
+            "sql/migrations/V20260523_001__governance_config_metadata_persistence.sql"
+        );
+
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS metadata_snapshot");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS report_interface_config");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS redis_rule_source");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS dispatch_policy");
+        assertContains(migration, "upstream_refs_json JSON DEFAULT NULL");
+        assertContains(migration, "uk_metadata_snapshot_tenant_object");
+        assertContains(migration, "idx_report_interface_match");
+        assertContains(migration, "idx_redis_rule_source_tenant_enabled");
+        assertContains(migration, "idx_dispatch_policy_target");
+        assertContains(migration, "INSERT INTO metadata_snapshot");
+        assertContains(migration, "snapshot-001");
+        assertContains(migration, "ON DUPLICATE KEY UPDATE");
+    }
+
+    @Test
     void shouldProvideIncrementalMigrationToDropLegacyForeignKeys() throws IOException {
         String migration = readRepositoryFile("sql/migrations/V20260423_017__drop_traceability_foreign_keys.sql");
 
@@ -155,6 +185,10 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/LogicalObjectMappingMapper.xml"), "target_object_key");
         assertContains(readMapper("mapper/DatabaseViewMapper.xml"), "FROM database_view_ref");
         assertContains(readMapper("mapper/DatabaseViewDependencyMapper.xml"), "FROM database_view_dependency");
+        assertContains(readMapper("mapper/MetadataSnapshotMapper.xml"), "FROM metadata_snapshot");
+        assertContains(readMapper("mapper/MetadataSnapshotMapper.xml"), "upstream_refs_json");
+        assertContains(readMapper("mapper/MetadataSnapshotMapper.xml"), "ON DUPLICATE KEY UPDATE");
+        assertContains(readMapper("mapper/MetadataSnapshotMapper.xml"), "selectSnapshots");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "FROM query_history");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "result_id");
         assertContains(readMapper("mapper/QueryHistoryMapper.xml"), "sql_template_cipher");
@@ -178,6 +212,12 @@ class TraceabilitySchemaMappingTest {
         assertContains(readMapper("mapper/SystemConfigMapper.xml"), "FROM system_config");
         assertContains(readMapper("mapper/SystemConfigMapper.xml"), "value_ciphertext");
         assertContains(readMapper("mapper/SystemConfigMapper.xml"), "encryption_key_id");
+        assertContains(readMapper("mapper/ReportInterfaceConfigMapper.xml"), "FROM report_interface_config");
+        assertContains(readMapper("mapper/ReportInterfaceConfigMapper.xml"), "selectMatchCandidates");
+        assertContains(readMapper("mapper/RedisRuleSourceMapper.xml"), "FROM redis_rule_source");
+        assertContains(readMapper("mapper/RedisRuleSourceMapper.xml"), "selectByTenantIdAndSourceId");
+        assertContains(readMapper("mapper/DispatchPolicyMapper.xml"), "FROM dispatch_policy");
+        assertContains(readMapper("mapper/DispatchPolicyMapper.xml"), "selectByTenantId");
     }
 
     private static String readMapper(String resourcePath) throws IOException {

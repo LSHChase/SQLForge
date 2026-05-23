@@ -30,6 +30,14 @@ sql-optimization:
     strategy: ${SQL_OPTIMIZATION_PARSER_STRATEGY:JSQLPARSER}
   parse-history:
     repository: ${SQL_OPTIMIZATION_PARSE_HISTORY_REPOSITORY:database}
+  parse-batch:
+    repository: ${SQL_OPTIMIZATION_PARSE_BATCH_REPOSITORY:database}
+  recommendation:
+    repository: ${SQL_OPTIMIZATION_RECOMMENDATION_REPOSITORY:database}
+  dispatch-event:
+    repository: ${SQL_OPTIMIZATION_DISPATCH_EVENT_REPOSITORY:database}
+  rewrite-trial:
+    repository: ${SQL_OPTIMIZATION_REWRITE_TRIAL_REPOSITORY:database}
   task-model:
     isolated-queue: true
     contract-stage: LONG_TERM_BASELINE

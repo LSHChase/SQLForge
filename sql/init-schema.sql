@@ -653,6 +653,45 @@ CREATE TABLE IF NOT EXISTS database_view_dependency (
   KEY idx_database_view_dependency_key (tenant_id, dependency_object_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Database view dependency catalog';
 
+CREATE TABLE IF NOT EXISTS metadata_snapshot (
+  snapshot_id VARCHAR(64) NOT NULL COMMENT '元数据快照标识符',
+  tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT '数据源编码',
+  object_type VARCHAR(32) NOT NULL COMMENT '对象类型：LOGICAL_VIEW/DB_VIEW/TABLE 等',
+  object_key VARCHAR(255) NOT NULL COMMENT '规范对象键',
+  object_name VARCHAR(255) DEFAULT NULL COMMENT '对象显示名称',
+  catalog_name VARCHAR(128) DEFAULT NULL COMMENT 'Catalog 名称',
+  schema_name VARCHAR(128) DEFAULT NULL COMMENT 'Schema 名称',
+  freshness_status VARCHAR(32) DEFAULT NULL COMMENT '新鲜度状态',
+  sla_status VARCHAR(32) DEFAULT NULL COMMENT 'SLA 状态',
+  queryability_status VARCHAR(32) DEFAULT NULL COMMENT '可查询状态',
+  evidence_status VARCHAR(32) DEFAULT NULL COMMENT '证据采集状态',
+  latest_refresh_time DATETIME DEFAULT NULL COMMENT '最近刷新时间',
+  expected_sla_time DATETIME DEFAULT NULL COMMENT '预期 SLA 时间',
+  snapshot_time DATETIME DEFAULT NULL COMMENT '快照采集时间',
+  evidence_source VARCHAR(64) DEFAULT NULL COMMENT '证据来源',
+  column_count INT DEFAULT NULL COMMENT '字段数量',
+  partition_count INT DEFAULT NULL COMMENT '分区数量',
+  row_count BIGINT DEFAULT NULL COMMENT '行数估计',
+  storage_bytes BIGINT DEFAULT NULL COMMENT '存储字节数估计',
+  request_id VARCHAR(64) DEFAULT NULL COMMENT '请求标识符',
+  trace_id VARCHAR(64) DEFAULT NULL COMMENT '追踪标识符',
+  execution_id VARCHAR(64) DEFAULT NULL COMMENT '执行标识符',
+  history_id VARCHAR(128) DEFAULT NULL COMMENT '查询或解析历史标识符',
+  parse_task_id VARCHAR(64) DEFAULT NULL COMMENT '解析任务标识符',
+  report_code VARCHAR(128) DEFAULT NULL COMMENT '关联报表编码',
+  sql_fingerprint VARCHAR(128) DEFAULT NULL COMMENT '归一化 SQL 指纹',
+  upstream_refs_json JSON DEFAULT NULL COMMENT '上游血缘引用快照',
+  downstream_refs_json JSON DEFAULT NULL COMMENT '下游血缘引用快照',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间戳',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
+  PRIMARY KEY (snapshot_id),
+  UNIQUE KEY uk_metadata_snapshot_tenant_object (tenant_id, object_key),
+  KEY idx_metadata_snapshot_tenant_type_time (tenant_id, object_type, snapshot_time),
+  KEY idx_metadata_snapshot_datasource_time (tenant_id, datasource_code, snapshot_time),
+  KEY idx_metadata_snapshot_status (tenant_id, freshness_status, sla_status, queryability_status, evidence_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governance metadata snapshot catalog';
+
 CREATE TABLE IF NOT EXISTS sql_parse_history (
   parse_history_id VARCHAR(128) NOT NULL COMMENT 'sql-optimization 持有的 SQL 解析历史标识符',
   tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
@@ -1150,6 +1189,67 @@ CREATE TABLE IF NOT EXISTS system_config (
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
   PRIMARY KEY (config_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Global platform configuration';
+
+CREATE TABLE IF NOT EXISTS report_interface_config (
+  config_id VARCHAR(64) NOT NULL COMMENT '报表接口配置标识符',
+  tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT '匹配的数据源编码，空值表示默认配置',
+  stage VARCHAR(32) DEFAULT NULL COMMENT '匹配的环境阶段，空值表示默认配置',
+  source_type VARCHAR(32) NOT NULL DEFAULT 'HTTP_API' COMMENT '报表 SQL 来源类型',
+  endpoint_code VARCHAR(128) NOT NULL COMMENT '接口编码',
+  endpoint_name VARCHAR(255) DEFAULT NULL COMMENT '接口显示名称',
+  base_url VARCHAR(1024) DEFAULT NULL COMMENT 'HTTP API 基础 URL',
+  path_template VARCHAR(512) NOT NULL DEFAULT '/reports/sql' COMMENT '接口路径模板',
+  http_method VARCHAR(16) NOT NULL DEFAULT 'GET' COMMENT 'HTTP 方法',
+  report_code_param_name VARCHAR(128) NOT NULL DEFAULT 'report_code' COMMENT '报表编码参数名',
+  sql_json_path VARCHAR(255) NOT NULL DEFAULT '$.sql' COMMENT 'SQL 字段 JSONPath',
+  auth_mode VARCHAR(32) NOT NULL DEFAULT 'NONE' COMMENT '认证模式',
+  timeout_ms INT NOT NULL DEFAULT 3000 COMMENT '调用超时时间，单位毫秒',
+  enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '启用标志',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间戳',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
+  PRIMARY KEY (config_id),
+  UNIQUE KEY uk_report_interface_tenant_endpoint (tenant_id, endpoint_code),
+  KEY idx_report_interface_match (tenant_id, datasource_code, stage, enabled),
+  KEY idx_report_interface_tenant_time (tenant_id, update_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governance report interface configuration';
+
+CREATE TABLE IF NOT EXISTS redis_rule_source (
+  source_id VARCHAR(64) NOT NULL COMMENT 'Redis 规则来源标识符',
+  tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
+  source_name VARCHAR(128) NOT NULL COMMENT '来源显示名称',
+  redis_endpoints VARCHAR(1024) DEFAULT NULL COMMENT 'Redis 端点列表',
+  redis_namespace VARCHAR(128) NOT NULL DEFAULT 'sqlforge:rules' COMMENT 'Redis 命名空间',
+  key_pattern VARCHAR(255) NOT NULL DEFAULT 'jdbc-agent:*' COMMENT '规则 key 匹配模式',
+  auth_mode VARCHAR(32) NOT NULL DEFAULT 'NONE' COMMENT '认证模式',
+  credential_ref VARCHAR(255) DEFAULT NULL COMMENT '外部凭据引用',
+  bypass_on_unavailable TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Redis 不可用时是否旁路',
+  enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '启用标志',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间戳',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
+  PRIMARY KEY (source_id),
+  KEY idx_redis_rule_source_tenant_time (tenant_id, update_time),
+  KEY idx_redis_rule_source_tenant_enabled (tenant_id, enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governance Redis rule source configuration';
+
+CREATE TABLE IF NOT EXISTS dispatch_policy (
+  policy_id VARCHAR(64) NOT NULL COMMENT '分发策略标识符',
+  tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
+  policy_name VARCHAR(128) NOT NULL COMMENT '策略显示名称',
+  dispatch_type VARCHAR(32) NOT NULL DEFAULT 'PULL_ONLY' COMMENT '分发类型',
+  target_engine VARCHAR(64) DEFAULT NULL COMMENT '目标执行引擎',
+  target_datasource VARCHAR(128) DEFAULT NULL COMMENT '目标数据源',
+  ack_mode VARCHAR(32) NOT NULL DEFAULT 'MANUAL' COMMENT '确认模式',
+  pull_window_seconds INT NOT NULL DEFAULT 60 COMMENT '外部拉取窗口，单位秒',
+  max_batch_size INT NOT NULL DEFAULT 100 COMMENT '最大批量条数',
+  retry_strategy VARCHAR(64) NOT NULL DEFAULT 'MANUAL_RETRY' COMMENT '重试策略',
+  enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '启用标志',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间戳',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
+  PRIMARY KEY (policy_id),
+  KEY idx_dispatch_policy_tenant_time (tenant_id, update_time),
+  KEY idx_dispatch_policy_target (tenant_id, target_engine, target_datasource, enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governance dispatch policy configuration';
 
 CREATE TABLE IF NOT EXISTS datasource_config (
   datasource_id VARCHAR(64) NOT NULL COMMENT '数据源配置标识符',

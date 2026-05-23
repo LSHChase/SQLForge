@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.MetadataSnapshotMapper">
+
+    <resultMap id="MetadataSnapshotResultMap" type="com.company.governance.infrastructure.persistence.entity.MetadataSnapshotRecord">
+        <id property="snapshotId" column="snapshot_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="objectType" column="object_type"/>
+        <result property="objectKey" column="object_key"/>
+        <result property="objectName" column="object_name"/>
+        <result property="catalogName" column="catalog_name"/>
+        <result property="schemaName" column="schema_name"/>
+        <result property="freshnessStatus" column="freshness_status"/>
+        <result property="slaStatus" column="sla_status"/>
+        <result property="queryabilityStatus" column="queryability_status"/>
+        <result property="evidenceStatus" column="evidence_status"/>
+        <result property="latestRefreshTime" column="latest_refresh_time"/>
+        <result property="expectedSlaTime" column="expected_sla_time"/>
+        <result property="snapshotTime" column="snapshot_time"/>
+        <result property="evidenceSource" column="evidence_source"/>
+        <result property="columnCount" column="column_count"/>
+        <result property="partitionCount" column="partition_count"/>
+        <result property="rowCount" column="row_count"/>
+        <result property="storageBytes" column="storage_bytes"/>
+        <result property="requestId" column="request_id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="executionId" column="execution_id"/>
+        <result property="historyId" column="history_id"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <result property="upstreamRefsJson" column="upstream_refs_json"/>
+        <result property="downstreamRefsJson" column="downstream_refs_json"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        snapshot_id,
+        tenant_id,
+        datasource_code,
+        object_type,
+        object_key,
+        object_name,
+        catalog_name,
+        schema_name,
+        freshness_status,
+        sla_status,
+        queryability_status,
+        evidence_status,
+        latest_refresh_time,
+        expected_sla_time,
+        snapshot_time,
+        evidence_source,
+        column_count,
+        partition_count,
+        row_count,
+        storage_bytes,
+        request_id,
+        trace_id,
+        execution_id,
+        history_id,
+        parse_task_id,
+        report_code,
+        sql_fingerprint,
+        upstream_refs_json,
+        downstream_refs_json,
+        create_time,
+        update_time
+    </sql>
+
+    <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.MetadataSnapshotRecord">
+        INSERT INTO metadata_snapshot (
+            snapshot_id,
+            tenant_id,
+            datasource_code,
+            object_type,
+            object_key,
+            object_name,
+            catalog_name,
+            schema_name,
+            freshness_status,
+            sla_status,
+            queryability_status,
+            evidence_status,
+            latest_refresh_time,
+            expected_sla_time,
+            snapshot_time,
+            evidence_source,
+            column_count,
+            partition_count,
+            row_count,
+            storage_bytes,
+            request_id,
+            trace_id,
+            execution_id,
+            history_id,
+            parse_task_id,
+            report_code,
+            sql_fingerprint,
+            upstream_refs_json,
+            downstream_refs_json,
+            create_time,
+            update_time
+        ) VALUES (
+            #{snapshotId},
+            #{tenantId},
+            #{datasourceCode},
+            #{objectType},
+            #{objectKey},
+            #{objectName},
+            #{catalogName},
+            #{schemaName},
+            #{freshnessStatus},
+            #{slaStatus},
+            #{queryabilityStatus},
+            #{evidenceStatus},
+            #{latestRefreshTime},
+            #{expectedSlaTime},
+            #{snapshotTime},
+            #{evidenceSource},
+            #{columnCount},
+            #{partitionCount},
+            #{rowCount},
+            #{storageBytes},
+            #{requestId},
+            #{traceId},
+            #{executionId},
+            #{historyId},
+            #{parseTaskId},
+            #{reportCode},
+            #{sqlFingerprint},
+            #{upstreamRefsJson},
+            #{downstreamRefsJson},
+            #{createTime},
+            #{updateTime}
+        )
+        ON DUPLICATE KEY UPDATE
+            datasource_code = VALUES(datasource_code),
+            object_type = VALUES(object_type),
+            object_key = VALUES(object_key),
+            object_name = VALUES(object_name),
+            catalog_name = VALUES(catalog_name),
+            schema_name = VALUES(schema_name),
+            freshness_status = VALUES(freshness_status),
+            sla_status = VALUES(sla_status),
+            queryability_status = VALUES(queryability_status),
+            evidence_status = VALUES(evidence_status),
+            latest_refresh_time = VALUES(latest_refresh_time),
+            expected_sla_time = VALUES(expected_sla_time),
+            snapshot_time = VALUES(snapshot_time),
+            evidence_source = VALUES(evidence_source),
+            column_count = VALUES(column_count),
+            partition_count = VALUES(partition_count),
+            row_count = VALUES(row_count),
+            storage_bytes = VALUES(storage_bytes),
+            request_id = VALUES(request_id),
+            trace_id = VALUES(trace_id),
+            execution_id = VALUES(execution_id),
+            history_id = VALUES(history_id),
+            parse_task_id = VALUES(parse_task_id),
+            report_code = VALUES(report_code),
+            sql_fingerprint = VALUES(sql_fingerprint),
+            upstream_refs_json = VALUES(upstream_refs_json),
+            downstream_refs_json = VALUES(downstream_refs_json),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <select id="selectByTenantAndObjectKey" resultMap="MetadataSnapshotResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM metadata_snapshot
+        WHERE tenant_id = #{tenantId}
+          AND object_key = #{objectKey}
+    </select>
+
+    <select id="selectSnapshots" resultMap="MetadataSnapshotResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM metadata_snapshot
+        WHERE tenant_id = #{tenantId}
+        <if test="datasourceCode != null and datasourceCode != ''">
+          AND UPPER(datasource_code) = UPPER(#{datasourceCode})
+        </if>
+        <if test="objectType != null and objectType != ''">
+          AND UPPER(object_type) = UPPER(#{objectType})
+        </if>
+        <if test="objectKey != null and objectKey != ''">
+          AND UPPER(object_key) = UPPER(#{objectKey})
+        </if>
+        <if test="freshnessStatus != null and freshnessStatus != ''">
+          AND UPPER(freshness_status) = UPPER(#{freshnessStatus})
+        </if>
+        <if test="slaStatus != null and slaStatus != ''">
+          AND UPPER(sla_status) = UPPER(#{slaStatus})
+        </if>
+        <if test="queryabilityStatus != null and queryabilityStatus != ''">
+          AND UPPER(queryability_status) = UPPER(#{queryabilityStatus})
+        </if>
+        <if test="evidenceStatus != null and evidenceStatus != ''">
+          AND UPPER(evidence_status) = UPPER(#{evidenceStatus})
+        </if>
+        ORDER BY snapshot_time DESC, object_key ASC
+    </select>
+</mapper>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.RedisRuleSourceMapper">
+
+    <resultMap id="RedisRuleSourceResultMap" type="com.company.governance.infrastructure.persistence.entity.RedisRuleSourceRecord">
+        <id property="sourceId" column="source_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sourceName" column="source_name"/>
+        <result property="redisEndpoints" column="redis_endpoints"/>
+        <result property="redisNamespace" column="redis_namespace"/>
+        <result property="keyPattern" column="key_pattern"/>
+        <result property="authMode" column="auth_mode"/>
+        <result property="credentialRef" column="credential_ref"/>
+        <result property="bypassOnUnavailable" column="bypass_on_unavailable"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        source_id,
+        tenant_id,
+        source_name,
+        redis_endpoints,
+        redis_namespace,
+        key_pattern,
+        auth_mode,
+        credential_ref,
+        bypass_on_unavailable,
+        enabled,
+        create_time,
+        update_time
+    </sql>
+
+    <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.RedisRuleSourceRecord">
+        INSERT INTO redis_rule_source (
+            source_id,
+            tenant_id,
+            source_name,
+            redis_endpoints,
+            redis_namespace,
+            key_pattern,
+            auth_mode,
+            credential_ref,
+            bypass_on_unavailable,
+            enabled,
+            create_time,
+            update_time
+        ) VALUES (
+            #{sourceId},
+            #{tenantId},
+            #{sourceName},
+            #{redisEndpoints},
+            #{redisNamespace},
+            #{keyPattern},
+            #{authMode},
+            #{credentialRef},
+            #{bypassOnUnavailable},
+            #{enabled},
+            #{createTime},
+            #{updateTime}
+        )
+        ON DUPLICATE KEY UPDATE
+            source_name = VALUES(source_name),
+            redis_endpoints = VALUES(redis_endpoints),
+            redis_namespace = VALUES(redis_namespace),
+            key_pattern = VALUES(key_pattern),
+            auth_mode = VALUES(auth_mode),
+            credential_ref = VALUES(credential_ref),
+            bypass_on_unavailable = VALUES(bypass_on_unavailable),
+            enabled = VALUES(enabled),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <select id="selectByTenantIdAndSourceId" resultMap="RedisRuleSourceResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM redis_rule_source
+        WHERE tenant_id = #{tenantId}
+          AND source_id = #{sourceId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="RedisRuleSourceResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM redis_rule_source
+        WHERE tenant_id = #{tenantId}
+        ORDER BY source_name ASC, update_time DESC
+    </select>
+</mapper>

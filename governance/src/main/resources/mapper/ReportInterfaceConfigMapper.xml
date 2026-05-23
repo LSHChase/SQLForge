@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.ReportInterfaceConfigMapper">
+
+    <resultMap id="ReportInterfaceConfigResultMap" type="com.company.governance.infrastructure.persistence.entity.ReportInterfaceConfigRecord">
+        <id property="configId" column="config_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="stage" column="stage"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="endpointCode" column="endpoint_code"/>
+        <result property="endpointName" column="endpoint_name"/>
+        <result property="baseUrl" column="base_url"/>
+        <result property="pathTemplate" column="path_template"/>
+        <result property="httpMethod" column="http_method"/>
+        <result property="reportCodeParamName" column="report_code_param_name"/>
+        <result property="sqlJsonPath" column="sql_json_path"/>
+        <result property="authMode" column="auth_mode"/>
+        <result property="timeoutMs" column="timeout_ms"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        config_id,
+        tenant_id,
+        datasource_code,
+        stage,
+        source_type,
+        endpoint_code,
+        endpoint_name,
+        base_url,
+        path_template,
+        http_method,
+        report_code_param_name,
+        sql_json_path,
+        auth_mode,
+        timeout_ms,
+        enabled,
+        create_time,
+        update_time
+    </sql>
+
+    <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.ReportInterfaceConfigRecord">
+        INSERT INTO report_interface_config (
+            config_id,
+            tenant_id,
+            datasource_code,
+            stage,
+            source_type,
+            endpoint_code,
+            endpoint_name,
+            base_url,
+            path_template,
+            http_method,
+            report_code_param_name,
+            sql_json_path,
+            auth_mode,
+            timeout_ms,
+            enabled,
+            create_time,
+            update_time
+        ) VALUES (
+            #{configId},
+            #{tenantId},
+            #{datasourceCode},
+            #{stage},
+            #{sourceType},
+            #{endpointCode},
+            #{endpointName},
+            #{baseUrl},
+            #{pathTemplate},
+            #{httpMethod},
+            #{reportCodeParamName},
+            #{sqlJsonPath},
+            #{authMode},
+            #{timeoutMs},
+            #{enabled},
+            #{createTime},
+            #{updateTime}
+        )
+        ON DUPLICATE KEY UPDATE
+            datasource_code = VALUES(datasource_code),
+            stage = VALUES(stage),
+            source_type = VALUES(source_type),
+            endpoint_code = VALUES(endpoint_code),
+            endpoint_name = VALUES(endpoint_name),
+            base_url = VALUES(base_url),
+            path_template = VALUES(path_template),
+            http_method = VALUES(http_method),
+            report_code_param_name = VALUES(report_code_param_name),
+            sql_json_path = VALUES(sql_json_path),
+            auth_mode = VALUES(auth_mode),
+            timeout_ms = VALUES(timeout_ms),
+            enabled = VALUES(enabled),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <select id="selectByTenantIdAndConfigId" resultMap="ReportInterfaceConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM report_interface_config
+        WHERE tenant_id = #{tenantId}
+          AND config_id = #{configId}
+    </select>
+
+    <select id="selectByTenantId" resultMap="ReportInterfaceConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM report_interface_config
+        WHERE tenant_id = #{tenantId}
+        ORDER BY endpoint_code ASC, update_time DESC
+    </select>
+
+    <select id="selectMatchCandidates" resultMap="ReportInterfaceConfigResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM report_interface_config
+        WHERE tenant_id = #{tenantId}
+          AND (datasource_code IS NULL OR datasource_code = '' OR datasource_code = #{datasourceCode})
+          AND (stage IS NULL OR stage = '' OR stage = #{stage})
+        ORDER BY
+          (CASE WHEN datasource_code IS NULL OR datasource_code = '' THEN 0 ELSE 2 END
+           + CASE WHEN stage IS NULL OR stage = '' THEN 0 ELSE 1 END) DESC,
+          update_time DESC
+    </select>
+</mapper>

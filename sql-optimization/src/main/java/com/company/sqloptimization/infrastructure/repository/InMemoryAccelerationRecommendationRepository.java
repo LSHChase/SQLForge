@@ -10,11 +10,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@Primary
+@ConditionalOnProperty(prefix = "sql-optimization.recommendation", name = "repository", havingValue = "test")
 public class InMemoryAccelerationRecommendationRepository implements AccelerationRecommendationRepository {
 
     private final Map<String, AccelerationRecommendation> recommendations =

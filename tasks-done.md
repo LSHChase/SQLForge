@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-PERSIST-INMEMORY-FUNCTIONS-20260523: 持久化原 in-memory 功能数据
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `Persist former in-memory records`
+- Priority: 1
+- Depends on: N/A
+- Scope: 将 parse_batch、acceleration_recommendation、dispatch_event、rewrite_trial、report_interface_config、metadata_snapshot、redis_rule_source、dispatch_policy 从默认内存实现切换为 MySQL/MyBatis 持久化
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-PERSIST-INMEMORY-FUNCTIONS-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 将 sql-optimization 四项默认 repository 切到 MySQL，并为 governance 的 report_interface_config、metadata_snapshot、redis_rule_source、dispatch_policy 补齐 MyBatis repository、mapper、DDL、seed 与文档/测试映射。
+  - Validation evidence: mvn -pl governance,sql-optimization -am -Dtest=TraceabilitySchemaMappingTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl governance -am -Dtest=ReportInterfaceConfigApplicationServiceTest,MetadataSnapshotApplicationServiceTest,RedisRuleSourceApplicationServiceTest,DispatchPolicyApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization -am -Dtest=ParseBatchApplicationServiceTest,AccelerationRecommendationApplicationServiceTest,DispatchEventApplicationServiceTest,RewriteTrialApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；python3 scripts/foreman.py validate USER-CN-PERSIST-INMEMORY-FUNCTIONS-20260523；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未连接真实 MySQL 执行 DDL；当前验证覆盖编译、mapper/schema 文本一致性和相关服务单测。
+  - Next step: 如需环境级确认，在测试 MySQL 执行 sql/migrations/V20260523_001__governance_config_metadata_persistence.sql 和 sql/init-data.sql。
+
 ### USER-CN-REMOVE-MULTI-ROLE-PERMISSION-CORE-20260523: 清理核心引擎多角色与权限原则
 
 - Status: done

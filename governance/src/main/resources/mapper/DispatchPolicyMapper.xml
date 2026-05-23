@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.governance.infrastructure.persistence.mapper.DispatchPolicyMapper">
+
+    <resultMap id="DispatchPolicyResultMap" type="com.company.governance.infrastructure.persistence.entity.DispatchPolicyRecord">
+        <id property="policyId" column="policy_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="policyName" column="policy_name"/>
+        <result property="dispatchType" column="dispatch_type"/>
+        <result property="targetEngine" column="target_engine"/>
+        <result property="targetDatasource" column="target_datasource"/>
+        <result property="ackMode" column="ack_mode"/>
+        <result property="pullWindowSeconds" column="pull_window_seconds"/>
+        <result property="maxBatchSize" column="max_batch_size"/>
+        <result property="retryStrategy" column="retry_strategy"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        policy_id,
+        tenant_id,
+        policy_name,
+        dispatch_type,
+        target_engine,
+        target_datasource,
+        ack_mode,
+        pull_window_seconds,
+        max_batch_size,
+        retry_strategy,
+        enabled,
+        create_time,
+        update_time
+    </sql>
+
+    <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.DispatchPolicyRecord">
+        INSERT INTO dispatch_policy (
+            policy_id,
+            tenant_id,
+            policy_name,
+            dispatch_type,
+            target_engine,
+            target_datasource,
+            ack_mode,
+            pull_window_seconds,
+            max_batch_size,
+            retry_strategy,
+            enabled,
+            create_time,
+            update_time
+        ) VALUES (
+            #{policyId},
+            #{tenantId},
+            #{policyName},
+            #{dispatchType},
+            #{targetEngine},
+            #{targetDatasource},
+            #{ackMode},
+            #{pullWindowSeconds},
+            #{maxBatchSize},
+            #{retryStrategy},
+            #{enabled},
+            #{createTime},
+            #{updateTime}
+        )
+        ON DUPLICATE KEY UPDATE
+            policy_name = VALUES(policy_name),
+            dispatch_type = VALUES(dispatch_type),
+            target_engine = VALUES(target_engine),
+            target_datasource = VALUES(target_datasource),
+            ack_mode = VALUES(ack_mode),
+            pull_window_seconds = VALUES(pull_window_seconds),
+            max_batch_size = VALUES(max_batch_size),
+            retry_strategy = VALUES(retry_strategy),
+            enabled = VALUES(enabled),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <select id="selectByTenantId" resultMap="DispatchPolicyResultMap">
+        SELECT
+        <include refid="BaseColumns"/>
+        FROM dispatch_policy
+        WHERE tenant_id = #{tenantId}
+        ORDER BY policy_name ASC, update_time DESC
+    </select>
+</mapper>

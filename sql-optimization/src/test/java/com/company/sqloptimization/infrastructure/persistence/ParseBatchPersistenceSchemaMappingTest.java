@@ -176,6 +176,22 @@ class ParseBatchPersistenceSchemaMappingTest {
     }
 
     @Test
+    void shouldDefaultRuntimeRepositoriesToDatabaseAndKeepTestsOnFixtures() throws IOException {
+        String runtimeConfig = readRepositoryFile("sql-optimization/src/main/resources/application.yml");
+        assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_PARSE_BATCH_REPOSITORY:database}");
+        assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_RECOMMENDATION_REPOSITORY:database}");
+        assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_DISPATCH_EVENT_REPOSITORY:database}");
+        assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_REWRITE_TRIAL_REPOSITORY:database}");
+
+        String testConfig = readRepositoryFile("sql-optimization/src/test/resources/application-test.yml");
+        assertContains(testConfig, "parse-batch:");
+        assertContains(testConfig, "recommendation:");
+        assertContains(testConfig, "dispatch-event:");
+        assertContains(testConfig, "rewrite-trial:");
+        assertContains(testConfig, "repository: test");
+    }
+
+    @Test
     void shouldKeepReportBatchMappersAlignedWithHistoryQueries() throws IOException {
         String mapper = readMapper("mapper/ReportBatchMapper.xml");
         assertContains(mapper, "FROM report_batch");

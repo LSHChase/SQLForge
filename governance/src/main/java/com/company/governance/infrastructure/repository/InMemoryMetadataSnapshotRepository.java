@@ -11,10 +11,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-@Repository
 public class InMemoryMetadataSnapshotRepository implements MetadataSnapshotRepository {
 
     private final Map<String, MetadataSnapshot> snapshots = new LinkedHashMap<String, MetadataSnapshot>();
@@ -119,6 +117,12 @@ public class InMemoryMetadataSnapshotRepository implements MetadataSnapshotRepos
         snapshots.put(key(logicalViewSnapshot.getTenantId(), logicalViewSnapshot.getObjectKey()), logicalViewSnapshot);
         snapshots.put(key(dbViewSnapshot.getTenantId(), dbViewSnapshot.getObjectKey()), dbViewSnapshot);
         snapshots.put(key(physicalTableSnapshot.getTenantId(), physicalTableSnapshot.getObjectKey()), physicalTableSnapshot);
+    }
+
+    @Override
+    public MetadataSnapshot save(MetadataSnapshot snapshot) {
+        snapshots.put(key(snapshot.getTenantId(), snapshot.getObjectKey()), snapshot);
+        return snapshot;
     }
 
     @Override

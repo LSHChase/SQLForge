@@ -6,6 +6,8 @@ import java.util.Optional;
 
 public interface MetadataSnapshotRepository {
 
+    MetadataSnapshot save(MetadataSnapshot snapshot);
+
     List<MetadataSnapshot> findSnapshots(String tenantId,
                                          String datasourceCode,
                                          String objectType,

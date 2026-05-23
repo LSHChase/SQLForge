@@ -18,6 +18,8 @@
 - `benchmark-engine` 当前已通过 `governance` 内部 `benchmark/report-trace/write` 与 `alerts/benchmark-regression/emit` 受保护入口，把 benchmark report artifact 的 `config_snapshot/execution_result/query_history/export_record` 编排写入接到真实追溯链，并在 `REGRESSION_GUARD` 失败阈值场景下把治理告警 linkage 回写到 `benchmark_task_report`。
 - `sql-optimization` 当前也已通过 `governance` 内部 `acceleration-plan/trace/write` 受保护入口，把 acceleration plan 的 `config_snapshot/execution_result/query_history` 编排写入接到真实追溯链。
 - `sql-optimization` 当前默认使用 MySQL `sql_parse_history` 作为 SQL 解析记录载体，主运行时不再注册 in-memory parse history repository；测试若需内存实现必须显式装配 test fixture。
+- `sql-optimization` 当前默认使用 MySQL `parse_batch` / `parse_batch_item`、`acceleration_recommendation`、`dispatch_event`、`rewrite_trial_run` / `rewrite_trial_item` 作为批量解析、推荐、分发事件与改写试跑载体；对应 in-memory repository 只在 `repository=test` 的单元测试 profile 下注册。
+- `governance` 当前默认使用 MySQL `report_interface_config`、`metadata_snapshot`、`redis_rule_source`、`dispatch_policy` 承载报表接口配置、元数据快照、Redis 规则来源与分发策略；原 in-memory repository 保留为测试 fixture，不再作为 Spring 默认 bean。
 - `query-execution` 当前通过 `governance` 内部 `query-execution-history/write` 受保护入口提交 SQL 执行证据，由 `governance` 在自身持久化边界内写入 `execution_result`、`query_history` 与关联 `audit_log`，不直接操作治理表。
 - 因此，Phase-D 的核心追溯链当前在 `governance` 内以 schema + entity + mapper XML 形式固化，同时允许 `sql-optimization` 与 `benchmark-engine` 在独立任务/报告表上落真实 carrier，并通过受保护入口把跨服务 trace/export 编排接回治理链，避免异步任务实现继续漂移。
 
@@ -139,17 +141,26 @@
 | `alert_policy` | `AlertPolicyRecord` | `governance/src/main/resources/mapper/AlertPolicyMapper.xml` |
 | `alert_event` | `AlertEventRecord` | `governance/src/main/resources/mapper/AlertEventMapper.xml` |
 | `alert_notification_log` | `AlertNotificationLogRecord` | `governance/src/main/resources/mapper/AlertNotificationLogMapper.xml` |
+| `metadata_snapshot` | `MetadataSnapshotRecord` | `governance/src/main/resources/mapper/MetadataSnapshotMapper.xml` |
+| `report_interface_config` | `ReportInterfaceConfigRecord` | `governance/src/main/resources/mapper/ReportInterfaceConfigMapper.xml` |
+| `redis_rule_source` | `RedisRuleSourceRecord` | `governance/src/main/resources/mapper/RedisRuleSourceMapper.xml` |
+| `dispatch_policy` | `DispatchPolicyRecord` | `governance/src/main/resources/mapper/DispatchPolicyMapper.xml` |
 | `optimization_task` | `OptimizationTaskRecord` | `sql-optimization/src/main/resources/mapper/OptimizationTaskMapper.xml` |
 | `acceleration_plan` | `AccelerationPlanRecord` | `sql-optimization/src/main/resources/mapper/AccelerationPlanMapper.xml` |
 | `acceleration_candidate` | `AccelerationCandidateRecord` | `sql-optimization/src/main/resources/mapper/AccelerationCandidateMapper.xml` |
 | `sql_rewrite_record` | `SqlRewriteRecordRecord` | `sql-optimization/src/main/resources/mapper/SqlRewriteRecordMapper.xml` |
 | `rewrite_validation_run` | `RewriteValidationRunRecord` | `sql-optimization/src/main/resources/mapper/RewriteValidationRunMapper.xml` |
+| `parse_batch` | `ParseBatchRecord` | `sql-optimization/src/main/resources/mapper/ParseBatchMapper.xml` |
+| `parse_batch_item` | `ParseBatchItemRecord` | `sql-optimization/src/main/resources/mapper/ParseBatchItemMapper.xml` |
+| `acceleration_recommendation` | `AccelerationRecommendationRecord` | `sql-optimization/src/main/resources/mapper/AccelerationRecommendationMapper.xml` |
+| `dispatch_event` | `DispatchEventRecord` | `sql-optimization/src/main/resources/mapper/DispatchEventMapper.xml` |
+| `rewrite_trial_run` / `rewrite_trial_item` | `RewriteTrialRunRecord` / `RewriteTrialItemRecord` | `sql-optimization/src/main/resources/mapper/RewriteTrialMapper.xml` |
 | `benchmark_task` | `BenchmarkTaskRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkTaskMapper.xml` |
 | `benchmark_task_report` | `BenchmarkReportRecord` | `benchmark-engine/src/main/resources/mapper/BenchmarkReportMapper.xml` |
 当前 `benchmark_task.scale_target_json` 持久化压测声明的生产规模目标与 `TARGET_DECLARED_UNVERIFIED` 证据边界，用于把 10000 并发、30PB 数据集、千万日查询、高复杂度和成本目标接入任务状态、审计与 execution summary；其中 `evidenceManifest.verificationBundle` 可保存结构化核验包，`evidenceManifest.evidenceFileDigests` 可保存必需外部证据文件的 SHA-256 与 sizeBytes，`environmentId/environmentType/evidenceOwner/artifactArchiveRef/verifierOperator` 保存外部证据来源元数据，但这些字段仍不是生产实测结论。只有 bundle 逐项满足 10000 并发、千万级日查询、30PB 字节级数据布局、24 小时 replay、P95/P99、扫描字节、CPU、队列等待、成本账单和 verifierRef，外部状态为 `VERIFIED`，必需证据文件摘要完整，且来源元数据完整时，`scaleReadiness` 才会把它作为已核验生产规模证据。
 当前 `benchmark_task_report` 除 `engine/threshold/recommendation/executionSummary/exportArtifacts` JSON 外，还显式持久化 `regression_summary_json` 与 `alert_linkages_json`，用来承载 `REGRESSION_GUARD` 的 threshold hit 汇总和治理告警回链结果。
 
-当前 mapper 只固化 `insert/selectById` 或等价最小骨架，目的是先把表结构、主引用键和字段命名稳定下来，再在后续任务中接入真实 repository、事务编排和业务写入路径。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口，并由 benchmark report trace/export orchestration 走真实写入路径验证 `config/result/history/export` 编排；`AlertEmissionApplicationService` 则在告警侧编排 `alert_policy`、`alert_event`、`alert_notification_log` 与 `audit_log`，把规则判定后的 simulated notify、dedupe suppressed 和审计留痕闭合到同一事务链。
+当前 mapper 以 XML 持久化为统一边界；早期表保留 `insert/selectById` 或等价最小骨架，已接入业务路径的表必须提供真实 repository 需要的 upsert、列表查询和状态查询。当前 `governance` 已额外提供 `GovernanceProtectedPersistenceService` 作为 config/result/history/export/audit/system-config 的敏感字段保护写入入口，并由 benchmark report trace/export orchestration 走真实写入路径验证 `config/result/history/export` 编排；`AlertEmissionApplicationService` 则在告警侧编排 `alert_policy`、`alert_event`、`alert_notification_log` 与 `audit_log`，把规则判定后的 simulated notify、dedupe suppressed 和审计留痕闭合到同一事务链。
 
 在 `R-169` 生效后，`GovernanceProtectedPersistenceService` 同时承担核心追溯链的应用层引用完整性校验，负责在无物理外键约束前提下检查：
 
@@ -202,6 +213,10 @@
 当前 HARN-129 追加的增量脚本：
 
 - `sql/migrations/V20260510_001__acceleration_rewrite_governance_persistence.sql`
+
+当前 governance 配置与元数据落库追加的增量脚本：
+
+- `sql/migrations/V20260523_001__governance_config_metadata_persistence.sql`
 
 当前 D-TASK-018 追加的增量脚本：
 

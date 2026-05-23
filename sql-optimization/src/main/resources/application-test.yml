@@ -19,6 +19,14 @@ sqlforge:
 sql-optimization:
   parse-history:
     repository: test
+  parse-batch:
+    repository: test
+  recommendation:
+    repository: test
+  dispatch-event:
+    repository: test
+  rewrite-trial:
+    repository: test
   hetu-plan:
     enabled: false
   rewrite-validation-scheduler:
