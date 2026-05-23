@@ -1,6 +1,8 @@
 package com.company.queryexecution.infrastructure.governance;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
@@ -17,6 +19,8 @@ public interface GovernanceCapabilityClient {
     void writeAudit(QueryExecutionAuditRecord auditRecord);
 
     GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request);
+
+    GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request);
 
     GovernanceQueryExecutionHistoryWriteResponse writeQueryExecutionHistory(
         GovernanceQueryExecutionHistoryWriteRequest request

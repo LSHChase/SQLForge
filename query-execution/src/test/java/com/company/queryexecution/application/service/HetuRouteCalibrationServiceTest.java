@@ -76,6 +76,45 @@ class HetuRouteCalibrationServiceTest {
         assertEquals("FAILED_EXECUTION", service.classifyFailure(new IllegalStateException("unexpected engine failure")));
     }
 
+    @Test
+    void shouldTreatJdbcAsReadyWhenGovernanceResolutionIsEnabled() {
+        QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
+        properties.setEnabled(true);
+        properties.getAllowedModes().clear();
+        properties.getAllowedModes().add(QueryExecutionAccessMode.JDBC);
+        properties.getCalibration().getRouteOrder().clear();
+        properties.getCalibration().getRouteOrder().add(QueryExecutionAccessMode.JDBC);
+        HetuRouteCalibrationService service = new HetuRouteCalibrationService(
+            properties,
+            Collections.<HetuExecutionModeAdapter>singletonList(adapter(QueryExecutionAccessMode.JDBC))
+        );
+
+        HetuRouteCalibrationSnapshot snapshot = service.currentSnapshot();
+
+        assertEquals("READY", snapshot.getModeSnapshot(QueryExecutionAccessMode.JDBC).getReadinessStatus());
+        assertTrue(snapshot.getModeSnapshot(QueryExecutionAccessMode.JDBC).isWillAttemptInCurrentPolicy());
+    }
+
+    @Test
+    void shouldMarkJdbcUnconfiguredWhenLocalAndGovernanceResolutionAreDisabled() {
+        QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
+        properties.setEnabled(true);
+        properties.getJdbc().setGovernanceResolutionEnabled(false);
+        properties.getAllowedModes().clear();
+        properties.getAllowedModes().add(QueryExecutionAccessMode.JDBC);
+        properties.getCalibration().getRouteOrder().clear();
+        properties.getCalibration().getRouteOrder().add(QueryExecutionAccessMode.JDBC);
+        HetuRouteCalibrationService service = new HetuRouteCalibrationService(
+            properties,
+            Collections.<HetuExecutionModeAdapter>singletonList(adapter(QueryExecutionAccessMode.JDBC))
+        );
+
+        HetuRouteCalibrationSnapshot snapshot = service.currentSnapshot();
+
+        assertEquals("UNCONFIGURED", snapshot.getModeSnapshot(QueryExecutionAccessMode.JDBC).getReadinessStatus());
+        assertFalse(snapshot.getModeSnapshot(QueryExecutionAccessMode.JDBC).isWillAttemptInCurrentPolicy());
+    }
+
     private HetuExecutionModeAdapter adapter(QueryExecutionAccessMode mode) {
         return new HetuExecutionModeAdapter() {
             @Override

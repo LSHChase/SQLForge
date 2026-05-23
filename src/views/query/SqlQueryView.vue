@@ -14,6 +14,9 @@ import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
+import { sqlTemplates, sqlLibrary } from './sqlTemplates'
+import { useQueryParameters } from './useQueryParameters'
+import { useQueryHistory } from './useQueryHistory'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -21,48 +24,6 @@ const router = useRouter()
 const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
 const datasourceTree = ref([])
-
-const sqlTemplates = [
-  {
-    key: 'report',
-    label: '--report_code + biz_date',
-    content: '--report_code=RPT_SALES_DAILY\n--stage=PROD\n--biz_date=2026-04-27\n--tenant_id=tenant-a\n--datasource=hetu_main\n--engine_hint=HETU\n--priority=high\n'
-  },
-  {
-    key: 'explain',
-    label: 'Explain template',
-    content: '--report_code=RPT_EXPLAIN_SAMPLE\n--stage=PROD\n--tenant_id=tenant-a\nEXPLAIN SELECT * FROM orders WHERE query_date = :query_date\n'
-  },
-  {
-    key: 'fallback',
-    label: 'Recovery template',
-    content: '--report_code=RPT_RECOVERY_CHECK\n--stage=PROD\n--tenant_id=tenant-a\n--datasource=hive_lakehouse\nSELECT count(1) FROM orders WHERE query_date = :query_date\n'
-  }
-]
-
-const sqlLibrary = [
-  {
-    key: 'recent-1',
-    type: 'recent',
-    title: 'Recent · sales daily',
-    summary: 'Revenue rollup with query_date binding',
-    sqlText: "--report_code=RPT_SALES_DAILY\nSELECT order_id, revenue FROM orders WHERE query_date = :query_date LIMIT :limit"
-  },
-  {
-    key: 'recent-2',
-    type: 'recent',
-    title: 'Recent · logic view',
-    summary: 'Business view sample',
-    sqlText: '--report_code=RPT_CUSTOMER_360\nSELECT * FROM customer_360 WHERE biz_date = :biz_date LIMIT 50'
-  },
-  {
-    key: 'favorite-1',
-    type: 'favorite',
-    title: 'Favorite · benchmark candidate',
-    summary: 'Candidate SQL for benchmark and explain',
-    sqlText: '--report_code=RPT_BENCHMARK_SAMPLE\nSELECT region, sum(revenue) FROM orders GROUP BY region'
-  }
-]
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -74,11 +35,18 @@ const form = reactive({
   faultToleranceStrategy: 'FAIL_FAST'
 })
 
-const parameterRows = ref([
-  { id: 1, key: 'query_date', value: '2026-04-27' },
-  { id: 2, key: 'limit', value: '100' },
-  { id: 3, key: 'biz_date', value: '2026-04-27' }
-])
+const {
+  parameterRows,
+  addParameter,
+  removeParameter,
+  parameterSnapshot,
+  boundSqlPreview
+} = useQueryParameters(() => form.sqlText)
+
+const {
+  executionHistory,
+  recordExecution
+} = useQueryHistory()
 
 const selectedDatasourceId = ref('hetu-main')
 const activeExplorerTab = ref('objects')
@@ -93,8 +61,6 @@ const showLibraryDialog = ref(false)
 const showBoundPreviewDrawer = ref(false)
 const showGovernanceDrawer = ref(false)
 const showExplainDialog = ref(false)
-const executionHistory = ref([])
-const nextParameterId = ref(4)
 
 const previewRows = computed(() => result.value?.rows || [])
 const resultColumns = computed(() => {
@@ -122,23 +88,6 @@ const toleranceOptions = computed(() => [
 ])
 const recentLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'recent'))
 const favoriteLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'favorite'))
-const parameterSnapshot = computed(() => {
-  const snapshot = {}
-  for (const item of parameterRows.value) {
-    const key = String(item.key || '').trim()
-    if (key) {
-      snapshot[key] = item.value
-    }
-  }
-  return snapshot
-})
-const boundSqlPreview = computed(() => {
-  let preview = form.sqlText
-  for (const [key, value] of Object.entries(parameterSnapshot.value)) {
-    preview = preview.replaceAll(`:${key}`, `'${value}'`)
-  }
-  return preview
-})
 const validationTips = computed(() => {
   const tips = []
   if (!String(form.sqlText || '').includes('--report_code=')) {
@@ -291,24 +240,6 @@ const syncDatasourceSelection = datasource => {
   form.datasourceCode = datasource.datasourceCode || form.datasourceCode
 }
 
-const addParameter = () => {
-  parameterRows.value.push({
-    id: nextParameterId.value,
-    key: '',
-    value: ''
-  })
-  nextParameterId.value += 1
-}
-
-const removeParameter = rowId => {
-  if (parameterRows.value.length === 1) {
-    parameterRows.value[0].key = ''
-    parameterRows.value[0].value = ''
-    return
-  }
-  parameterRows.value = parameterRows.value.filter(item => item.id !== rowId)
-}
-
 const applyTemplate = template => {
   form.sqlText = `${template.content}SELECT * FROM orders WHERE query_date = :query_date LIMIT :limit`
   showTemplateDialog.value = false
@@ -387,15 +318,11 @@ const runQuery = async scenario => {
           : undefined
     })
 
-    executionHistory.value = [
-      {
-        id: `${Date.now()}`,
-        title: result.value?.sqlFingerprint || selectedDatasource.value.label,
-        status: result.value?.status || 'UNKNOWN',
-        mode: result.value?.metadata?.executionMode || '-'
-      },
-      ...executionHistory.value
-    ].slice(0, 6)
+    recordExecution(
+      result.value?.sqlFingerprint || selectedDatasource.value.label,
+      result.value?.status || 'UNKNOWN',
+      result.value?.metadata?.executionMode || '-'
+    )
 
     if (scenario === 'recovery') {
       queueStatsAfter.value = await getGovernanceMessageStats(form.tenantId, {

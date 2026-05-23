@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523: Restructure and refactor SqlQueryView.vue
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 refactor SQL query view and reuse JDBC datasource`
+- Priority: 1
+- Depends on: N/A
+- Scope: Refactor SqlQueryView.vue to decouple parameter matching, history logs, and static templates into modular composables and configs without changing backend API contracts.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Refactored SqlQueryView static templates, parameter binding, and execution history into focused modules; added query-execution governance JDBC datasource resolution so SQL execution can reuse system-page tested JDBC datasources without duplicating MySQL or Redis state.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 --include-task-audit --extra-command "mvn -B -pl query-execution -am test -DskipITs"; git diff --check -- query-execution/src/main/java query-execution/src/main/resources query-execution/src/test/java docs/quality/validation-log.md
+  - Residual risk: External Hetu/JDBC endpoint availability remains environment-backed; repository tests cover route resolution, request normalization, and managed JDBC connection selection.
+  - Next step: Use a real governed JDBC datasource in target environment to verify end-to-end SQL execution after deployment.
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260523: 按最新页面全量更新 dist-portable
 
 - Status: done

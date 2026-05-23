@@ -5544,3 +5544,29 @@
 2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
 2026-05-23T05:58:00-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-23T08:22:09-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T08:22:09-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T08:22:11-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T08:22:15-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T08:22:15-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T08:22:15-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T08:22:16-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T08:22:16-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-23T08:22:16-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-23T08:22:23-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-133`, `R-168` | passed | `mvn -B -pl query-execution -am test -DskipITs`
+2026-05-23T08:30:26-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-23T08:30:26-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-23T08:30:27-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-23T08:30:31-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-23T08:30:31-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-23T08:30:32-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-23T08:30:32-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-23T08:30:32-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-23T08:30:32-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-23T08:30:39-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 validate | `R-133`, `R-168` | passed | `mvn -B -pl query-execution -am test -DskipITs`
+2026-05-23T08:33:33-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-23T08:33:33-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 closeout commit | `R-168` | projected | `git commit -m 'USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 refactor SQL query view and reuse JDBC datasource' (projected-precommit)`
+2026-05-23T08:33:33-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-23T08:33:33-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run lint (projected-precommit)`
+2026-05-23T08:33:33-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run build (projected-precommit)`
+2026-05-23T08:33:33-05:00 | USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `mvn -B -pl query-execution -am test -DskipITs (projected-precommit)`

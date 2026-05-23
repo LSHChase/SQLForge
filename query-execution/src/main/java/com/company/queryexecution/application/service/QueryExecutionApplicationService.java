@@ -404,7 +404,11 @@ public class QueryExecutionApplicationService {
                     start
                 );
             }
-            QueryExecuteRequest executionRequest = normalizeAccelerationRequest(request, activatedAccelerationBinding != null);
+            QueryExecuteRequest executionRequest = normalizeAccelerationRequest(
+                request,
+                activatedAccelerationBinding != null,
+                primaryEngine
+            );
             QueryExecutionStep primaryStep;
             try {
                 primaryStep = queryExecutionAdapter.execute(primaryEngine, actualSql, executionRequest, false);
@@ -1889,17 +1893,19 @@ public class QueryExecutionApplicationService {
         );
     }
 
-    private QueryExecuteRequest normalizeAccelerationRequest(QueryExecuteRequest request, boolean accelerationAllowed) {
-        if (accelerationAllowed) {
-            return request;
-        }
+    private QueryExecuteRequest normalizeAccelerationRequest(QueryExecuteRequest request,
+                                                            boolean accelerationAllowed,
+                                                            DataSourceTypeEnum primaryEngine) {
         QueryExecuteRequest normalized = new QueryExecuteRequest();
         normalized.setSqlText(request.getSqlText());
         normalized.setTenantId(request.getTenantId());
-        normalized.setDatasourceType(request.getDatasourceType());
+        normalized.setDatasourceType(primaryEngine == null ? request.getDatasourceType() : primaryEngine);
+        normalized.setDatasourceCode(request.getDatasourceCode());
         normalized.setQueryContext(request.getQueryContext());
         normalized.setFaultToleranceStrategy(request.getFaultToleranceStrategy());
-        normalized.setAccelerationPreference(com.company.queryexecution.domain.query.AccelerationPreference.NONE);
+        normalized.setAccelerationPreference(accelerationAllowed
+            ? request.getAccelerationPreference()
+            : com.company.queryexecution.domain.query.AccelerationPreference.NONE);
         return normalized;
     }
 

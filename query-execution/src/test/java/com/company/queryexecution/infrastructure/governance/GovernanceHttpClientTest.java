@@ -18,6 +18,8 @@ import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAuditWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckRequest;
 import com.company.sqlforge.common.governance.GovernanceDatasourceAccessCheckResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import java.util.Arrays;
@@ -94,6 +96,35 @@ class GovernanceHttpClientTest {
         GovernanceQueryExecutionHistoryWriteResponse response = client.writeQueryExecutionHistory(request);
 
         assertEquals("history-qe-001", response.getHistoryId());
+        server.verify();
+    }
+
+    @Test
+    void shouldResolveJdbcDatasourceViaGovernanceRoute() {
+        GovernanceHttpClient client = createClient();
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        setProtectedRequestContext();
+        server.expect(requestTo("http://governance.test/api/governance/internal/datasources/jdbc/resolve"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"datasourceCode\":\"hetu_main\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("\"engineType\":\"HETU\"")))
+            .andRespond(withSuccess(
+                "{\"resolved\":true,\"tenantId\":\"tenant-a\",\"datasourceCode\":\"hetu_main\","
+                    + "\"engineType\":\"HETU\",\"jdbcUrl\":\"jdbc:hetu://coordinator:8080/hive/default\","
+                    + "\"username\":\"hetu_user\",\"password\":\"secret\"}",
+                MediaType.APPLICATION_JSON
+            ));
+        GovernanceJdbcDatasourceResolveRequest request = new GovernanceJdbcDatasourceResolveRequest();
+        request.setTenantId("tenant-a");
+        request.setDatasourceCode("hetu_main");
+        request.setEngineType("HETU");
+
+        GovernanceJdbcDatasourceResolveResponse response = client.resolveJdbcDatasource(request);
+
+        assertEquals(true, response.isResolved());
+        assertEquals("jdbc:hetu://coordinator:8080/hive/default", response.getJdbcUrl());
+        assertEquals("hetu_user", response.getUsername());
         server.verify();
     }
 

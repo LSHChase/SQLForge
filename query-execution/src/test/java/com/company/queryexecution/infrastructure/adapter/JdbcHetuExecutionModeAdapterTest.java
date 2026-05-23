@@ -8,7 +8,15 @@ import com.company.queryexecution.application.controller.dto.QueryExecuteRequest
 import com.company.queryexecution.config.QueryExecutionHetuProperties;
 import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
+import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
+import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -28,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +49,7 @@ class JdbcHetuExecutionModeAdapterTest {
         properties.getJdbc().setQueryTimeoutSeconds(1);
         properties.getJdbc().setMaxRows(1);
         AtomicInteger configuredTimeout = new AtomicInteger(-1);
+        AtomicReference<Properties> connectionProperties = new AtomicReference<Properties>();
         Driver driver = new TestDriver(
             properties.getJdbc().getUrl(),
             Arrays.<Map<String, Object>>asList(
@@ -47,7 +57,8 @@ class JdbcHetuExecutionModeAdapterTest {
                 row(8, "DONE")
             ),
             Arrays.asList("order_id", "state"),
-            configuredTimeout
+            configuredTimeout,
+            connectionProperties
         );
         DriverManager.registerDriver(driver);
         try {
@@ -65,6 +76,47 @@ class JdbcHetuExecutionModeAdapterTest {
             assertEquals(7, ((Number) step.getRows().get(0).get("order_id")).intValue());
             assertEquals("READY", step.getRows().get(0).get("state"));
             assertEquals(1, configuredTimeout.get());
+        } finally {
+            DriverManager.deregisterDriver(driver);
+        }
+    }
+
+    @Test
+    void shouldUseGovernanceResolvedJdbcDatasourceWhenDatasourceCodeIsPresent() throws Exception {
+        QueryExecutionHetuProperties properties = new QueryExecutionHetuProperties();
+        properties.getJdbc().setQueryTimeoutSeconds(2);
+        properties.getJdbc().setMaxRows(2);
+        AtomicInteger configuredTimeout = new AtomicInteger(-1);
+        AtomicReference<Properties> connectionProperties = new AtomicReference<Properties>();
+        AtomicReference<GovernanceJdbcDatasourceResolveRequest> capturedRequest =
+            new AtomicReference<GovernanceJdbcDatasourceResolveRequest>();
+        Driver driver = new TestDriver(
+            "jdbc:test-hetu://governance",
+            Collections.singletonList(row(9, "GOVERNED")),
+            Arrays.asList("order_id", "state"),
+            configuredTimeout,
+            connectionProperties
+        );
+        DriverManager.registerDriver(driver);
+        try {
+            JdbcHetuExecutionModeAdapter adapter = new JdbcHetuExecutionModeAdapter(
+                properties,
+                governanceClient(capturedRequest, resolvedDatasource())
+            );
+            QueryExecuteRequest request = acceleratedRequest();
+            request.setDatasourceCode("hetu_main");
+
+            QueryExecutionStep step = adapter.execute("SELECT order_id, state FROM orders", request, false);
+
+            assertEquals("tenant-a", capturedRequest.get().getTenantId());
+            assertEquals("hetu_main", capturedRequest.get().getDatasourceCode());
+            assertEquals("HETU", capturedRequest.get().getEngineType());
+            assertEquals(1, step.getRows().size());
+            assertEquals(9, ((Number) step.getRows().get(0).get("order_id")).intValue());
+            assertEquals("GOVERNED", step.getRows().get(0).get("state"));
+            assertEquals(2, configuredTimeout.get());
+            assertEquals("governance-user", connectionProperties.get().getProperty("user"));
+            assertEquals("governance-secret", connectionProperties.get().getProperty("password"));
         } finally {
             DriverManager.deregisterDriver(driver);
         }
@@ -90,6 +142,60 @@ class JdbcHetuExecutionModeAdapterTest {
         return request;
     }
 
+    private GovernanceJdbcDatasourceResolveResponse resolvedDatasource() {
+        GovernanceJdbcDatasourceResolveResponse response = new GovernanceJdbcDatasourceResolveResponse();
+        response.setTenantId("tenant-a");
+        response.setDatasourceCode("hetu_main");
+        response.setEngineType("HETU");
+        response.setResolved(true);
+        response.setEnabled(true);
+        response.setConnectionMode("JDBC");
+        response.setJdbcUrl("jdbc:test-hetu://governance");
+        response.setUsername("governance-user");
+        response.setPassword("governance-secret");
+        response.setDriverSourceType("CLASSPATH");
+        return response;
+    }
+
+    private GovernanceCapabilityClient governanceClient(
+        AtomicReference<GovernanceJdbcDatasourceResolveRequest> capturedRequest,
+        GovernanceJdbcDatasourceResolveResponse response
+    ) {
+        return new GovernanceCapabilityClient() {
+            @Override
+            public void assertDatasourceAccess(String tenantId,
+                                               DataSourceTypeEnum datasourceType,
+                                               String resourceType,
+                                               String resourceId,
+                                               String operationCode) {
+            }
+
+            @Override
+            public void writeAudit(QueryExecutionAuditRecord auditRecord) {
+            }
+
+            @Override
+            public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
+                return new GovernanceJdbcRouteResolveResponse();
+            }
+
+            @Override
+            public GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(
+                GovernanceJdbcDatasourceResolveRequest request
+            ) {
+                capturedRequest.set(request);
+                return response;
+            }
+
+            @Override
+            public GovernanceQueryExecutionHistoryWriteResponse writeQueryExecutionHistory(
+                GovernanceQueryExecutionHistoryWriteRequest request
+            ) {
+                return new GovernanceQueryExecutionHistoryWriteResponse();
+            }
+        };
+    }
+
     private static Map<String, Object> row(int orderId, String state) {
         Map<String, Object> row = new LinkedHashMap<String, Object>();
         row.put("order_id", Integer.valueOf(orderId));
@@ -103,15 +209,18 @@ class JdbcHetuExecutionModeAdapterTest {
         private final List<Map<String, Object>> rows;
         private final List<String> labels;
         private final AtomicInteger configuredTimeout;
+        private final AtomicReference<Properties> connectionProperties;
 
         private TestDriver(String acceptedUrl,
                            List<Map<String, Object>> rows,
                            List<String> labels,
-                           AtomicInteger configuredTimeout) {
+                           AtomicInteger configuredTimeout,
+                           AtomicReference<Properties> connectionProperties) {
             this.acceptedUrl = acceptedUrl;
             this.rows = new ArrayList<Map<String, Object>>(rows);
             this.labels = new ArrayList<String>(labels);
             this.configuredTimeout = configuredTimeout;
+            this.connectionProperties = connectionProperties;
         }
 
         @Override
@@ -119,6 +228,7 @@ class JdbcHetuExecutionModeAdapterTest {
             if (!acceptsURL(url)) {
                 return null;
             }
+            connectionProperties.set(info);
             return connectionProxy(rows, labels, configuredTimeout);
         }
 

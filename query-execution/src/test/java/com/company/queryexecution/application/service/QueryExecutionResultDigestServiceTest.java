@@ -11,10 +11,12 @@ import com.company.queryexecution.infrastructure.governance.GovernanceCapability
 import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditRecord;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
-import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
-import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
+import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
+import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import java.util.Arrays;
@@ -137,6 +139,11 @@ class QueryExecutionResultDigestServiceTest {
         @Override
         public GovernanceJdbcRouteResolveResponse resolveJdbcRoute(GovernanceJdbcRouteResolveRequest request) {
             return new GovernanceJdbcRouteResolveResponse();
+        }
+
+        @Override
+        public GovernanceJdbcDatasourceResolveResponse resolveJdbcDatasource(GovernanceJdbcDatasourceResolveRequest request) {
+            return new GovernanceJdbcDatasourceResolveResponse();
         }
 
         @Override

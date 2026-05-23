@@ -153,6 +153,7 @@ public class HetuRouteCalibrationService {
         Map<String, Object> parameters = new LinkedHashMap<String, Object>();
         if (mode == QueryExecutionAccessMode.JDBC) {
             parameters.put("urlConfigured", Boolean.valueOf(StringUtils.hasText(properties.getJdbc().getUrl())));
+            parameters.put("governanceResolutionEnabled", Boolean.valueOf(properties.getJdbc().isGovernanceResolutionEnabled()));
             parameters.put("queryTimeoutSeconds", Integer.valueOf(properties.getJdbc().getQueryTimeoutSeconds()));
             parameters.put("maxRows", Integer.valueOf(properties.getJdbc().getMaxRows()));
             return parameters;
@@ -180,7 +181,8 @@ public class HetuRouteCalibrationService {
 
     private boolean isConfigured(QueryExecutionAccessMode mode) {
         if (mode == QueryExecutionAccessMode.JDBC) {
-            return StringUtils.hasText(properties.getJdbc().getUrl());
+            return StringUtils.hasText(properties.getJdbc().getUrl())
+                || properties.getJdbc().isGovernanceResolutionEnabled();
         }
         if (mode == QueryExecutionAccessMode.REST) {
             return StringUtils.hasText(properties.getRest().getEndpoint());
@@ -220,7 +222,7 @@ public class HetuRouteCalibrationService {
             return "该模式未注册 HetuExecutionModeAdapter Bean。";
         }
         if (mode == QueryExecutionAccessMode.JDBC && !configured) {
-            return "query-execution.hetu.jdbc.url 为空。";
+            return "query-execution.hetu.jdbc.url 为空，且 query-execution.hetu.jdbc.governance-resolution-enabled=false。";
         }
         if (mode == QueryExecutionAccessMode.REST && !configured) {
             return "query-execution.hetu.rest.endpoint 为空。";

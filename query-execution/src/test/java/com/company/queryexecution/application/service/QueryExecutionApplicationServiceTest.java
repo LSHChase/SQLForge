@@ -33,6 +33,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteCandidate;
+import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
@@ -276,6 +278,34 @@ class QueryExecutionApplicationServiceTest {
         assertFalse(response.getMetadata().isRewriteApplied());
         assertEquals(Boolean.FALSE, response.getBindingSummary().get("rewriteApplied"));
         assertEquals("MISSING", response.getBindingSummary().get("runtimeRewriteStatus"));
+    }
+
+    @Test
+    void shouldPassDatasourceCodeAndResolvedEngineToExecutionAdapter() {
+        setRequestContext("tenant-a");
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        GovernanceJdbcRouteCandidate candidate = new GovernanceJdbcRouteCandidate();
+        candidate.setEngineType("HETU");
+        candidate.setDatasourceCode("hetu_main");
+        candidate.setConnectionMode("JDBC");
+        candidate.setEnabled(true);
+        candidate.setHealthStatus("HEALTHY");
+        GovernanceJdbcRouteResolveResponse routeResponse = new GovernanceJdbcRouteResolveResponse();
+        routeResponse.setCandidates(Collections.singletonList(candidate));
+        when(governanceCapabilityClient.resolveJdbcRoute(any())).thenReturn(routeResponse);
+        RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        QueryExecutionApplicationService service =
+            newService(adapter, governanceCapabilityClient, (QueryExecutionRuntimeRewriteBindingService) null);
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
+        request.setDatasourceType(DataSourceTypeEnum.AUTO);
+        request.setDatasourceCode("hetu_main");
+
+        QueryExecuteResponse response = service.executeSynchronously(request);
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals(DataSourceTypeEnum.HETU, adapter.targetEngine);
+        assertEquals(DataSourceTypeEnum.HETU, adapter.request.getDatasourceType());
+        assertEquals("hetu_main", adapter.request.getDatasourceCode());
     }
 
     @Test
@@ -830,6 +860,8 @@ class QueryExecutionApplicationServiceTest {
 
     private static final class RecordingQueryExecutionAdapter implements QueryExecutionAdapter {
         private String actualSql;
+        private DataSourceTypeEnum targetEngine;
+        private QueryExecuteRequest request;
 
         @Override
         public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
@@ -837,6 +869,8 @@ class QueryExecutionApplicationServiceTest {
                                           QueryExecuteRequest request,
                                           boolean degradedPath) {
             this.actualSql = actualSql;
+            this.targetEngine = targetEngine;
+            this.request = request;
             return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
         }
     }

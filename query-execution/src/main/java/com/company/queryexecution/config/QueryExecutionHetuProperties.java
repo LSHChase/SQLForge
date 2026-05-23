@@ -61,6 +61,7 @@ public class QueryExecutionHetuProperties {
         private String password = "";
         private int queryTimeoutSeconds = 30;
         private int maxRows = 200;
+        private boolean governanceResolutionEnabled = true;
 
         public String getUrl() {
             return url;
@@ -100,6 +101,14 @@ public class QueryExecutionHetuProperties {
 
         public void setMaxRows(int maxRows) {
             this.maxRows = maxRows;
+        }
+
+        public boolean isGovernanceResolutionEnabled() {
+            return governanceResolutionEnabled;
+        }
+
+        public void setGovernanceResolutionEnabled(boolean governanceResolutionEnabled) {
+            this.governanceResolutionEnabled = governanceResolutionEnabled;
         }
     }
 

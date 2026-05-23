@@ -48,6 +48,7 @@ query-execution:
       live-verification-status: ${QUERY_EXECUTION_HETU_LIVE_VERIFICATION_STATUS:PENDING_ENV_WINDOW}
       evidence-notes: ${QUERY_EXECUTION_HETU_EVIDENCE_NOTES:}
     jdbc:
+      governance-resolution-enabled: ${QUERY_EXECUTION_HETU_JDBC_GOVERNANCE_RESOLUTION_ENABLED:true}
       url: ${QUERY_EXECUTION_HETU_JDBC_URL:}
       username: ${QUERY_EXECUTION_HETU_JDBC_USERNAME:}
       password: ${QUERY_EXECUTION_HETU_JDBC_PASSWORD:}
