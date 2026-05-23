@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-SQL-HISTORY-QUERY-ERROR-20260523: 修复 SQL 历史查询页面 10000 内部错误
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `USER-CN-FIX-SQL-HISTORY-QUERY-ERROR-20260523 fix query history dev schema`
+- Priority: 1
+- Depends on: N/A
+- Scope: 定位并修复 SQL 历史查询页面调用 /api/governance/query-history 返回 [10000] 服务器内部错误的问题，保持 query-history 既有契约并补充回归验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-SQL-HISTORY-QUERY-ERROR-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 SQL 历史查询页因本地 query_history 旧列 rewrite_publish_status_snapshot 与当前 mapper 新列 rewrite_activation_status_snapshot 不一致导致的 10000 内部错误；开发 schema 修复脚本会保留旧值并改名到新列。
+  - Validation evidence: python3 scripts/ensure_query_history_dev_schema.py；curl /api/governance/query-history 返回 HTTP 200；python3 scripts/ensure_query_history_dev_schema.py 二次执行显示 schema 已最新；mvn -pl governance -Dtest=TraceabilitySchemaMappingTest test；python3 scripts/foreman.py validate USER-CN-FIX-SQL-HISTORY-QUERY-ERROR-20260523；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 仅修复开发库旧列兼容迁移；生产基线 migration 与 init-schema 已使用 rewrite_activation_status_snapshot，无额外运行时风险。
+  - Next step: 无。SQL 历史查询页可直接刷新重试。
+
 ### USER-CN-SQL-PAGE-BOUNDARY-REFOCUS-20260523: SQL 查询分析与解析页面关系收敛
 
 - Status: done

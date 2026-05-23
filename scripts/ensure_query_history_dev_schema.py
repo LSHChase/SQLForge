@@ -14,6 +14,14 @@ MYSQL_USER = os.environ.get("SQLFORGE_DEV_MYSQL_USER", "sqlforge")
 MYSQL_PASSWORD = os.environ.get("SQLFORGE_DEV_MYSQL_PASSWORD", "sqlforge")
 
 
+LEGACY_COLUMN_RENAMES = [
+    (
+        "rewrite_publish_status_snapshot",
+        "rewrite_activation_status_snapshot",
+        "VARCHAR(32) DEFAULT NULL COMMENT '根据后端运行时证据生成的激活状态快照'",
+    ),
+]
+
 COLUMN_DEFINITIONS = [
     (
         "sql_template_cipher",
@@ -161,14 +169,35 @@ def ensure_column(column_name: str, ddl_fragment: str) -> bool:
     return True
 
 
+def ensure_legacy_column_renamed(old_column_name: str, new_column_name: str, column_definition: str) -> bool:
+    if column_exists(new_column_name) or not column_exists(old_column_name):
+        return False
+    mysql_exec(
+        "ALTER TABLE query_history "
+        f"CHANGE COLUMN {old_column_name} {new_column_name} {column_definition}"
+    )
+    return True
+
+
 def main() -> int:
     applied = []
+    renamed = []
+
+    for old_column_name, new_column_name, column_definition in LEGACY_COLUMN_RENAMES:
+        if ensure_legacy_column_renamed(old_column_name, new_column_name, column_definition):
+            renamed.append(f"{old_column_name}->{new_column_name}")
+
     for column_name, ddl_fragment in COLUMN_DEFINITIONS:
         if ensure_column(column_name, ddl_fragment):
             applied.append(column_name)
 
-    if applied:
-        print("已升级 query_history 开发 schema:", ", ".join(applied))
+    if renamed or applied:
+        details = []
+        if renamed:
+            details.append("renamed: " + ", ".join(renamed))
+        if applied:
+            details.append("columns: " + ", ".join(applied))
+        print("已升级 query_history 开发 schema:", "; ".join(details))
     else:
         print("query_history 开发 schema 已是最新。")
     return 0
