@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523: 修复首页 SQL 优化总览接口错误
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `fix(frontend): restore dashboard sql optimization APIs`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复首页总览调用 sql-optimization recommendations 服务器内部错误与 rewrite-records DATASOURCE_SCOPE_MISSING，保持租户/数据源范围边界并补充验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复首页总览 SQL 优化数据加载：新增 sql-optimization 本地开发 schema 自愈脚本并接入 local-start/runtime smoke，补齐 acceleration_recommendation 旧表缺失列；将前端默认业务租户从 system 调整为 tenant-a，并为租户展示增加 tenantId 兜底。
+  - Validation evidence: python3 scripts/ensure_sql_optimization_dev_schema.py；curl http://localhost:3000/api/sql-optimization/recommendations -> 200；curl http://localhost:3000/api/sql-optimization/rewrite-records -> 200；npm run lint；npm run build；mvn -B -pl sql-optimization -am test；python3 scripts/foreman.py validate USER-CN-FIX-DASHBOARD-SQL-OPTIMIZATION-APIS-20260523；python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 直接以 system 租户请求 rewrite-records 仍会被治理数据源范围拒绝，这是现有 tenant-scoped 安全边界；已把首页默认工作租户改为 tenant-a。已打开的浏览器页面需要刷新以加载新的前端默认租户。
+  - Next step: 刷新 http://localhost:3000/ 首页确认总览加载；后续若新增 sql-optimization 持久化字段，继续扩展 ensure_sql_optimization_dev_schema.py 与 init-schema/migration 同步。
+
 ### USER-CN-DASHBOARD-OVERVIEW-10000-FIX-20260523: Fix dashboard overview 10000 internal error
 
 - Status: done

@@ -4,8 +4,8 @@ export const pinia = createPinia()
 
 export const useTenantStore = defineStore('tenantStore', {
   state: () => ({
-    tenantId: 'system',
-    tenantName: '',
+    tenantId: 'tenant-a',
+    tenantName: 'tenant-a',
     defaultEngine: 'HETU',
     backupEngine: 'HIVE'
   }),

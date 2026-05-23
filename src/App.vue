@@ -41,7 +41,7 @@ const localeLabel = computed(() =>
 const tenantDisplayName = computed(() =>
   tenantStore.tenantId === 'system' && !tenantStore.tenantName
     ? t('common.defaultTenantName')
-    : tenantStore.tenantName
+    : tenantStore.tenantName || tenantStore.tenantId
 )
 const userDisplayName = computed(() =>
   userStore.userId === 'admin' && !userStore.displayName
