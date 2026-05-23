@@ -108,6 +108,23 @@ class MybatisSqlRewriteRecordRepositoryTest {
     }
 
     @Test
+    void shouldRestoreFailedRewriteRecordStatusFromDatabaseRecords() {
+        SqlRewriteRecordMapper recordMapper = org.mockito.Mockito.mock(SqlRewriteRecordMapper.class);
+        RewriteValidationRunMapper runMapper = org.mockito.Mockito.mock(RewriteValidationRunMapper.class);
+        SqlRewriteRecordRecord failedRecord = sampleRewriteRecordRecord();
+        failedRecord.setStatus("FAILED");
+        failedRecord.setValidationStatus("FAILED");
+        when(recordMapper.selectByTenantId("tenant-a")).thenReturn(Collections.singletonList(failedRecord));
+        MybatisSqlRewriteRecordRepository repository =
+            new MybatisSqlRewriteRecordRepository(recordMapper, runMapper);
+
+        SqlRewriteRecord restored = repository.findRecordsByTenantId("tenant-a").get(0);
+
+        assertEquals(RewriteRecordStatus.FAILED, restored.getStatus());
+        assertEquals(RewriteValidationStatus.FAILED, restored.getValidationStatus());
+    }
+
+    @Test
     void shouldPersistValidationRunAndPauseRewriteRecordSummary() {
         SqlRewriteRecordMapper recordMapper = org.mockito.Mockito.mock(SqlRewriteRecordMapper.class);
         RewriteValidationRunMapper runMapper = org.mockito.Mockito.mock(RewriteValidationRunMapper.class);

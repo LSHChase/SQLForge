@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DASHBOARD-OVERVIEW-10000-FIX-20260523: Fix dashboard overview 10000 internal error
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `fix(sql-optimization): restore failed rewrite status`
+- Priority: 1
+- Depends on: N/A
+- Scope: 定位并修复首页总览接口或前端聚合触发的 [10000] 服务器内部错误，保持首页摘要数据来源和既有业务边界不变，并补充对应回归验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DASHBOARD-OVERVIEW-10000-FIX-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复首页总览加载改写记录时遇到历史 sql_rewrite_record.status=FAILED 导致 RewriteRecordStatus.valueOf 抛异常并返回 [10000] 的问题；同步 schema 注释并补充 MyBatis 仓储回归测试。
+  - Validation evidence: java -version confirmed 1.8.0_112; mvn -q -pl sql-optimization -Dtest=MybatisSqlRewriteRecordRepositoryTest test; mvn -q -pl sql-optimization -am test; git diff --check; python3 scripts/foreman.py validate USER-CN-DASHBOARD-OVERVIEW-10000-FIX-20260523; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 当前运行中的本地 sql-optimization 服务仍需用新提交重启后才能在已启动实例上消除 500；默认 system 租户缺少 datasource scope 时仍会按权限规则返回拒绝，不属于本次 [10000] 根因。
+  - Next step: 重启 sql-optimization 服务后重新请求 /api/sql-optimization/rewrite-records 或刷新首页总览，确认不再因 FAILED 改写记录返回 [10000]。
+
 ### USER-CN-FIX-SQL-HISTORY-QUERY-ERROR-20260523: 修复 SQL 历史查询页面 10000 内部错误
 
 - Status: done

@@ -6,6 +6,7 @@ public enum RewriteRecordStatus {
     READY,
     ACTIVE,
     PAUSED,
+    FAILED,
     DEPRECATED,
     CANCELLED
 }
