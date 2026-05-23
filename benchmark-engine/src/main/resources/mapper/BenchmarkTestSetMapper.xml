@@ -2,33 +2,58 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetMapper">
 
+    <!-- 配置项 resultMap id=BenchmarkTestSetRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="BenchmarkTestSetRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="testSetId" column="test_set_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetName" column="test_set_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateId" column="template_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateType" column="template_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateVersion" column="template_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetSource" column="test_set_source"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="totalCases" column="total_cases"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="acceptedCases" column="accepted_cases"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rejectedCases" column="rejected_cases"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="fileType" column="file_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="fileName" column="file_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="importBatchId" column="import_batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="fieldMappingsJson" column="field_mappings_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetLabelsJson" column="test_set_labels_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetSourceRefsJson" column="test_set_source_refs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         test_set_id,
         tenant_id,
@@ -54,13 +79,16 @@
         update_time
     </sql>
 
+    <!-- 配置项 select id=selectByTestSetId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTestSetId" resultMap="BenchmarkTestSetRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM benchmark_test_set
         WHERE test_set_id = #{testSetId}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord">
         INSERT INTO benchmark_test_set (
             test_set_id,
@@ -107,6 +135,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetRecord">
         UPDATE benchmark_test_set
         SET tenant_id = #{tenantId},

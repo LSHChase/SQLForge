@@ -1,49 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 配置项 project：说明该配置的用途、默认值或运行影响。 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- 配置项 modelVersion：说明该配置的用途、默认值或运行影响。 -->
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- 配置项 parent：说明该配置的用途、默认值或运行影响。 -->
     <parent>
+        <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
         <groupId>com.company</groupId>
+        <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
         <artifactId>sqlforge-parent</artifactId>
+        <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
+    <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
     <artifactId>sqlforge-shared</artifactId>
+    <!-- 配置项 name：说明该配置的用途、默认值或运行影响。 -->
     <name>SQLForge Shared</name>
+    <!-- 配置项 description：说明该配置的用途、默认值或运行影响。 -->
     <description>Shared common infrastructure for SQLForge services</description>
+    <!-- 配置项 packaging：说明该配置的用途、默认值或运行影响。 -->
     <packaging>jar</packaging>
 
+    <!-- 配置项 dependencies：说明该配置的用途、默认值或运行影响。 -->
     <dependencies>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>org.springframework.boot</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>org.springframework.boot</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>org.projectlombok</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>lombok</artifactId>
+            <!-- 配置项 optional：说明该配置的用途、默认值或运行影响。 -->
             <optional>true</optional>
         </dependency>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>org.mapstruct</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>mapstruct</artifactId>
         </dependency>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>io.lettuce</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>lettuce-core</artifactId>
         </dependency>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>org.bouncycastle</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>bcprov-jdk15on</artifactId>
         </dependency>
+        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
+            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>org.springframework.boot</groupId>
+            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>spring-boot-starter-test</artifactId>
+            <!-- 配置项 scope：说明该配置的用途、默认值或运行影响。 -->
             <scope>test</scope>
         </dependency>
     </dependencies>

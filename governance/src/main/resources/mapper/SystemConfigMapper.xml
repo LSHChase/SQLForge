@@ -2,20 +2,32 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper">
 
+    <!-- 配置项 resultMap id=SystemConfigResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="SystemConfigResultMap" type="com.company.governance.domain.system.entity.SystemConfigRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="configKey" column="config_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="configValue" column="config_value"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sensitiveFlag" column="sensitive_flag"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="valueCiphertext" column="value_ciphertext"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="valueMask" column="value_mask"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="encryptionAlgorithm" column="encryption_algorithm"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="encryptionKeyId" column="encryption_key_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="configType" column="config_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="description" column="description"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         config_key,
         config_value,
@@ -28,13 +40,16 @@
         description
     </sql>
 
+    <!-- 配置项 select id=selectByKey：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByKey" resultMap="SystemConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM system_config
         WHERE config_key = #{configKey}
     </select>
 
+    <!-- 配置项 insert id=insertOrUpdate：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insertOrUpdate" parameterType="com.company.governance.domain.system.entity.SystemConfigRecord">
         INSERT INTO system_config (
             config_key,

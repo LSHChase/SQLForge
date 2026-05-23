@@ -1,71 +1,131 @@
+# 配置项 name：说明该配置的用途、默认值或运行影响。
 name: Phase Gate
 
+# 配置项 on：说明该配置的用途、默认值或运行影响。
 on:
+  # 配置项 workflow_dispatch：说明该配置的用途、默认值或运行影响。
   workflow_dispatch:
+    # 配置项 inputs：说明该配置的用途、默认值或运行影响。
     inputs:
+      # 配置项 gate：说明该配置的用途、默认值或运行影响。
       gate:
+        # 配置项 description：说明该配置的用途、默认值或运行影响。
         description: Gate scope
+        # 配置项 required：说明该配置的用途、默认值或运行影响。
         required: true
+        # 配置项 default：说明该配置的用途、默认值或运行影响。
         default: full
+        # 配置项 type：说明该配置的用途、默认值或运行影响。
         type: choice
+        # 配置项 options：说明该配置的用途、默认值或运行影响。
         options:
+          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
           - entry
+          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
           - delivery
+          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
           - compliance
+          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
           - full
+      # 配置项 coverage_phase：说明该配置的用途、默认值或运行影响。
       coverage_phase:
+        # 配置项 description：说明该配置的用途、默认值或运行影响。
         description: Coverage phase for delivery/full
+        # 配置项 required：说明该配置的用途、默认值或运行影响。
         required: true
+        # 配置项 default：说明该配置的用途、默认值或运行影响。
         default: phase1plus
+        # 配置项 type：说明该配置的用途、默认值或运行影响。
         type: choice
+        # 配置项 options：说明该配置的用途、默认值或运行影响。
         options:
+          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
           - phase0
+          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
           - phase1plus
+      # 配置项 require_sonar：说明该配置的用途、默认值或运行影响。
       require_sonar:
+        # 配置项 description：说明该配置的用途、默认值或运行影响。
         description: Require Sonar fallback during delivery/full
+        # 配置项 required：说明该配置的用途、默认值或运行影响。
         required: true
+        # 配置项 default：说明该配置的用途、默认值或运行影响。
         default: false
+        # 配置项 type：说明该配置的用途、默认值或运行影响。
         type: boolean
+      # 配置项 run_real_kafka_gate：说明该配置的用途、默认值或运行影响。
       run_real_kafka_gate:
+        # 配置项 description：说明该配置的用途、默认值或运行影响。
         description: Run real Kafka runtime gate during compliance/full
+        # 配置项 required：说明该配置的用途、默认值或运行影响。
         required: true
+        # 配置项 default：说明该配置的用途、默认值或运行影响。
         default: false
+        # 配置项 type：说明该配置的用途、默认值或运行影响。
         type: boolean
 
+# 配置项 jobs：说明该配置的用途、默认值或运行影响。
 jobs:
+  # 配置项 phase-gate：说明该配置的用途、默认值或运行影响。
   phase-gate:
+    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
     runs-on: ubuntu-latest
+    # 配置项 env：说明该配置的用途、默认值或运行影响。
     env:
+      # 配置项 SONAR_HOST_URL：说明该配置的用途、默认值或运行影响。
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # 配置项 SONAR_TOKEN：说明该配置的用途、默认值或运行影响。
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
       SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
+      # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
       SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
+    # 配置项 steps：说明该配置的用途、默认值或运行影响。
     steps:
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Checkout
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/checkout@v4
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup JDK 8u112
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-java@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
           distribution: zulu
+          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
           java-version: '8.0.112'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Verify JDK 8u112
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup Node.js 18.20.8
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-node@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 node-version：说明该配置的用途、默认值或运行影响。
           node-version: '18.20.8'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Install frontend dependencies
+        # 配置项 if：说明该配置的用途、默认值或运行影响。
         if: ${{ inputs.gate == 'delivery' || inputs.gate == 'full' }}
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: npm install
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run phase gate
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           ARGS=(--gate "${{ inputs.gate }}" --coverage-phase "${{ inputs.coverage_phase }}")
           if [ "${{ inputs.require_sonar }}" = "true" ] && ([ "${{ inputs.gate }}" = "delivery" ] || [ "${{ inputs.gate }}" = "full" ]); then

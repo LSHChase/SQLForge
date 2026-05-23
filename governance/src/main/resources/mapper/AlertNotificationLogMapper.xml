@@ -2,25 +2,42 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.AlertNotificationLogMapper">
 
+    <!-- 配置项 resultMap id=AlertNotificationLogRecordResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AlertNotificationLogRecordResultMap" type="com.company.governance.infrastructure.persistence.entity.AlertNotificationLogRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="notificationLogId" column="notification_log_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertId" column="alert_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceAlertId" column="source_alert_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="dedupeKey" column="dedupe_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="notifyChannel" column="notify_channel"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="deliveryStatus" column="delivery_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateCode" column="template_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="messageSubject" column="message_subject"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="messageBody" column="message_body"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="deliverySummary" column="delivery_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="payloadJson" column="payload_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.infrastructure.persistence.entity.AlertNotificationLogRecord">
         INSERT INTO alert_notification_log (
             notification_log_id,
@@ -55,6 +72,7 @@
         )
     </insert>
 
+    <!-- 配置项 select id=selectByAlertId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByAlertId" resultMap="AlertNotificationLogRecordResultMap">
         SELECT
             notification_log_id,

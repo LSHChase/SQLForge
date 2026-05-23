@@ -1,8 +1,13 @@
 # 单元测试使用MOCK内存消息模式；集成测试配置见src/main/resources/application-test.yml。
+# 配置项 messaging：说明该配置的用途、默认值或运行影响。
 messaging:
-  mode: MOCK
+  mode: MOCK # 配置项 mode：说明该配置的用途、默认值或运行影响。
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header

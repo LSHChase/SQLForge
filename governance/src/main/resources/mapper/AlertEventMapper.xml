@@ -2,39 +2,70 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.AlertEventMapper">
 
+    <!-- 配置项 resultMap id=AlertEventRecordResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AlertEventRecordResultMap" type="com.company.governance.infrastructure.persistence.entity.AlertEventRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="alertId" column="alert_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertType" column="alert_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertLevel" column="alert_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertStatus" column="alert_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="notifyStatus" column="notify_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="policyId" column="policy_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="dedupeKey" column="dedupe_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceService" column="source_service"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="summary" column="summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchId" column="batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="routeDecisionId" column="route_decision_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendationId" column="recommendation_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="dispatchEventId" column="dispatch_event_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectKey" column="logical_object_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceId" column="datasource_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="evidenceJson" column="evidence_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="notifyMessage" column="notify_message"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="notifiedAt" column="notified_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ackedBy" column="acked_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ackedAt" column="acked_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.infrastructure.persistence.entity.AlertEventRecord">
         INSERT INTO alert_event (
             alert_id,
@@ -97,6 +128,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.governance.infrastructure.persistence.entity.AlertEventRecord">
         UPDATE alert_event
         SET alert_level = #{alertLevel},
@@ -125,6 +157,7 @@
         WHERE alert_id = #{alertId}
     </update>
 
+    <!-- 配置项 select id=selectByAlertId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByAlertId" resultMap="AlertEventRecordResultMap">
         SELECT
             alert_id,
@@ -159,6 +192,7 @@
         WHERE alert_id = #{alertId}
     </select>
 
+    <!-- 配置项 select id=selectOpenByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectOpenByTenantId" resultMap="AlertEventRecordResultMap">
         SELECT
             alert_id,
@@ -195,6 +229,7 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 配置项 select id=selectByTenantIdFiltered：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdFiltered" resultMap="AlertEventRecordResultMap">
         SELECT
             alert_id,
@@ -227,18 +262,22 @@
             updated_at
         FROM alert_event
         WHERE tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="alertStatus != null and alertStatus != ''">
           AND alert_status = #{alertStatus}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="alertType != null and alertType != ''">
           AND alert_type = #{alertType}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="notifyStatus != null and notifyStatus != ''">
           AND notify_status = #{notifyStatus}
         </if>
         ORDER BY created_at DESC, alert_id DESC
     </select>
 
+    <!-- 配置项 select id=selectByTenantIdAndDedupeKey：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdAndDedupeKey" resultMap="AlertEventRecordResultMap">
         SELECT
             alert_id,

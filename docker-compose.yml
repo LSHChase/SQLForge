@@ -1,99 +1,193 @@
+# 配置项 services：说明该配置的用途、默认值或运行影响。
 services:
+  # 配置项 mysql：说明该配置的用途、默认值或运行影响。
   mysql:
+    # 配置项 image：说明该配置的用途、默认值或运行影响。
     image: mysql:8.0
+    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
     container_name: sqlforge-mysql
+    # 配置项 restart：说明该配置的用途、默认值或运行影响。
     restart: unless-stopped
+    # 配置项 environment：说明该配置的用途、默认值或运行影响。
     environment:
+      # 配置项 MYSQL_ROOT_PASSWORD：说明该配置的用途、默认值或运行影响。
       MYSQL_ROOT_PASSWORD: sqlforge
+      # 配置项 MYSQL_DATABASE：说明该配置的用途、默认值或运行影响。
       MYSQL_DATABASE: sqlforge
+      # 配置项 MYSQL_USER：说明该配置的用途、默认值或运行影响。
       MYSQL_USER: sqlforge
+      # 配置项 MYSQL_PASSWORD：说明该配置的用途、默认值或运行影响。
       MYSQL_PASSWORD: sqlforge
+    # 配置项 ports：说明该配置的用途、默认值或运行影响。
     ports:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "3306:3306"
+    # 配置项 command：说明该配置的用途、默认值或运行影响。
     command:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --character-set-server=utf8mb4
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --collation-server=utf8mb4_unicode_ci
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --default-authentication-plugin=mysql_native_password
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --log-bin-trust-function-creators=1
+    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
     volumes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - mysql-data:/var/lib/mysql
+    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
     healthcheck:
+      # 配置项 test：说明该配置的用途、默认值或运行影响。
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -psqlforge --silent"]
+      # 配置项 interval：说明该配置的用途、默认值或运行影响。
       interval: 10s
+      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
       timeout: 5s
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 10
+      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
       start_period: 20s
 
+  # 配置项 redis：说明该配置的用途、默认值或运行影响。
   redis:
+    # 配置项 image：说明该配置的用途、默认值或运行影响。
     image: redis:7
+    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
     container_name: sqlforge-redis
+    # 配置项 restart：说明该配置的用途、默认值或运行影响。
     restart: unless-stopped
+    # 配置项 command：说明该配置的用途、默认值或运行影响。
     command: redis-server --appendonly yes
+    # 配置项 ports：说明该配置的用途、默认值或运行影响。
     ports:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "6379:6379"
+    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
     volumes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - redis-data:/data
+    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
     healthcheck:
+      # 配置项 test：说明该配置的用途、默认值或运行影响。
       test: ["CMD", "redis-cli", "ping"]
+      # 配置项 interval：说明该配置的用途、默认值或运行影响。
       interval: 10s
+      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
       timeout: 5s
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 10
 
   # 本地开发使用R-144 DATABASE模式，Kafka仅在生产环境启用。
+  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
   kafka:
+    # 配置项 image：说明该配置的用途、默认值或运行影响。
     image: confluentinc/cp-kafka:7.5.3
+    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
     container_name: sqlforge-kafka
+    # 配置项 profiles：说明该配置的用途、默认值或运行影响。
     profiles:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - optional
+    # 配置项 restart：说明该配置的用途、默认值或运行影响。
     restart: unless-stopped
+    # 配置项 environment：说明该配置的用途、默认值或运行影响。
     environment:
+      # 配置项 KAFKA_NODE_ID：说明该配置的用途、默认值或运行影响。
       KAFKA_NODE_ID: 1
+      # 配置项 KAFKA_PROCESS_ROLES：说明该配置的用途、默认值或运行影响。
       KAFKA_PROCESS_ROLES: broker,controller
+      # 配置项 KAFKA_LISTENERS：说明该配置的用途、默认值或运行影响。
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      # 配置项 KAFKA_ADVERTISED_LISTENERS：说明该配置的用途、默认值或运行影响。
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      # 配置项 KAFKA_LISTENER_SECURITY_PROTOCOL_MAP：说明该配置的用途、默认值或运行影响。
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      # 配置项 KAFKA_CONTROLLER_LISTENER_NAMES：说明该配置的用途、默认值或运行影响。
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # 配置项 KAFKA_INTER_BROKER_LISTENER_NAME：说明该配置的用途、默认值或运行影响。
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # 配置项 KAFKA_CONTROLLER_QUORUM_VOTERS：说明该配置的用途、默认值或运行影响。
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      # 配置项 CLUSTER_ID：说明该配置的用途、默认值或运行影响。
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      # 配置项 KAFKA_AUTO_CREATE_TOPICS_ENABLE：说明该配置的用途、默认值或运行影响。
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # 配置项 KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR：说明该配置的用途、默认值或运行影响。
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # 配置项 KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR：说明该配置的用途、默认值或运行影响。
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # 配置项 KAFKA_TRANSACTION_STATE_LOG_MIN_ISR：说明该配置的用途、默认值或运行影响。
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # 配置项 KAFKA_LOG_DIRS：说明该配置的用途、默认值或运行影响。
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+    # 配置项 ports：说明该配置的用途、默认值或运行影响。
     ports:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "9092:9092"
+    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
     volumes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - kafka-data:/var/lib/kafka/data
+    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
     healthcheck:
+      # 配置项 test：说明该配置的用途、默认值或运行影响。
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      # 配置项 interval：说明该配置的用途、默认值或运行影响。
       interval: 15s
+      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
       timeout: 10s
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 10
+      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
       start_period: 20s
 
+  # 配置项 minio：说明该配置的用途、默认值或运行影响。
   minio:
+    # 配置项 image：说明该配置的用途、默认值或运行影响。
     image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
     container_name: sqlforge-minio
+    # 配置项 restart：说明该配置的用途、默认值或运行影响。
     restart: unless-stopped
+    # 配置项 environment：说明该配置的用途、默认值或运行影响。
     environment:
+      # 配置项 MINIO_ROOT_USER：说明该配置的用途、默认值或运行影响。
       MINIO_ROOT_USER: minioadmin
+      # 配置项 MINIO_ROOT_PASSWORD：说明该配置的用途、默认值或运行影响。
       MINIO_ROOT_PASSWORD: minioadmin
+    # 配置项 command：说明该配置的用途、默认值或运行影响。
     command: server /data --console-address ":9001"
+    # 配置项 ports：说明该配置的用途、默认值或运行影响。
     ports:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "9000:9000"
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "9001:9001"
+    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
     volumes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - minio-data:/data
+    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
     healthcheck:
+      # 配置项 test：说明该配置的用途、默认值或运行影响。
       test: ["CMD-SHELL", "mc ready local >/dev/null 2>&1 || exit 1"]
+      # 配置项 interval：说明该配置的用途、默认值或运行影响。
       interval: 15s
+      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
       timeout: 5s
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 10
+      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
       start_period: 15s
 
+# 配置项 volumes：说明该配置的用途、默认值或运行影响。
 volumes:
+  # 配置项 mysql-data：说明该配置的用途、默认值或运行影响。
   mysql-data:
+  # 配置项 redis-data：说明该配置的用途、默认值或运行影响。
   redis-data:
+  # 配置项 kafka-data：说明该配置的用途、默认值或运行影响。
   kafka-data:
+  # 配置项 minio-data：说明该配置的用途、默认值或运行影响。
   minio-data:

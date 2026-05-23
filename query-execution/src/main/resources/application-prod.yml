@@ -1,30 +1,58 @@
+# 配置项 query-execution：说明该配置的用途、默认值或运行影响。
 query-execution:
+  # 配置项 hetu：说明该配置的用途、默认值或运行影响。
   hetu:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: true
+    # 配置项 calibration：说明该配置的用途、默认值或运行影响。
     calibration:
+      # 配置项 profile：说明该配置的用途、默认值或运行影响。
       profile: PRODUCTION_CANDIDATE_BASELINE
+      # 配置项 route-order：说明该配置的用途、默认值或运行影响。
       route-order:
+        # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
         - JDBC
+        # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
         - REST
+        # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
         - CLIENT
+      # 配置项 skip-unready-modes：说明该配置的用途、默认值或运行影响。
       skip-unready-modes: true
+    # 配置项 allowed-modes：说明该配置的用途、默认值或运行影响。
     allowed-modes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - JDBC
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - REST
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - CLIENT
+  # 配置项 routing：说明该配置的用途、默认值或运行影响。
   routing:
+    # 配置项 preferred-engines：说明该配置的用途、默认值或运行影响。
     preferred-engines:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - HETU
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - SPARK
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.queryexecution：说明该配置的用途、默认值或运行影响。
     com.company.queryexecution: INFO
+  # 配置项 config：说明该配置的用途、默认值或运行影响。
   config: classpath:logback-spring.xml
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: true
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - gateway
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - token

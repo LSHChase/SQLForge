@@ -2,36 +2,64 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.queryexecution.infrastructure.persistence.mapper.RuntimeRewriteBindingMapper">
 
+    <!-- 配置项 resultMap id=RuntimeRewriteBindingRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="RuntimeRewriteBindingRecordMap" type="com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="runtimeBindingId" column="runtime_binding_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteRecordId" column="rewrite_record_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendationId" column="recommendation_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceKind" column="source_kind"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceId" column="source_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="originalSqlDigest" column="original_sql_digest"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="originalSqlText" column="original_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendedSqlText" column="recommended_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteMatchMode" column="rewrite_match_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteProgramJson" column="rewrite_program_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateFamilyFingerprint" column="template_family_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ruleVersion" column="rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activatedBy" column="activated_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activatedAt" column="activated_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pausedBy" column="paused_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pausedAt" column="paused_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pauseReason" column="pause_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
         source_kind, source_id, sql_fingerprint, original_sql_digest, original_sql_text,
@@ -40,12 +68,14 @@
         paused_by, paused_at, pause_reason, created_at, updated_at
     </sql>
 
+    <!-- 配置项 select id=selectByRuntimeBindingId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByRuntimeBindingId" resultMap="RuntimeRewriteBindingRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM runtime_rewrite_binding
         WHERE runtime_binding_id = #{runtimeBindingId}
     </select>
 
+    <!-- 配置项 select id=selectActiveByTenantIdAndSqlFingerprint：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectActiveByTenantIdAndSqlFingerprint" resultMap="RuntimeRewriteBindingRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM runtime_rewrite_binding
@@ -55,6 +85,7 @@
         LIMIT 1
     </select>
 
+    <!-- 配置项 select id=selectLatestByTenantIdAndSqlFingerprint：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectLatestByTenantIdAndSqlFingerprint" resultMap="RuntimeRewriteBindingRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM runtime_rewrite_binding
@@ -64,6 +95,7 @@
         LIMIT 1
     </select>
 
+    <!-- 配置项 select id=selectByTenantIdAndSqlFingerprint：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdAndSqlFingerprint" resultMap="RuntimeRewriteBindingRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM runtime_rewrite_binding
@@ -72,6 +104,7 @@
         ORDER BY rule_version DESC, created_at DESC
     </select>
 
+    <!-- 配置项 select id=selectActiveByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectActiveByTenantId" resultMap="RuntimeRewriteBindingRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM runtime_rewrite_binding
@@ -80,6 +113,7 @@
         ORDER BY rule_version DESC, created_at DESC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord">
         INSERT INTO runtime_rewrite_binding (
             runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
@@ -96,6 +130,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord">
         UPDATE runtime_rewrite_binding
         SET tenant_id = #{tenantId},

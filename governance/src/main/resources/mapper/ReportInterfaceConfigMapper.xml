@@ -2,28 +2,48 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.ReportInterfaceConfigMapper">
 
+    <!-- 配置项 resultMap id=ReportInterfaceConfigResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="ReportInterfaceConfigResultMap" type="com.company.governance.infrastructure.persistence.entity.ReportInterfaceConfigRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="configId" column="config_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stage" column="stage"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="endpointCode" column="endpoint_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="endpointName" column="endpoint_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="baseUrl" column="base_url"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pathTemplate" column="path_template"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="httpMethod" column="http_method"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCodeParamName" column="report_code_param_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlJsonPath" column="sql_json_path"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="authMode" column="auth_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="timeoutMs" column="timeout_ms"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="enabled" column="enabled"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         config_id,
         tenant_id,
@@ -44,6 +64,7 @@
         update_time
     </sql>
 
+    <!-- 配置项 insert id=upsert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.ReportInterfaceConfigRecord">
         INSERT INTO report_interface_config (
             config_id,
@@ -99,24 +120,30 @@
             update_time = VALUES(update_time)
     </insert>
 
+    <!-- 配置项 select id=selectByTenantIdAndConfigId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdAndConfigId" resultMap="ReportInterfaceConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM report_interface_config
         WHERE tenant_id = #{tenantId}
           AND config_id = #{configId}
     </select>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="ReportInterfaceConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM report_interface_config
         WHERE tenant_id = #{tenantId}
         ORDER BY endpoint_code ASC, update_time DESC
     </select>
 
+    <!-- 配置项 select id=selectMatchCandidates：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectMatchCandidates" resultMap="ReportInterfaceConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM report_interface_config
         WHERE tenant_id = #{tenantId}

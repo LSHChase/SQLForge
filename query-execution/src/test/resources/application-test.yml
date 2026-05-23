@@ -1,8 +1,15 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 profiles：说明该配置的用途、默认值或运行影响。
   profiles:
+    # 配置项 active：说明该配置的用途、默认值或运行影响。
     active: test
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header

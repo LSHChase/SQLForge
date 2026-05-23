@@ -2,27 +2,46 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetCaseMapper">
 
+    <!-- 配置项 resultMap id=BenchmarkTestSetCaseRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="BenchmarkTestSetCaseRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetCaseRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="caseId" column="case_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetId" column="test_set_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sequenceNumber" column="sequence_number"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceLineNumber" column="source_line_number"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="caseName" column="case_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlText" column="sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tagsJson" column="tags_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindParametersJson" column="bind_parameters_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rejectionReason" column="rejection_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rawCaseDataJson" column="raw_case_data_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         case_id,
         test_set_id,
@@ -42,14 +61,17 @@
         update_time
     </sql>
 
+    <!-- 配置项 select id=selectByTestSetId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTestSetId" resultMap="BenchmarkTestSetCaseRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM benchmark_test_set_case
         WHERE test_set_id = #{testSetId}
         ORDER BY sequence_number ASC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTestSetCaseRecord">
         INSERT INTO benchmark_test_set_case (
             case_id,
@@ -84,6 +106,7 @@
         )
     </insert>
 
+    <!-- 配置项 delete id=deleteByTestSetId：说明该配置的用途、默认值或运行影响。 -->
     <delete id="deleteByTestSetId">
         DELETE FROM benchmark_test_set_case WHERE test_set_id = #{testSetId}
     </delete>

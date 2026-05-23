@@ -2,52 +2,96 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.SqlRewriteRecordMapper">
 
+    <!-- 配置项 resultMap id=SqlRewriteRecordRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="SqlRewriteRecordRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="rewriteRecordId" column="rewrite_record_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendationId" column="recommendation_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="optimizationTaskId" column="optimization_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceKind" column="source_kind"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceId" column="source_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="evidenceLevel" column="evidence_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseHistoryId" column="parse_history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="validationStatus" column="validation_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="autoApplyAllowed" column="auto_apply_allowed"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="manualReviewRequired" column="manual_review_required"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reviewStatus" column="review_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reviewNote" column="review_note"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reviewedBy" column="reviewed_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reviewedAt" column="reviewed_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activationStatus" column="activation_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeBindingId" column="runtime_binding_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeBindingAt" column="runtime_binding_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeBindingBy" column="runtime_binding_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeBindingScope" column="runtime_binding_scope"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activatedSqlFingerprint" column="activated_sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="validationPolicyId" column="validation_policy_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastValidationRunId" column="last_validation_run_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastComparedAt" column="last_compared_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertStatus" column="alert_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="originalSqlText" column="original_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendedSqlText" column="recommended_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="executedSqlText" column="executed_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ruleChainJson" column="rule_chain_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="diffSummaryJson" column="diff_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="riskJson" column="risk_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceRefsJson" column="trace_refs_json"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
         source_kind, source_id, evidence_level, history_id, parse_history_id, sql_fingerprint,
@@ -59,12 +103,14 @@
         created_at, updated_at, rule_chain_json, diff_summary_json, risk_json, trace_refs_json
     </sql>
 
+    <!-- 配置项 select id=selectByRewriteRecordId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByRewriteRecordId" resultMap="SqlRewriteRecordRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_rewrite_record
         WHERE rewrite_record_id = #{rewriteRecordId}
     </select>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="SqlRewriteRecordRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_rewrite_record
@@ -72,6 +118,7 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 配置项 select id=selectByTenantIdAndHistoryId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdAndHistoryId" resultMap="SqlRewriteRecordRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_rewrite_record
@@ -80,6 +127,7 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 配置项 select id=selectScheduledValidationCandidates：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectScheduledValidationCandidates" resultMap="SqlRewriteRecordRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_rewrite_record
@@ -92,6 +140,7 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
         INSERT INTO sql_rewrite_record (
             rewrite_record_id, tenant_id, recommendation_id, optimization_task_id, source_type,
@@ -114,6 +163,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteRecordRecord">
         UPDATE sql_rewrite_record
         SET tenant_id = #{tenantId},

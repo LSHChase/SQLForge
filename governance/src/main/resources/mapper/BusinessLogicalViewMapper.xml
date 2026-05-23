@@ -2,25 +2,42 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.BusinessLogicalViewMapper">
 
+    <!-- 配置项 resultMap id=BusinessLogicalViewResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="BusinessLogicalViewResultMap" type="com.company.governance.domain.logicalview.entity.BusinessLogicalView">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="id" column="id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="viewCode" column="view_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="viewName" column="view_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="subjectArea" column="subject_area"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ownerUser" column="owner_user"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="freshnessStatus" column="freshness_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="slaStatus" column="sla_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryable" column="queryable"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="latestRefreshTime" column="latest_refresh_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="description" column="description"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         id,
         tenant_id,
@@ -38,19 +55,24 @@
         update_time
     </sql>
 
+    <!-- 配置项 select id=selectByTenantAndDatasource：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantAndDatasource" resultMap="BusinessLogicalViewResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM business_logical_view
         WHERE tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="datasourceCode != null and datasourceCode != ''">
             AND datasource_code = #{datasourceCode}
         </if>
         ORDER BY view_code ASC
     </select>
 
+    <!-- 配置项 select id=selectByTenantAndViewCode：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantAndViewCode" resultMap="BusinessLogicalViewResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM business_logical_view
         WHERE tenant_id = #{tenantId}

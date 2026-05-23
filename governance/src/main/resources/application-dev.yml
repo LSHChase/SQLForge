@@ -1,19 +1,32 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
   datasource:
+    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 配置项 url：说明该配置的用途、默认值或运行影响。
     url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    # 配置项 username：说明该配置的用途、默认值或运行影响。
     username: ${SQLFORGE_DEV_DB_USER:sqlforge}
+    # 配置项 password：说明该配置的用途、默认值或运行影响。
     password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
+  # 配置项 redis：说明该配置的用途、默认值或运行影响。
   redis:
+    # 配置项 host：说明该配置的用途、默认值或运行影响。
     host: ${SQLFORGE_DEV_REDIS_HOST:localhost}
+    # 配置项 port：说明该配置的用途、默认值或运行影响。
     port: ${SQLFORGE_DEV_REDIS_PORT:6379}
+    # 配置项 password：说明该配置的用途、默认值或运行影响。
     password: ${SQLFORGE_DEV_REDIS_PASSWORD:}
 
 # 生产环境要求：useSSL=true，auth.enabled=true（R-115/R-111）
 # 生产环境切换为messaging.mode=KAFKA（R-144）。
+# 配置项 messaging：说明该配置的用途、默认值或运行影响。
 messaging:
-  mode: DATABASE
+  mode: DATABASE # 配置项 mode：说明该配置的用途、默认值或运行影响。
+  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
   kafka:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: false
     # bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
     # security-protocol: ${SQLFORGE_DEV_KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
@@ -21,37 +34,67 @@ messaging:
     # sasl-jaas-config: ${SQLFORGE_DEV_KAFKA_SASL_JAAS_CONFIG:}
     # ssl-truststore-location: ${SQLFORGE_DEV_KAFKA_SSL_TRUSTSTORE_LOCATION:}
     # ssl-truststore-password: ${SQLFORGE_DEV_KAFKA_SSL_TRUSTSTORE_PASSWORD:}
+  # 配置项 database：说明该配置的用途、默认值或运行影响。
   database:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: true
+    # 配置项 poll-interval：说明该配置的用途、默认值或运行影响。
     poll-interval: 5000
+    # 配置项 max-retry：说明该配置的用途、默认值或运行影响。
     max-retry: 3
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.governance：说明该配置的用途、默认值或运行影响。
     com.company.governance: INFO
+    # 配置项 org.mybatis：说明该配置的用途、默认值或运行影响。
     org.mybatis: INFO
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 optional：说明该配置的用途、默认值或运行影响。
   optional:
+    # 配置项 h2-enabled：说明该配置的用途、默认值或运行影响。
     h2-enabled: false
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_DEV_CRYPTO_KEY_ID:governance-dev-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_DEV_CRYPTO_KEY_BASE64:}
+  # 配置项 obs：说明该配置的用途、默认值或运行影响。
   obs:
+    # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
     endpoint: ${SQLFORGE_DEV_OBS_ENDPOINT:http://localhost:9000}
+    # 配置项 access-key：说明该配置的用途、默认值或运行影响。
     access-key: ${SQLFORGE_DEV_OBS_ACCESS_KEY:minioadmin}
+    # 配置项 secret-key：说明该配置的用途、默认值或运行影响。
     secret-key: ${SQLFORGE_DEV_OBS_SECRET_KEY:minioadmin}
+    # 配置项 bucket：说明该配置的用途、默认值或运行影响。
     bucket: ${SQLFORGE_DEV_OBS_BUCKET:sqlforge-dev}
 
+# 配置项 governance：说明该配置的用途、默认值或运行影响。
 governance:
+  # 配置项 audit：说明该配置的用途、默认值或运行影响。
   audit:
+    # 配置项 smoke-force-primary-delivery-failure-enabled：说明该配置的用途、默认值或运行影响。
     smoke-force-primary-delivery-failure-enabled: ${SQLFORGE_GOVERNANCE_SMOKE_FORCE_AUDIT_DELIVERY_FAILURE:false}
+    # 配置项 smoke-force-trace-prefix：说明该配置的用途、默认值或运行影响。
     smoke-force-trace-prefix: ${SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX:SMOKE-FORCE-AUDIT-FALLBACK}
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header

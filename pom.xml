@@ -1,211 +1,379 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 配置项 project：说明该配置的用途、默认值或运行影响。 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- 配置项 modelVersion：说明该配置的用途、默认值或运行影响。 -->
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
     <groupId>com.company</groupId>
+    <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
     <artifactId>sqlforge-parent</artifactId>
+    <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
     <version>0.1.0-SNAPSHOT</version>
+    <!-- 配置项 packaging：说明该配置的用途、默认值或运行影响。 -->
     <packaging>pom</packaging>
+    <!-- 配置项 name：说明该配置的用途、默认值或运行影响。 -->
     <name>SQLForge Parent</name>
+    <!-- 配置项 description：说明该配置的用途、默认值或运行影响。 -->
     <description>Parent POM for SQLForge microservices and shared modules</description>
 
+    <!-- 配置项 modules：说明该配置的用途、默认值或运行影响。 -->
     <modules>
+        <!-- 配置项 module：说明该配置的用途、默认值或运行影响。 -->
         <module>query-execution</module>
+        <!-- 配置项 module：说明该配置的用途、默认值或运行影响。 -->
         <module>sql-optimization</module>
+        <!-- 配置项 module：说明该配置的用途、默认值或运行影响。 -->
         <module>benchmark-engine</module>
+        <!-- 配置项 module：说明该配置的用途、默认值或运行影响。 -->
         <module>sqlforge-shared</module>
+        <!-- 配置项 module：说明该配置的用途、默认值或运行影响。 -->
         <module>governance</module>
     </modules>
 
+    <!-- 配置项 properties：说明该配置的用途、默认值或运行影响。 -->
     <properties>
+        <!-- 配置项 java.version：说明该配置的用途、默认值或运行影响。 -->
         <java.version>1.8</java.version>
+        <!-- 配置项 maven.compiler.source：说明该配置的用途、默认值或运行影响。 -->
         <maven.compiler.source>${java.version}</maven.compiler.source>
+        <!-- 配置项 maven.compiler.target：说明该配置的用途、默认值或运行影响。 -->
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <!-- 配置项 project.build.sourceEncoding：说明该配置的用途、默认值或运行影响。 -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- 配置项 spring.boot.version：说明该配置的用途、默认值或运行影响。 -->
         <spring.boot.version>2.7.18</spring.boot.version>
+        <!-- 配置项 spring.cloud.version：说明该配置的用途、默认值或运行影响。 -->
         <spring.cloud.version>2021.0.8</spring.cloud.version>
+        <!-- 配置项 mybatis.spring.boot.version：说明该配置的用途、默认值或运行影响。 -->
         <mybatis.spring.boot.version>2.3.2</mybatis.spring.boot.version>
+        <!-- 配置项 mysql.driver.version：说明该配置的用途、默认值或运行影响。 -->
         <mysql.driver.version>8.0.33</mysql.driver.version>
+        <!-- 配置项 hetu.jdbc.version：说明该配置的用途、默认值或运行影响。 -->
         <hetu.jdbc.version>1.9.0</hetu.jdbc.version>
+        <!-- 配置项 trino.parser.version：说明该配置的用途、默认值或运行影响。 -->
         <trino.parser.version>351</trino.parser.version>
+        <!-- 配置项 calcite.version：说明该配置的用途、默认值或运行影响。 -->
         <calcite.version>1.41.0</calcite.version>
+        <!-- 配置项 p3c.pmd.version：说明该配置的用途、默认值或运行影响。 -->
         <p3c.pmd.version>2.1.1</p3c.pmd.version>
+        <!-- 配置项 lettuce.version：说明该配置的用途、默认值或运行影响。 -->
         <lettuce.version>6.2.6.RELEASE</lettuce.version>
+        <!-- 配置项 kafka.clients.version：说明该配置的用途、默认值或运行影响。 -->
         <kafka.clients.version>3.6.2</kafka.clients.version>
+        <!-- 配置项 bouncycastle.version：说明该配置的用途、默认值或运行影响。 -->
         <bouncycastle.version>1.70</bouncycastle.version>
+        <!-- 配置项 lombok.version：说明该配置的用途、默认值或运行影响。 -->
         <lombok.version>1.18.32</lombok.version>
+        <!-- 配置项 mapstruct.version：说明该配置的用途、默认值或运行影响。 -->
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <!-- 配置项 pagehelper.version：说明该配置的用途、默认值或运行影响。 -->
         <pagehelper.version>1.4.7</pagehelper.version>
+        <!-- 配置项 xxl.job.version：说明该配置的用途、默认值或运行影响。 -->
         <xxl.job.version>2.4.1</xxl.job.version>
+        <!-- 配置项 maven.compiler.plugin.version：说明该配置的用途、默认值或运行影响。 -->
         <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+        <!-- 配置项 maven.pmd.plugin.version：说明该配置的用途、默认值或运行影响。 -->
         <maven.pmd.plugin.version>3.21.2</maven.pmd.plugin.version>
+        <!-- 配置项 maven.checkstyle.plugin.version：说明该配置的用途、默认值或运行影响。 -->
         <maven.checkstyle.plugin.version>3.3.1</maven.checkstyle.plugin.version>
+        <!-- 配置项 maven.surefire.plugin.version：说明该配置的用途、默认值或运行影响。 -->
         <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
+        <!-- 配置项 spring.boot.starter.test.version：说明该配置的用途、默认值或运行影响。 -->
         <spring.boot.starter.test.version>${spring.boot.version}</spring.boot.starter.test.version>
     </properties>
 
+    <!-- 配置项 dependencyManagement：说明该配置的用途、默认值或运行影响。 -->
     <dependencyManagement>
+        <!-- 配置项 dependencies：说明该配置的用途、默认值或运行影响。 -->
         <dependencies>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.springframework.boot</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>spring-boot-dependencies</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${spring.boot.version}</version>
+                <!-- 配置项 type：说明该配置的用途、默认值或运行影响。 -->
                 <type>pom</type>
+                <!-- 配置项 scope：说明该配置的用途、默认值或运行影响。 -->
                 <scope>import</scope>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.springframework.cloud</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>spring-cloud-dependencies</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${spring.cloud.version}</version>
+                <!-- 配置项 type：说明该配置的用途、默认值或运行影响。 -->
                 <type>pom</type>
+                <!-- 配置项 scope：说明该配置的用途、默认值或运行影响。 -->
                 <scope>import</scope>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.mybatis.spring.boot</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>mybatis-spring-boot-starter</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${mybatis.spring.boot.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>com.mysql</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>mysql-connector-j</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${mysql.driver.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>io.hetu.core</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>hetu-jdbc</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${hetu.jdbc.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>io.trino</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>trino-parser</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${trino.parser.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.apache.calcite</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>calcite-core</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${calcite.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>io.lettuce</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>lettuce-core</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${lettuce.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.apache.kafka</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>kafka-clients</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${kafka.clients.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.bouncycastle</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>bcprov-jdk15on</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${bouncycastle.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.projectlombok</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>lombok</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${lombok.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.mapstruct</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>mapstruct</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${mapstruct.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.mapstruct</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>mapstruct-processor</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${mapstruct.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>com.github.pagehelper</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>pagehelper-spring-boot-starter</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${pagehelper.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>com.xuxueli</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>xxl-job-core</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${xxl.job.version}</version>
             </dependency>
+            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.springframework.boot</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>spring-boot-starter-test</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${spring.boot.starter.test.version}</version>
+                <!-- 配置项 scope：说明该配置的用途、默认值或运行影响。 -->
                 <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
+    <!-- 配置项 build：说明该配置的用途、默认值或运行影响。 -->
     <build>
+        <!-- 配置项 pluginManagement：说明该配置的用途、默认值或运行影响。 -->
         <pluginManagement>
+            <!-- 配置项 plugins：说明该配置的用途、默认值或运行影响。 -->
             <plugins>
+                <!-- 配置项 plugin：说明该配置的用途、默认值或运行影响。 -->
                 <plugin>
+                    <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                     <groupId>org.apache.maven.plugins</groupId>
+                    <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                     <artifactId>maven-compiler-plugin</artifactId>
+                    <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                     <version>${maven.compiler.plugin.version}</version>
+                    <!-- 配置项 configuration：说明该配置的用途、默认值或运行影响。 -->
                     <configuration>
+                        <!-- 配置项 source：说明该配置的用途、默认值或运行影响。 -->
                         <source>${maven.compiler.source}</source>
+                        <!-- 配置项 target：说明该配置的用途、默认值或运行影响。 -->
                         <target>${maven.compiler.target}</target>
+                        <!-- 配置项 encoding：说明该配置的用途、默认值或运行影响。 -->
                         <encoding>${project.build.sourceEncoding}</encoding>
+                        <!-- 配置项 annotationProcessorPaths：说明该配置的用途、默认值或运行影响。 -->
                         <annotationProcessorPaths>
+                            <!-- 配置项 path：说明该配置的用途、默认值或运行影响。 -->
                             <path>
+                                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                                 <groupId>org.projectlombok</groupId>
+                                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                                 <artifactId>lombok</artifactId>
+                                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                                 <version>${lombok.version}</version>
                             </path>
+                            <!-- 配置项 path：说明该配置的用途、默认值或运行影响。 -->
                             <path>
+                                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                                 <groupId>org.mapstruct</groupId>
+                                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                                 <artifactId>mapstruct-processor</artifactId>
+                                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                                 <version>${mapstruct.version}</version>
                             </path>
                         </annotationProcessorPaths>
                     </configuration>
                 </plugin>
+                <!-- 配置项 plugin：说明该配置的用途、默认值或运行影响。 -->
                 <plugin>
+                    <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                     <groupId>org.apache.maven.plugins</groupId>
+                    <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                     <artifactId>maven-surefire-plugin</artifactId>
+                    <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                     <version>${maven.surefire.plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
+        <!-- 配置项 plugins：说明该配置的用途、默认值或运行影响。 -->
         <plugins>
+            <!-- 配置项 plugin：说明该配置的用途、默认值或运行影响。 -->
             <plugin>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.apache.maven.plugins</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>maven-pmd-plugin</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${maven.pmd.plugin.version}</version>
+                <!-- 配置项 configuration：说明该配置的用途、默认值或运行影响。 -->
                 <configuration>
+                    <!-- 配置项 printFailingErrors：说明该配置的用途、默认值或运行影响。 -->
                     <printFailingErrors>true</printFailingErrors>
+                    <!-- 配置项 targetJdk：说明该配置的用途、默认值或运行影响。 -->
                     <targetJdk>${maven.compiler.target}</targetJdk>
+                    <!-- 配置项 rulesets：说明该配置的用途、默认值或运行影响。 -->
                     <rulesets>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-comment.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-concurrent.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-constant.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-exception.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-flowcontrol.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-naming.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-oop.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-orm.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-other.xml</ruleset>
+                        <!-- 配置项 ruleset：说明该配置的用途、默认值或运行影响。 -->
                         <ruleset>rulesets/java/ali-set.xml</ruleset>
                     </rulesets>
                 </configuration>
+                <!-- 配置项 dependencies：说明该配置的用途、默认值或运行影响。 -->
                 <dependencies>
+                    <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
                     <dependency>
+                        <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                         <groupId>com.alibaba.p3c</groupId>
+                        <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                         <artifactId>p3c-pmd</artifactId>
+                        <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                         <version>${p3c.pmd.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
+            <!-- 配置项 plugin：说明该配置的用途、默认值或运行影响。 -->
             <plugin>
+                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>org.apache.maven.plugins</groupId>
+                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
                 <artifactId>maven-checkstyle-plugin</artifactId>
+                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${maven.checkstyle.plugin.version}</version>
+                <!-- 配置项 configuration：说明该配置的用途、默认值或运行影响。 -->
                 <configuration>
+                    <!-- 配置项 configLocation：说明该配置的用途、默认值或运行影响。 -->
                     <configLocation>${maven.multiModuleProjectDirectory}/checkstyle.xml</configLocation>
+                    <!-- 配置项 includeTestSourceDirectory：说明该配置的用途、默认值或运行影响。 -->
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <!-- 配置项 consoleOutput：说明该配置的用途、默认值或运行影响。 -->
                     <consoleOutput>true</consoleOutput>
+                    <!-- 配置项 failsOnError：说明该配置的用途、默认值或运行影响。 -->
                     <failsOnError>true</failsOnError>
+                    <!-- 配置项 linkXRef：说明该配置的用途、默认值或运行影响。 -->
                     <linkXRef>false</linkXRef>
                 </configuration>
             </plugin>

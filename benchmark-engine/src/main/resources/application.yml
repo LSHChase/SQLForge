@@ -1,95 +1,183 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 application：说明该配置的用途、默认值或运行影响。
   application:
+    # 配置项 name：说明该配置的用途、默认值或运行影响。
     name: benchmark-engine
+  # 配置项 profiles：说明该配置的用途、默认值或运行影响。
   profiles:
+    # 配置项 active：说明该配置的用途、默认值或运行影响。
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+# 配置项 server：说明该配置的用途、默认值或运行影响。
 server:
+  # 配置项 port：说明该配置的用途、默认值或运行影响。
   port: 8083
 
+# 配置项 management：说明该配置的用途、默认值或运行影响。
 management:
+  # 配置项 endpoints：说明该配置的用途、默认值或运行影响。
   endpoints:
+    # 配置项 web：说明该配置的用途、默认值或运行影响。
     web:
+      # 配置项 exposure：说明该配置的用途、默认值或运行影响。
       exposure:
+        # 配置项 include：说明该配置的用途、默认值或运行影响。
         include: health,info,metrics,prometheus
+  # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
   endpoint:
+    # 配置项 health：说明该配置的用途、默认值或运行影响。
     health:
+      # 配置项 show-details：说明该配置的用途、默认值或运行影响。
       show-details: always
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.benchmarkengine：说明该配置的用途、默认值或运行影响。
     com.company.benchmarkengine: INFO
 
+# 配置项 mybatis：说明该配置的用途、默认值或运行影响。
 mybatis:
+  # 配置项 config-location：说明该配置的用途、默认值或运行影响。
   config-location: classpath:mybatis-config.xml
+  # 配置项 mapper-locations：说明该配置的用途、默认值或运行影响。
   mapper-locations: classpath*:mapper/*.xml
 
+# 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
 benchmark-engine:
+  # 配置项 isolation：说明该配置的用途、默认值或运行影响。
   isolation:
+    # 配置项 readonly-required：说明该配置的用途、默认值或运行影响。
     readonly-required: true
+    # 配置项 shadow-environment-default：说明该配置的用途、默认值或运行影响。
     shadow-environment-default: REQUIRED
+    # 配置项 desensitization-default：说明该配置的用途、默认值或运行影响。
     desensitization-default: REQUIRED
+  # 配置项 task-model：说明该配置的用途、默认值或运行影响。
   task-model:
+    # 配置项 contract-stage：说明该配置的用途、默认值或运行影响。
     contract-stage: LONG_TERM_BASELINE
+    # 配置项 implementation-stage：说明该配置的用途、默认值或运行影响。
     implementation-stage: EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE
+  # 配置项 task-execution：说明该配置的用途、默认值或运行影响。
   task-execution:
+    # 配置项 poll-interval-ms：说明该配置的用途、默认值或运行影响。
     poll-interval-ms: 25
+    # 配置项 queue-visibility-delay-ms：说明该配置的用途、默认值或运行影响。
     queue-visibility-delay-ms: 100
+    # 配置项 phase-delay-ms：说明该配置的用途、默认值或运行影响。
     phase-delay-ms: 40
+    # 配置项 isolation-sample-count：说明该配置的用途、默认值或运行影响。
     isolation-sample-count: 8
+    # 配置项 isolation-work-iterations：说明该配置的用途、默认值或运行影响。
     isolation-work-iterations: 96
+  # 配置项 queues：说明该配置的用途、默认值或运行影响。
   queues:
+    # 配置项 mode：说明该配置的用途、默认值或运行影响。
     mode: database-worker
+    # 配置项 external-file-queue-dir：说明该配置的用途、默认值或运行影响。
     external-file-queue-dir: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_DIR:target/benchmark-engine-queue/external-file-spool}
+    # 配置项 cleanup-consumed-files：说明该配置的用途、默认值或运行影响。
     cleanup-consumed-files: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_CLEANUP_CONSUMED_FILES:true}
+    # 配置项 acquire-batch-size：说明该配置的用途、默认值或运行影响。
     acquire-batch-size: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_ACQUIRE_BATCH_SIZE:32}
+  # 配置项 governance：说明该配置的用途、默认值或运行影响。
   governance:
+    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
     base-url: ${BENCHMARK_ENGINE_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
+    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
     connect-timeout-ms: ${BENCHMARK_ENGINE_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
+    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
     read-timeout-ms: ${BENCHMARK_ENGINE_GOVERNANCE_READ_TIMEOUT_MS:5000}
+    # 配置项 datasource-id-map：说明该配置的用途、默认值或运行影响。
     datasource-id-map:
+      # 配置项 AUTO：说明该配置的用途、默认值或运行影响。
       AUTO: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_AUTO:benchmark-hetu}
+      # 配置项 HETU：说明该配置的用途、默认值或运行影响。
       HETU: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HETU:benchmark-hetu}
+      # 配置项 HIVE：说明该配置的用途、默认值或运行影响。
       HIVE: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HIVE:benchmark-hive}
+  # 配置项 query-execution：说明该配置的用途、默认值或运行影响。
   query-execution:
+    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
     base-url: ${BENCHMARK_ENGINE_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/benchmark}
+    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
     connect-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
+    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
     read-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
+  # 配置项 sql-optimization：说明该配置的用途、默认值或运行影响。
   sql-optimization:
+    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
     base-url: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_BASE_URL:http://localhost:8082/api/sql-optimization}
+    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
     connect-timeout-ms: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_CONNECT_TIMEOUT_MS:3000}
+    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
     read-timeout-ms: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_READ_TIMEOUT_MS:5000}
+  # 配置项 artifact-storage：说明该配置的用途、默认值或运行影响。
   artifact-storage:
+    # 配置项 base-dir：说明该配置的用途、默认值或运行影响。
     base-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_BASE_DIR:target/benchmark-engine-artifacts}
+    # 配置项 storage-type：说明该配置的用途、默认值或运行影响。
     storage-type: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TYPE:LOCAL_FILE}
+    # 配置项 recovery-enabled：说明该配置的用途、默认值或运行影响。
     recovery-enabled: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_RECOVERY_ENABLED:true}
+    # 配置项 cleanup-stale-files：说明该配置的用途、默认值或运行影响。
     cleanup-stale-files: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_CLEANUP_STALE_FILES:true}
+    # 配置项 default-retention-days：说明该配置的用途、默认值或运行影响。
     default-retention-days: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_DEFAULT_RETENTION_DAYS:}
+    # 配置项 tenant-policy-backfill-enabled：说明该配置的用途、默认值或运行影响。
     tenant-policy-backfill-enabled: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TENANT_POLICY_BACKFILL_ENABLED:true}
+    # 配置项 environment-object-storage：说明该配置的用途、默认值或运行影响。
     environment-object-storage:
+      # 配置项 bucket：说明该配置的用途、默认值或运行影响。
       bucket: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET:}
+      # 配置项 key-prefix：说明该配置的用途、默认值或运行影响。
       key-prefix: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_KEY_PREFIX:benchmark-engine-artifacts}
+      # 配置项 mirror-dir：说明该配置的用途、默认值或运行影响。
       mirror-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_MIRROR_DIR:target/benchmark-engine-artifacts/object-storage-mirror}
+      # 配置项 live-evidence-dir：说明该配置的用途、默认值或运行影响。
       live-evidence-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_LIVE_EVIDENCE_DIR:target/benchmark-engine-artifacts/object-storage-live-evidence}
+      # 配置项 external-write-dir：说明该配置的用途、默认值或运行影响。
       external-write-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR:}
+      # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
       endpoint: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT:}
+      # 配置项 credentials：说明该配置的用途、默认值或运行影响。
       credentials: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS:}
+      # 配置项 provider-connect-timeout-ms：说明该配置的用途、默认值或运行影响。
       provider-connect-timeout-ms: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_PROVIDER_CONNECT_TIMEOUT_MS:5000}
+      # 配置项 provider-read-timeout-ms：说明该配置的用途、默认值或运行影响。
       provider-read-timeout-ms: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_PROVIDER_READ_TIMEOUT_MS:5000}
+      # 配置项 endpoint-env-name：说明该配置的用途、默认值或运行影响。
       endpoint-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT}
+      # 配置项 bucket-env-name：说明该配置的用途、默认值或运行影响。
       bucket-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET}
+      # 配置项 credentials-env-name：说明该配置的用途、默认值或运行影响。
       credentials-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS}
+      # 配置项 external-write-dir-env-name：说明该配置的用途、默认值或运行影响。
       external-write-dir-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR}
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_ID:benchmark-engine-dev-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_BASE64:}

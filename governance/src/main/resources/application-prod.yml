@@ -1,55 +1,104 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
   datasource:
+    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 配置项 url：说明该配置的用途、默认值或运行影响。
     url: ${SQLFORGE_PROD_DB_URL:jdbc:mysql://tdsql-prod:3306/sqlforge}
+    # 配置项 username：说明该配置的用途、默认值或运行影响。
     username: ${SQLFORGE_PROD_DB_USER:sqlforge}
+    # 配置项 password：说明该配置的用途、默认值或运行影响。
     password: ${SQLFORGE_PROD_DB_PASSWORD:}
+  # 配置项 redis：说明该配置的用途、默认值或运行影响。
   redis:
+    # 配置项 cluster：说明该配置的用途、默认值或运行影响。
     cluster:
+      # 配置项 nodes：说明该配置的用途、默认值或运行影响。
       nodes: ${SQLFORGE_PROD_REDIS_NODES:redis-prod-1:6379,redis-prod-2:6379,redis-prod-3:6379}
 
 # R-144：生产环境使用真实Kafka。
+# 配置项 messaging：说明该配置的用途、默认值或运行影响。
 messaging:
-  mode: KAFKA
+  mode: KAFKA # 配置项 mode：说明该配置的用途、默认值或运行影响。
+  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
   kafka:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: true
+    # 配置项 bootstrap-servers：说明该配置的用途、默认值或运行影响。
     bootstrap-servers: ${SQLFORGE_PROD_KAFKA_BOOTSTRAP:kafka-prod-1:9092,kafka-prod-2:9092,kafka-prod-3:9092}
+    # 配置项 security-protocol：说明该配置的用途、默认值或运行影响。
     security-protocol: ${SQLFORGE_PROD_KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+    # 配置项 sasl-mechanism：说明该配置的用途、默认值或运行影响。
     sasl-mechanism: ${SQLFORGE_PROD_KAFKA_SASL_MECHANISM:}
+    # 配置项 sasl-jaas-config：说明该配置的用途、默认值或运行影响。
     sasl-jaas-config: ${SQLFORGE_PROD_KAFKA_SASL_JAAS_CONFIG:}
+    # 配置项 ssl-truststore-location：说明该配置的用途、默认值或运行影响。
     ssl-truststore-location: ${SQLFORGE_PROD_KAFKA_SSL_TRUSTSTORE_LOCATION:}
+    # 配置项 ssl-truststore-password：说明该配置的用途、默认值或运行影响。
     ssl-truststore-password: ${SQLFORGE_PROD_KAFKA_SSL_TRUSTSTORE_PASSWORD:}
+    # 配置项 producer：说明该配置的用途、默认值或运行影响。
     producer:
+      # 配置项 acks：说明该配置的用途、默认值或运行影响。
       acks: all
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 3
+      # 配置项 request-timeout-ms：说明该配置的用途、默认值或运行影响。
       request-timeout-ms: ${SQLFORGE_PROD_KAFKA_PRODUCER_REQUEST_TIMEOUT_MS:15000}
+      # 配置项 delivery-timeout-ms：说明该配置的用途、默认值或运行影响。
       delivery-timeout-ms: ${SQLFORGE_PROD_KAFKA_PRODUCER_DELIVERY_TIMEOUT_MS:30000}
+      # 配置项 max-block-ms：说明该配置的用途、默认值或运行影响。
       max-block-ms: ${SQLFORGE_PROD_KAFKA_PRODUCER_MAX_BLOCK_MS:15000}
+    # 配置项 consumer：说明该配置的用途、默认值或运行影响。
     consumer:
+      # 配置项 group-id：说明该配置的用途、默认值或运行影响。
       group-id: ${SQLFORGE_PROD_KAFKA_GROUP_ID:sqlforge-group}
+      # 配置项 auto-offset-reset：说明该配置的用途、默认值或运行影响。
       auto-offset-reset: earliest
+  # 配置项 database：说明该配置的用途、默认值或运行影响。
   database:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: false
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.governance：说明该配置的用途、默认值或运行影响。
     com.company.governance: INFO
+  # 配置项 config：说明该配置的用途、默认值或运行影响。
   config: classpath:logback-spring.xml
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_PROD_CRYPTO_KEY_ID:governance-prod-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_PROD_CRYPTO_KEY_BASE64:}
+  # 配置项 storage：说明该配置的用途、默认值或运行影响。
   storage:
+    # 配置项 metadata：说明该配置的用途、默认值或运行影响。
     metadata: TDSQL_OR_GAUSSDB
+  # 配置项 logging：说明该配置的用途、默认值或运行影响。
   logging:
+    # 配置项 format：说明该配置的用途、默认值或运行影响。
     format: JSON
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: true
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - gateway
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - token

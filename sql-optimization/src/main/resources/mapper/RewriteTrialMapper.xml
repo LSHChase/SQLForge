@@ -2,51 +2,88 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.RewriteTrialMapper">
 
+    <!-- 配置项 resultMap id=RewriteTrialRunRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="RewriteTrialRunRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="runId" column="run_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceKind" column="source_kind"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceId" column="source_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchId" column="batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="totalCount" column="total_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="acceptedCount" column="accepted_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="skippedCount" column="skipped_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=RewriteTrialItemRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="RewriteTrialItemRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialItemRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="trialItemId" column="trial_item_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runId" column="run_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchItemId" column="batch_item_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseHistoryId" column="parse_history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceSqlText" column="source_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceProblemsJson" column="source_problems_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="taskId" column="task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendationId" column="recommendation_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteRecordId" column="rewrite_record_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="trialStatus" column="trial_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="failureReason" column="failure_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="candidateSql" column="candidate_sql"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="validationStatus" column="validation_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="issueRuleLinksJson" column="issue_rule_links_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=RunColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="RunColumns">
         run_id, tenant_id, source_kind, source_id, batch_id, status, total_count, accepted_count,
         skipped_count, created_by, created_at, updated_at
     </sql>
 
+    <!-- 配置项 sql id=ItemColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="ItemColumns">
         trial_item_id, run_id, batch_item_id, parse_task_id, parse_history_id, history_id,
         sql_fingerprint, datasource_code, source_sql_text, source_problems_json, task_id,
@@ -54,12 +91,14 @@
         validation_status, issue_rule_links_json, created_at, updated_at
     </sql>
 
+    <!-- 配置项 select id=selectRunById：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectRunById" resultMap="RewriteTrialRunRecordMap">
         SELECT <include refid="RunColumns"/>
         FROM rewrite_trial_run
         WHERE run_id = #{runId}
     </select>
 
+    <!-- 配置项 select id=selectRunsByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectRunsByTenantId" resultMap="RewriteTrialRunRecordMap">
         SELECT <include refid="RunColumns"/>
         FROM rewrite_trial_run
@@ -67,6 +106,7 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 配置项 select id=selectLatestRunByBatchId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectLatestRunByBatchId" resultMap="RewriteTrialRunRecordMap">
         SELECT <include refid="RunColumns"/>
         FROM rewrite_trial_run
@@ -76,6 +116,7 @@
         LIMIT 1
     </select>
 
+    <!-- 配置项 insert id=insertRun：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insertRun" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord">
         INSERT INTO rewrite_trial_run (
             run_id, tenant_id, source_kind, source_id, batch_id, status, total_count, accepted_count,
@@ -86,6 +127,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=updateRun：说明该配置的用途、默认值或运行影响。 -->
     <update id="updateRun" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord">
         UPDATE rewrite_trial_run
         SET tenant_id = #{tenantId},
@@ -102,12 +144,14 @@
         WHERE run_id = #{runId}
     </update>
 
+    <!-- 配置项 select id=selectItemById：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectItemById" resultMap="RewriteTrialItemRecordMap">
         SELECT <include refid="ItemColumns"/>
         FROM rewrite_trial_item
         WHERE trial_item_id = #{trialItemId}
     </select>
 
+    <!-- 配置项 select id=selectItemsByRunId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectItemsByRunId" resultMap="RewriteTrialItemRecordMap">
         SELECT <include refid="ItemColumns"/>
         FROM rewrite_trial_item
@@ -115,6 +159,7 @@
         ORDER BY created_at ASC, trial_item_id ASC
     </select>
 
+    <!-- 配置项 select id=selectItemsByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectItemsByTenantId" resultMap="RewriteTrialItemRecordMap">
         SELECT i.*
         FROM rewrite_trial_item i
@@ -123,6 +168,7 @@
         ORDER BY i.created_at DESC
     </select>
 
+    <!-- 配置项 insert id=insertItem：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insertItem" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialItemRecord">
         INSERT INTO rewrite_trial_item (
             trial_item_id, run_id, batch_item_id, parse_task_id, parse_history_id, history_id,
@@ -137,6 +183,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=updateItem：说明该配置的用途、默认值或运行影响。 -->
     <update id="updateItem" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialItemRecord">
         UPDATE rewrite_trial_item
         SET run_id = #{runId},

@@ -2,39 +2,70 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ReportBatchItemMapper">
 
+    <!-- 配置项 resultMap id=ReportBatchItemRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="ReportBatchItemRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchItemRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="itemId" column="item_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchId" column="batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sequenceNumber" column="sequence_number"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportName" column="report_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stage" column="stage"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="priority" column="priority"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceFileLine" column="source_file_line"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlColumnName" column="sql_column_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlOrdinalInReport" column="sql_ordinal_in_report"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlText" column="sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="structureSyntaxStatus" column="structure_syntax_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessServiceStatus" column="access_service_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessConnectionStatus" column="access_connection_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="planAnalysisStatus" column="plan_analysis_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="combinedAnalysisStatus" column="combined_analysis_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="planAnalysisJson" column="plan_analysis_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="failureReason" column="failure_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyPersisted" column="history_persisted"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyPersistenceStatus" column="history_persistence_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="issueScenesJson" column="issue_scenes_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectKeysJson" column="logical_object_keys_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
         source_file_line, sql_column_name, sql_ordinal_in_report, sql_text, parse_task_id, structure_syntax_status, access_service_status,
@@ -44,12 +75,14 @@
         created_at, updated_at
     </sql>
 
+    <!-- 配置项 select id=selectByItemId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByItemId" resultMap="ReportBatchItemRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM report_batch_item
         WHERE item_id = #{itemId}
     </select>
 
+    <!-- 配置项 select id=selectByBatchId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByBatchId" resultMap="ReportBatchItemRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM report_batch_item
@@ -57,12 +90,14 @@
         ORDER BY sequence_number ASC
     </select>
 
+    <!-- 配置项 select id=selectAll：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectAll" resultMap="ReportBatchItemRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM report_batch_item
         ORDER BY batch_id ASC, sequence_number ASC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchItemRecord">
         INSERT INTO report_batch_item (
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
@@ -81,6 +116,7 @@
         )
     </insert>
 
+    <!-- 配置项 insert id=upsertBatch：说明该配置的用途、默认值或运行影响。 -->
     <insert id="upsertBatch">
         INSERT INTO report_batch_item (
             item_id, batch_id, sequence_number, report_code, report_name, datasource_code, stage, priority,
@@ -90,6 +126,7 @@
             status, issue_scenes_json, logical_object_keys_json,
             created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
         <foreach collection="records" item="record" separator=",">
             (
                 #{record.itemId}, #{record.batchId}, #{record.sequenceNumber}, #{record.reportCode}, #{record.reportName}, #{record.datasourceCode}, #{record.stage}, #{record.priority},
@@ -130,6 +167,7 @@
             updated_at = VALUES(updated_at)
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchItemRecord">
         UPDATE report_batch_item
         SET batch_id = #{batchId},

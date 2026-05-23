@@ -1,52 +1,92 @@
+# 配置项 name：说明该配置的用途、默认值或运行影响。
 name: Release Phase Gate
 
+# 配置项 on：说明该配置的用途、默认值或运行影响。
 on:
+  # 配置项 push：说明该配置的用途、默认值或运行影响。
   push:
+    # 配置项 tags：说明该配置的用途、默认值或运行影响。
     tags:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - 'checkpoint/**'
+  # 配置项 release：说明该配置的用途、默认值或运行影响。
   release:
+    # 配置项 types：说明该配置的用途、默认值或运行影响。
     types:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - published
 
+# 配置项 concurrency：说明该配置的用途、默认值或运行影响。
 concurrency:
+  # 配置项 group：说明该配置的用途、默认值或运行影响。
   group: release-phase-gate-${{ github.event_name }}-${{ github.ref }}
+  # 配置项 cancel-in-progress：说明该配置的用途、默认值或运行影响。
   cancel-in-progress: false
 
+# 配置项 jobs：说明该配置的用途、默认值或运行影响。
 jobs:
+  # 配置项 release-phase-gate：说明该配置的用途、默认值或运行影响。
   release-phase-gate:
+    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
     runs-on: ubuntu-latest
+    # 配置项 permissions：说明该配置的用途、默认值或运行影响。
     permissions:
+      # 配置项 contents：说明该配置的用途、默认值或运行影响。
       contents: read
+    # 配置项 env：说明该配置的用途、默认值或运行影响。
     env:
+      # 配置项 SONAR_HOST_URL：说明该配置的用途、默认值或运行影响。
       SONAR_HOST_URL: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && secrets.SONAR_HOST_URL || '' }}
+      # 配置项 SONAR_TOKEN：说明该配置的用途、默认值或运行影响。
       SONAR_TOKEN: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && secrets.SONAR_TOKEN || '' }}
+      # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
       SONAR_PROJECT_KEY: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && vars.SONAR_PROJECT_KEY || '' }}
+      # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
       SONAR_PROJECT_NAME: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && vars.SONAR_PROJECT_NAME || '' }}
+      # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
       SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && vars.SONAR_QUALITY_GATE_WAIT || '' }}
+    # 配置项 steps：说明该配置的用途、默认值或运行影响。
     steps:
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Checkout
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/checkout@v4
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup JDK 8u112
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-java@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
           distribution: zulu
+          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
           java-version: '8.0.112'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Verify JDK 8u112
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup Node.js 18.20.8
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-node@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 node-version：说明该配置的用途、默认值或运行影响。
           node-version: '18.20.8'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Install frontend dependencies
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: npm install
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Capture release metadata
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           python3 - <<'PY'
           import json
@@ -74,13 +114,22 @@ jobs:
           )
           PY
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run release phase gate
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: bash scripts/run-phase-gates.sh --gate full --coverage-phase phase1plus
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Upload release gate metadata
+        # 配置项 if：说明该配置的用途、默认值或运行影响。
         if: ${{ always() }}
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/upload-artifact@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 name：说明该配置的用途、默认值或运行影响。
           name: release-phase-gate-metadata
+          # 配置项 path：说明该配置的用途、默认值或运行影响。
           path: artifacts/release-phase-gate-metadata.json
+          # 配置项 if-no-files-found：说明该配置的用途、默认值或运行影响。
           if-no-files-found: error

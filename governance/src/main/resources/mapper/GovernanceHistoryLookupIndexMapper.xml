@@ -2,14 +2,20 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper">
 
+    <!-- 配置项 resultMap id=TraceLookupHitResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="TraceLookupHitResultMap" type="com.company.governance.domain.trace.entity.TraceLookupHitRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastSeenAt" column="last_seen_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastAuditId" column="last_audit_id"/>
     </resultMap>
 
+    <!-- 配置项 select id=selectTraceHitsByLookupId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectTraceHitsByLookupId" resultMap="TraceLookupHitResultMap">
         SELECT
             trace_id,
@@ -19,12 +25,15 @@
         WHERE tenant_id = #{tenantId}
           AND lookup_type = #{lookupType}
           AND lookup_id = #{lookupId}
+          <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
           <if test="windowStart != null">
             AND last_seen_at &gt;= #{windowStart}
           </if>
+          <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
           <if test="windowEnd != null">
             AND last_seen_at &lt;= #{windowEnd}
           </if>
+          <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
           <if test="cursorCreatedAt != null and cursorAuditId != null">
             AND (
               last_seen_at &lt; #{cursorCreatedAt}

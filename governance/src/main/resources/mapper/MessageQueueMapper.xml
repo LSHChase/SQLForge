@@ -2,29 +2,48 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper">
 
+    <!-- 配置项 resultMap id=MessageQueueRecordResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="MessageQueueRecordResultMap" type="com.company.governance.domain.message.entity.MessageQueueRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="id" column="id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="topic" column="topic"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="partitionKey" column="partition_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="messageBody" column="message_body"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="headers" column="headers"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="retryCount" column="retry_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="consumedAt" column="consumed_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorLog" column="error_log"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=MessageQueueStatsResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="MessageQueueStatsResultMap" type="com.company.governance.domain.message.entity.MessageQueueRecord">
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="totalCount" column="total_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pendingCount" column="pending_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sentCount" column="sent_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="consumedCount" column="consumed_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="failedCount" column="failed_count"/>
     </resultMap>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.domain.message.entity.MessageQueueRecord" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO kafka_message_queue (
             topic,
@@ -43,6 +62,7 @@
         )
     </insert>
 
+    <!-- 配置项 select id=selectPendingMessages：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectPendingMessages" resultMap="MessageQueueRecordResultMap">
         SELECT
             id,
@@ -62,6 +82,7 @@
         LIMIT #{batchSize}
     </select>
 
+    <!-- 配置项 update id=updateStatus：说明该配置的用途、默认值或运行影响。 -->
     <update id="updateStatus">
         UPDATE kafka_message_queue
         SET status = #{status},
@@ -77,6 +98,7 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 配置项 update id=retryFailedMessages：说明该配置的用途、默认值或运行影响。 -->
     <update id="retryFailedMessages">
         UPDATE kafka_message_queue
         SET status = 'PENDING',
@@ -86,6 +108,7 @@
         WHERE status = 'FAILED'
     </update>
 
+    <!-- 配置项 select id=selectQueueStats：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectQueueStats" resultMap="MessageQueueStatsResultMap">
         SELECT
             COUNT(*) AS total_count,

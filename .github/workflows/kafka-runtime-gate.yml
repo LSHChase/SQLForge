@@ -1,25 +1,43 @@
+# 配置项 name：说明该配置的用途、默认值或运行影响。
 name: Kafka Runtime Gate
 
+# 配置项 on：说明该配置的用途、默认值或运行影响。
 on:
+  # 配置项 workflow_dispatch：说明该配置的用途、默认值或运行影响。
   workflow_dispatch:
 
+# 配置项 jobs：说明该配置的用途、默认值或运行影响。
 jobs:
+  # 配置项 kafka-runtime-gate：说明该配置的用途、默认值或运行影响。
   kafka-runtime-gate:
+    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
     runs-on: ubuntu-latest
+    # 配置项 steps：说明该配置的用途、默认值或运行影响。
     steps:
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Checkout
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/checkout@v4
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup JDK 8u112
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-java@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
           distribution: zulu
+          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
           java-version: '8.0.112'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Verify JDK 8u112
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run real Kafka runtime gate
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: bash scripts/run-kafka-runtime-gate.sh

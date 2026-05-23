@@ -2,48 +2,88 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.DatasourceConfigMapper">
 
+    <!-- 配置项 resultMap id=DatasourceConfigResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="DatasourceConfigResultMap" type="com.company.governance.infrastructure.persistence.entity.DatasourceConfigRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="datasourceId" column="datasource_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceName" column="datasource_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="engineType" column="engine_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="connectionMode" column="connection_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stage" column="stage"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="jdbcUrl" column="jdbc_url"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="jdbcDriverClassName" column="jdbc_driver_class_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="driverSourceType" column="driver_source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="driverArtifactId" column="jdbc_driver_artifact_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="driverVersionLabel" column="driver_version_label"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="driverSha256" column="driver_sha256"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="driverLoadStatus" column="driver_load_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="username" column="username"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="apiBaseUrl" column="api_base_url"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="clientEndpoint" column="client_endpoint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="gatewayEndpoint" column="gateway_endpoint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="proxyEndpoint" column="proxy_endpoint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="authMode" column="auth_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="credentialMode" column="credential_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="credentialRef" column="credential_ref"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="credentialMask" column="credential_mask"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="credentialCiphertext" column="credential_ciphertext"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="encryptionAlgorithm" column="encryption_algorithm"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="encryptionKeyId" column="encryption_key_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tlsEnabled" column="tls_enabled"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="verifyPeer" column="verify_peer"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="readonly" column="readonly_flag"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="enabled" column="enabled"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="timeoutMs" column="timeout_ms"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="healthStatus" column="health_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastFailureReason" column="last_failure_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastCheckedAt" column="last_checked_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastCheckElapsedMs" column="last_check_elapsed_ms"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         datasource_id,
         tenant_id,
@@ -84,6 +124,7 @@
         update_time
     </sql>
 
+    <!-- 配置项 insert id=upsert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.DatasourceConfigRecord">
         INSERT INTO datasource_config (
             datasource_id,
@@ -199,16 +240,20 @@
             update_time = VALUES(update_time)
     </insert>
 
+    <!-- 配置项 select id=selectByTenantIdAndDatasourceId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdAndDatasourceId" resultMap="DatasourceConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM datasource_config
         WHERE tenant_id = #{tenantId}
           AND datasource_id = #{datasourceId}
     </select>
 
+    <!-- 配置项 select id=selectByTenantIdAndDatasourceCodeAndEngineType：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantIdAndDatasourceCodeAndEngineType" resultMap="DatasourceConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM datasource_config
         WHERE tenant_id = #{tenantId}
@@ -218,8 +263,10 @@
         LIMIT 1
     </select>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="DatasourceConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM datasource_config
         WHERE tenant_id = #{tenantId}

@@ -2,39 +2,70 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationPlanMapper">
 
+    <!-- 配置项 resultMap id=AccelerationPlanRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AccelerationPlanRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="planId" column="plan_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceTaskId" column="source_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlText" column="sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceType" column="datasource_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="selectedSuggestionTypesJson" column="selected_suggestion_types_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="planStatus" column="plan_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="planSummary" column="plan_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="primaryRecommendation" column="primary_recommendation"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="planPayloadJson" column="plan_payload_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="benefitsJson" column="benefits_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="costsJson" column="costs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="risksJson" column="risks_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="configSnapshotId" column="config_snapshot_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultId" column="result_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastErrorCode" column="last_error_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastErrorMessage" column="last_error_message"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activationEvidenceJson" column="activation_evidence_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activatedAt" column="activated_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="activatedBy" column="activated_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pauseEvidenceJson" column="pause_evidence_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pausedAt" column="paused_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="pausedBy" column="paused_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="statusHistoryJson" column="status_history_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         plan_id,
         tenant_id,
@@ -66,13 +97,16 @@
         updated_at
     </sql>
 
+    <!-- 配置项 select id=selectByPlanId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByPlanId" resultMap="AccelerationPlanRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM acceleration_plan
         WHERE plan_id = #{planId}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord">
         INSERT INTO acceleration_plan (
             plan_id,
@@ -135,6 +169,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord">
         UPDATE acceleration_plan
         SET tenant_id = #{tenantId},

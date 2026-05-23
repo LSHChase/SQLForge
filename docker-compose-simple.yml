@@ -1,44 +1,85 @@
+# 配置项 services：说明该配置的用途、默认值或运行影响。
 services:
   # Kafka由R-144数据库模拟模式替代，本地开发不部署。
+  # 配置项 mysql：说明该配置的用途、默认值或运行影响。
   mysql:
+    # 配置项 image：说明该配置的用途、默认值或运行影响。
     image: mysql:8.0
+    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
     container_name: sqlforge-mysql-simple
+    # 配置项 restart：说明该配置的用途、默认值或运行影响。
     restart: unless-stopped
+    # 配置项 environment：说明该配置的用途、默认值或运行影响。
     environment:
+      # 配置项 MYSQL_ROOT_PASSWORD：说明该配置的用途、默认值或运行影响。
       MYSQL_ROOT_PASSWORD: sqlforge
+      # 配置项 MYSQL_DATABASE：说明该配置的用途、默认值或运行影响。
       MYSQL_DATABASE: sqlforge
+      # 配置项 MYSQL_USER：说明该配置的用途、默认值或运行影响。
       MYSQL_USER: sqlforge
+      # 配置项 MYSQL_PASSWORD：说明该配置的用途、默认值或运行影响。
       MYSQL_PASSWORD: sqlforge
+    # 配置项 ports：说明该配置的用途、默认值或运行影响。
     ports:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "3306:3306"
+    # 配置项 command：说明该配置的用途、默认值或运行影响。
     command:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --character-set-server=utf8mb4
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --collation-server=utf8mb4_unicode_ci
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - --default-authentication-plugin=mysql_native_password
+    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
     volumes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - mysql-simple-data:/var/lib/mysql
+    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
     healthcheck:
+      # 配置项 test：说明该配置的用途、默认值或运行影响。
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -psqlforge --silent"]
+      # 配置项 interval：说明该配置的用途、默认值或运行影响。
       interval: 10s
+      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
       timeout: 5s
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 10
+      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
       start_period: 20s
 
+  # 配置项 redis：说明该配置的用途、默认值或运行影响。
   redis:
+    # 配置项 image：说明该配置的用途、默认值或运行影响。
     image: redis:7
+    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
     container_name: sqlforge-redis-simple
+    # 配置项 restart：说明该配置的用途、默认值或运行影响。
     restart: unless-stopped
+    # 配置项 command：说明该配置的用途、默认值或运行影响。
     command: redis-server --appendonly yes
+    # 配置项 ports：说明该配置的用途、默认值或运行影响。
     ports:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - "6379:6379"
+    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
     volumes:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - redis-simple-data:/data
+    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
     healthcheck:
+      # 配置项 test：说明该配置的用途、默认值或运行影响。
       test: ["CMD", "redis-cli", "ping"]
+      # 配置项 interval：说明该配置的用途、默认值或运行影响。
       interval: 10s
+      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
       timeout: 5s
+      # 配置项 retries：说明该配置的用途、默认值或运行影响。
       retries: 10
 
+# 配置项 volumes：说明该配置的用途、默认值或运行影响。
 volumes:
+  # 配置项 mysql-simple-data：说明该配置的用途、默认值或运行影响。
   mysql-simple-data:
+  # 配置项 redis-simple-data：说明该配置的用途、默认值或运行影响。
   redis-simple-data:

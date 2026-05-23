@@ -2,42 +2,76 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.MetadataSnapshotMapper">
 
+    <!-- 配置项 resultMap id=MetadataSnapshotResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="MetadataSnapshotResultMap" type="com.company.governance.infrastructure.persistence.entity.MetadataSnapshotRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="snapshotId" column="snapshot_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="objectType" column="object_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="objectKey" column="object_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="objectName" column="object_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="catalogName" column="catalog_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="schemaName" column="schema_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="freshnessStatus" column="freshness_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="slaStatus" column="sla_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryabilityStatus" column="queryability_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="evidenceStatus" column="evidence_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="latestRefreshTime" column="latest_refresh_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="expectedSlaTime" column="expected_sla_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="snapshotTime" column="snapshot_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="evidenceSource" column="evidence_source"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="columnCount" column="column_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="partitionCount" column="partition_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rowCount" column="row_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="storageBytes" column="storage_bytes"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestId" column="request_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="executionId" column="execution_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="upstreamRefsJson" column="upstream_refs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="downstreamRefsJson" column="downstream_refs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         snapshot_id,
         tenant_id,
@@ -72,6 +106,7 @@
         update_time
     </sql>
 
+    <!-- 配置项 insert id=upsert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="upsert" parameterType="com.company.governance.infrastructure.persistence.entity.MetadataSnapshotRecord">
         INSERT INTO metadata_snapshot (
             snapshot_id,
@@ -169,37 +204,48 @@
             update_time = VALUES(update_time)
     </insert>
 
+    <!-- 配置项 select id=selectByTenantAndObjectKey：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantAndObjectKey" resultMap="MetadataSnapshotResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM metadata_snapshot
         WHERE tenant_id = #{tenantId}
           AND object_key = #{objectKey}
     </select>
 
+    <!-- 配置项 select id=selectSnapshots：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectSnapshots" resultMap="MetadataSnapshotResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM metadata_snapshot
         WHERE tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="datasourceCode != null and datasourceCode != ''">
           AND UPPER(datasource_code) = UPPER(#{datasourceCode})
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="objectType != null and objectType != ''">
           AND UPPER(object_type) = UPPER(#{objectType})
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="objectKey != null and objectKey != ''">
           AND UPPER(object_key) = UPPER(#{objectKey})
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="freshnessStatus != null and freshnessStatus != ''">
           AND UPPER(freshness_status) = UPPER(#{freshnessStatus})
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="slaStatus != null and slaStatus != ''">
           AND UPPER(sla_status) = UPPER(#{slaStatus})
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryabilityStatus != null and queryabilityStatus != ''">
           AND UPPER(queryability_status) = UPPER(#{queryabilityStatus})
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="evidenceStatus != null and evidenceStatus != ''">
           AND UPPER(evidence_status) = UPPER(#{evidenceStatus})
         </if>

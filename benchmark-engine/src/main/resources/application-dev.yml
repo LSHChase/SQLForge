@@ -1,28 +1,52 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
   datasource:
+    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 配置项 url：说明该配置的用途、默认值或运行影响。
     url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    # 配置项 username：说明该配置的用途、默认值或运行影响。
     username: ${SQLFORGE_DEV_DB_USER:sqlforge}
+    # 配置项 password：说明该配置的用途、默认值或运行影响。
     password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.benchmarkengine：说明该配置的用途、默认值或运行影响。
     com.company.benchmarkengine: INFO
+    # 配置项 org.mybatis：说明该配置的用途、默认值或运行影响。
     org.mybatis: INFO
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_BENCHMARK_ENGINE_DEV_CRYPTO_KEY_ID:benchmark-engine-dev-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_DEV_CRYPTO_KEY_BASE64:}
 
+# 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
 benchmark-engine:
+  # 配置项 queues：说明该配置的用途、默认值或运行影响。
   queues:
+    # 配置项 mode：说明该配置的用途、默认值或运行影响。
     mode: database-worker

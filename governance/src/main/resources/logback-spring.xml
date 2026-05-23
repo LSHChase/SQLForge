@@ -1,51 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 配置项 configuration：说明该配置的用途、默认值或运行影响。 -->
 <configuration>
+    <!-- 配置项 springProperty name=appName：说明该配置的用途、默认值或运行影响。 -->
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="governance"/>
 
+    <!-- 配置项 property name=LOG_PATH：说明该配置的用途、默认值或运行影响。 -->
     <property name="LOG_PATH" value="logs/${appName}"/>
+    <!-- 配置项 property name=CONSOLE_PATTERN：说明该配置的用途、默认值或运行影响。 -->
     <property name="CONSOLE_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"/>
+    <!-- 配置项 property name=FILE_PATTERN：说明该配置的用途、默认值或运行影响。 -->
     <property name="FILE_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %replace(%msg){'(?i)(password|token|secret)=([^,\\s]+)','\\1=***'}%n"/>
 
+    <!-- 配置项 appender name=CONSOLE：说明该配置的用途、默认值或运行影响。 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- 配置项 encoder：说明该配置的用途、默认值或运行影响。 -->
         <encoder>
+            <!-- 配置项 charset：说明该配置的用途、默认值或运行影响。 -->
             <charset>UTF-8</charset>
+            <!-- 配置项 pattern：说明该配置的用途、默认值或运行影响。 -->
             <pattern>${CONSOLE_PATTERN}</pattern>
         </encoder>
     </appender>
 
+    <!-- 配置项 appender name=ROLLING_FILE：说明该配置的用途、默认值或运行影响。 -->
     <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 配置项 file：说明该配置的用途、默认值或运行影响。 -->
         <file>${LOG_PATH}/application.log</file>
+        <!-- 配置项 encoder：说明该配置的用途、默认值或运行影响。 -->
         <encoder>
+            <!-- 配置项 charset：说明该配置的用途、默认值或运行影响。 -->
             <charset>UTF-8</charset>
+            <!-- 配置项 pattern：说明该配置的用途、默认值或运行影响。 -->
             <pattern>${FILE_PATTERN}</pattern>
         </encoder>
+        <!-- 配置项 rollingPolicy：说明该配置的用途、默认值或运行影响。 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 配置项 fileNamePattern：说明该配置的用途、默认值或运行影响。 -->
             <fileNamePattern>${LOG_PATH}/application.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 配置项 maxFileSize：说明该配置的用途、默认值或运行影响。 -->
             <maxFileSize>20MB</maxFileSize>
+            <!-- 配置项 maxHistory：说明该配置的用途、默认值或运行影响。 -->
             <maxHistory>30</maxHistory>
+            <!-- 配置项 totalSizeCap：说明该配置的用途、默认值或运行影响。 -->
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
     </appender>
 
+    <!-- 配置项 springProfile name=prod：说明该配置的用途、默认值或运行影响。 -->
     <springProfile name="prod">
+        <!-- 配置项 appender name=JSON_CONSOLE：说明该配置的用途、默认值或运行影响。 -->
         <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <!-- 配置项 encoder：说明该配置的用途、默认值或运行影响。 -->
             <encoder>
+                <!-- 配置项 charset：说明该配置的用途、默认值或运行影响。 -->
                 <charset>UTF-8</charset>
+                <!-- 配置项 pattern：说明该配置的用途、默认值或运行影响。 -->
                 <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}","level":"%level","service":"${appName}","thread":"%thread","logger":"%logger{36}","message":"%replace(%msg){'(?i)(password|token|secret)=([^,\\s]+)','\\1=***'}"}%n</pattern>
             </encoder>
         </appender>
 
+        <!-- 配置项 root：说明该配置的用途、默认值或运行影响。 -->
         <root level="INFO">
+            <!-- 配置项 appender-ref：说明该配置的用途、默认值或运行影响。 -->
             <appender-ref ref="JSON_CONSOLE"/>
+            <!-- 配置项 appender-ref：说明该配置的用途、默认值或运行影响。 -->
             <appender-ref ref="ROLLING_FILE"/>
         </root>
     </springProfile>
 
+    <!-- 配置项 springProfile name=!prod：说明该配置的用途、默认值或运行影响。 -->
     <springProfile name="!prod">
+        <!-- 配置项 root：说明该配置的用途、默认值或运行影响。 -->
         <root level="INFO">
+            <!-- 配置项 appender-ref：说明该配置的用途、默认值或运行影响。 -->
             <appender-ref ref="CONSOLE"/>
+            <!-- 配置项 appender-ref：说明该配置的用途、默认值或运行影响。 -->
             <appender-ref ref="ROLLING_FILE"/>
         </root>
     </springProfile>

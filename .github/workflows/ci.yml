@@ -1,47 +1,82 @@
+# 配置项 name：说明该配置的用途、默认值或运行影响。
 name: CI
 
+# 配置项 on：说明该配置的用途、默认值或运行影响。
 on:
+  # 配置项 push：说明该配置的用途、默认值或运行影响。
   push:
+    # 配置项 branches：说明该配置的用途、默认值或运行影响。
     branches:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - main
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - master
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - develop
+  # 配置项 pull_request：说明该配置的用途、默认值或运行影响。
   pull_request:
 
+# 配置项 jobs：说明该配置的用途、默认值或运行影响。
 jobs:
+  # 配置项 build-and-test：说明该配置的用途、默认值或运行影响。
   build-and-test:
+    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
     runs-on: ubuntu-latest
+    # 配置项 env：说明该配置的用途、默认值或运行影响。
     env:
+      # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
       SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
+      # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
       SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
+    # 配置项 steps：说明该配置的用途、默认值或运行影响。
     steps:
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Checkout
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/checkout@v4
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup JDK 8u112
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-java@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
           distribution: zulu
+          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
           java-version: '8.0.112'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Verify JDK 8u112
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Setup Node.js 18.20.8
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/setup-node@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 node-version：说明该配置的用途、默认值或运行影响。
           node-version: '18.20.8'
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Task audit
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: python3 scripts/task_audit.py --check
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Governance compile drift check
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: python3 scripts/foreman.py compile-governance --check
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run Maven validate
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f pom.xml ]; then
             mvn -B validate -DskipTests
@@ -49,7 +84,9 @@ jobs:
             echo "pom.xml not present yet, skip Maven validate"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run PMD scan
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f pom.xml ]; then
             mvn -B pmd:pmd -DskipTests
@@ -57,7 +94,9 @@ jobs:
             echo "pom.xml not present yet, skip PMD scan"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Generate Checkstyle report
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f pom.xml ]; then
             mvn -B checkstyle:checkstyle -DskipTests
@@ -65,7 +104,9 @@ jobs:
             echo "pom.xml not present yet, skip Checkstyle report"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run Checkstyle gate
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f pom.xml ]; then
             mvn -B checkstyle:check -DskipTests
@@ -73,7 +114,9 @@ jobs:
             echo "pom.xml not present yet, skip Checkstyle gate"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Verify Java quality reports
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f pom.xml ]; then
             python3 scripts/verify_java_quality_reports.py
@@ -81,19 +124,28 @@ jobs:
             echo "pom.xml not present yet, skip Java quality report verification"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Upload Java quality reports
+        # 配置项 if：说明该配置的用途、默认值或运行影响。
         if: ${{ always() && hashFiles('**/target/pmd.xml', '**/target/checkstyle-result.xml') != '' }}
+        # 配置项 uses：说明该配置的用途、默认值或运行影响。
         uses: actions/upload-artifact@v4
+        # 配置项 with：说明该配置的用途、默认值或运行影响。
         with:
+          # 配置项 name：说明该配置的用途、默认值或运行影响。
           name: java-quality-reports
+          # 配置项 path：说明该配置的用途、默认值或运行影响。
           path: |
             **/target/pmd.xml
             **/target/site/pmd.html
             **/target/checkstyle-result.xml
             **/target/site/checkstyle.html
+          # 配置项 if-no-files-found：说明该配置的用途、默认值或运行影响。
           if-no-files-found: error
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run Maven tests when pom exists
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f pom.xml ]; then
             mvn -B test
@@ -101,7 +153,9 @@ jobs:
             echo "pom.xml not present yet, skip Maven tests"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Validate compose syntax
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f docker-compose.yml ]; then
             bash scripts/run-runtime-smoke.sh --compose-check
@@ -109,7 +163,9 @@ jobs:
             echo "docker-compose.yml not present yet, skip compose validation"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Verify database script executability
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f scripts/verify-db-scripts.sh ]; then
             bash scripts/verify-db-scripts.sh
@@ -117,7 +173,9 @@ jobs:
             echo "database script gate not present yet, skip DB script verification"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run multi-service runtime and business smoke checks
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f docker-compose.yml ]; then
             bash scripts/run-runtime-smoke.sh --runtime-smoke
@@ -125,7 +183,9 @@ jobs:
             echo "docker-compose.yml not present yet, skip runtime smoke"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Generate backend coverage report
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f scripts/run-coverage.sh ]; then
             bash scripts/run-coverage.sh --phase report-only
@@ -133,14 +193,23 @@ jobs:
             echo "coverage script not present yet, skip coverage report"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run SonarQube scan when explicitly enabled
+        # 配置项 if：说明该配置的用途、默认值或运行影响。
         if: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}
+        # 配置项 env：说明该配置的用途、默认值或运行影响。
         env:
+          # 配置项 SONAR_HOST_URL：说明该配置的用途、默认值或运行影响。
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          # 配置项 SONAR_TOKEN：说明该配置的用途、默认值或运行影响。
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
           SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
+          # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
           SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f scripts/run-sonar.sh ]; then
             bash scripts/run-sonar.sh --require-config
@@ -148,7 +217,9 @@ jobs:
             echo "sonar script not present yet, skip sonar scan"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Check frontend-backend separation
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f scripts/check-frontend-backend-separation.js ]; then
             node scripts/check-frontend-backend-separation.js
@@ -156,7 +227,9 @@ jobs:
             echo "separation script not present yet, skip separation check"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Run frontend build when package exists
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           if [ -f package.json ]; then
             if [ ! -d node_modules ]; then
@@ -168,7 +241,9 @@ jobs:
             echo "package.json not present yet, skip frontend build"
           fi
 
+      # 配置项 name：说明该配置的用途、默认值或运行影响。
       - name: Repository sanity check
+        # 配置项 run：说明该配置的用途、默认值或运行影响。
         run: |
           node scripts/lint-repository-knowledge.js
           test -f README.md

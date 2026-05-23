@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-CONFIG-COMMENTS-ZH-20260523: 为配置文件配置项补充中文注释
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `USER-CN-CONFIG-COMMENTS-ZH-20260523 annotate configuration items in Chinese`
+- Priority: 1
+- Depends on: N/A
+- Scope: 为项目内配置文件中的配置项补充中文注释，优先覆盖仓库运行和交付会消费的 YAML、properties、env、JSON、JS/MJS 配置、XML mapper/配置和脚本配置文件；保持配置键和值与运行语义不变。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-CONFIG-COMMENTS-ZH-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 为 84 个可原位注释的仓库配置文件补充中文配置项注释，覆盖 YAML、XML/POM/MyBatis/Logback、TOML 与 JS 配置；新增 scripts/check-config-item-comments.py 用于检查注释覆盖并解析 YAML/XML/JSON；保持 13 个标准 JSON 配置文件语法不变，避免用非法注释或未知 _comment 字段破坏消费者。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-CONFIG-COMMENTS-ZH-20260523 --include-task-audit --extra-command "python3 scripts/check-config-item-comments.py" --extra-command "python3 -m py_compile scripts/check-config-item-comments.py" --extra-command "npm run lint" --extra-command "npm run build" --extra-command "mvn -B -DskipTests compile" --extra-command "docker-compose config" --extra-command "docker-compose -f docker-compose-cn.yml config" --extra-command "docker-compose -f docker-compose-simple.yml config" --extra-command "git diff --check"; YAML/XML/TOML semantic equality check versus HEAD baseline passed for yaml=27, xml=55, toml=1.
+  - Residual risk: 标准 JSON 不支持原位注释，本任务保持 package.json/package-lock.json/.codex policy/template JSON 等 13 个文件语法不变；若必须在 JSON 内表达注释，需要新任务确认 JSONC 迁移或各消费者可接受的 schema-safe comment 字段。全量 mvn test -DskipITs 仍受 governance 授权测试上下文既有失败影响，未作为本注释任务的关闭门禁。
+  - Next step: 如后续要求 JSON 配置也承载可读说明，先确认每个 JSON 消费者是否允许 JSONC 或 _comment/$comment 字段，再拆分实施。
+
 ### USER-CN-SQL-QUERY-VIEW-REFACTOR-20260523: Restructure and refactor SqlQueryView.vue
 
 - Status: done

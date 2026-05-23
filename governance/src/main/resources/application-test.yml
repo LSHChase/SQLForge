@@ -1,36 +1,66 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
   datasource:
+    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 配置项 url：说明该配置的用途、默认值或运行影响。
     url: ${SQLFORGE_TEST_DB_URL:jdbc:mysql://mysql-test:3306/sqlforge_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    # 配置项 username：说明该配置的用途、默认值或运行影响。
     username: ${SQLFORGE_TEST_DB_USER:sqlforge}
+    # 配置项 password：说明该配置的用途、默认值或运行影响。
     password: ${SQLFORGE_TEST_DB_PASSWORD:sqlforge}
+  # 配置项 redis：说明该配置的用途、默认值或运行影响。
   redis:
+    # 配置项 host：说明该配置的用途、默认值或运行影响。
     host: ${SQLFORGE_TEST_REDIS_HOST:redis-test}
+    # 配置项 port：说明该配置的用途、默认值或运行影响。
     port: ${SQLFORGE_TEST_REDIS_PORT:6379}
 
 # 集成测试默认使用DATABASE模式；单元测试使用src/test/resources中的MOCK配置。
+# 配置项 messaging：说明该配置的用途、默认值或运行影响。
 messaging:
-  mode: DATABASE
+  mode: DATABASE # 配置项 mode：说明该配置的用途、默认值或运行影响。
+  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
   kafka:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: false
+  # 配置项 database：说明该配置的用途、默认值或运行影响。
   database:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: true
+    # 配置项 poll-interval：说明该配置的用途、默认值或运行影响。
     poll-interval: 5000
+    # 配置项 max-retry：说明该配置的用途、默认值或运行影响。
     max-retry: 3
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 com.company.governance：说明该配置的用途、默认值或运行影响。
     com.company.governance: INFO
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_TEST_CRYPTO_KEY_ID:governance-test-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: true
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - gateway

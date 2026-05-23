@@ -1,6 +1,11 @@
+# 配置项 project_doc_fallback_filenames：说明该配置的用途、默认值或运行影响。
 project_doc_fallback_filenames = [".agents.md", "TEAM_GUIDE.md"]
+# 配置项 project_doc_max_bytes：说明该配置的用途、默认值或运行影响。
 project_doc_max_bytes = 131072
+# 配置项 project_root_markers：说明该配置的用途、默认值或运行影响。
 project_root_markers = [".git", "AGENTS.md", "pom.xml", "package.json"]
 
+# 配置段 features：说明该配置的用途、默认值或运行影响。
 [features]
+# 配置项 codex_hooks：说明该配置的用途、默认值或运行影响。
 codex_hooks = true

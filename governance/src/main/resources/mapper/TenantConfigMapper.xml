@@ -2,22 +2,36 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper">
 
+    <!-- 配置项 resultMap id=TenantConfigResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="TenantConfigResultMap" type="com.company.governance.domain.tenant.entity.TenantConfig">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="id" column="id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="quotaConcurrent" column="quota_concurrent"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="quotaStorage" column="quota_storage"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="defaultEngine" column="default_engine"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="backupEngine" column="backup_engine"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="auditLevel" column="audit_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="retentionDays" column="retention_days"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accelerationQuota" column="acceleration_quota"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         id,
         tenant_id,
@@ -32,13 +46,16 @@
         update_time
     </sql>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="TenantConfigResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM tenant_config
         WHERE tenant_id = #{tenantId}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.domain.tenant.entity.TenantConfig">
         INSERT INTO tenant_config (
             tenant_id,
@@ -65,6 +82,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=updateByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <update id="updateByTenantId" parameterType="com.company.governance.domain.tenant.entity.TenantConfig">
         UPDATE tenant_config
         SET quota_concurrent = #{quotaConcurrent},
@@ -78,6 +96,7 @@
         WHERE tenant_id = #{tenantId}
     </update>
 
+    <!-- 配置项 delete id=deleteByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <delete id="deleteByTenantId">
         DELETE FROM tenant_config
         WHERE tenant_id = #{tenantId}

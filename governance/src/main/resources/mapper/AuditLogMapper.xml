@@ -2,35 +2,60 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.AuditLogMapper">
 
+    <!-- 配置项 resultMap id=AuditLogResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AuditLogResultMap" type="com.company.governance.domain.trace.entity.AuditLogRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="id" column="id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="serviceCode" column="service_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="operationType" column="operation_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetType" column="target_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetId" column="target_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestId" column="request_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sagaId" column="saga_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="configSnapshotId" column="config_snapshot_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultId" column="result_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="exportId" column="export_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestParams" column="request_params"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="responseSummary" column="response_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="costMs" column="cost_ms"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=TraceLookupHitResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="TraceLookupHitResultMap" type="com.company.governance.domain.trace.entity.TraceLookupHitRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastSeenAt" column="last_seen_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="lastAuditId" column="last_audit_id"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         id,
         tenant_id,
@@ -52,15 +77,19 @@
         create_time
     </sql>
 
+    <!-- 配置项 select id=selectById：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectById" resultMap="AuditLogResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM audit_log
         WHERE id = #{id}
     </select>
 
+    <!-- 配置项 select id=selectRecentByTenant：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectRecentByTenant" resultMap="AuditLogResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM audit_log
         WHERE tenant_id = #{tenantId}
@@ -68,8 +97,10 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectRecentBusinessByTenant：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectRecentBusinessByTenant" resultMap="AuditLogResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM audit_log
         WHERE tenant_id = #{tenantId}
@@ -78,8 +109,10 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectByTraceId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTraceId" resultMap="AuditLogResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM audit_log
         WHERE tenant_id = #{tenantId}
@@ -88,18 +121,22 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectByTraceIds：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTraceIds" resultMap="AuditLogResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM audit_log
         WHERE tenant_id = #{tenantId}
           AND trace_id IN
+          <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
           <foreach collection="traceIds" item="traceId" open="(" separator="," close=")">
               #{traceId}
           </foreach>
         ORDER BY create_time DESC, id DESC
     </select>
 
+    <!-- 配置项 select id=selectTraceHitsByTargetId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectTraceHitsByTargetId" resultMap="TraceLookupHitResultMap">
         SELECT
             hits.trace_id,
@@ -114,14 +151,17 @@
             WHERE tenant_id = #{tenantId}
               AND target_id = #{targetId}
               AND trace_id IS NOT NULL
+              <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
               <if test="targetTypes != null and targetTypes.size() &gt; 0">
                 AND target_type IN
+                <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
                 <foreach collection="targetTypes" item="targetType" open="(" separator="," close=")">
                     #{targetType}
                 </foreach>
               </if>
             GROUP BY trace_id
         ) hits
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="cursorCreatedAt != null and cursorAuditId != null">
             WHERE hits.last_seen_at &lt; #{cursorCreatedAt}
                OR (hits.last_seen_at = #{cursorCreatedAt} AND hits.last_audit_id &lt; #{cursorAuditId})
@@ -130,6 +170,7 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.AuditLogRecord" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO audit_log (
             tenant_id,

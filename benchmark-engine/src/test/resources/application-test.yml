@@ -1,32 +1,61 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 autoconfigure：说明该配置的用途、默认值或运行影响。
   autoconfigure:
+    # 配置项 exclude：说明该配置的用途、默认值或运行影响。
     exclude:
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
       - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_BENCHMARK_ENGINE_TEST_CRYPTO_KEY_ID:benchmark-engine-test-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
 
+# 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
 benchmark-engine:
+  # 配置项 queues：说明该配置的用途、默认值或运行影响。
   queues:
+    # 配置项 mode：说明该配置的用途、默认值或运行影响。
     mode: local-placeholder
+    # 配置项 external-file-queue-dir：说明该配置的用途、默认值或运行影响。
     external-file-queue-dir: target/benchmark-engine-queue/test-external-file-spool
+    # 配置项 cleanup-consumed-files：说明该配置的用途、默认值或运行影响。
     cleanup-consumed-files: true
+    # 配置项 acquire-batch-size：说明该配置的用途、默认值或运行影响。
     acquire-batch-size: 8
+  # 配置项 task-execution：说明该配置的用途、默认值或运行影响。
   task-execution:
+    # 配置项 isolation-sample-count：说明该配置的用途、默认值或运行影响。
     isolation-sample-count: 6
+    # 配置项 isolation-work-iterations：说明该配置的用途、默认值或运行影响。
     isolation-work-iterations: 48
+  # 配置项 artifact-storage：说明该配置的用途、默认值或运行影响。
   artifact-storage:
+    # 配置项 base-dir：说明该配置的用途、默认值或运行影响。
     base-dir: target/benchmark-engine-artifacts/test-runtime
+    # 配置项 storage-type：说明该配置的用途、默认值或运行影响。
     storage-type: LOCAL_FILE
+    # 配置项 recovery-enabled：说明该配置的用途、默认值或运行影响。
     recovery-enabled: true
+    # 配置项 cleanup-stale-files：说明该配置的用途、默认值或运行影响。
     cleanup-stale-files: true

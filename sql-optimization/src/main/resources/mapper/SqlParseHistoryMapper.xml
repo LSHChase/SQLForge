@@ -2,51 +2,94 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.SqlParseHistoryMapper">
 
+    <!-- 配置项 resultMap id=SqlParseHistoryRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="SqlParseHistoryRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="parseHistoryId" column="parse_history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceId" column="source_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchKey" column="batch_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceType" column="datasource_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stageCode" column="stage_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bizDate" column="biz_date"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateStart" column="query_date_start"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateEnd" column="query_date_end"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateStatus" column="query_date_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessChannel" column="access_channel"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parserMode" column="parser_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlText" column="sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlTemplateText" column="sql_template_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingMode" column="binding_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parameterizedSqlFlag" column="parameterized_sql_flag"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultStatus" column="result_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetEngine" column="target_engine"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="structureParseSummaryJson" column="structure_parse_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessParseSummaryJson" column="access_parse_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultSummaryJson" column="result_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultPayloadJson" column="result_payload_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryContextJson" column="query_context_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="commentContextJson" column="comment_context_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingSummaryJson" column="binding_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectHitsJson" column="logical_object_hits_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="issueScenesJson" column="issue_scenes_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectKeysJson" column="logical_object_keys_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestId" column="request_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sagaId" column="saga_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedBy" column="submitted_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedAt" column="submitted_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         parse_history_id,
         tenant_id,
@@ -90,64 +133,83 @@
         updated_at
     </sql>
 
+    <!-- 配置项 sql id=FilterWhere：说明该配置的用途、默认值或运行影响。 -->
     <sql id="FilterWhere">
         WHERE tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="sourceType != null and sourceType != ''">
             AND source_type = #{sourceType}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="reportCode != null and reportCode != ''">
             AND report_code = #{reportCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="datasourceCode != null and datasourceCode != ''">
             AND datasource_code = #{datasourceCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="stageCode != null and stageCode != ''">
             AND stage_code = #{stageCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="bizDate != null and bizDate != ''">
             AND biz_date = #{bizDate}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryDateStart != null and queryDateStart != ''">
             AND query_date_start &gt;= #{queryDateStart}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryDateEnd != null and queryDateEnd != ''">
             AND query_date_end &lt;= #{queryDateEnd}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="status != null and status != ''">
             AND result_status = #{status}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="logicalObjectType != null and logicalObjectType != ''">
             AND logical_object_hits_json LIKE CONCAT('%', #{logicalObjectType}, '%')
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="accessChannel != null and accessChannel != ''">
             AND access_channel = #{accessChannel}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="engine != null and engine != ''">
             AND target_engine = #{engine}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedBy != null and submittedBy != ''">
             AND submitted_by = #{submittedBy}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="traceId != null and traceId != ''">
             AND trace_id = #{traceId}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="parseTaskId != null and parseTaskId != ''">
             AND parse_task_id = #{parseTaskId}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedStart != null">
             AND submitted_at &gt;= #{submittedStart}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedEnd != null">
             AND submitted_at &lt;= #{submittedEnd}
         </if>
     </sql>
 
+    <!-- 配置项 select id=selectByParseHistoryId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByParseHistoryId" resultMap="SqlParseHistoryRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_parse_history
         WHERE parse_history_id = #{parseHistoryId}
     </select>
 
+    <!-- 配置项 select id=selectByBatchKeyAndSqlFingerprint：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByBatchKeyAndSqlFingerprint" resultMap="SqlParseHistoryRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_parse_history
@@ -157,20 +219,25 @@
         LIMIT 1
     </select>
 
+    <!-- 配置项 select id=selectPage：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectPage" parameterType="com.company.sqloptimization.domain.parsehistory.SqlParseHistoryFilter" resultMap="SqlParseHistoryRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM sql_parse_history
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="FilterWhere"/>
         ORDER BY ${orderByClause}
         LIMIT #{offset}, #{limit}
     </select>
 
+    <!-- 配置项 select id=count：说明该配置的用途、默认值或运行影响。 -->
     <select id="count" parameterType="com.company.sqloptimization.domain.parsehistory.SqlParseHistoryFilter" resultType="int">
         SELECT COUNT(1)
         FROM sql_parse_history
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="FilterWhere"/>
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord">
         INSERT INTO sql_parse_history (
             parse_history_id, tenant_id, source_type, source_id, batch_key, parse_task_id,
@@ -193,6 +260,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord">
         UPDATE sql_parse_history
         SET tenant_id = #{tenantId},

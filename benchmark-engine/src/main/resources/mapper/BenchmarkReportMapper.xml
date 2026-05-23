@@ -2,27 +2,46 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkReportMapper">
 
+    <!-- 配置项 resultMap id=BenchmarkReportRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="BenchmarkReportRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="reportId" column="report_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="taskId" column="task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="taskType" column="task_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="generatedAt" column="generated_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="verdict" column="verdict"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="engineProfilesJson" column="engine_profiles_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="thresholdAssessmentsJson" column="threshold_assessments_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendationsJson" column="recommendations_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="executionSummaryJson" column="execution_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="regressionSummaryJson" column="regression_summary_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertLinkagesJson" column="alert_linkages_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="exportArtifactsJson" column="export_artifacts_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         report_id,
         task_id,
@@ -42,20 +61,25 @@
         update_time
     </sql>
 
+    <!-- 配置项 select id=selectByReportId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByReportId" resultMap="BenchmarkReportRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM benchmark_task_report
         WHERE report_id = #{reportId}
     </select>
 
+    <!-- 配置项 select id=selectByTaskId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTaskId" resultMap="BenchmarkReportRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM benchmark_task_report
         WHERE task_id = #{taskId}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord">
         INSERT INTO benchmark_task_report (
             report_id,
@@ -90,6 +114,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkReportRecord">
         UPDATE benchmark_task_report
         SET task_id = #{taskId},

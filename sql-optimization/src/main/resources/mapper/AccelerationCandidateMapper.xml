@@ -2,42 +2,76 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationCandidateMapper">
 
+    <!-- 配置项 resultMap id=AccelerationCandidateRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AccelerationCandidateRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="candidateId" column="candidate_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceKind" column="source_kind"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceId" column="source_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseHistoryId" column="parse_history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchId" column="batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchItemId" column="batch_item_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="benchmarkTaskId" column="benchmark_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="optimizationTaskId" column="optimization_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stage" column="stage"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="candidateType" column="candidate_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="confidence" column="confidence"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="priority" column="priority"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="evidenceLevel" column="evidence_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="schemaVersion" column="schema_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceEvidenceJson" column="source_evidence_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="issueEvidenceJson" column="issue_evidence_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeEvidenceJson" column="runtime_evidence_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="benefitEstimateJson" column="benefit_estimate_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="costEstimateJson" column="cost_estimate_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="riskJson" column="risk_json"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         candidate_id, tenant_id, source_type, source_kind, source_id, history_id, parse_history_id,
         parse_task_id, batch_id, batch_item_id, benchmark_task_id, optimization_task_id,
@@ -47,12 +81,14 @@
         cost_estimate_json, risk_json
     </sql>
 
+    <!-- 配置项 select id=selectByCandidateId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByCandidateId" resultMap="AccelerationCandidateRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM acceleration_candidate
         WHERE candidate_id = #{candidateId}
     </select>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="AccelerationCandidateRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM acceleration_candidate
@@ -60,6 +96,7 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord">
         INSERT INTO acceleration_candidate (
             candidate_id, tenant_id, source_type, source_kind, source_id, history_id, parse_history_id,
@@ -78,6 +115,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord">
         UPDATE acceleration_candidate
         SET tenant_id = #{tenantId},

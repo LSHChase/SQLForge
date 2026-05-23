@@ -2,48 +2,88 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTaskMapper">
 
+    <!-- 配置项 resultMap id=BenchmarkTaskRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="BenchmarkTaskRecordMap" type="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="taskId" column="task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="taskType" column="task_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlText" column="sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="priority" column="priority"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetEnginesJson" column="target_engines_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="concurrency" column="concurrency"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="durationSeconds" column="duration_seconds"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rampUpSeconds" column="ramp_up_seconds"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasetSizeLabel" column="dataset_size_label"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="scaleTargetJson" column="scale_target_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateId" column="template_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateType" column="template_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateVersion" column="template_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetId" column="test_set_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetSource" column="test_set_source"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetLabelsJson" column="test_set_labels_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="testSetSourceRefsJson" column="test_set_source_refs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="readonlyRequired" column="readonly_required"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="shadowEnvironmentMode" column="shadow_environment_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="desensitizationRequirement" column="desensitization_requirement"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="thresholdsJson" column="thresholds_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="currentPhase" column="current_phase"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="progressPercent" column="progress_percent"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportId" column="report_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorCode" column="error_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorMessage" column="error_message"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorSuggestedAction" column="error_suggested_action"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorRetryable" column="error_retryable"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="statusHistoryJson" column="status_history_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedAt" column="submitted_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="startedAt" column="started_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="finishedAt" column="finished_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         task_id,
         tenant_id,
@@ -84,15 +124,19 @@
         update_time
     </sql>
 
+    <!-- 配置项 select id=selectByTaskId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTaskId" resultMap="BenchmarkTaskRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM benchmark_task
         WHERE task_id = #{taskId}
     </select>
 
+    <!-- 配置项 select id=selectQueuedTasksSubmittedBefore：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectQueuedTasksSubmittedBefore" resultMap="BenchmarkTaskRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM benchmark_task
         WHERE status = 'QUEUED'
@@ -100,6 +144,7 @@
         ORDER BY submitted_at ASC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord">
         INSERT INTO benchmark_task (
             task_id,
@@ -176,6 +221,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.benchmarkengine.infrastructure.persistence.entity.BenchmarkTaskRecord">
         UPDATE benchmark_task
         SET tenant_id = #{tenantId},

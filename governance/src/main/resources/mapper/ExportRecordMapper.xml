@@ -2,29 +2,50 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper">
 
+    <!-- 配置项 resultMap id=ExportRecordResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="ExportRecordResultMap" type="com.company.governance.domain.trace.entity.ExportRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="exportId" column="export_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultId" column="result_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="exportFormat" column="export_format"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="exportStatus" column="export_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestId" column="request_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sagaId" column="saga_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="storageType" column="storage_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="storageUri" column="storage_uri"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="checksum" column="checksum"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="exportOptions" column="export_options"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorCode" column="error_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorMessage" column="error_message"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="finishedAt" column="finished_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         export_id,
         history_id,
@@ -46,15 +67,19 @@
         finished_at
     </sql>
 
+    <!-- 配置项 select id=selectById：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectById" resultMap="ExportRecordResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM export_record
         WHERE export_id = #{exportId}
     </select>
 
+    <!-- 配置项 select id=selectRecentByTenant：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectRecentByTenant" resultMap="ExportRecordResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM export_record
         WHERE tenant_id = #{tenantId}
@@ -62,8 +87,10 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectByTraceId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTraceId" resultMap="ExportRecordResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM export_record
         WHERE tenant_id = #{tenantId}
@@ -72,18 +99,22 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectByTraceIds：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTraceIds" resultMap="ExportRecordResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM export_record
         WHERE tenant_id = #{tenantId}
           AND trace_id IN
+          <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
           <foreach collection="traceIds" item="traceId" open="(" separator="," close=")">
               #{traceId}
           </foreach>
         ORDER BY create_time DESC, export_id DESC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.ExportRecord">
         INSERT INTO export_record (
             export_id,

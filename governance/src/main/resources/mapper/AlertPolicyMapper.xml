@@ -2,26 +2,44 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.AlertPolicyMapper">
 
+    <!-- 配置项 resultMap id=AlertPolicyRecordResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AlertPolicyRecordResultMap" type="com.company.governance.infrastructure.persistence.entity.AlertPolicyRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="policyId" column="policy_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="policyName" column="policy_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertType" column="alert_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="defaultLevel" column="default_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="dedupeStrategy" column="dedupe_strategy"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="dedupeWindowSeconds" column="dedupe_window_seconds"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="notifyChannel" column="notify_channel"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="initialNotifyStatus" column="initial_notify_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ownerScope" column="owner_scope"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="enabled" column="enabled"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ruleConfigJson" column="rule_config_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.infrastructure.persistence.entity.AlertPolicyRecord">
         INSERT INTO alert_policy (
             policy_id,
@@ -58,6 +76,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.governance.infrastructure.persistence.entity.AlertPolicyRecord">
         UPDATE alert_policy
         SET policy_name = #{policyName},
@@ -73,6 +92,7 @@
         WHERE policy_id = #{policyId}
     </update>
 
+    <!-- 配置项 select id=selectByPolicyId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByPolicyId" resultMap="AlertPolicyRecordResultMap">
         SELECT
             policy_id,
@@ -94,6 +114,7 @@
         WHERE policy_id = #{policyId}
     </select>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="AlertPolicyRecordResultMap">
         SELECT
             policy_id,
@@ -116,6 +137,7 @@
         ORDER BY alert_type ASC
     </select>
 
+    <!-- 配置项 select id=selectEnabledByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectEnabledByTenantId" resultMap="AlertPolicyRecordResultMap">
         SELECT
             policy_id,

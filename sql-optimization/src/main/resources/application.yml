@@ -1,110 +1,213 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 application：说明该配置的用途、默认值或运行影响。
   application:
+    # 配置项 name：说明该配置的用途、默认值或运行影响。
     name: sql-optimization
+  # 配置项 profiles：说明该配置的用途、默认值或运行影响。
   profiles:
+    # 配置项 active：说明该配置的用途、默认值或运行影响。
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+# 配置项 server：说明该配置的用途、默认值或运行影响。
 server:
+  # 配置项 port：说明该配置的用途、默认值或运行影响。
   port: 8082
 
+# 配置项 management：说明该配置的用途、默认值或运行影响。
 management:
+  # 配置项 endpoints：说明该配置的用途、默认值或运行影响。
   endpoints:
+    # 配置项 web：说明该配置的用途、默认值或运行影响。
     web:
+      # 配置项 exposure：说明该配置的用途、默认值或运行影响。
       exposure:
+        # 配置项 include：说明该配置的用途、默认值或运行影响。
         include: health,info,metrics,prometheus
+  # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
   endpoint:
+    # 配置项 health：说明该配置的用途、默认值或运行影响。
     health:
+      # 配置项 show-details：说明该配置的用途、默认值或运行影响。
       show-details: always
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.sqloptimization：说明该配置的用途、默认值或运行影响。
     com.company.sqloptimization: INFO
 
+# 配置项 mybatis：说明该配置的用途、默认值或运行影响。
 mybatis:
+  # 配置项 config-location：说明该配置的用途、默认值或运行影响。
   config-location: classpath:mybatis-config.xml
+  # 配置项 mapper-locations：说明该配置的用途、默认值或运行影响。
   mapper-locations: classpath*:mapper/*.xml
 
+# 配置项 sql-optimization：说明该配置的用途、默认值或运行影响。
 sql-optimization:
+  # 配置项 parser：说明该配置的用途、默认值或运行影响。
   parser:
+    # 配置项 strategy：说明该配置的用途、默认值或运行影响。
     strategy: ${SQL_OPTIMIZATION_PARSER_STRATEGY:JSQLPARSER}
+  # 配置项 parse-history：说明该配置的用途、默认值或运行影响。
   parse-history:
+    # 配置项 repository：说明该配置的用途、默认值或运行影响。
     repository: ${SQL_OPTIMIZATION_PARSE_HISTORY_REPOSITORY:database}
+  # 配置项 parse-batch：说明该配置的用途、默认值或运行影响。
   parse-batch:
+    # 配置项 repository：说明该配置的用途、默认值或运行影响。
     repository: ${SQL_OPTIMIZATION_PARSE_BATCH_REPOSITORY:database}
+  # 配置项 recommendation：说明该配置的用途、默认值或运行影响。
   recommendation:
+    # 配置项 repository：说明该配置的用途、默认值或运行影响。
     repository: ${SQL_OPTIMIZATION_RECOMMENDATION_REPOSITORY:database}
+  # 配置项 dispatch-event：说明该配置的用途、默认值或运行影响。
   dispatch-event:
+    # 配置项 repository：说明该配置的用途、默认值或运行影响。
     repository: ${SQL_OPTIMIZATION_DISPATCH_EVENT_REPOSITORY:database}
+  # 配置项 rewrite-trial：说明该配置的用途、默认值或运行影响。
   rewrite-trial:
+    # 配置项 repository：说明该配置的用途、默认值或运行影响。
     repository: ${SQL_OPTIMIZATION_REWRITE_TRIAL_REPOSITORY:database}
+  # 配置项 task-model：说明该配置的用途、默认值或运行影响。
   task-model:
+    # 配置项 isolated-queue：说明该配置的用途、默认值或运行影响。
     isolated-queue: true
+    # 配置项 contract-stage：说明该配置的用途、默认值或运行影响。
     contract-stage: LONG_TERM_BASELINE
+    # 配置项 implementation-stage：说明该配置的用途、默认值或运行影响。
     implementation-stage: DATABASE_SCHEDULED_WORKER_BASELINE
+  # 配置项 task-execution：说明该配置的用途、默认值或运行影响。
   task-execution:
+    # 配置项 poll-interval-ms：说明该配置的用途、默认值或运行影响。
     poll-interval-ms: 25
+    # 配置项 queue-visibility-delay-ms：说明该配置的用途、默认值或运行影响。
     queue-visibility-delay-ms: 100
+    # 配置项 phase-delay-ms：说明该配置的用途、默认值或运行影响。
     phase-delay-ms: 40
+  # 配置项 governance：说明该配置的用途、默认值或运行影响。
   governance:
+    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
     base-url: ${SQL_OPTIMIZATION_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
+    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
     connect-timeout-ms: ${SQL_OPTIMIZATION_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
+    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
     read-timeout-ms: ${SQL_OPTIMIZATION_GOVERNANCE_READ_TIMEOUT_MS:5000}
+    # 配置项 datasource-id-map：说明该配置的用途、默认值或运行影响。
     datasource-id-map:
+      # 配置项 AUTO：说明该配置的用途、默认值或运行影响。
       AUTO: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_AUTO:optimization-hetu}
+      # 配置项 HETU：说明该配置的用途、默认值或运行影响。
       HETU: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HETU:optimization-hetu}
+      # 配置项 HIVE：说明该配置的用途、默认值或运行影响。
       HIVE: ${SQL_OPTIMIZATION_GOVERNANCE_DATASOURCE_HIVE:optimization-hive}
+  # 配置项 query-execution：说明该配置的用途、默认值或运行影响。
   query-execution:
+    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
     base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/acceleration-plans}
+    # 配置项 result-digest-base-url：说明该配置的用途、默认值或运行影响。
     result-digest-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_RESULT_DIGEST_BASE_URL:http://localhost:8081/api/query-execution/internal/result-digests}
+    # 配置项 rewrite-binding-base-url：说明该配置的用途、默认值或运行影响。
     rewrite-binding-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_REWRITE_BINDING_BASE_URL:http://localhost:8081/api/query-execution/internal/rewrite-bindings}
+    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
     connect-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
+    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
     read-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
+  # 配置项 rewrite-production：说明该配置的用途、默认值或运行影响。
   rewrite-production:
+    # 配置项 development-direct-activation-enabled：说明该配置的用途、默认值或运行影响。
     development-direct-activation-enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_DEV_DIRECT_ACTIVATION_ENABLED:false}
+    # 配置项 calcite-rel-node：说明该配置的用途、默认值或运行影响。
     calcite-rel-node:
+      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_CALCITE_RELNODE_ENABLED:false}
+    # 配置项 rel-to-sql：说明该配置的用途、默认值或运行影响。
     rel-to-sql:
+      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_REL_TO_SQL_ENABLED:false}
+    # 配置项 jsql-parser-metadata：说明该配置的用途、默认值或运行影响。
     jsql-parser-metadata:
+      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_JSQLPARSER_METADATA_ENABLED:false}
+    # 配置项 smt-z3：说明该配置的用途、默认值或运行影响。
     smt-z3:
+      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_SMT_Z3_ENABLED:false}
+      # 配置项 command：说明该配置的用途、默认值或运行影响。
       command: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_SMT_Z3_COMMAND:}
+    # 配置项 hetu-explain-cost：说明该配置的用途、默认值或运行影响。
     hetu-explain-cost:
+      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_HETU_EXPLAIN_COST_ENABLED:false}
+    # 配置项 statistics-cost：说明该配置的用途、默认值或运行影响。
     statistics-cost:
+      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_STATISTICS_COST_ENABLED:false}
+      # 配置项 statistics-source：说明该配置的用途、默认值或运行影响。
       statistics-source: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_STATISTICS_SOURCE:}
+  # 配置项 rewrite-validation-scheduler：说明该配置的用途、默认值或运行影响。
   rewrite-validation-scheduler:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_ENABLED:false}
+    # 配置项 fixed-delay-ms：说明该配置的用途、默认值或运行影响。
     fixed-delay-ms: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_FIXED_DELAY_MS:60000}
+    # 配置项 batch-size：说明该配置的用途、默认值或运行影响。
     batch-size: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_BATCH_SIZE:20}
+    # 配置项 max-age-minutes：说明该配置的用途、默认值或运行影响。
     max-age-minutes: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_MAX_AGE_MINUTES:1440}
+    # 配置项 trigger-reason：说明该配置的用途、默认值或运行影响。
     trigger-reason: ${SQL_OPTIMIZATION_REWRITE_VALIDATION_SCHEDULER_TRIGGER_REASON:SCHEDULED_VALIDATION}
+  # 配置项 view-metadata：说明该配置的用途、默认值或运行影响。
   view-metadata:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: ${SQL_OPTIMIZATION_VIEW_METADATA_ENABLED:true}
+    # 配置项 query-timeout-seconds：说明该配置的用途、默认值或运行影响。
     query-timeout-seconds: ${SQL_OPTIMIZATION_VIEW_METADATA_QUERY_TIMEOUT_SECONDS:3}
+  # 配置项 hetu-plan：说明该配置的用途、默认值或运行影响。
   hetu-plan:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: ${SQL_OPTIMIZATION_HETU_PLAN_ENABLED:false}
+    # 配置项 query-timeout-seconds：说明该配置的用途、默认值或运行影响。
     query-timeout-seconds: ${SQL_OPTIMIZATION_HETU_PLAN_QUERY_TIMEOUT_SECONDS:5}
+    # 配置项 datasources：说明该配置的用途、默认值或运行影响。
     datasources:
+      # 配置项 hetu_main：说明该配置的用途、默认值或运行影响。
       hetu_main:
+        # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
         driver-class-name: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_DRIVER:}
+        # 配置项 jdbc-url：说明该配置的用途、默认值或运行影响。
         jdbc-url: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_JDBC_URL:}
+        # 配置项 username：说明该配置的用途、默认值或运行影响。
         username: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_USERNAME:}
+        # 配置项 password：说明该配置的用途、默认值或运行影响。
         password: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_PASSWORD:}
+  # 配置项 queues：说明该配置的用途、默认值或运行影响。
   queues:
+    # 配置项 mode：说明该配置的用途、默认值或运行影响。
     mode: database-worker
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: false
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - header
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_SQL_OPTIMIZATION_CRYPTO_KEY_ID:sql-optimization-dev-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_SQL_OPTIMIZATION_CRYPTO_KEY_BASE64:}

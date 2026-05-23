@@ -2,10 +2,15 @@
 <!DOCTYPE configuration
         PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<!-- 配置项 configuration：说明该配置的用途、默认值或运行影响。 -->
 <configuration>
+    <!-- 配置项 settings：说明该配置的用途、默认值或运行影响。 -->
     <settings>
+        <!-- 配置项 setting name=mapUnderscoreToCamelCase：说明该配置的用途、默认值或运行影响。 -->
         <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 配置项 setting name=cacheEnabled：说明该配置的用途、默认值或运行影响。 -->
         <setting name="cacheEnabled" value="false"/>
+        <!-- 配置项 setting name=lazyLoadingEnabled：说明该配置的用途、默认值或运行影响。 -->
         <setting name="lazyLoadingEnabled" value="false"/>
     </settings>
 </configuration>

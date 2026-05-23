@@ -2,32 +2,56 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ParseBatchMapper">
 
+    <!-- 配置项 resultMap id=ParseBatchRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="ParseBatchRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchName" column="batch_name"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="importMode" column="import_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="fileType" column="file_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateVersion" column="template_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parserMode" column="parser_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="structureParseOnly" column="structure_parse_only"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="totalRecords" column="total_records"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="successRecords" column="success_records"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="partialSuccessRecords" column="partial_success_records"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="failedRecords" column="failed_records"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="structureParseSuccessRate" column="structure_parse_success_rate"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessParseSuccessRate" column="access_parse_success_rate"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="statusHistoryJson" column="status_history_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         batch_id,
         tenant_id,
@@ -52,20 +76,25 @@
         updated_at
     </sql>
 
+    <!-- 配置项 select id=selectByBatchId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByBatchId" resultMap="ParseBatchRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM parse_batch
         WHERE batch_id = #{batchId}
     </select>
 
+    <!-- 配置项 select id=selectAll：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectAll" resultMap="ParseBatchRecordMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM parse_batch
         ORDER BY created_at DESC, batch_id DESC
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
         INSERT INTO parse_batch (
             batch_id,
@@ -114,6 +143,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchRecord">
         UPDATE parse_batch
         SET tenant_id = #{tenantId},

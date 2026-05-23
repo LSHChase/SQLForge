@@ -2,57 +2,106 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationRecommendationMapper">
 
+    <!-- 配置项 resultMap id=AccelerationRecommendationRecordMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="AccelerationRecommendationRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="recommendationId" column="recommendation_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendationType" column="recommendation_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceSqlId" column="source_sql_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="batchId" column="batch_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="routeDecisionId" column="route_decision_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="alertId" column="alert_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceSqlText" column="source_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="recommendedSqlText" column="recommended_sql_text"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetEngine" column="target_engine"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetDatasource" column="target_datasource"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectKey" column="logical_object_key"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="summary" column="summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reason" column="reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="expectedGain" column="expected_gain"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="benefitLevel" column="benefit_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="riskLevel" column="risk_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="riskSummary" column="risk_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requiresDispatch" column="requires_dispatch"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceType" column="source_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceKind" column="source_kind"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceId" column="source_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="evidenceLevel" column="evidence_level"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="schemaVersion" column="schema_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="ruleChainJson" column="rule_chain_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="unappliedRulesJson" column="unapplied_rules_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="preconditionsJson" column="preconditions_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="semanticRisksJson" column="semantic_risks_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accelerationArtifactJson" column="acceleration_artifact_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="expectedBenefitJson" column="expected_benefit_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="estimatedCostJson" column="estimated_cost_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="confidence" column="confidence"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="validationMethod" column="validation_method"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="validationStatus" column="validation_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="autoApplyAllowed" column="auto_apply_allowed"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="manualReviewRequired" column="manual_review_required"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sourceProblemsJson" column="source_problems_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="issueRuleLinksJson" column="issue_rule_links_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdBy" column="created_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         recommendation_id, tenant_id, recommendation_type, source_sql_id, history_id, parse_task_id,
         batch_id, route_decision_id, alert_id, sql_fingerprint,
@@ -65,68 +114,89 @@
         created_by, created_at, updated_at
     </sql>
 
+    <!-- 配置项 sql id=FilterWhere：说明该配置的用途、默认值或运行影响。 -->
     <sql id="FilterWhere">
         WHERE tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="recommendationType != null and recommendationType != ''">
             AND recommendation_type = #{recommendationType}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="benefitLevel != null and benefitLevel != ''">
             AND benefit_level = #{benefitLevel}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="riskLevel != null and riskLevel != ''">
             AND risk_level = #{riskLevel}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="validationStatus != null and validationStatus != ''">
             AND validation_status = #{validationStatus}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="requiresDispatch != null">
             AND requires_dispatch = #{requiresDispatch}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="manualReviewRequired != null">
             AND manual_review_required = #{manualReviewRequired}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="sourceType != null and sourceType != ''">
             AND source_type = #{sourceType}
         </if>
+        <!-- 配置项 choose：说明该配置的用途、默认值或运行影响。 -->
         <choose>
+            <!-- 配置项 when：说明该配置的用途、默认值或运行影响。 -->
             <when test="sourceKinds != null and sourceKinds.size() > 0">
                 AND source_kind IN
+                <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
                 <foreach collection="sourceKinds" item="sourceKindItem" open="(" separator="," close=")">
                     #{sourceKindItem}
                 </foreach>
             </when>
+            <!-- 配置项 otherwise：说明该配置的用途、默认值或运行影响。 -->
             <otherwise>
+                <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
                 <if test="sourceKind != null and sourceKind != ''">
                     AND source_kind = #{sourceKind}
                 </if>
             </otherwise>
         </choose>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="sourceId != null and sourceId != ''">
             AND source_id = #{sourceId}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="historyId != null and historyId != ''">
             AND history_id = #{historyId}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="parseTaskId != null and parseTaskId != ''">
             AND parse_task_id = #{parseTaskId}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="batchId != null and batchId != ''">
             AND batch_id = #{batchId}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="reportCode != null and reportCode != ''">
             AND report_code = #{reportCode}
         </if>
     </sql>
 
+    <!-- 配置项 select id=selectByRecommendationId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByRecommendationId" resultMap="AccelerationRecommendationRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM acceleration_recommendation
         WHERE recommendation_id = #{recommendationId}
     </select>
 
+    <!-- 配置项 select id=selectByTenantId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTenantId" resultMap="AccelerationRecommendationRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM acceleration_recommendation
@@ -134,20 +204,25 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 配置项 select id=selectPage：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectPage" parameterType="com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter" resultMap="AccelerationRecommendationRecordMap">
         SELECT <include refid="BaseColumns"/>
         FROM acceleration_recommendation
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="FilterWhere"/>
         ORDER BY ${orderByClause}
         LIMIT #{offset}, #{limit}
     </select>
 
+    <!-- 配置项 select id=count：说明该配置的用途、默认值或运行影响。 -->
     <select id="count" parameterType="com.company.sqloptimization.domain.recommendation.AccelerationRecommendationFilter" resultType="int">
         SELECT COUNT(1)
         FROM acceleration_recommendation
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="FilterWhere"/>
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
         INSERT INTO acceleration_recommendation (
             recommendation_id, tenant_id, recommendation_type, source_sql_id, history_id, parse_task_id,
@@ -172,6 +247,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=update：说明该配置的用途、默认值或运行影响。 -->
     <update id="update" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord">
         UPDATE acceleration_recommendation
         SET tenant_id = #{tenantId},

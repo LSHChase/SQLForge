@@ -2,105 +2,200 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：说明该配置的用途、默认值或运行影响。 -->
 <mapper namespace="com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper">
 
+    <!-- 配置项 resultMap id=GovernanceQueryHistoryProjectionMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="GovernanceQueryHistoryProjectionMap" type="com.company.governance.domain.trace.entity.GovernanceQueryHistoryProjection">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultId" column="result_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyType" column="history_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlTemplateFingerprint" column="sql_template_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="boundSqlFingerprint" column="bound_sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceType" column="datasource_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stageCode" column="stage_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bizDate" column="biz_date"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateStart" column="query_date_start"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateEnd" column="query_date_end"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateStatus" column="query_date_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessChannel" column="access_channel"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parameterizedSqlFlag" column="parameterized_sql_flag"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingMode" column="binding_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingRenderStatus" column="binding_render_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestId" column="request_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sagaId" column="saga_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="commentContext" column="comment_context"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingSummary" column="binding_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteRecordId" column="rewrite_record_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeBindingId" column="runtime_binding_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteRuleVersion" column="rewrite_rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeRewriteStatus" column="runtime_rewrite_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteActivationStatusSnapshot" column="rewrite_activation_status_snapshot"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteFallbackReason" column="rewrite_fallback_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectHits" column="logical_object_hits"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="routeSummary" column="history_route_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="cacheSummary" column="history_cache_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryContext" column="query_context"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedBy" column="submitted_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedAt" column="submitted_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultStatus" column="result_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="targetEngine" column="target_engine"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="returnedRowCount" column="returned_row_count"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="cacheHit" column="cache_hit"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteApplied" column="rewrite_applied"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accelerationApplied" column="acceleration_applied"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="hitTableSummary" column="hit_table_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultSummary" column="result_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorCode" column="error_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="errorMessage" column="error_message"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="startedAt" column="started_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="finishedAt" column="finished_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=QueryHistoryResultMap：说明该配置的用途、默认值或运行影响。 -->
     <resultMap id="QueryHistoryResultMap" type="com.company.governance.domain.trace.entity.QueryHistoryRecord">
+        <!-- 配置项 id：说明该配置的用途、默认值或运行影响。 -->
         <id property="historyId" column="history_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="resultId" column="result_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="historyType" column="history_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlFingerprint" column="sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlTextCipher" column="sql_text_cipher"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlTemplateCipher" column="sql_template_cipher"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="boundSqlTextCipher" column="bound_sql_text_cipher"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceType" column="datasource_type"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="stageCode" column="stage_code"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bizDate" column="biz_date"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateStart" column="query_date_start"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateEnd" column="query_date_end"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryDateStatus" column="query_date_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="accessChannel" column="access_channel"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="parameterizedSqlFlag" column="parameterized_sql_flag"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingMode" column="binding_mode"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingRenderStatus" column="binding_render_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sqlTemplateFingerprint" column="sql_template_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="boundSqlFingerprint" column="bound_sql_fingerprint"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="traceId" column="trace_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="requestId" column="request_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="sagaId" column="saga_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="commentContext" column="comment_context"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="bindingSummary" column="binding_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteRecordId" column="rewrite_record_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeBindingId" column="runtime_binding_id"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteRuleVersion" column="rewrite_rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeRuleVersion" column="runtime_rule_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="runtimeRewriteStatus" column="runtime_rewrite_status"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteActivationStatusSnapshot" column="rewrite_activation_status_snapshot"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="rewriteFallbackReason" column="rewrite_fallback_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="logicalObjectHits" column="logical_object_hits"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="routeSummary" column="route_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="cacheSummary" column="cache_summary"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="queryContext" column="query_context"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedBy" column="submitted_by"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="submittedAt" column="submitted_at"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="createTime" column="create_time"/>
     </resultMap>
 
+    <!-- 配置项 sql id=BaseColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="BaseColumns">
         history_id,
         result_id,
@@ -145,6 +240,7 @@
         create_time
     </sql>
 
+    <!-- 配置项 sql id=HistoryProjectionColumns：说明该配置的用途、默认值或运行影响。 -->
     <sql id="HistoryProjectionColumns">
         qh.history_id,
         qh.result_id,
@@ -198,15 +294,19 @@
         er.finished_at
     </sql>
 
+    <!-- 配置项 select id=selectById：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectById" resultMap="QueryHistoryResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM query_history
         WHERE history_id = #{historyId}
     </select>
 
+    <!-- 配置项 select id=selectRecentByTenant：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectRecentByTenant" resultMap="QueryHistoryResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM query_history
         WHERE tenant_id = #{tenantId}
@@ -214,8 +314,10 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectByTraceId：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTraceId" resultMap="QueryHistoryResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM query_history
         WHERE tenant_id = #{tenantId}
@@ -224,86 +326,113 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 配置项 select id=selectByTraceIds：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectByTraceIds" resultMap="QueryHistoryResultMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="BaseColumns"/>
         FROM query_history
         WHERE tenant_id = #{tenantId}
           AND trace_id IN
+          <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
           <foreach collection="traceIds" item="traceId" open="(" separator="," close=")">
               #{traceId}
           </foreach>
         ORDER BY create_time DESC, history_id DESC
     </select>
 
+    <!-- 配置项 select id=selectHistoryPage：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectHistoryPage" resultMap="GovernanceQueryHistoryProjectionMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="HistoryProjectionColumns"/>
         FROM query_history qh
         LEFT JOIN execution_result er ON er.result_id = qh.result_id
         WHERE qh.tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="historyType != null and historyType != ''">
             AND qh.history_type = #{historyType}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="reportCode != null and reportCode != ''">
             AND qh.report_code = #{reportCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="datasourceCode != null and datasourceCode != ''">
             AND qh.datasource_code = #{datasourceCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="stageCode != null and stageCode != ''">
             AND qh.stage_code = #{stageCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="bizDate != null">
             AND qh.biz_date = #{bizDate}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryDateStart != null">
             AND qh.query_date_start &gt;= #{queryDateStart}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryDateEnd != null">
             AND qh.query_date_end &lt;= #{queryDateEnd}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="status != null and status != ''">
             AND er.result_status = #{status}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="cacheHit != null">
             AND er.cache_hit = #{cacheHit}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="rewriteApplied != null">
             AND COALESCE(er.rewrite_applied, 0) = #{rewriteApplied}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="accelerationApplied != null">
             AND er.acceleration_applied = #{accelerationApplied}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="parameterizedSql != null">
             AND qh.parameterized_sql_flag = #{parameterizedSql}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="logicalObjectType != null and logicalObjectType != ''">
             AND qh.logical_object_hits LIKE CONCAT('%', #{logicalObjectType}, '%')
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="accessChannel != null and accessChannel != ''">
             AND qh.access_channel = #{accessChannel}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="engine != null and engine != ''">
             AND er.target_engine = #{engine}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedBy != null and submittedBy != ''">
             AND qh.submitted_by = #{submittedBy}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedStart != null">
             AND qh.submitted_at &gt;= #{submittedStart}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedEnd != null">
             AND qh.submitted_at &lt;= #{submittedEnd}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="includeHistoryIds != null and includeHistoryIds.size() &gt; 0">
             AND qh.history_id IN
+            <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
             <foreach collection="includeHistoryIds" item="historyId" open="(" separator="," close=")">
                 #{historyId}
             </foreach>
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="excludeHistoryIds != null and excludeHistoryIds.size() &gt; 0">
             AND qh.history_id NOT IN
+            <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
             <foreach collection="excludeHistoryIds" item="historyId" open="(" separator="," close=")">
                 #{historyId}
             </foreach>
@@ -312,81 +441,106 @@
         LIMIT #{offset}, #{limit}
     </select>
 
+    <!-- 配置项 select id=countHistoryPage：说明该配置的用途、默认值或运行影响。 -->
     <select id="countHistoryPage" resultType="int">
         SELECT COUNT(1)
         FROM query_history qh
         LEFT JOIN execution_result er ON er.result_id = qh.result_id
         WHERE qh.tenant_id = #{tenantId}
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="historyType != null and historyType != ''">
             AND qh.history_type = #{historyType}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="reportCode != null and reportCode != ''">
             AND qh.report_code = #{reportCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="datasourceCode != null and datasourceCode != ''">
             AND qh.datasource_code = #{datasourceCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="stageCode != null and stageCode != ''">
             AND qh.stage_code = #{stageCode}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="bizDate != null">
             AND qh.biz_date = #{bizDate}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryDateStart != null">
             AND qh.query_date_start &gt;= #{queryDateStart}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="queryDateEnd != null">
             AND qh.query_date_end &lt;= #{queryDateEnd}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="status != null and status != ''">
             AND er.result_status = #{status}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="cacheHit != null">
             AND er.cache_hit = #{cacheHit}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="rewriteApplied != null">
             AND COALESCE(er.rewrite_applied, 0) = #{rewriteApplied}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="accelerationApplied != null">
             AND er.acceleration_applied = #{accelerationApplied}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="parameterizedSql != null">
             AND qh.parameterized_sql_flag = #{parameterizedSql}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="logicalObjectType != null and logicalObjectType != ''">
             AND qh.logical_object_hits LIKE CONCAT('%', #{logicalObjectType}, '%')
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="accessChannel != null and accessChannel != ''">
             AND qh.access_channel = #{accessChannel}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="engine != null and engine != ''">
             AND er.target_engine = #{engine}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedBy != null and submittedBy != ''">
             AND qh.submitted_by = #{submittedBy}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedStart != null">
             AND qh.submitted_at &gt;= #{submittedStart}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="submittedEnd != null">
             AND qh.submitted_at &lt;= #{submittedEnd}
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="includeHistoryIds != null and includeHistoryIds.size() &gt; 0">
             AND qh.history_id IN
+            <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
             <foreach collection="includeHistoryIds" item="historyId" open="(" separator="," close=")">
                 #{historyId}
             </foreach>
         </if>
+        <!-- 配置项 if：说明该配置的用途、默认值或运行影响。 -->
         <if test="excludeHistoryIds != null and excludeHistoryIds.size() &gt; 0">
             AND qh.history_id NOT IN
+            <!-- 配置项 foreach：说明该配置的用途、默认值或运行影响。 -->
             <foreach collection="excludeHistoryIds" item="historyId" open="(" separator="," close=")">
                 #{historyId}
             </foreach>
         </if>
     </select>
 
+    <!-- 配置项 select id=selectHistoryDetail：说明该配置的用途、默认值或运行影响。 -->
     <select id="selectHistoryDetail" resultMap="GovernanceQueryHistoryProjectionMap">
         SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
         <include refid="HistoryProjectionColumns"/>
         FROM query_history qh
         LEFT JOIN execution_result er ON er.result_id = qh.result_id
@@ -394,6 +548,7 @@
           AND qh.history_id = #{historyId}
     </select>
 
+    <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.domain.trace.entity.QueryHistoryRecord">
         INSERT INTO query_history (
             history_id,
@@ -482,6 +637,7 @@
         )
     </insert>
 
+    <!-- 配置项 update id=updateById：说明该配置的用途、默认值或运行影响。 -->
     <update id="updateById" parameterType="com.company.governance.domain.trace.entity.QueryHistoryRecord">
         UPDATE query_history
         SET

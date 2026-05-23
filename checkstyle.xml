@@ -2,25 +2,44 @@
 <!DOCTYPE module PUBLIC
     "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
     "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!-- 配置项 module name=Checker：说明该配置的用途、默认值或运行影响。 -->
 <module name="Checker">
+    <!-- 配置项 property name=charset：说明该配置的用途、默认值或运行影响。 -->
     <property name="charset" value="UTF-8"/>
+    <!-- 配置项 module name=NewlineAtEndOfFile：说明该配置的用途、默认值或运行影响。 -->
     <module name="NewlineAtEndOfFile"/>
+    <!-- 配置项 module name=FileTabCharacter：说明该配置的用途、默认值或运行影响。 -->
     <module name="FileTabCharacter">
+        <!-- 配置项 property name=eachLine：说明该配置的用途、默认值或运行影响。 -->
         <property name="eachLine" value="true"/>
     </module>
+    <!-- 配置项 module name=TreeWalker：说明该配置的用途、默认值或运行影响。 -->
     <module name="TreeWalker">
+        <!-- 配置项 module name=OuterTypeFilename：说明该配置的用途、默认值或运行影响。 -->
         <module name="OuterTypeFilename"/>
+        <!-- 配置项 module name=OneTopLevelClass：说明该配置的用途、默认值或运行影响。 -->
         <module name="OneTopLevelClass"/>
+        <!-- 配置项 module name=AvoidStarImport：说明该配置的用途、默认值或运行影响。 -->
         <module name="AvoidStarImport"/>
+        <!-- 配置项 module name=UnusedImports：说明该配置的用途、默认值或运行影响。 -->
         <module name="UnusedImports"/>
+        <!-- 配置项 module name=NeedBraces：说明该配置的用途、默认值或运行影响。 -->
         <module name="NeedBraces"/>
+        <!-- 配置项 module name=PackageName：说明该配置的用途、默认值或运行影响。 -->
         <module name="PackageName"/>
+        <!-- 配置项 module name=TypeName：说明该配置的用途、默认值或运行影响。 -->
         <module name="TypeName"/>
+        <!-- 配置项 module name=MethodName：说明该配置的用途、默认值或运行影响。 -->
         <module name="MethodName"/>
+        <!-- 配置项 module name=ParameterName：说明该配置的用途、默认值或运行影响。 -->
         <module name="ParameterName"/>
+        <!-- 配置项 module name=LocalVariableName：说明该配置的用途、默认值或运行影响。 -->
         <module name="LocalVariableName"/>
+        <!-- 配置项 module name=MemberName：说明该配置的用途、默认值或运行影响。 -->
         <module name="MemberName"/>
+        <!-- 配置项 module name=StaticVariableName：说明该配置的用途、默认值或运行影响。 -->
         <module name="StaticVariableName"/>
+        <!-- 配置项 module name=ConstantName：说明该配置的用途、默认值或运行影响。 -->
         <module name="ConstantName"/>
     </module>
 </module>

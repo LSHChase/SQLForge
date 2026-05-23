@@ -1,39 +1,74 @@
+# 配置项 spring：说明该配置的用途、默认值或运行影响。
 spring:
+  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
   datasource:
+    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 配置项 url：说明该配置的用途、默认值或运行影响。
     url: ${SQLFORGE_SQL_OPTIMIZATION_DB_URL:jdbc:mysql://sqlforge-mysql:3306/sqlforge?useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=false}
+    # 配置项 username：说明该配置的用途、默认值或运行影响。
     username: ${SQLFORGE_SQL_OPTIMIZATION_DB_USER:sqlforge}
+    # 配置项 password：说明该配置的用途、默认值或运行影响。
     password: ${SQLFORGE_SQL_OPTIMIZATION_DB_PASSWORD:}
 
+# 配置项 logging：说明该配置的用途、默认值或运行影响。
 logging:
+  # 配置项 level：说明该配置的用途、默认值或运行影响。
   level:
+    # 配置项 root：说明该配置的用途、默认值或运行影响。
     root: INFO
+    # 配置项 com.company.sqloptimization：说明该配置的用途、默认值或运行影响。
     com.company.sqloptimization: INFO
 
+# 配置项 auth：说明该配置的用途、默认值或运行影响。
 auth:
+  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
   enabled: true
+  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
   trusted-auth-sources:
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - gateway
+    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
     - token
 
+# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
 sqlforge:
+  # 配置项 security：说明该配置的用途、默认值或运行影响。
   security:
+    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
     crypto:
+      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
       algorithm: AES256_GCM
+      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
       key-id: ${SQLFORGE_SQL_OPTIMIZATION_PROD_CRYPTO_KEY_ID:sql-optimization-prod-key}
+      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
       base64-key: ${SQLFORGE_SQL_OPTIMIZATION_PROD_CRYPTO_KEY_BASE64:}
 
+# 配置项 sql-optimization：说明该配置的用途、默认值或运行影响。
 sql-optimization:
+  # 配置项 callbacks：说明该配置的用途、默认值或运行影响。
   callbacks:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: true
+  # 配置项 hetu-plan：说明该配置的用途、默认值或运行影响。
   hetu-plan:
+    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
     enabled: ${SQL_OPTIMIZATION_HETU_PLAN_ENABLED:false}
+    # 配置项 query-timeout-seconds：说明该配置的用途、默认值或运行影响。
     query-timeout-seconds: ${SQL_OPTIMIZATION_HETU_PLAN_QUERY_TIMEOUT_SECONDS:5}
+    # 配置项 datasources：说明该配置的用途、默认值或运行影响。
     datasources:
+      # 配置项 hetu_main：说明该配置的用途、默认值或运行影响。
       hetu_main:
+        # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
         driver-class-name: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_DRIVER:}
+        # 配置项 jdbc-url：说明该配置的用途、默认值或运行影响。
         jdbc-url: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_JDBC_URL:}
+        # 配置项 username：说明该配置的用途、默认值或运行影响。
         username: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_USERNAME:}
+        # 配置项 password：说明该配置的用途、默认值或运行影响。
         password: ${SQL_OPTIMIZATION_HETU_PLAN_HETU_MAIN_PASSWORD:}
+  # 配置项 queues：说明该配置的用途、默认值或运行影响。
   queues:
+    # 配置项 mode：说明该配置的用途、默认值或运行影响。
     mode: database-worker
