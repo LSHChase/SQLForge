@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-VERIFY-PERSISTENCE-DDL-MYSQL-20260523: 验证持久化 DDL 可在本地 MySQL 执行
+
+- Status: done
+- Completed at: 2026-05-23
+- Commit subject: `Verify persistence DDL on MySQL`
+- Priority: 1
+- Depends on: N/A
+- Scope: 使用本地 Docker MySQL 验证 governance 配置与元数据持久化 DDL/schema/data 可执行，并记录真实数据库验证结果
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-VERIFY-PERSISTENCE-DDL-MYSQL-20260523`
+- Progress log:
+  - 2026-05-23: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 使用本地 Docker MySQL 容器 sqlforge-mysql 执行 V20260523_001 governance 配置与元数据持久化增量脚本，并查询确认四张新增表和 metadata seed 已落库。
+  - Validation evidence: docker exec -i sqlforge-mysql mysql 执行 sql/migrations/V20260523_001__governance_config_metadata_persistence.sql；查询 information_schema 确认 report_interface_config、metadata_snapshot、redis_rule_source、dispatch_policy 均存在；查询 metadata_snapshot 确认 snapshot-001/002/003 已写入；python3 scripts/foreman.py validate USER-CN-VERIFY-PERSISTENCE-DDL-MYSQL-20260523；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 本次验证使用本地 Docker MySQL sqlforge 库；未覆盖远端测试/生产库执行。
+  - Next step: 如需远端环境验证，使用相同 migration 在目标 MySQL/TDSQL 环境执行并归档查询结果。
+
 ### USER-CN-PERSIST-INMEMORY-FUNCTIONS-20260523: 持久化原 in-memory 功能数据
 
 - Status: done
