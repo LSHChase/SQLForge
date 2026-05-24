@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260524: 全量更新 dist-portable 便携前端产物
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `build(portable): refresh dist-portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: Rebuild the portable frontend package from current source, remove stale hashed dist-portable assets, run portable build and browser smoke validation, then close out through the standard audit chain.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Cleaned stale dist-portable hashed assets and rebuilt the portable frontend package from the current source so index.html and packaged assets point at the current chunk set.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260524; npm run build:portable; npm run smoke:portable-frontend; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: No known repository-side residual risk; runtime backend availability still depends on the target host portable-config.json service URLs.
+  - Next step: Use dist-portable/start-portable.sh or start-portable.cmd with the configured backend services when distributing the refreshed portable package.
+
 ### USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524: System management UX redesign
 
 - Status: done
