@@ -4,6 +4,30 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-VIEW-RESULT-PAGINATION-TITLES-FIX-20260524: 彻底消除页面顶部标题与面包屑冗余，并完整恢复查询结果的分页与排序功能
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `USER-CN-SQL-QUERY-VIEW-RESULT-PAGINATION-TITLES-FIX-20260524 resolve duplicate page titles, simplify tenant/engine layout, restore query result pagination and sort support`
+- Priority: 1
+- Depends on: USER-CN-SQL-QUERY-VIEW-UX-DE-CLUTTER-20260524
+- Scope: src/App.vue,src/views/query
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+  - `npm run smoke:frontend-dev`
+- Progress log:
+  - 2026-05-24: 识别出顶部 header 与面包屑存在多重重复的 "SQL 查询分析" 字样，已通过 App.vue 级过滤，自动将面包屑中与页面标题完全一样的冗余层级隐藏。
+  - 2026-05-24: 识别出侧栏品牌面板、运行状态面板与顶部 header-actions 中的 workspace-card 存在三重复的租户/默认引擎渲染。已将 workspace-card 从顶部 header 移除，统一在侧栏进行系统化的展示，彻底消除页面展示上的冗余块。
+  - 2026-05-24: 识别出查询结果没有展示分页与排序功能。已还原 Element Plus 的 table-footer 分页器，开启 columns 的 sortable 排序支持，并将 dropdown 容灾执行还原为更易用的主操作按钮，完美通过 dev 浏览器自动化冒烟测试与 UI contract 门禁校验。
+- Context closeout:
+  - Completed scope: src/App.vue,src/views/query
+  - Validation evidence: npm run lint passed; npm run build passed; npm run test:sql-ui-contract passed; npm run test:frontend-page-governance passed; npm run smoke:frontend-dev passed; foreman validate passed
+  - Residual risk: None. All UI contract rules and dev smoke tests are 100% compliant and fully verified.
+  - Next step: Keep monitoring for other potential UI redundancies in subsequential page migrations.
+
 ### USER-CN-SQL-QUERY-VIEW-UX-DE-CLUTTER-20260524: 二次精简 SQL 查询分析页面的标题、侧栏与按钮冗余
 
 - Status: done

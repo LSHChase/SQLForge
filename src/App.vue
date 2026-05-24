@@ -48,12 +48,7 @@ const userDisplayName = computed(() =>
     ? t('common.defaultUserName')
     : userStore.displayName
 )
-const workspaceSummary = computed(() =>
-  t('common.workspaceSummary', {
-    tenant: tenantDisplayName.value,
-    engine: tenantStore.defaultEngine
-  })
-)
+
 const userBadge = computed(() => `${userDisplayName.value} · ${userStore.role}`)
 const breadcrumbText = computed(() => buildNavigationBreadcrumb(activeNavItem.value, navLabel, itemLabel))
 const pageTitle = computed(() => t(activeNavItem.value?.titleKey || route.meta.titleKey || 'dashboard.title'))
@@ -185,7 +180,7 @@ onMounted(() => {
             <h1 class="page-title">{{ pageTitle }}</h1>
             <div class="breadcrumb-strip">
               <span
-                v-for="pill in breadcrumbText"
+                v-for="pill in breadcrumbText.filter(p => p !== pageTitle)"
                 :key="pill"
                 class="page-status-pill"
               >
@@ -195,10 +190,7 @@ onMounted(() => {
           </div>
 
           <div class="header-actions">
-            <div class="workspace-card">
-              <p class="workspace-label sqlforge-code-label">{{ t('common.workspaceLabel') }}</p>
-              <p class="workspace-summary">{{ workspaceSummary }}</p>
-            </div>
+            <!-- workspace-card was removed from header actions to eliminate visual redundancies of tenant/engine -->
             <el-button text class="header-action" @click="handleLocaleToggle">
               {{ localeLabel }}
             </el-button>

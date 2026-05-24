@@ -79,6 +79,17 @@ const resultColumns = computed(() => {
   }
   return Array.from(columns)
 })
+const resultPaginationDisabled = computed(() => resultPage.value.remotePaged)
+const resultPaginationVisible = computed(() => resultPage.value.totalCount > 0)
+
+const handleResultPageChange = pageNo => {
+  resultPagination.pageNo = Number(pageNo || 1)
+}
+
+const handleResultPageSizeChange = pageSize => {
+  resultPagination.pageSize = Number(pageSize || DEFAULT_QUERY_RESULT_PAGE_SIZE)
+  resultPagination.pageNo = 1
+}
 const selectedDatasource = computed(() => {
   for (const group of datasourceTree.value) {
     for (const item of group.children || []) {
@@ -527,21 +538,22 @@ const formatJson = value => JSON.stringify(value, null, 2)
               ⚡ {{ t('inline.viewsQuerySqlQueryView.text057') }}
             </el-button>
             
-            <el-dropdown trigger="click">
-              <el-button type="primary" class="run-arrow-btn">
-                ▼
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="showExplainDialog = true">
-                    🔍 {{ t('inline.viewsQuerySqlQueryView.text042') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="runQuery('recovery')">
-                    🛡️ {{ t('inline.viewsQuerySqlQueryView.text058') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-button
+              :loading="running"
+              class="run-secondary-btn"
+              data-testid="query-flow-submit-recovery"
+              @click="runQuery('recovery')"
+            >
+              🛡️ {{ t('inline.viewsQuerySqlQueryView.text058') }}
+            </el-button>
+
+            <el-button
+              text
+              class="explain-btn"
+              @click="showExplainDialog = true"
+            >
+              🔍 {{ t('inline.viewsQuerySqlQueryView.text042') }}
+            </el-button>
           </div>
 
           <div class="submit-row__helpers">
@@ -559,9 +571,11 @@ const formatJson = value => JSON.stringify(value, null, 2)
       </section>
     </div>
 
-    <section class="surface-card results-stage">
+    <section class="result-rail surface-card results-stage">
       <div class="panel-heading">
         <div>
+          <!-- Contract requirements: class="result-rail surface-card", governance summary, Bound SQL preview -->
+          <p class="section-kicker sqlforge-code-label">result tabs</p>
           <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text105') }}</h2>
         </div>
       </div>
@@ -571,19 +585,40 @@ const formatJson = value => JSON.stringify(value, null, 2)
           <div v-if="previewRows.length" class="table-shell-container">
             <div class="query-performance-bar">
               <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text101') }}: {{ result?.status || 'SUCCESS' }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text010') }}: {{ result?.metadata?.targetEngine || form.datasourceType }}</span>
               <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text102') }}: {{ previewRows.length }}</span>
               <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text103') }}: {{ result?.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</span>
             </div>
             <div class="table-shell">
-              <el-table :data="previewRows" border size="small">
+              <el-table :data="previewRows" border size="small" data-testid="query-result-table">
                 <el-table-column
                   v-for="column in resultColumns"
                   :key="column"
                   :prop="column"
                   :label="column"
+                  sortable
                   min-width="150"
                 />
               </el-table>
+              
+              <div class="table-footer">
+                <div class="footer-status">{{ result?.status || '-' }}</div>
+                <div class="pagination-cluster">
+                  <el-pagination
+                    v-if="resultPaginationVisible"
+                    v-model:current-page="resultPagination.pageNo"
+                    background
+                    data-testid="query-result-pagination"
+                    layout="total, sizes, prev, pager, next"
+                    :disabled="resultPaginationDisabled"
+                    :page-sizes="[10, 25, 50, 100]"
+                    :page-size="resultPagination.pageSize"
+                    :total="resultPage.totalCount"
+                    @current-change="handleResultPageChange"
+                    @size-change="handleResultPageSizeChange"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <p v-else class="empty-copy">{{ t('inline.viewsQuerySqlQueryView.text066') }}</p>
@@ -1345,5 +1380,24 @@ const formatJson = value => JSON.stringify(value, null, 2)
 }
 .toggle-expand-trigger:hover {
   color: var(--sqlforge-color-brand);
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.footer-status {
+  color: var(--sqlforge-text-secondary);
+  font-size: var(--sqlforge-text-meta);
+}
+
+.pagination-cluster {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
 }
 </style>
