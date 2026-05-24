@@ -11,7 +11,6 @@ import {
 } from '../../services/runtimeGateApi'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
-import { formatSqlText } from '../common/sqlFormatting.mjs'
 import { sqlTemplates, sqlLibrary } from './sqlTemplates'
 import {
   DEFAULT_QUERY_RESULT_PAGE_SIZE,
@@ -114,11 +113,6 @@ const validationTips = computed(() => {
   }
   return tips
 })
-const queryHeroPills = computed(() => [
-  form.tenantId || 'tenant-a',
-  form.datasourceType,
-  selectedDatasource.value.label
-])
 const summaryRows = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
@@ -214,10 +208,6 @@ const applyTemplate = template => {
 const loadLibrarySql = entry => {
   form.sqlText = entry.sqlText
   showLibraryDialog.value = false
-}
-
-const formatSql = () => {
-  form.sqlText = formatSqlText(form.sqlText)
 }
 
 const openDeepParseWorkbench = () => {
@@ -363,28 +353,18 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
 <template>
   <section class="query-workbench" data-testid="query-flow-page">
-    <header class="query-workbench__header surface-card">
-      <div class="breadcrumb-container">
-        <span class="breadcrumb-item sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text104') }}</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item breadcrumb-active">{{ t('sqlQuery.title') }}</span>
-        <div class="header-badges">
-          <span v-for="pill in queryHeroPills" :key="pill" class="mini-pill">{{ pill }}</span>
-        </div>
-      </div>
-      <div class="header-controls">
-        <el-button text class="toggle-sidebar-btn" @click="isSidebarCollapsed = !isSidebarCollapsed">
-          {{ isSidebarCollapsed ? t('inline.viewsQuerySqlQueryView.text087') : t('inline.viewsQuerySqlQueryView.text088') }}
-        </el-button>
-      </div>
-    </header>
-
     <div class="query-workbench__grid" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
       <aside v-show="!isSidebarCollapsed" class="query-rail surface-card">
         <div class="panel-heading">
-          <div>
-            <h2 class="section-title">{{ t('sqlQuery.title') }}</h2>
-          </div>
+          <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text109') }}</h2>
+          <el-button
+            text
+            size="small"
+            class="toggle-sidebar-inline-btn"
+            @click="isSidebarCollapsed = true"
+          >
+            ❮
+          </el-button>
         </div>
 
         <el-tabs v-model="activeExplorerTab" class="explorer-tabs">
@@ -432,15 +412,17 @@ const formatJson = value => JSON.stringify(value, null, 2)
       <section class="editor-rail surface-card">
         <div class="editor-header">
           <div class="panel-heading">
-            <div>
-              <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text039') }}</h2>
-            </div>
+            <el-button
+              v-if="isSidebarCollapsed"
+              text
+              class="toggle-expand-trigger"
+              @click="isSidebarCollapsed = false"
+            >
+              ❯ {{ t('inline.viewsQuerySqlQueryView.text109') }}
+            </el-button>
+            <h2 v-else class="section-title">{{ t('inline.viewsQuerySqlQueryView.text039') }}</h2>
           </div>
           <div class="editor-actions">
-            <el-button text class="format-btn" @click="formatSql">
-              🪄 {{ t('inline.viewsQuerySqlQueryView.text041') }}
-            </el-button>
-            
             <el-dropdown trigger="click" class="settings-dropdown">
               <el-button text class="settings-btn">
                 ⚙️ {{ t('inline.viewsQuerySqlQueryView.text089') }}
@@ -1344,5 +1326,24 @@ const formatJson = value => JSON.stringify(value, null, 2)
   .diagnostics-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.toggle-sidebar-inline-btn {
+  padding: 2px 6px;
+  font-size: 14px;
+  color: var(--sqlforge-text-muted);
+}
+.toggle-sidebar-inline-btn:hover {
+  color: var(--sqlforge-color-brand);
+}
+.toggle-expand-trigger {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--sqlforge-text-secondary);
+  padding: 0;
+  margin-right: 12px;
+}
+.toggle-expand-trigger:hover {
+  color: var(--sqlforge-color-brand);
 }
 </style>

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-VIEW-UX-DE-CLUTTER-20260524: 二次精简 SQL 查询分析页面的标题、侧栏与按钮冗余
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `USER-CN-SQL-QUERY-VIEW-UX-DE-CLUTTER-20260524 simplify layout, eliminate inner page header and outer format button`
+- Priority: 1
+- Depends on: N/A
+- Scope: src/views/query,src/locales
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-VIEW-UX-DE-CLUTTER-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 彻底移除二级 Header 页眉与超长 breadcrumbs 描述，为数据结果集展示释放垂直高度；侧栏标题更名 Explorer 并定位内联收缩❮动作，折叠时在编辑器左上角呈现极简展开按钮；移除了编辑器工具栏重复的 format-btn 格式化，收缩租户引擎等 mini-pills 标签展示
+  - Validation evidence: npm run lint passed; npm run build passed; npm run test:form-governance passed; npm run test:sql-ui-contract passed; npm run test:frontend-page-governance passed; npm run test:i18n-copy passed; python3 scripts/foreman.py validate passed; python3 scripts/task_audit.py --check --phase pre-closeout passed
+  - Residual risk: 全局侧栏与工作台看板中已保留权威的租户与引擎信息，该部分信息继续采用 Vuex / Pinia 全局状态感知
+  - Next step: 后续可扩展至其他页面如 ParseRecordView，以应用同等高度精炼的面包屑与工作区布局方案
+
 ### USER-CN-SQL-QUERY-VIEW-UX-SIMPLIFY-I18N-20260524: 二次精简 SQL 查询分析页面的交互冗余并落实严格双语国际化审计
 
 - Status: done

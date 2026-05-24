@@ -2520,7 +2520,8 @@ export default {
       text105: '结果终端',
       text106: '路由配置',
       text107: '尝试模式',
-      text108: '暂无有效参数'
+      text108: '暂无有效参数',
+      text109: '资源管理器'
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: '全部',

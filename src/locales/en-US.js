@@ -2536,7 +2536,8 @@ export default {
       text105: 'Result Terminal',
       text106: 'Route profile',
       text107: 'Attempted modes',
-      text108: 'No active parameters'
+      text108: 'No active parameters',
+      text109: 'Explorer'
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: 'All',
