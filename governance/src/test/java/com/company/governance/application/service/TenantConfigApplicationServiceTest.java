@@ -5,24 +5,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.company.governance.application.controller.dto.TenantEngineConfigUpdateRequest;
+import com.company.governance.application.controller.vo.TenantConfigOptionVO;
 import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.service.converter.TenantConfigConverter;
 import com.company.governance.domain.tenant.entity.TenantConfig;
 import com.company.governance.domain.tenant.logic.TenantAccessLogic;
 import com.company.governance.domain.tenant.repository.TenantConfigRepository;
+import com.company.governance.domain.trace.entity.AuditLogRecord;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
 import com.company.sqlforge.common.exception.BizException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class TenantConfigApplicationServiceTest {
 
@@ -36,10 +40,12 @@ class TenantConfigApplicationServiceTest {
     void shouldRejectWhenTenantCannotAccessTargetResource() {
         TenantConfigRepository repository = mock(TenantConfigRepository.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
         TenantConfigApplicationService service = new TenantConfigApplicationService(
             repository,
             tenantAccessLogic,
-            new TenantConfigConverter()
+            new TenantConfigConverter(),
+            protectedPersistenceService
         );
 
         RequestContext.set("system", "user-001", "request-001", "trace-001", "header", 1L, 2L);
@@ -56,31 +62,16 @@ class TenantConfigApplicationServiceTest {
     void shouldLoadTenantConfigAfterAccessValidation() {
         TenantConfigRepository repository = mock(TenantConfigRepository.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
         TenantConfigApplicationService service = new TenantConfigApplicationService(
             repository,
             tenantAccessLogic,
-            new TenantConfigConverter()
+            new TenantConfigConverter(),
+            protectedPersistenceService
         );
+        TenantConfig tenantConfig = tenantConfig("system", DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE);
 
-        TenantConfig tenantConfig = new TenantConfig();
-        tenantConfig.setTenantId("system");
-        tenantConfig.setQuotaConcurrent(20);
-        tenantConfig.setQuotaStorage(2048);
-        tenantConfig.setDefaultEngine(DataSourceTypeEnum.HETU);
-        tenantConfig.setBackupEngine(DataSourceTypeEnum.HIVE);
-        tenantConfig.setAuditLevel("NORMAL");
-        tenantConfig.setRetentionDays(180);
-        tenantConfig.setAccelerationQuota(50);
-
-        RequestContext.set(
-            "system",
-            "user-001",
-            "request-001",
-            "trace-id-001",
-            "header",
-            100L,
-            200L
-        );
+        RequestContext.set("system", "user-001", "request-001", "trace-id-001", "header", 100L, 200L);
         when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config", "READ")).thenReturn(true);
         when(repository.findByTenantId(eq("system"))).thenReturn(Optional.of(tenantConfig));
 
@@ -93,86 +84,149 @@ class TenantConfigApplicationServiceTest {
     }
 
     @Test
-    void shouldRejectCrossTenantAccessWithoutPlatformRole() {
+    void shouldRejectCrossTenantAccessWhenCurrentTenantIsNotSystem() {
         TenantConfigRepository repository = mock(TenantConfigRepository.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
         TenantConfigApplicationService service = new TenantConfigApplicationService(
             repository,
             tenantAccessLogic,
-            new TenantConfigConverter()
+            new TenantConfigConverter(),
+            protectedPersistenceService
         );
 
-        RequestContext.set(
-            "system",
-            "user-001",
-            "request-001",
-            "trace-id-001",
-            "header",
-            100L,
-            200L
-        );
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-id-001", "header", 100L, 200L);
 
         BizException ex = assertThrows(BizException.class, () -> service.findByTenantId("tenant-b"));
 
         assertEquals(ErrorCodeConstants.GOVERNANCE_TENANT_ACCESS_DENIED, ex.getCode());
         verify(repository, never()).findByTenantId("tenant-b");
+        verify(tenantAccessLogic, never()).validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ");
     }
 
     @Test
-    void shouldRejectTenantConfigReadWithoutTenantAdminRole() {
+    void shouldListSelfTenantOptionForOrdinaryTenant() {
         TenantConfigRepository repository = mock(TenantConfigRepository.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
         TenantConfigApplicationService service = new TenantConfigApplicationService(
             repository,
             tenantAccessLogic,
-            new TenantConfigConverter()
+            new TenantConfigConverter(),
+            protectedPersistenceService
         );
 
-        RequestContext.set(
-            "system",
-            "user-001",
-            "request-001",
-            "trace-id-001",
-            "header",
-            100L,
-            200L
-        );
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-id-001", "header", 100L, 200L);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
+        when(repository.findByTenantId("tenant-a")).thenReturn(Optional.of(tenantConfig("tenant-a", DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE)));
 
-        BizException ex = assertThrows(BizException.class, () -> service.findByTenantId("system"));
+        List<TenantConfigOptionVO> options = service.listTenantOptions();
 
-        assertEquals(ErrorCodeConstants.GOVERNANCE_ACCESS_DENIED, ex.getCode());
-        verify(repository, never()).findByTenantId("system");
-        verify(tenantAccessLogic, never()).validateDataSourceAccess("system", "governance-tenant-config", "READ");
+        assertEquals(1, options.size());
+        assertEquals("tenant-a", options.get(0).getTenantId());
+        assertEquals("HETU", options.get(0).getDefaultEngine());
+        verify(repository, never()).findAll();
     }
 
     @Test
-    void shouldAllowPlatformAdminCrossTenantReadWithoutPlaceholderDatasourceCheck() {
+    void shouldListAllTenantOptionsForSystemTenant() {
         TenantConfigRepository repository = mock(TenantConfigRepository.class);
         TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
         TenantConfigApplicationService service = new TenantConfigApplicationService(
             repository,
             tenantAccessLogic,
-            new TenantConfigConverter()
+            new TenantConfigConverter(),
+            protectedPersistenceService
         );
+
+        RequestContext.set("system", "user-001", "request-001", "trace-id-001", "header", 100L, 200L);
+        when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config", "READ")).thenReturn(true);
+        when(repository.findAll()).thenReturn(Arrays.asList(
+            tenantConfig("system", DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE),
+            tenantConfig("tenant-a", DataSourceTypeEnum.TRINO, DataSourceTypeEnum.HIVE)
+        ));
+
+        List<TenantConfigOptionVO> options = service.listTenantOptions();
+
+        assertEquals(2, options.size());
+        assertEquals("system", options.get(0).getTenantId());
+        assertEquals("tenant-a", options.get(1).getTenantId());
+        verify(repository).findAll();
+    }
+
+    @Test
+    void shouldUpdateTenantEnginesWithManagePermissionAndAuditLog() {
+        TenantConfigRepository repository = mock(TenantConfigRepository.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
+        TenantConfigApplicationService service = new TenantConfigApplicationService(
+            repository,
+            tenantAccessLogic,
+            new TenantConfigConverter(),
+            protectedPersistenceService
+        );
+        TenantConfig tenantConfig = tenantConfig("tenant-a", DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE);
+        TenantEngineConfigUpdateRequest request = new TenantEngineConfigUpdateRequest();
+        request.setTenantId("tenant-a");
+        request.setDefaultEngine("TRINO");
+        request.setBackupEngine("HIVE");
+
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-id-001", "header", 100L, 200L);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "MANAGE")).thenReturn(true);
+        when(repository.findByTenantId("tenant-a")).thenReturn(Optional.of(tenantConfig));
+        when(repository.update(tenantConfig)).thenReturn(1);
+
+        TenantConfigVO result = service.updateTenantEngines(request);
+
+        assertEquals("TRINO", result.getDefaultEngine());
+        assertEquals("HIVE", result.getBackupEngine());
+        verify(repository).update(tenantConfig);
+        ArgumentCaptor<AuditLogRecord> auditCaptor = ArgumentCaptor.forClass(AuditLogRecord.class);
+        verify(protectedPersistenceService).saveAuditLog(auditCaptor.capture());
+        assertEquals("TENANT_CONFIG_ENGINE_UPDATE", auditCaptor.getValue().getOperationType());
+        assertEquals("tenant-a", auditCaptor.getValue().getTargetId());
+        assertEquals("trace-id-001", auditCaptor.getValue().getTraceId());
+    }
+
+    @Test
+    void shouldRejectUnsupportedEngineWhenUpdatingTenantEngines() {
+        TenantConfigRepository repository = mock(TenantConfigRepository.class);
+        TenantAccessLogic tenantAccessLogic = mock(TenantAccessLogic.class);
+        GovernanceProtectedPersistenceService protectedPersistenceService = mock(GovernanceProtectedPersistenceService.class);
+        TenantConfigApplicationService service = new TenantConfigApplicationService(
+            repository,
+            tenantAccessLogic,
+            new TenantConfigConverter(),
+            protectedPersistenceService
+        );
+        TenantEngineConfigUpdateRequest request = new TenantEngineConfigUpdateRequest();
+        request.setTenantId("tenant-a");
+        request.setDefaultEngine("UNKNOWN");
+        request.setBackupEngine("HIVE");
+
+        RequestContext.set("tenant-a", "user-001", "request-001", "trace-id-001", "header", 100L, 200L);
+        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "MANAGE")).thenReturn(true);
+
+        BizException ex = assertThrows(BizException.class, () -> service.updateTenantEngines(request));
+
+        assertEquals(ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT, ex.getCode());
+        verify(repository, never()).update(org.mockito.ArgumentMatchers.any());
+        verify(protectedPersistenceService, never()).saveAuditLog(org.mockito.ArgumentMatchers.any());
+    }
+
+    private TenantConfig tenantConfig(String tenantId,
+                                      DataSourceTypeEnum defaultEngine,
+                                      DataSourceTypeEnum backupEngine) {
         TenantConfig tenantConfig = new TenantConfig();
-        tenantConfig.setTenantId("tenant-b");
-        tenantConfig.setDefaultEngine(DataSourceTypeEnum.HETU);
-
-        RequestContext.set(
-            "system",
-            "platform-admin-001",
-            "request-001",
-            "trace-id-001",
-            "gateway",
-            100L,
-            200L
-        );
-        when(repository.findByTenantId("tenant-b")).thenReturn(Optional.of(tenantConfig));
-
-        TenantConfigVO result = service.findByTenantId("tenant-b");
-
-        assertEquals("tenant-b", result.getTenantId());
-        verify(repository, times(1)).findByTenantId("tenant-b");
-        verify(tenantAccessLogic, never()).validateDataSourceAccess("system", "governance-tenant-config", "READ");
+        tenantConfig.setTenantId(tenantId);
+        tenantConfig.setQuotaConcurrent(20);
+        tenantConfig.setQuotaStorage(2048);
+        tenantConfig.setDefaultEngine(defaultEngine);
+        tenantConfig.setBackupEngine(backupEngine);
+        tenantConfig.setAuditLevel("NORMAL");
+        tenantConfig.setRetentionDays(180);
+        tenantConfig.setAccelerationQuota(50);
+        return tenantConfig;
     }
 }

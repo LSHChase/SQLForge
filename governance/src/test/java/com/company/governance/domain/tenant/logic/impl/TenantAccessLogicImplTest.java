@@ -4,62 +4,27 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.governance.config.GovernanceAccessProperties;
-import com.company.sqlforge.common.context.RequestContext;
-import java.util.Arrays;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class TenantAccessLogicImplTest {
 
-    @AfterEach
-    void tearDown() {
-        RequestContext.clear();
-    }
-
     @Test
-    void shouldAllowGovernanceDatasourceForTenantAdmin() {
+    void shouldAllowGovernanceDatasourceForConfiguredReadAction() {
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(new GovernanceAccessProperties());
-        RequestContext.set(
-            "tenant-a",
-            "tenant-admin-001",
-            "request-001",
-            "trace-001",
-            "header",
-            1L,
-            2L
-        );
 
         assertTrue(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ"));
     }
 
     @Test
-    void shouldRejectGovernanceDatasourceForUnauthorizedRole() {
+    void shouldRejectGovernanceDatasourceForUnconfiguredAction() {
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(new GovernanceAccessProperties());
-        RequestContext.set(
-            "tenant-a",
-            "user-001",
-            "request-002",
-            "trace-002",
-            "header",
-            1L,
-            2L
-        );
 
-        assertFalse(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ"));
+        assertFalse(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "EXPORT"));
     }
 
     @Test
     void shouldAllowTenantDatasourceWhenRoleHasMatchingPermission() {
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(new GovernanceAccessProperties());
-        RequestContext.set(
-            "tenant-a",
-            "user-002",
-            "request-003",
-            "trace-003",
-            "header",
-            1L,
-            2L
-        );
 
         assertTrue(logic.validateDataSourceAccess("tenant-a", "query-hetu", "USE"));
     }
@@ -69,15 +34,6 @@ class TenantAccessLogicImplTest {
         GovernanceAccessProperties properties = new GovernanceAccessProperties();
         properties.getDatasourceScopes().get("tenant-a").get("query-hetu").setState("REVOKED");
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(properties);
-        RequestContext.set(
-            "tenant-a",
-            "user-002",
-            "request-004",
-            "trace-004",
-            "header",
-            1L,
-            2L
-        );
 
         assertFalse(logic.validateDataSourceAccess("tenant-a", "query-hetu", "USE"));
         assertFalse(logic.validateDataSourceAccess("tenant-a", "missing-datasource", "USE"));

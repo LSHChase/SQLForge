@@ -3,6 +3,7 @@ package com.company.governance.infrastructure.persistence;
 import com.company.governance.domain.tenant.entity.TenantConfig;
 import com.company.governance.domain.tenant.repository.TenantConfigRepository;
 import com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -18,6 +19,11 @@ public class TenantConfigRepositoryImpl implements TenantConfigRepository {
     @Override
     public Optional<TenantConfig> findByTenantId(String tenantId) {
         return Optional.ofNullable(tenantConfigMapper.selectByTenantId(tenantId));
+    }
+
+    @Override
+    public List<TenantConfig> findAll() {
+        return tenantConfigMapper.selectAll();
     }
 
     @Override

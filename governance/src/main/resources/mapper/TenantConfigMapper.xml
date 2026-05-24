@@ -55,6 +55,15 @@
         WHERE tenant_id = #{tenantId}
     </select>
 
+    <!-- 配置项 select id=selectAll：说明该配置的用途、默认值或运行影响。 -->
+    <select id="selectAll" resultMap="TenantConfigResultMap">
+        SELECT
+        <!-- 配置项 include：说明该配置的用途、默认值或运行影响。 -->
+        <include refid="BaseColumns"/>
+        FROM tenant_config
+        ORDER BY tenant_id ASC
+    </select>
+
     <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.governance.domain.tenant.entity.TenantConfig">
         INSERT INTO tenant_config (

@@ -1,9 +1,11 @@
 package com.company.governance.application.interceptor;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.company.governance.application.controller.HealthController;
 import com.company.governance.application.controller.GovernanceCapabilityController;
 import com.company.governance.application.controller.GovernanceQueryHistoryController;
+import com.company.governance.application.controller.dto.TenantEngineConfigUpdateRequest;
 import com.company.governance.application.controller.dto.GovernanceQueryHistoryExportRequest;
 import com.company.governance.application.controller.MessageAdminController;
 import com.company.governance.application.controller.TenantConfigController;
@@ -23,6 +26,7 @@ import com.company.governance.application.controller.vo.GovernanceQueryHistorySu
 import com.company.governance.application.controller.vo.HealthStatusVO;
 import com.company.governance.application.controller.vo.MessageStatsVO;
 import com.company.governance.application.controller.vo.ScheduleExtensionStatusVO;
+import com.company.governance.application.controller.vo.TenantConfigOptionVO;
 import com.company.governance.application.controller.vo.TenantConfigVO;
 import com.company.governance.application.service.GovernanceCapabilityApplicationService;
 import com.company.governance.application.service.GovernanceAuditTrailService;
@@ -47,12 +51,17 @@ import com.company.governance.infrastructure.persistence.mapper.BusinessLogicalV
 import com.company.governance.infrastructure.persistence.mapper.DatabaseViewDependencyMapper;
 import com.company.governance.infrastructure.persistence.mapper.DatabaseViewMapper;
 import com.company.governance.infrastructure.persistence.mapper.DatasourceConfigMapper;
+import com.company.governance.infrastructure.persistence.mapper.DispatchPolicyMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExecutionResultMapper;
 import com.company.governance.infrastructure.persistence.mapper.ExportRecordMapper;
 import com.company.governance.infrastructure.persistence.mapper.GovernanceHistoryLookupIndexMapper;
+import com.company.governance.infrastructure.persistence.mapper.JdbcDriverArtifactMapper;
 import com.company.governance.infrastructure.persistence.mapper.LogicalObjectMappingMapper;
+import com.company.governance.infrastructure.persistence.mapper.MetadataSnapshotMapper;
 import com.company.governance.infrastructure.persistence.mapper.MessageQueueMapper;
 import com.company.governance.infrastructure.persistence.mapper.QueryHistoryMapper;
+import com.company.governance.infrastructure.persistence.mapper.RedisRuleSourceMapper;
+import com.company.governance.infrastructure.persistence.mapper.ReportInterfaceConfigMapper;
 import com.company.governance.infrastructure.persistence.mapper.SystemConfigMapper;
 import com.company.governance.infrastructure.persistence.mapper.TenantConfigMapper;
 import com.company.sqlforge.common.config.AuthSourceConstants;
@@ -146,7 +155,22 @@ class AuthWebMvcTest {
     private DatasourceConfigMapper datasourceConfigMapper;
 
     @MockBean
+    private DispatchPolicyMapper dispatchPolicyMapper;
+
+    @MockBean
+    private JdbcDriverArtifactMapper jdbcDriverArtifactMapper;
+
+    @MockBean
     private LogicalObjectMappingMapper logicalObjectMappingMapper;
+
+    @MockBean
+    private MetadataSnapshotMapper metadataSnapshotMapper;
+
+    @MockBean
+    private RedisRuleSourceMapper redisRuleSourceMapper;
+
+    @MockBean
+    private ReportInterfaceConfigMapper reportInterfaceConfigMapper;
 
     @MockBean
     private SystemConfigMapper systemConfigMapper;
@@ -173,6 +197,34 @@ class AuthWebMvcTest {
             .andExpect(jsonPath("$.tenantId").value("system"));
 
         verify(tenantConfigApplicationService).findByTenantId("system");
+    }
+
+    @Test
+    void shouldProtectTenantConfigOptionsEndpoint() throws Exception {
+        when(tenantConfigApplicationService.listTenantOptions())
+            .thenReturn(Collections.singletonList(new TenantConfigOptionVO("system", "system", "HETU", "HIVE")));
+
+        mockMvc.perform(addProtectedHeaders(get("/api/governance/tenant-config/options")))
+            .andExpect(status().isOk())
+            .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
+            .andExpect(jsonPath("$[0].tenantId").value("system"));
+
+        verify(tenantConfigApplicationService).listTenantOptions();
+    }
+
+    @Test
+    void shouldProtectTenantConfigUpdateEndpoint() throws Exception {
+        when(tenantConfigApplicationService.updateTenantEngines(any(TenantEngineConfigUpdateRequest.class)))
+            .thenReturn(new TenantConfigVO("system", 20, 2048, "TRINO", "HIVE", "NORMAL", 180, 50));
+
+        mockMvc.perform(addProtectedHeaders(put("/api/governance/tenant-config"))
+                .contentType("application/json")
+                .content("{\"tenantId\":\"system\",\"defaultEngine\":\"TRINO\",\"backupEngine\":\"HIVE\"}"))
+            .andExpect(status().isOk())
+            .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
+            .andExpect(jsonPath("$.defaultEngine").value("TRINO"));
+
+        verify(tenantConfigApplicationService).updateTenantEngines(any(TenantEngineConfigUpdateRequest.class));
     }
 
     @Test
