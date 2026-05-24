@@ -47,7 +47,6 @@ const {
 } = useQueryParameters(() => form.sqlText)
 
 const {
-  executionHistory,
   recordExecution
 } = useQueryHistory()
 
@@ -156,8 +155,8 @@ const lightweightAnalysisRows = computed(() => {
 const routingRows = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
-    { label: 'routeProfile', value: metadata.routeProfile || '-' },
-    { label: 'attemptedModes', value: listText(metadata.attemptedModes) },
+    { label: t('inline.viewsQuerySqlQueryView.text106'), value: metadata.routeProfile || '-' },
+    { label: t('inline.viewsQuerySqlQueryView.text107'), value: listText(metadata.attemptedModes) },
     { label: t('inline.viewsQuerySqlQueryView.text019'), value: form.faultToleranceStrategy },
     { label: t('inline.viewsQuerySqlQueryView.text020'), value: form.accelerationPreference }
   ]
@@ -366,7 +365,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
   <section class="query-workbench" data-testid="query-flow-page">
     <header class="query-workbench__header surface-card">
       <div class="breadcrumb-container">
-        <span class="breadcrumb-item sqlforge-code-label">Workbench</span>
+        <span class="breadcrumb-item sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text104') }}</span>
         <span class="breadcrumb-separator">/</span>
         <span class="breadcrumb-item breadcrumb-active">{{ t('sqlQuery.title') }}</span>
         <div class="header-badges">
@@ -375,7 +374,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
       </div>
       <div class="header-controls">
         <el-button text class="toggle-sidebar-btn" @click="isSidebarCollapsed = !isSidebarCollapsed">
-          {{ isSidebarCollapsed ? (t('inline.viewsQuerySqlQueryView.text087') || '展开侧栏') : (t('inline.viewsQuerySqlQueryView.text088') || '收起侧栏') }}
+          {{ isSidebarCollapsed ? t('inline.viewsQuerySqlQueryView.text087') : t('inline.viewsQuerySqlQueryView.text088') }}
         </el-button>
       </div>
     </header>
@@ -384,12 +383,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
       <aside v-show="!isSidebarCollapsed" class="query-rail surface-card">
         <div class="panel-heading">
           <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text032') }}</p>
-            <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text033') }}</h2>
-          </div>
-          <div class="utility-actions">
-            <el-button text size="small" class="util-btn" @click="showTemplateDialog = true">{{ t('inline.viewsQuerySqlQueryView.text034') }}</el-button>
-            <el-button text size="small" class="util-btn" @click="showLibraryDialog = true">{{ t('inline.viewsQuerySqlQueryView.text035') }}</el-button>
+            <h2 class="section-title">{{ t('sqlQuery.title') }}</h2>
           </div>
         </div>
 
@@ -433,33 +427,13 @@ const formatJson = value => JSON.stringify(value, null, 2)
             </el-scrollbar>
           </el-tab-pane>
         </el-tabs>
-
-        <div class="sidebar-history-box">
-          <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text062') }}</p>
-          <p v-if="!executionHistory.length" class="muted-copy">
-            {{ t('inline.viewsQuerySqlQueryView.text063') }}
-          </p>
-          <el-scrollbar v-else class="sidebar-history-scroll">
-            <div class="history-list">
-              <div
-                v-for="item in executionHistory"
-                :key="item.id"
-                class="history-list__item"
-              >
-                <strong>{{ item.title }}</strong>
-                <span>{{ item.status }} · {{ item.mode }}</span>
-              </div>
-            </div>
-          </el-scrollbar>
-        </div>
       </aside>
 
       <section class="editor-rail surface-card">
         <div class="editor-header">
           <div class="panel-heading">
             <div>
-              <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text039') }}</p>
-              <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text040') }}</h2>
+              <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text039') }}</h2>
             </div>
           </div>
           <div class="editor-actions">
@@ -469,11 +443,11 @@ const formatJson = value => JSON.stringify(value, null, 2)
             
             <el-dropdown trigger="click" class="settings-dropdown">
               <el-button text class="settings-btn">
-                ⚙️ {{ t('inline.viewsQuerySqlQueryView.text089') || 'Settings' }}
+                ⚙️ {{ t('inline.viewsQuerySqlQueryView.text089') }}
               </el-button>
               <template #dropdown>
                 <div class="settings-dropdown-panel">
-                  <div class="settings-title sqlforge-code-label">Preferences</div>
+                  <div class="settings-title sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text092') }}</div>
                   <div class="settings-field">
                     <span>{{ t('inline.viewsQuerySqlQueryView.text043') }}</span>
                     <el-input v-model="form.tenantId" size="small" />
@@ -553,7 +527,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
                   <el-input v-model="row.value" :placeholder="t('inline.viewsQuerySqlQueryView.text054')" size="small" />
                   <el-button text size="small" class="delete-param-btn" @click="removeParameter(row.id)">✕</el-button>
                 </div>
-                <p v-if="!parameterRows.length" class="param-empty-copy">No active params</p>
+                <p v-if="!parameterRows.length" class="param-empty-copy">{{ t('inline.viewsQuerySqlQueryView.text108') }}</p>
               </div>
             </el-scrollbar>
           </div>
@@ -606,8 +580,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
     <section class="surface-card results-stage">
       <div class="panel-heading">
         <div>
-          <p class="section-kicker sqlforge-code-label">Result Terminal</p>
-          <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text064') }}</h2>
+          <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text105') }}</h2>
         </div>
       </div>
 
@@ -615,9 +588,9 @@ const formatJson = value => JSON.stringify(value, null, 2)
         <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text065')" name="rows">
           <div v-if="previewRows.length" class="table-shell-container">
             <div class="query-performance-bar">
-              <span class="performance-metric sqlforge-code-label">Status: {{ result?.status || 'SUCCESS' }}</span>
-              <span class="performance-metric sqlforge-code-label">Rows: {{ previewRows.length }}</span>
-              <span class="performance-metric sqlforge-code-label">Duration: {{ result?.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text101') }}: {{ result?.status || 'SUCCESS' }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text102') }}: {{ previewRows.length }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text103') }}: {{ result?.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</span>
             </div>
             <div class="table-shell">
               <el-table :data="previewRows" border size="small">
@@ -634,24 +607,24 @@ const formatJson = value => JSON.stringify(value, null, 2)
           <p v-else class="empty-copy">{{ t('inline.viewsQuerySqlQueryView.text066') }}</p>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text090') || '智能调优诊断 (Tuning)'" name="tuning">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text090')" name="tuning">
           <div class="diagnostics-grid">
             <div class="diagnostics-summary-card">
-              <span class="diagnostics-title sqlforge-code-label">Tuning Suggestion</span>
+              <span class="diagnostics-title sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text093') }}</span>
               <div class="tuning-metric-row">
                 <div class="tuning-card-kpi">
-                  <span class="kpi-label">Cache hit</span>
+                  <span class="kpi-label">{{ t('inline.viewsQuerySqlQueryView.text094') }}</span>
                   <strong class="kpi-value" :class="{ 'kpi-success': result?.metadata?.cacheGovernanceStatus === 'HIT' }">
-                    {{ result?.metadata?.cacheGovernanceStatus === 'HIT' ? 'YES' : 'NO' }}
+                    {{ result?.metadata?.cacheGovernanceStatus === 'HIT' ? t('inline.viewsQuerySqlQueryView.text098') : t('inline.viewsQuerySqlQueryView.text099') }}
                   </strong>
                 </div>
                 <div class="tuning-card-kpi">
-                  <span class="kpi-label">Risk Level</span>
-                  <strong class="kpi-value kpi-safe">SAFE</strong>
+                  <span class="kpi-label">{{ t('inline.viewsQuerySqlQueryView.text095') }}</span>
+                  <strong class="kpi-value kpi-safe">{{ t('inline.viewsQuerySqlQueryView.text100') }}</strong>
                 </div>
               </div>
               <p class="diagnostics-summary-text">
-                {{ result?.metadata?.cacheGovernanceStatus === 'HIT' ? 'Query served from memory. No further tuning is strictly required.' : 'Result cache bypass. Accelerated rewriting suggestions are calculated and eligible for runtime matching.' }}
+                {{ result?.metadata?.cacheGovernanceStatus === 'HIT' ? t('inline.viewsQuerySqlQueryView.text096') : t('inline.viewsQuerySqlQueryView.text097') }}
               </p>
             </div>
             
@@ -676,7 +649,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text091') || '审计与技术取证 (Trace Audit)'" name="audit">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text091')" name="audit">
           <div class="detail-grid">
             <div
               v-for="item in accessRows"

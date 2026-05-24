@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-VIEW-UX-SIMPLIFY-I18N-20260524: 二次精简 SQL 查询分析页面的交互冗余并落实严格双语国际化审计
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `USER-CN-SQL-QUERY-VIEW-UX-SIMPLIFY-I18N-20260524 resolve i18n key leakage, eliminate visual redundancies and apply strict bilingual terms`
+- Priority: 1
+- Depends on: N/A
+- Scope: src/views/query,src/locales
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-VIEW-UX-SIMPLIFY-I18N-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 消除 SQL 查询分析页面中大面积 kicker/冗余标题、无意义的 Templates/SQL Library 边栏按钮与底部的 sidebar-history-box 重复模块；在 locales 中补齐 text087~text108 翻译对，解决裸露 key 泄露问题；并在中文语言下将所有非白名单英文彻底本地化为专业中文，对 diagnostic tables 的 JS 动态标签实现全面翻译切换
+  - Validation evidence: npm run lint passed; npm run build passed; npm run test:form-governance passed; npm run test:sql-ui-contract passed; npm run test:frontend-page-governance passed; npm run test:i18n-copy passed; python3 scripts/foreman.py validate passed; python3 scripts/task_audit.py --check --phase pre-closeout passed
+  - Residual risk: 底层 AST 解析与执行状态为后端 response 渲染，其英文字符串内容继续遵循原有 API 契约不变
+  - Next step: 在真实双语环境复核路由与推荐终端展现，保证翻译在各种引擎返回下的自愈健壮性
+
 ### USER-CN-SQL-QUERY-VIEW-UX-REFACTOR-20260524: 重构 SQL 查询分析页面的交互布局与样式设计
 
 - Status: done
