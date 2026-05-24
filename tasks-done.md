@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524: System management UX redesign
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `feat(frontend): USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524 redesign system workspace`
+- Priority: 1
+- Depends on: N/A
+- Scope: Frontend-only redesign of /system management workspace: preserve existing tabs, APIs, payload contracts, and data-testid coverage while improving hierarchy, toolbars, summaries, table states, and form validation.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 已重构 /system 管理工作台的信息架构，保留原有 tabs、API、payload 和 data-testid；新增上下文工具栏、指标摘要、域 tab 计数、空态、状态标签、详情抽屉和统一表单校验，并把数据源、JDBC 驱动、报表接口、Redis 规则源、Dispatch 策略与租户参数集中到可扫描的管理界面。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524 --include-task-audit；npm run lint；npm run build；npm run test:form-governance；npm run test:frontend-page-governance；npm run test:sql-ui-contract；node scripts/check-system-datasource-contract.mjs；node scripts/check-system-config-contract.mjs；node scripts/check-developer-copy-language.mjs --changed；git diff --check。
+  - Residual risk: 仓库内前端治理与契约已闭环；Dispatch 修改仍按后端缺少 PUT/PATCH 更新接口保留不可写说明，真实连接测试和外部模块状态仍依赖目标环境返回。
+  - Next step: 两个用户前端任务均已关闭；如需继续，应基于新的任务台账重新 preflight。
+
 ### USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524: 实现租户与默认备用引擎前端统一维护入口
 
 - Status: done

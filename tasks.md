@@ -16,16 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524: System management UX redesign
-
-- Status: in_progress
-- Priority: 1
-- Depends on: N/A
-- Scope: Frontend-only redesign of /system management workspace: preserve existing tabs, APIs, payload contracts, and data-testid coverage while improving hierarchy, toolbars, summaries, table states, and form validation.
-- Validation:
-  - `python3 scripts/foreman.py validate USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524`
-- Progress log:
-  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+_No tasks._
 
 
 ## In Review
