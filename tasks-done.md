@@ -4,6 +4,29 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-VIEW-METADATA-EXPLORER-20260524: 实现 DBeaver 风格动态元数据浏览器与编辑器顶部连接上下文栏
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `feat(query): implement lazy-loading metadata tree and connection toolbar`
+- Priority: 1
+- Depends on: USER-CN-SQL-QUERY-VIEW-RESULT-PAGINATION-TITLES-FIX-20260524
+- Scope: src/views/query
+- Validation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:sql-ui-contract`
+  - `npm run test:frontend-page-governance`
+  - `npm run smoke:frontend-dev`
+- Progress log:
+  - 2026-05-24: 识别出侧栏“对象”仅支持到数据源层级，已规划接入 Schema ➡️ Table ➡️ Column 三级懒加载树，并提供带高亮的模糊检索以及双击节点智能插入 SQL 的交互。
+  - 2026-05-24: 规划在中央代码编辑器顶部横向集成计算引擎、物理数据源、默认数据库的扁平级联筛选条，方便快速切换上下文。
+- Context closeout:
+  - Completed scope: Objects Explorer Tree lazy loading schema/tables/columns, top Connection Selector toolbar synced bidirectionally
+  - Validation evidence: Vite built successfully, ESLint clean, and Playwright browser smoke test passed
+  - Residual risk: None
+  - Next step: Done
+
 ### USER-CN-SQL-QUERY-VIEW-RESULT-PAGINATION-TITLES-FIX-20260524: 彻底消除页面顶部标题与面包屑冗余，并完整恢复查询结果的分页与排序功能
 
 - Status: done

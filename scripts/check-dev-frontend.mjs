@@ -944,9 +944,44 @@ const runBrowserSmoke = async baseUrl => {
         'frontend-sql-history-datasource-options'
       ])
       await fulfillJson(route, [
-        { datasourceCode: 'hetu_main', datasourceName: 'Hetu main' },
-        { datasourceCode: 'hive_archive', datasourceName: 'Hive archive' }
+        { datasourceCode: 'hetu_main', datasourceName: 'Hetu main', engineType: 'HETU' },
+        { datasourceCode: 'hive_archive', datasourceName: 'Hive archive', engineType: 'HIVE' }
       ])
+      return
+    }
+
+    if (pathname === '/api/governance/metadata/schemas') {
+      await fulfillJson(route, [
+        { schemaName: 'sales', catalogName: 'lakehouse' },
+        { schemaName: 'analytics', catalogName: 'lakehouse' }
+      ])
+      return
+    }
+
+    if (pathname === '/api/governance/metadata/tables') {
+      await fulfillJson(route, [
+        { tableName: 'orders', schemaName: 'sales', objectKey: 'TABLE:sales.orders', columnCount: 12 },
+        { tableName: 'order_items', schemaName: 'sales', objectKey: 'TABLE:sales.order_items', columnCount: 6 }
+      ])
+      return
+    }
+
+    if (pathname.startsWith('/api/governance/metadata/tables/')) {
+      const tableName = decodeURIComponent(pathname.split('/')[5] || '')
+      await fulfillJson(route, {
+        tableName,
+        schemaName: 'sales',
+        objectKey: `TABLE:sales.${tableName}`,
+        columnCount: tableName === 'orders' ? 12 : 6,
+        rowCount: 1280000,
+        storageBytes: 536870912,
+        freshnessStatus: 'FRESH',
+        slaStatus: 'ON_TRACK',
+        queryabilityStatus: 'QUERYABLE',
+        evidenceStatus: 'CAPTURED',
+        upstreamCount: 0,
+        downstreamCount: 1
+      })
       return
     }
 

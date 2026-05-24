@@ -16,7 +16,18 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### USER-CN-TENANT-CONFIG-BACKEND-API-20260524: 实现租户引擎配置后端写接口与候选列表
+
+- Status: in_progress
+- Priority: 1
+- Depends on: N/A
+- Scope: governance
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-TENANT-CONFIG-BACKEND-API-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-24: 后端已新增租户配置候选列表与默认/备用引擎更新接口；目标 governance 测试通过。
+  - 2026-05-24: foreman validate 受既有前端 `src/views/query/SqlQueryView.vue` 未使用 import 阻断全量 lint；未修改前端代码。
 
 
 ## In Review

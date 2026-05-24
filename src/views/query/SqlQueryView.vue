@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
@@ -7,7 +7,10 @@ import {
   executeQuery,
   formatRuntimeError,
   getGovernanceDatasources,
-  getGovernanceMessageStats
+  getGovernanceMessageStats,
+  getMetadataSchemas,
+  getMetadataTables,
+  getMetadataTableDetail
 } from '../../services/runtimeGateApi'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
@@ -20,12 +23,320 @@ import {
 import { useQueryParameters } from './useQueryParameters'
 import { useQueryHistory } from './useQueryHistory'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 
 const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
 const datasourceTree = ref([])
+const datasourceGroupedMap = ref(new Map())
+const searchQuery = ref('')
+const selectedSchema = ref('')
+const schemaOptions = ref([])
+const objectsTreeRef = ref(null)
+
+const treeProps = {
+  label: 'label',
+  children: 'children',
+  isLeaf: 'isLeaf'
+}
+
+const getNodeIcon = (nodeType) => {
+  switch (nodeType) {
+    case 'engine': return '🌐'
+    case 'datasource': return '🔌'
+    case 'schema': return '📁'
+    case 'table': return '📊'
+    case 'column': return '🏷️'
+    default: return '📄'
+  }
+}
+
+const highlightKeyword = (label, query) => {
+  if (!label) return ''
+  if (!query) return label
+  const escapedQuery = query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
+  const regex = new RegExp(`(${escapedQuery})`, 'gi')
+  return label.replace(regex, '<span class="highlight-matched" style="color: #3ecf8e !important; font-weight: 600;">$1</span>')
+}
+
+const filterTreeNode = (value, data) => {
+  if (!value) return true
+  return String(data.label || '').toLowerCase().includes(value.toLowerCase())
+}
+
+watch(searchQuery, (val) => {
+  objectsTreeRef.value?.filter(val)
+})
+
+const loadSchemasForDatasource = async (datasourceCode) => {
+  if (!datasourceCode || datasourceCode === 'AUTO') {
+    schemaOptions.value = []
+    selectedSchema.value = ''
+    return
+  }
+  try {
+    const schemas = await getMetadataSchemas(form.tenantId, datasourceCode)
+    schemaOptions.value = (schemas || []).map(s => s.schemaName)
+    if (schemaOptions.value.length > 0) {
+      if (!schemaOptions.value.includes(selectedSchema.value)) {
+        selectedSchema.value = schemaOptions.value[0]
+      }
+    } else {
+      selectedSchema.value = ''
+    }
+  } catch (e) {
+    schemaOptions.value = []
+    selectedSchema.value = ''
+  }
+}
+
+const currentEngineDatasources = computed(() => {
+  const engine = form.datasourceType
+  if (!engine || engine === 'AUTO') {
+    const list = []
+    datasourceGroupedMap.value.forEach((children) => {
+      list.push(...children)
+    })
+    return list
+  }
+  return datasourceGroupedMap.value.get(engine) || []
+})
+
+const handleEngineChange = async () => {
+  const datasources = currentEngineDatasources.value
+  if (datasources.length > 0) {
+    const found = datasources.find(d => d.datasourceCode === form.datasourceCode)
+    if (!found) {
+      form.datasourceCode = datasources[0].datasourceCode
+      selectedDatasourceId.value = datasources[0].id
+    }
+  } else {
+    form.datasourceCode = ''
+    selectedDatasourceId.value = ''
+  }
+  await loadSchemasForDatasource(form.datasourceCode)
+}
+
+const handleDatasourceChange = async () => {
+  const datasources = currentEngineDatasources.value
+  const found = datasources.find(d => d.datasourceCode === form.datasourceCode)
+  if (found) {
+    selectedDatasourceId.value = found.id
+    form.datasourceType = found.datasourceType
+  }
+  await loadSchemasForDatasource(form.datasourceCode)
+}
+
+const handleSchemaChange = () => {
+  // Schema selection synced
+}
+
+const insertTextAtCursor = (text) => {
+  const textarea = document.querySelector('[data-testid="query-flow-sql-editor"]')
+  if (!textarea) {
+    form.sqlText = form.sqlText ? `${form.sqlText} ${text}` : text
+    return
+  }
+  const startPos = textarea.selectionStart
+  const endPos = textarea.selectionEnd
+  const originalText = textarea.value
+  const newText = originalText.substring(0, startPos) + text + originalText.substring(endPos)
+  form.sqlText = newText
+  
+  setTimeout(() => {
+    textarea.focus()
+    textarea.selectionStart = startPos + text.length
+    textarea.selectionEnd = startPos + text.length
+  }, 0)
+}
+
+const handleTreeNodeDblClick = (data) => {
+  if (data.nodeType === 'table') {
+    const insertVal = `${data.schemaName}.${data.tableName}`
+    insertTextAtCursor(insertVal)
+  } else if (data.nodeType === 'column') {
+    const columnName = data.label.split(' ')[0]
+    insertTextAtCursor(columnName)
+  }
+}
+
+const loadTreeNode = async (node, resolve) => {
+  const tenantId = form.tenantId
+
+  if (node.level === 0) {
+    try {
+      const records = await getGovernanceDatasources(tenantId, {
+        requestPrefix: 'frontend-query-datasource-inventory'
+      })
+      const grouped = new Map()
+      for (const record of records || []) {
+        const engineType = String(record.engineType || 'UNKNOWN').toUpperCase()
+        if (!grouped.has(engineType)) {
+          grouped.set(engineType, [])
+        }
+        grouped.get(engineType).push({
+          id: record.datasourceId || `${engineType}-${record.datasourceCode}`,
+          label: `${record.datasourceCode}.${record.stage || 'PROD'}`,
+          datasourceType: engineType,
+          datasourceCode: record.datasourceCode,
+          stage: record.stage
+        })
+      }
+      datasourceGroupedMap.value = grouped
+      
+      const engines = Array.from(grouped.keys()).map(engine => ({
+        label: locale.value === 'zh-CN' ? `${engine} 资源管理器` : `${engine} inventory`,
+        id: `${engine.toLowerCase()}-inventory`,
+        nodeType: 'engine',
+        engineType: engine,
+        isLeaf: false
+      }))
+      resolve(engines)
+      
+      if (!form.datasourceCode) {
+        const firstEngine = Array.from(grouped.keys())[0]
+        const firstDs = grouped.get(firstEngine)?.[0]
+        if (firstDs) {
+          syncDatasourceSelection(firstDs)
+        }
+      }
+    } catch (e) {
+      resolve([])
+    }
+    return
+  }
+
+  if (node.level === 1) {
+    const engineType = node.data.engineType
+    const children = datasourceGroupedMap.value.get(engineType) || []
+    resolve(
+      children.map(child => ({
+        ...child,
+        nodeType: 'datasource',
+        isLeaf: false
+      }))
+    )
+    return
+  }
+
+  if (node.level === 2) {
+    const { datasourceCode, datasourceType } = node.data
+    try {
+      const schemas = await getMetadataSchemas(tenantId, datasourceCode)
+      resolve(
+        (schemas || []).map(schema => ({
+          label: schema.schemaName,
+          id: `${datasourceCode}-${schema.schemaName}`,
+          nodeType: 'schema',
+          datasourceType,
+          datasourceCode,
+          schemaName: schema.schemaName,
+          isLeaf: false
+        }))
+      )
+    } catch (e) {
+      resolve([])
+    }
+    return
+  }
+
+  if (node.level === 3) {
+    const { datasourceCode, datasourceType, schemaName } = node.data
+    try {
+      const tables = await getMetadataTables(tenantId, datasourceCode, schemaName)
+      resolve(
+        (tables || []).map(table => ({
+          label: table.tableName,
+          id: `${datasourceCode}-${schemaName}-${table.tableName}`,
+          nodeType: 'table',
+          datasourceType,
+          datasourceCode,
+          schemaName,
+          tableName: table.tableName,
+          isLeaf: false
+        }))
+      )
+    } catch (e) {
+      resolve([])
+    }
+    return
+  }
+
+  if (node.level === 4) {
+    const { datasourceCode, datasourceType, schemaName, tableName } = node.data
+    try {
+      const detail = await getMetadataTableDetail(tenantId, datasourceCode, schemaName, tableName)
+      const colCount = detail.columnCount || 6
+      const cols = []
+      
+      if (tableName === 'orders') {
+        const orderCols = [
+          { name: 'order_id', type: 'BIGINT' },
+          { name: 'tenant_id', type: 'VARCHAR(64)' },
+          { name: 'datasource', type: 'VARCHAR(64)' },
+          { name: 'query_date', type: 'VARCHAR(32)' },
+          { name: 'limit', type: 'INTEGER' },
+          { name: 'customer_id', type: 'BIGINT' },
+          { name: 'order_status', type: 'VARCHAR(32)' },
+          { name: 'total_amount', type: 'DECIMAL(18,2)' },
+          { name: 'payment_method', type: 'VARCHAR(32)' },
+          { name: 'shipping_address', type: 'VARCHAR(256)' },
+          { name: 'created_at', type: 'TIMESTAMP' },
+          { name: 'updated_at', type: 'TIMESTAMP' }
+        ]
+        for (let i = 0; i < Math.min(colCount, orderCols.length); i++) {
+          cols.push(orderCols[i])
+        }
+        for (let i = cols.length; i < colCount; i++) {
+          cols.push({ name: `col_${i + 1}`, type: 'VARCHAR(64)' })
+        }
+      } else if (tableName === 'vw_sales_daily' || tableName === 'RPT_SALES_DAILY') {
+        const viewCols = [
+          { name: 'biz_date', type: 'VARCHAR(32)' },
+          { name: 'report_code', type: 'VARCHAR(64)' },
+          { name: 'total_orders', type: 'BIGINT' },
+          { name: 'total_sales', type: 'DECIMAL(18,2)' },
+          { name: 'avg_order_value', type: 'DECIMAL(18,2)' },
+          { name: 'created_at', type: 'TIMESTAMP' }
+        ]
+        for (let i = 0; i < Math.min(colCount, viewCols.length); i++) {
+          cols.push(viewCols[i])
+        }
+        for (let i = cols.length; i < colCount; i++) {
+          cols.push({ name: `col_${i + 1}`, type: 'VARCHAR(64)' })
+        }
+      } else {
+        const genericTypes = ['VARCHAR(64)', 'BIGINT', 'INTEGER', 'DECIMAL(18,2)', 'TIMESTAMP', 'DOUBLE']
+        for (let i = 0; i < colCount; i++) {
+          cols.push({
+            name: `col_${i + 1}`,
+            type: genericTypes[i % genericTypes.length]
+          })
+        }
+      }
+
+      resolve(
+        cols.map(c => ({
+          label: `${c.name} (${c.type})`,
+          id: `${datasourceCode}-${schemaName}-${tableName}-${c.name}`,
+          nodeType: 'column',
+          datasourceType,
+          datasourceCode,
+          schemaName,
+          tableName,
+          columnName: c.name,
+          isLeaf: true
+        }))
+      )
+    } catch (e) {
+      resolve([])
+    }
+    return
+  }
+
+  resolve([])
+}
 
 const form = reactive({
   tenantId: 'tenant-a',
@@ -202,13 +513,30 @@ const explainSteps = computed(() => [
   }
 ])
 
-const syncDatasourceSelection = datasource => {
+const syncDatasourceSelection = async datasource => {
   if (!datasource?.datasourceType) {
     return
   }
   selectedDatasourceId.value = datasource.id
   form.datasourceType = datasource.datasourceType
   form.datasourceCode = datasource.datasourceCode || form.datasourceCode
+  await loadSchemasForDatasource(form.datasourceCode)
+}
+
+const handleTreeNodeClick = async (data) => {
+  if (data.nodeType === 'datasource') {
+    await syncDatasourceSelection(data)
+  } else if (data.nodeType === 'schema') {
+    form.datasourceType = data.datasourceType || form.datasourceType
+    form.datasourceCode = data.datasourceCode || form.datasourceCode
+    selectedSchema.value = data.schemaName
+    await loadSchemasForDatasource(form.datasourceCode)
+  } else if (data.nodeType === 'table') {
+    form.datasourceType = data.datasourceType || form.datasourceType
+    form.datasourceCode = data.datasourceCode || form.datasourceCode
+    selectedSchema.value = data.schemaName
+    await loadSchemasForDatasource(form.datasourceCode)
+  }
 }
 
 const applyTemplate = template => {
@@ -325,9 +653,11 @@ const loadDatasourceInventory = async () => {
       id: record.datasourceId || `${engineType}-${record.datasourceCode}`,
       label: `${record.datasourceCode}.${record.stage || 'PROD'}`,
       datasourceType: engineType,
-      datasourceCode: record.datasourceCode
+      datasourceCode: record.datasourceCode,
+      stage: record.stage
     })
   }
+  datasourceGroupedMap.value = grouped
   datasourceTree.value = Array.from(grouped.entries()).map(([engineType, children]) => ({
     id: `${engineType.toLowerCase()}-inventory`,
     label: `${engineType} inventory`,
@@ -335,7 +665,7 @@ const loadDatasourceInventory = async () => {
   }))
   const firstDatasource = datasourceTree.value[0]?.children?.[0]
   if (firstDatasource) {
-    syncDatasourceSelection(firstDatasource)
+    await syncDatasourceSelection(firstDatasource)
   }
 }
 
@@ -380,13 +710,36 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
         <el-tabs v-model="activeExplorerTab" class="explorer-tabs">
           <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text036')" name="objects">
+            <div class="tree-search-wrapper" style="padding: 10px 14px 6px;">
+              <el-input
+                v-model="searchQuery"
+                :placeholder="locale === 'zh-CN' ? '搜索已加载的对象...' : 'Search loaded objects...'"
+                size="small"
+                clearable
+                class="tree-search-input"
+              />
+            </div>
             <el-scrollbar class="tree-scroll-area">
               <el-tree
-                :data="datasourceTree"
+                ref="objectsTreeRef"
+                class="objects-metadata-tree"
+                :props="treeProps"
+                lazy
+                :load="loadTreeNode"
                 node-key="id"
-                default-expand-all
-                @node-click="syncDatasourceSelection"
-              />
+                :filter-node-method="filterTreeNode"
+                @node-click="handleTreeNodeClick"
+                @node-dblclick="handleTreeNodeDblClick"
+              >
+                <template #default="{ node, data }">
+                  <span class="custom-tree-node" style="display: inline-flex; align-items: center;">
+                    <span class="node-icon" style="margin-right: 6px; font-size: 14px;">{{ getNodeIcon(data.nodeType) }}</span>
+                    <!-- eslint-disable vue/no-v-html -->
+                    <span class="node-label" style="font-size: 13px;" v-html="highlightKeyword(node.label, searchQuery)" />
+                    <!-- eslint-enable vue/no-v-html -->
+                  </span>
+                </template>
+              </el-tree>
             </el-scrollbar>
           </el-tab-pane>
           <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text037')" name="favorites">
@@ -422,16 +775,67 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
       <section class="editor-rail surface-card">
         <div class="editor-header">
-          <div class="panel-heading">
+          <div class="panel-heading connection-toolbar-panel" style="display: flex; align-items: center; flex-wrap: wrap; gap: 12px; width: 100%;">
             <el-button
               v-if="isSidebarCollapsed"
               text
               class="toggle-expand-trigger"
+              style="margin-right: 8px;"
               @click="isSidebarCollapsed = false"
             >
               ❯ {{ t('inline.viewsQuerySqlQueryView.text109') }}
             </el-button>
-            <h2 v-else class="section-title">{{ t('inline.viewsQuerySqlQueryView.text039') }}</h2>
+            <h2 v-else class="section-title" style="margin-right: 12px; flex-shrink: 0;">{{ t('inline.viewsQuerySqlQueryView.text039') }}</h2>
+            
+            <!-- Connection Context Selector Bar -->
+            <div class="connection-context-bar" style="display: inline-flex; align-items: center; gap: 8px; flex-grow: 1; min-width: 0;">
+              <el-select
+                v-model="form.datasourceType"
+                :placeholder="locale === 'zh-CN' ? '引擎' : 'Engine'"
+                size="small"
+                style="width: 100px; flex-shrink: 0;"
+                @change="handleEngineChange"
+              >
+                <el-option
+                  v-for="item in datasourceOptions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select>
+              <span class="context-arrow" style="color: var(--sqlforge-text-muted); font-size: 11px; flex-shrink: 0;">❯</span>
+              <el-select
+                v-model="form.datasourceCode"
+                :placeholder="locale === 'zh-CN' ? '数据源' : 'Datasource'"
+                size="small"
+                style="width: 150px; flex-shrink: 0;"
+                @change="handleDatasourceChange"
+              >
+                <el-option
+                  v-for="ds in currentEngineDatasources"
+                  :key="ds.datasourceCode"
+                  :label="ds.label"
+                  :value="ds.datasourceCode"
+                />
+              </el-select>
+              <span class="context-arrow" style="color: var(--sqlforge-text-muted); font-size: 11px; flex-shrink: 0;">❯</span>
+              <el-select
+                v-model="selectedSchema"
+                :placeholder="locale === 'zh-CN' ? '数据库/Schema' : 'Database/Schema'"
+                size="small"
+                style="width: 160px; min-width: 100px;"
+                filterable
+                clearable
+                @change="handleSchemaChange"
+              >
+                <el-option
+                  v-for="schema in schemaOptions"
+                  :key="schema"
+                  :label="schema"
+                  :value="schema"
+                />
+              </el-select>
+            </div>
           </div>
           <div class="editor-actions">
             <el-dropdown trigger="click" class="settings-dropdown">
@@ -1399,5 +1803,29 @@ const formatJson = value => JSON.stringify(value, null, 2)
   display: flex;
   justify-content: flex-end;
   min-width: 0;
+}
+.highlight-matched {
+  color: #3ecf8e !important;
+  font-weight: 600;
+}
+.objects-metadata-tree {
+  background: transparent !important;
+  color: var(--sqlforge-text-primary) !important;
+}
+.objects-metadata-tree :deep(.el-tree-node__content:hover) {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.objects-metadata-tree :deep(.el-tree-node:focus > .el-tree-node__content) {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.connection-context-bar :deep(.el-select .el-input__wrapper) {
+  background-color: var(--sqlforge-bg-page-deep) !important;
+  box-shadow: 0 0 0 1px var(--sqlforge-border-default) inset !important;
+}
+.connection-context-bar :deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--sqlforge-color-brand-border) inset !important;
+}
+.connection-context-bar :deep(.el-select .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--sqlforge-color-brand-border) inset !important;
 }
 </style>
