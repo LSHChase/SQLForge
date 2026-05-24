@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524: 实现租户与默认备用引擎前端统一维护入口
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `feat(frontend): USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 add tenant engine switcher`
+- Priority: 1
+- Depends on: USER-CN-TENANT-CONFIG-BACKEND-API-20260524
+- Scope: src/App.vue,src/stores,src/services,src/locales
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-24: 已在 App 顶部补租户、默认引擎、备用引擎统一维护控件；runtime API 与 Pinia tenant store 已接入 options/get/put 后端契约。
+- Context closeout:
+  - Completed scope: 已在 App 顶部工作区接入租户候选、默认引擎与备用引擎维护入口，Pinia tenant store 持久化当前租户引擎状态，runtime API 消费 tenant-config options/get/put 后端契约并保留请求租户上下文。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 --include-task-audit；npm run lint；npm run build；npm run test:form-governance；npm run test:frontend-page-governance；npm run test:sql-ui-contract；node scripts/check-developer-copy-language.mjs --changed；git diff --check。
+  - Residual risk: 仓库内前端契约已闭环；真实多租户权限、跨租户管理可见性和后端 MANAGE 授权仍以目标环境实际账号/租户数据为准。
+  - Next step: 继续关闭 USER-CN-SYSTEM-MANAGEMENT-UX-REDESIGN-20260524。
+
 ### USER-CN-TENANT-CONFIG-BACKEND-API-20260524: 实现租户引擎配置后端写接口与候选列表
 
 - Status: done

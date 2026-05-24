@@ -13,11 +13,16 @@ export default {
       governanceHistory: '治理历史',
       governanceOps: '治理运维',
       temporary: '临时交付',
-      reference: '参考页面'
+      reference: '参考页面',
     },
     defaultEngine: '默认引擎',
     backupEngine: '备用引擎',
     currentTenant: '当前租户',
+    workspaceTenantPlaceholder: '选择租户',
+    workspaceSave: '保存',
+    workspaceSaved: '租户引擎配置已保存',
+    workspaceLoadFailed: '租户配置加载失败',
+    workspaceSaveFailed: '租户配置保存失败',
     desktopMode: '桌面端基线',
     temporaryPage: '临时页',
     nonProductionOnly: '仅非生产',
@@ -26,9 +31,10 @@ export default {
     actions: {
       copy: '复制',
       format: '格式化',
+      cancel: '取消',
       reset: '重置',
       viewRawJson: '查看原始 JSON',
-      viewRawEvidence: '查看原始证据'
+      viewRawEvidence: '查看原始证据',
     },
     helpMark: '?',
     fields: {
@@ -52,67 +58,75 @@ export default {
       format: '格式',
       scenario: '场景',
       report: '报告',
-      resultStatus: '结果状态'
+      resultStatus: '结果状态',
     },
     localeToggleToEnglish: 'EN',
     localeToggleToChinese: '中',
     adaptiveNavigation: '按需导航',
     defaultTenantName: '系统租户',
-    defaultUserName: '系统用户'
+    defaultUserName: '系统用户',
   },
   dashboard: {
     title: '首页总览',
-    summary: '展示核心 SQL 链路待办、最近查询、最近解析、推荐结果和改写风险摘要。',
+    summary:
+      '展示核心 SQL 链路待办、最近查询、最近解析、推荐结果和改写风险摘要。',
     eyebrow: '核心总览',
     heroTitle: '让核心 SQL 链路先在首页完成总览判断。',
-    heroSummary: '首页集中呈现查询负载、解析稳定性、推荐结果、改写风险与审计信号，帮助你快速判断平台是否处于可激活、可追踪、可处置状态。',
+    heroSummary:
+      '首页集中呈现查询负载、解析稳定性、推荐结果、改写风险与审计信号，帮助你快速判断平台是否处于可激活、可追踪、可处置状态。',
     heroPrimary: '进入 SQL 查询分析',
     heroSecondary: '查看压测报告',
     heroFootnote: '深色原生驾驶舱基线',
     operatorHeroTitle: '首页总览聚焦核心 SQL 链路',
-    operatorHeroSummary: '首页只做查询、历史、解析、解析历史、推荐结果和改写记录的摘要分发；所有数字继续来自当前接口、窗口样本或 PULL_ONLY 协同事实。',
+    operatorHeroSummary:
+      '首页只做查询、历史、解析、解析历史、推荐结果和改写记录的摘要分发；所有数字继续来自当前接口、窗口样本或 PULL_ONLY 协同事实。',
     operatorFocusEyebrow: '操作焦点',
     openRisksTitle: '开放风险',
-    openRisksSummary: '失败消息、dispatch 失败、紧急 SQL 与高风险推荐结果会在这里合并成一个操作焦点。',
+    openRisksSummary:
+      '失败消息、dispatch 失败、紧急 SQL 与高风险推荐结果会在这里合并成一个操作焦点。',
     coreAttentionTitle: '核心待办样本',
-    coreAttentionSummary: '合并当前查询失败、解析失败、重要紧急 SQL、高风险推荐和改写记录关注项，不包含全租户风险推断。',
+    coreAttentionSummary:
+      '合并当前查询失败、解析失败、重要紧急 SQL、高风险推荐和改写记录关注项，不包含全租户风险推断。',
     coreKpiTitle: '核心 KPI',
     primaryEntriesTitle: '核心链路入口',
     platformHealthRiskTitle: '平台健康与风险',
     auxiliarySignalsTitle: '辅助证据边界',
-    auxiliarySignalsSummary: '协同模式、接入方式、路由引擎和治理消息只作为边界证据后置，不抢占首页核心路径。',
+    auxiliarySignalsSummary:
+      '协同模式、接入方式、路由引擎和治理消息只作为边界证据后置，不抢占首页核心路径。',
     issueDistributionTitle: '问题分布',
     recentActivityTitle: '最近活动',
     nextStepsTitle: '下一步建议',
     evidenceEyebrow: '静态证据',
     evidenceBoundaryTitle: '证据边界',
-    evidenceBoundarySummary: '首页只展示当前接口、窗口或协同模式可证明的事实，避免把样本扩写成全局结论。',
+    evidenceBoundarySummary:
+      '首页只展示当前接口、窗口或协同模式可证明的事实，避免把样本扩写成全局结论。',
     evidenceRows: {
       parseOverview: {
         label: '解析总览',
-        detail: '来自 parse-statistics 总览的当前样本，不代表全量租户历史。'
+        detail: '来自 parse-statistics 总览的当前样本，不代表全量租户历史。',
       },
       queryWindow: {
         label: '查询窗口',
-        detail: '来自 query-history 当前页窗口，成功率、失败率和命中率均按窗口计算。'
+        detail:
+          '来自 query-history 当前页窗口，成功率、失败率和命中率均按窗口计算。',
       },
       messageStats: {
         label: '治理消息',
-        detail: '来自 governance 管理消息统计，只合并 pending 与 failed 风险。'
+        detail: '来自 governance 管理消息统计，只合并 pending 与 failed 风险。',
       },
       rewriteRecords: {
         label: '改写记录',
-        detail: '来自 rewrite-records 当前返回样本，只做摘要和跳转。'
+        detail: '来自 rewrite-records 当前返回样本，只做摘要和跳转。',
       },
       dispatchMode: {
         label: '协同模式',
-        detail: '继续显式展示 PULL_ONLY 或后端返回模式，不伪装主动下发。'
-      }
+        detail: '继续显式展示 PULL_ONLY 或后端返回模式，不伪装主动下发。',
+      },
     },
     actions: {
       openQueryWorkbench: '进入 SQL 查询分析',
       openSqlParse: '进入 SQL 解析',
-      refreshOverview: '刷新总览'
+      refreshOverview: '刷新总览',
     },
     metricLabel: '关键指标',
     metrics: {
@@ -120,7 +134,7 @@ export default {
       parseSuccess: '解析成功率',
       benchmarkPass: '压测通过率',
       accelerationHit: '加速命中率',
-      auditSignal: '审计/异常事件'
+      auditSignal: '审计/异常事件',
     },
     quickEntryTitle: '核心工作流入口',
     quickEntrySummary: '核心功能继续独立存在，首页只做摘要、分发和建议。',
@@ -131,68 +145,120 @@ export default {
     panorama: {
       kicker: '项目全景',
       title: '项目全景',
-      summary: '把愿景、里程碑、术语和规则速查固定在首页，避免驾驶舱只剩运行指标。',
+      summary:
+        '把愿景、里程碑、术语和规则速查固定在首页，避免驾驶舱只剩运行指标。',
       cardLabel: '项目索引',
       cards: [
         {
           title: '项目目标',
-          summary: '让每一条 BI SQL 在上线前经过解析、压测、改写、路由与加速治理，确保性能可预期、数据一致可信赖。',
-          items: ['统一查询、解析、压测、加速与审计入口', '以后端权威校验、历史可追溯和规则入库为底座', '支持单区域起步并向多区域扩展预留']
+          summary:
+            '让每一条 BI SQL 在上线前经过解析、压测、改写、路由与加速治理，确保性能可预期、数据一致可信赖。',
+          items: [
+            '统一查询、解析、压测、加速与审计入口',
+            '以后端权威校验、历史可追溯和规则入库为底座',
+            '支持单区域起步并向多区域扩展预留',
+          ],
         },
         {
           title: '项目规划',
-          summary: '执行顺序按 Phase A-F 展开，先收口文档真值，再逐步补齐前后端、运行时门禁与交付闭环。',
-          items: ['Phase D 收口查询执行与治理主链路', 'Phase E 构建驾驶舱、业务页面与交付视图', 'Phase F 接入部署、CI、运行时 smoke 和恢复治理']
+          summary:
+            '执行顺序按 Phase A-F 展开，先收口文档真值，再逐步补齐前后端、运行时门禁与交付闭环。',
+          items: [
+            'Phase D 收口查询执行与治理主链路',
+            'Phase E 构建驾驶舱、业务页面与交付视图',
+            'Phase F 接入部署、CI、运行时 smoke 和恢复治理',
+          ],
         },
         {
           title: '名词解释',
-          summary: '统一项目中的术语和对象语义，减少前后端、架构与运维之间的理解漂移。',
-          items: ['治理链路: 查询 -> 解析 -> 压测 -> 加速 -> 审计', '任务真值: tasks.md / tasks-done.md / validation-log / git', '首页总览: 正式首页摘要层，不替代各主业务页']
+          summary:
+            '统一项目中的术语和对象语义，减少前后端、架构与运维之间的理解漂移。',
+          items: [
+            '治理链路: 查询 -> 解析 -> 压测 -> 加速 -> 审计',
+            '任务真值: tasks.md / tasks-done.md / validation-log / git',
+            '首页总览: 正式首页摘要层，不替代各主业务页',
+          ],
         },
         {
           title: '架构原则速查',
-          summary: '规则库要求代码、文档、验证和交付回写保持同步，不允许把长期约束留在会话记忆里。',
-          items: ['Java 8 + Spring Boot 2.x 是后端硬约束', '页面负责摘要与分发，权威判断和历史由后端承担', '非 trivial 任务必须走 foreman + task audit 审计链']
-        }
-      ]
+          summary:
+            '规则库要求代码、文档、验证和交付回写保持同步，不允许把长期约束留在会话记忆里。',
+          items: [
+            'Java 8 + Spring Boot 2.x 是后端硬约束',
+            '页面负责摘要与分发，权威判断和历史由后端承担',
+            '非 trivial 任务必须走 foreman + task audit 审计链',
+          ],
+        },
+      ],
     },
     architecture: {
       kicker: '架构设计',
       title: '架构设计',
-      summary: '首页以摘要方式固化 C4、服务拓扑、契约、数据模型、部署和测试设计，变更继续以 ADR 为准。',
+      summary:
+        '首页以摘要方式固化 C4、服务拓扑、契约、数据模型、部署和测试设计，变更继续以 ADR 为准。',
       cardLabel: '架构索引',
       cards: [
         {
           title: '总体架构',
-          summary: '以 C4 Level 1-4 组织系统、容器、组件和关键模块，区分正式产品路径与交付辅助路径。',
-          items: ['产品首页保留 `/dashboard`，核心业务页独立承载主流程', '后端坚持 controller -> service -> domain/infrastructure 分层', '领域边界以查询治理、优化、压测、系统管理等服务拆分']
+          summary:
+            '以 C4 Level 1-4 组织系统、容器、组件和关键模块，区分正式产品路径与交付辅助路径。',
+          items: [
+            '产品首页保留 `/dashboard`，核心业务页独立承载主流程',
+            '后端坚持 controller -> service -> domain/infrastructure 分层',
+            '领域边界以查询治理、优化、压测、系统管理等服务拆分',
+          ],
         },
         {
           title: '服务拓扑',
-          summary: '前后端分离部署，治理相关能力围绕查询执行、解析、优化、压测、审计与系统配置协作。',
-          items: ['query-execution 承接 SQL 提交与治理编排', '优化与压测独立演进，并通过契约接入主链路', '系统、审计与交付视图负责配置、取证和交付观察']
+          summary:
+            '前后端分离部署，治理相关能力围绕查询执行、解析、优化、压测、审计与系统配置协作。',
+          items: [
+            'query-execution 承接 SQL 提交与治理编排',
+            '优化与压测独立演进，并通过契约接入主链路',
+            '系统、审计与交付视图负责配置、取证和交付观察',
+          ],
         },
         {
           title: '接口契约与数据模型',
-          summary: '所有重要行为通过明确契约和后端校验进入系统，历史、导出和审计使用可追溯关联键串联。',
-          items: ['HTTP 返回明确 JSON 错误，不以模糊字符串替代', 'MySQL 是主持久化方向，历史对象支持查询、筛选、分页、导出', '实体不跨服务直接传输，跨域通过 DTO 和服务层编排']
+          summary:
+            '所有重要行为通过明确契约和后端校验进入系统，历史、导出和审计使用可追溯关联键串联。',
+          items: [
+            'HTTP 返回明确 JSON 错误，不以模糊字符串替代',
+            'MySQL 是主持久化方向，历史对象支持查询、筛选、分页、导出',
+            '实体不跨服务直接传输，跨域通过 DTO 和服务层编排',
+          ],
         },
         {
           title: '数据生命周期',
-          summary: '围绕冷热分层、不可变结果和长期历史留存设计治理数据，避免把浏览器状态当成事实来源。',
-          items: ['结果主体视为证据，不允许随意重写', '审计日志至少保留 180 天并持续可查询', '加速、压测、修复与审计结果通过统一关联键回溯']
+          summary:
+            '围绕冷热分层、不可变结果和长期历史留存设计治理数据，避免把浏览器状态当成事实来源。',
+          items: [
+            '结果主体视为证据，不允许随意重写',
+            '审计日志至少保留 180 天并持续可查询',
+            '加速、压测、修复与审计结果通过统一关联键回溯',
+          ],
         },
         {
           title: '部署与流程',
-          summary: '部署拓扑以华为云单区域起步，业务流程覆盖正常路径、异常回滚、补偿和加速支路。',
-          items: ['前后端可独立构建与部署，路径兼容 amd64/arm64', '流程链路覆盖查询、解析、压测、加速与审计', '运维侧持续记录日志、告警、备份和恢复证据']
+          summary:
+            '部署拓扑以华为云单区域起步，业务流程覆盖正常路径、异常回滚、补偿和加速支路。',
+          items: [
+            '前后端可独立构建与部署，路径兼容 amd64/arm64',
+            '流程链路覆盖查询、解析、压测、加速与审计',
+            '运维侧持续记录日志、告警、备份和恢复证据',
+          ],
         },
         {
           title: '测试架构',
-          summary: '验证分为构建、分层测试、运行时 smoke、task audit 和交付回写，不把“已实现”当成“已验证”。',
-          items: ['前端至少通过 build 与页面结构检查', '后端通过模块测试、契约测试和运行时 smoke 门禁', '架构变更需同步 ADR、验证日志与任务台账']
-        }
-      ]
+          summary:
+            '验证分为构建、分层测试、运行时 smoke、task audit 和交付回写，不把“已实现”当成“已验证”。',
+          items: [
+            '前端至少通过 build 与页面结构检查',
+            '后端通过模块测试、契约测试和运行时 smoke 门禁',
+            '架构变更需同步 ADR、验证日志与任务台账',
+          ],
+        },
+      ],
     },
     progress: {
       kicker: '交付真值',
@@ -201,74 +267,110 @@ export default {
       openDelivery: '进入交付进度页',
       deliveryHidden: '临时交付页在生产环境默认隐藏',
       sourceTitle: '真实来源',
-      sourceSummary: '任务台账、验证日志和主计划合并派生为只读快照；首页不维护第二份状态源。',
+      sourceSummary:
+        '任务台账、验证日志和主计划合并派生为只读快照；首页不维护第二份状态源。',
       cards: {
         active: '活动任务',
-        activeDetail: '当前仍在 `tasks.md` 中推进的 todo / in_progress / in_review / blocked 总量。',
+        activeDetail:
+          '当前仍在 `tasks.md` 中推进的 todo / in_progress / in_review / blocked 总量。',
         done: '已归档任务',
         doneDetail: '来自 `tasks-done.md` 的累计完成数，用于判断真实交付沉淀。',
         validation: '验证记录',
-        validationDetail: '来自 `docs/quality/validation-log.md` 的最近验证累计，反映质量门禁密度。',
+        validationDetail:
+          '来自 `docs/quality/validation-log.md` 的最近验证累计，反映质量门禁密度。',
         completion: '整体完成率',
-        completionDetail: '按活动任务与已归档任务合并计算，用于观察当前交付波次收口程度。'
+        completionDetail:
+          '按活动任务与已归档任务合并计算，用于观察当前交付波次收口程度。',
       },
       modulesTitle: '阶段完成度',
-      modulesSummary: '按任务 ID 所在执行域汇总完成率，快速判断哪一阶段在推进、哪一阶段仍在堆积。',
+      modulesSummary:
+        '按任务 ID 所在执行域汇总完成率，快速判断哪一阶段在推进、哪一阶段仍在堆积。',
       moduleMeta: '共 {total} 个任务，已完成 {done}，执行中 {progress}',
       recentTitle: '最近动作',
-      recentSummary: '合并任务进度日志、归档记录和验证日志，保留最近一次真实动作时间线。',
+      recentSummary:
+        '合并任务进度日志、归档记录和验证日志，保留最近一次真实动作时间线。',
       dependenciesTitle: '阻塞与依赖链',
-      dependenciesSummary: '优先展示当前阻塞/待决原因，再看活动任务未闭合的依赖链。',
+      dependenciesSummary:
+        '优先展示当前阻塞/待决原因，再看活动任务未闭合的依赖链。',
       blockerLabel: '当前待决',
-      noBlockers: '当前无显式阻塞项；如出现新的待决原因，会从最新进度日志自动浮现。',
-      noDependencies: '当前活动任务未形成可展示的依赖链。'
+      noBlockers:
+        '当前无显式阻塞项；如出现新的待决原因，会从最新进度日志自动浮现。',
+      noDependencies: '当前活动任务未形成可展示的依赖链。',
     },
     compliance: {
       kicker: '合规中心',
       title: '合规中心',
-      summary: '把等保专项要求直接挂到驾驶舱首页，明确身份、隔离、审计、加密和备份恢复的当前基线。',
+      summary:
+        '把等保专项要求直接挂到驾驶舱首页，明确身份、隔离、审计、加密和备份恢复的当前基线。',
       sourceTitle: '合规真值',
-      sourceSummary: '当前板块只读映射 `docs/security/compliance.md` 中的 `R-111`~`R-115`，不在前端维护平行规范。',
+      sourceSummary:
+        '当前板块只读映射 `docs/security/compliance.md` 中的 `R-111`~`R-115`，不在前端维护平行规范。',
       cards: [
         {
           ruleId: 'R-111',
           title: '身份鉴别',
-          summary: '所有受保护操作必须由后端完成身份校验，核心引擎不再定义产品角色分层。',
-          items: ['HTTP/API 请求必须携带可验证身份凭证', '认证失败或未登录请求返回明确 JSON 错误', '认证失败和越界访问都必须进入留痕链路']
+          summary:
+            '所有受保护操作必须由后端完成身份校验，核心引擎不再定义产品角色分层。',
+          items: [
+            'HTTP/API 请求必须携带可验证身份凭证',
+            '认证失败或未登录请求返回明确 JSON 错误',
+            '认证失败和越界访问都必须进入留痕链路',
+          ],
         },
         {
           ruleId: 'R-112',
           title: '访问控制',
-          summary: '系统以租户 ID 做数据隔离，路由、执行、导出和压测都要重新校验数据源访问范围。',
-          items: ['所有核心请求显式携带租户上下文', '数据源、查询任务、审计记录和导出记录都绑定租户', '默认拒绝缺失访问范围的请求，不允许隐式放行']
+          summary:
+            '系统以租户 ID 做数据隔离，路由、执行、导出和压测都要重新校验数据源访问范围。',
+          items: [
+            '所有核心请求显式携带租户上下文',
+            '数据源、查询任务、审计记录和导出记录都绑定租户',
+            '默认拒绝缺失访问范围的请求，不允许隐式放行',
+          ],
         },
         {
           ruleId: 'R-113',
           title: '安全审计',
-          summary: 'SQL 操作、登录登出和访问范围变更必须入审计日志，且至少保留 180 天、不可改删。',
-          items: ['审计记录包含时间、租户、用户、对象、结果、耗时与链路 ID', '敏感内容必须脱敏或加密后再记录', '审计日志表需独立备份并限制写后改删']
+          summary:
+            'SQL 操作、登录登出和访问范围变更必须入审计日志，且至少保留 180 天、不可改删。',
+          items: [
+            '审计记录包含时间、租户、用户、对象、结果、耗时与链路 ID',
+            '敏感内容必须脱敏或加密后再记录',
+            '审计日志表需独立备份并限制写后改删',
+          ],
         },
         {
           ruleId: 'R-114',
           title: '加密存储',
           summary: '数据库密码、API 密钥等敏感配置必须加密存储，禁止明文落库。',
-          items: ['持久化前统一执行 AES-256 或等效加密', '配置文件、日志、异常栈、导出文件不得泄露明文敏感数据', '密钥管理与业务数据分离，可接独立密钥服务']
+          items: [
+            '持久化前统一执行 AES-256 或等效加密',
+            '配置文件、日志、异常栈、导出文件不得泄露明文敏感数据',
+            '密钥管理与业务数据分离，可接独立密钥服务',
+          ],
         },
         {
           ruleId: 'R-115',
           title: '备份恢复',
-          summary: 'MySQL 生产环境必须具备主从或等效高可用方案，满足 RPO 与 RTO 目标并加密备份。',
-          items: ['备份至少包含全量和必要增量/binlog 策略', '审计日志和核心元数据进入优先恢复清单', '恢复演练结果需要可追溯记录']
-        }
-      ]
+          summary:
+            'MySQL 生产环境必须具备主从或等效高可用方案，满足 RPO 与 RTO 目标并加密备份。',
+          items: [
+            '备份至少包含全量和必要增量/binlog 策略',
+            '审计日志和核心元数据进入优先恢复清单',
+            '恢复演练结果需要可追溯记录',
+          ],
+        },
+      ],
     },
     rulebook: {
       kicker: 'Codex 规则库',
       title: 'Codex 规则库',
-      summary: '规则库板块只做只读摘要，强调 append-only、规则入库和任务审计链，不把长期约束留在 prompt 和记忆里。',
+      summary:
+        '规则库板块只做只读摘要，强调 append-only、规则入库和任务审计链，不把长期约束留在 prompt 和记忆里。',
       cardLabel: '规则分组',
       sourceTitle: '规则来源',
-      sourceSummary: '规则分类、编号和扩展状态来自 `docs/rules/codex-rules.md` 与合规基线文档的当前仓库真值。',
+      sourceSummary:
+        '规则分类、编号和扩展状态来自 `docs/rules/codex-rules.md` 与合规基线文档的当前仓库真值。',
       cardsSummary: {
         baseline: '基线规则',
         baselineDetail: '基于 `R-001`~`R-115` 的架构与工程硬约束数量。',
@@ -277,72 +379,103 @@ export default {
         compliance: '合规规则',
         complianceDetail: '来自安全合规文档的等保专项规则数量。',
         sources: '来源文档',
-        sourcesDetail: '当前首页摘要直接依赖的规则/合规权威文档数量。'
+        sourcesDetail: '当前首页摘要直接依赖的规则/合规权威文档数量。',
       },
       cards: [
         {
           title: '文档与治理',
-          summary: '规则要求执行前先读文档、维护任务台账、记录 closeout，并通过 append-only 历史账本保存长期约束。',
-          items: ['文档优先于 prompt 和记忆', '长期规则必须入 `docs/` 和历史账本', '非 trivial 任务必须走 foreman / task audit / git 审计链']
+          summary:
+            '规则要求执行前先读文档、维护任务台账、记录 closeout，并通过 append-only 历史账本保存长期约束。',
+          items: [
+            '文档优先于 prompt 和记忆',
+            '长期规则必须入 `docs/` 和历史账本',
+            '非 trivial 任务必须走 foreman / task audit / git 审计链',
+          ],
         },
         {
           title: '架构与工程',
-          summary: '前后端分离、Java 8 + Spring Boot 2.x、分层后端、MyBatis XML 和独立部署是当前工程硬边界。',
-          items: ['前端固定 Vue 3 + JavaScript + CSS', '后端固定 Java 8 + Spring Boot 2.x', '领域目录 + 分层子目录是默认后端结构']
+          summary:
+            '前后端分离、Java 8 + Spring Boot 2.x、分层后端、MyBatis XML 和独立部署是当前工程硬边界。',
+          items: [
+            '前端固定 Vue 3 + JavaScript + CSS',
+            '后端固定 Java 8 + Spring Boot 2.x',
+            '领域目录 + 分层子目录是默认后端结构',
+          ],
         },
         {
           title: '页面与边界',
-          summary: '首页负责摘要与建议，主流程保持独立页面；前端可预校验，但后端永远是规则与历史的权威边界。',
-          items: ['页面按上下文、状态、结果、下一步组织', '不能把多个核心流程继续堆在一个长页面', '已交付能力必须在主业务页面可见']
+          summary:
+            '首页负责摘要与建议，主流程保持独立页面；前端可预校验，但后端永远是规则与历史的权威边界。',
+          items: [
+            '页面按上下文、状态、结果、下一步组织',
+            '不能把多个核心流程继续堆在一个长页面',
+            '已交付能力必须在主业务页面可见',
+          ],
         },
         {
           title: '验证与扩展',
-          summary: '规则库后半段把阶段门禁、任务验证、交付 closeout 和严格模式约束继续追加为机器可审计规则。',
-          items: ['阶段入口、阶段交付和渐进等保都有验证要求', '前端构建、知识 lint 和 task audit 是基础收口动作', '规则新增只能追加，不能覆写历史语义']
-        }
-      ]
+          summary:
+            '规则库后半段把阶段门禁、任务验证、交付 closeout 和严格模式约束继续追加为机器可审计规则。',
+          items: [
+            '阶段入口、阶段交付和渐进等保都有验证要求',
+            '前端构建、知识 lint 和 task audit 是基础收口动作',
+            '规则新增只能追加，不能覆写历史语义',
+          ],
+        },
+      ],
     },
     nextTitle: '建议动作',
-    nextSummary: '根据当前风险与运行状态，直接进入对应业务页面处理。'
+    nextSummary: '根据当前风险与运行状态，直接进入对应业务页面处理。',
   },
   deliveryProgress: {
     title: 'AI交付进度',
     summary: '仅在研发/交付阶段展示 AI 编码任务推进状态、验证结果与模块进度。',
     eyebrow: '交付严格模式',
     heroTitle: '把 AI 编码任务的推进真值固定在权威台账之上。',
-    heroSummary: '该页面只读展示 `tasks.md`、`tasks-done.md`、验证日志与执行计划派生出的交付快照，不替代正式业务首页，也不维护平行状态源。',
+    heroSummary:
+      '该页面只读展示 `tasks.md`、`tasks-done.md`、验证日志与执行计划派生出的交付快照，不替代正式业务首页，也不维护平行状态源。',
     visibilityLabel: '生产默认隐藏',
     visibilityTitle: '该页面仅在非生产环境展示',
-    visibilitySummary: '项目投产后默认隐藏入口，历史记录继续保留在任务台账、验证日志和 Git 回写中。',
+    visibilitySummary:
+      '项目投产后默认隐藏入口，历史记录继续保留在任务台账、验证日志和 Git 回写中。',
     summaryTitle: '状态总览',
-    summaryDescription: '先看任务状态分布，再下钻具体执行、模块进度与验证证据。',
+    summaryDescription:
+      '先看任务状态分布，再下钻具体执行、模块进度与验证证据。',
     activeTasksTitle: '活动任务',
-    activeTasksDescription: '当前进行中、待办、待审与阻塞任务都来自活动任务台账快照。',
+    activeTasksDescription:
+      '当前进行中、待办、待审与阻塞任务都来自活动任务台账快照。',
     moduleTitle: '模块进度',
-    moduleDescription: '按任务 ID 所在执行域汇总完成率，便于快速判断推进密度与堵点。',
+    moduleDescription:
+      '按任务 ID 所在执行域汇总完成率，便于快速判断推进密度与堵点。',
     recentChangesTitle: '最近变更',
-    recentChangesDescription: '将任务进度日志、归档记录与验证日志合并成一个只读时间线，便于回溯最近一次真实动作。',
+    recentChangesDescription:
+      '将任务进度日志、归档记录与验证日志合并成一个只读时间线，便于回溯最近一次真实动作。',
     blockedTitle: '阻塞与待决原因',
-    blockedDescription: '优先列出显式 blocked 任务；若当前无 blocked，则回退展示最新进展日志中仍未闭合的待决项。',
+    blockedDescription:
+      '优先列出显式 blocked 任务；若当前无 blocked，则回退展示最新进展日志中仍未闭合的待决项。',
     blockedFootnote: '当前列表包含台账中已显式标记为 blocked 的任务。',
-    pendingFootnote: '当前无显式 blocked 任务，以下为从最新进度日志提取的待决原因。',
+    pendingFootnote:
+      '当前无显式 blocked 任务，以下为从最新进度日志提取的待决原因。',
     dependencyTitle: '依赖链',
-    dependencyDescription: '把活动任务依赖拆开展示，区分已在台账、仅在计划和未被跟踪的依赖。',
+    dependencyDescription:
+      '把活动任务依赖拆开展示，区分已在台账、仅在计划和未被跟踪的依赖。',
     completedTitle: '最近完成',
-    completedDescription: '已归档任务与 commit subject 只从 `tasks-done.md` 派生，不手填。',
+    completedDescription:
+      '已归档任务与 commit subject 只从 `tasks-done.md` 派生，不手填。',
     validationTitle: '最近验证',
-    validationDescription: '验证时间线只读展示 `validation-log.md` 的最新记录。',
+    validationDescription:
+      '验证时间线只读展示 `validation-log.md` 的最新记录。',
     changeKind: {
       progress: '进度回写',
       done: '任务归档',
-      validation: '验证记录'
+      validation: '验证记录',
     },
     cards: {
       todo: '待开始',
       inProgress: '执行中',
       inReview: '待验收',
       blocked: '已阻塞',
-      done: '已完成'
+      done: '已完成',
     },
     status: {
       todo: '待开始',
@@ -351,12 +484,12 @@ export default {
       blocked: '已阻塞',
       done: '已完成',
       planned: '计划中',
-      untracked: '未跟踪'
+      untracked: '未跟踪',
     },
     dependencySource: {
       ledger: '来源: 任务台账',
       plan: '来源: 执行计划',
-      external: '来源: 待人工补齐'
+      external: '来源: 待人工补齐',
     },
     runtime: {
       modePill: '模式 {mode}',
@@ -364,35 +497,40 @@ export default {
       flagLabel: '开关状态',
       scopeLabel: '可见范围',
       scope: '非生产可见',
-      reasonNonProduction: '当前为非生产构建，且未通过 `VITE_ENABLE_DELIVERY_PROGRESS=false` 关闭该临时页面入口。',
-      reasonFlagDisabled: '当前构建虽然不是生产模式，但显式设置了 `VITE_ENABLE_DELIVERY_PROGRESS=false`，因此入口不会注册。',
+      reasonNonProduction:
+        '当前为非生产构建，且未通过 `VITE_ENABLE_DELIVERY_PROGRESS=false` 关闭该临时页面入口。',
+      reasonFlagDisabled:
+        '当前构建虽然不是生产模式，但显式设置了 `VITE_ENABLE_DELIVERY_PROGRESS=false`，因此入口不会注册。',
       reasonProduction: '生产构建不会注册该临时页面路由；投产后默认不可见。',
       flag: {
         enabled: '已显式启用',
         disabled: '已显式关闭',
-        default: '默认开启'
-      }
+        default: '默认开启',
+      },
     },
     meta: {
       priority: '优先级',
       dependsOn: '依赖',
       totalTasks: '个任务',
       blockedSource: '来源: 最新进度日志',
-      unresolvedCount: '未闭合依赖 {count} 个'
+      unresolvedCount: '未闭合依赖 {count} 个',
     },
     empty: {
       blockedTitle: '当前没有待展示的阻塞项',
-      blockedDescription: '若后续任务进入 `blocked`，或最新进度日志写入新的待决原因，这里会自动刷新。',
+      blockedDescription:
+        '若后续任务进入 `blocked`，或最新进度日志写入新的待决原因，这里会自动刷新。',
       dependencyTitle: '当前没有依赖链',
-      dependencyDescription: '待活动任务补入 `Depends on` 后，这里会自动展示依赖结构。',
-      progressLog: '暂无进度日志'
-    }
+      dependencyDescription:
+        '待活动任务补入 `Depends on` 后，这里会自动展示依赖结构。',
+      progressLog: '暂无进度日志',
+    },
   },
   sqlQuery: {
     title: 'SQL 查询分析',
-    summary: '提供 SQL 输入、格式化、校验、执行、Explain、查询结果、轻量分析、深度解析入口与执行历史关联。',
+    summary:
+      '提供 SQL 输入、格式化、校验、执行、Explain、查询结果、轻量分析、深度解析入口与执行历史关联。',
     hero: {
-      eyebrow: '查询分析工作台'
+      eyebrow: '查询分析工作台',
     },
     metrics: {
       resultRows: '结果行',
@@ -404,11 +542,11 @@ export default {
       pending: '待执行',
       review: '需复核',
       ready: '就绪',
-      sessionOnly: '本次会话'
+      sessionOnly: '本次会话',
     },
     resultTabs: {
       access: '执行上下文',
-      history: '历史关联'
+      history: '历史关联',
     },
     access: {
       queryDateStatus: 'query_date 状态',
@@ -418,7 +556,7 @@ export default {
       bindingMode: '绑定模式',
       logicalObjects: '命中对象',
       parseStatus: '轻量分析状态',
-      commentContext: '注释上下文'
+      commentContext: '注释上下文',
     },
     historyAssociation: {
       sqlFingerprint: 'SQL 指纹',
@@ -426,12 +564,13 @@ export default {
       implementationStage: '实现阶段',
       downloadUrl: '下载地址',
       historyBoundary: '历史边界',
-      backendHistory: '历史写入、导出和审计关联以后端 query-history 为准。'
-    }
+      backendHistory: '历史写入、导出和审计关联以后端 query-history 为准。',
+    },
   },
   sqlHistory: {
     title: 'SQL 历史查询',
-    summary: '查询执行历史、筛选历史 SQL，查看执行摘要、原 SQL、模板 SQL、绑定后 SQL 以及解析、推荐和改写关联。',
+    summary:
+      '查询执行历史、筛选历史 SQL，查看执行摘要、原 SQL、模板 SQL、绑定后 SQL 以及解析、推荐和改写关联。',
     actions: {
       refresh: '查询/刷新',
       clear: '清空条件',
@@ -441,11 +580,11 @@ export default {
       openRecommendationResult: '打开推荐结果',
       focusRewriteRecords: '查看改写记录',
       refreshRewriteRecords: '刷新改写记录',
-      copy: '复制'
+      copy: '复制',
     },
     options: {
       all: '全部',
-      default: '默认'
+      default: '默认',
     },
     filters: {
       tenant: '租户',
@@ -482,7 +621,8 @@ export default {
       selectPlaceholder: '请选择',
       eyebrow: '历史筛选',
       title: '历史筛选',
-      summary: '筛选项全部映射到 query-history 已有查询参数；默认空筛选不改变历史查询契约。'
+      summary:
+        '筛选项全部映射到 query-history 已有查询参数；默认空筛选不改变历史查询契约。',
     },
     metrics: {
       label: 'SQL 执行历史摘要',
@@ -492,13 +632,13 @@ export default {
       nonSuccess: '异常/部分成功',
       accessChannels: '接入渠道',
       queryDateResolved: 'query_date 已解析',
-      parameterizedSql: '参数化 SQL'
+      parameterizedSql: '参数化 SQL',
     },
     queryStatus: {
       idle: '未查询',
       loading: '加载中',
       success: '已刷新',
-      error: '查询失败'
+      error: '查询失败',
     },
     table: {
       kicker: '执行历史表',
@@ -516,7 +656,7 @@ export default {
       governanceHits: '治理命中',
       submittedBy: '提交人',
       submittedAt: '提交时间',
-      auditEventCount: '审计事件数'
+      auditEventCount: '审计事件数',
     },
     states: {
       loading: '正在加载 SQL 执行历史',
@@ -525,10 +665,11 @@ export default {
       errorTitle: 'SQL 历史查询失败',
       datasourceOptionsFallback: '数据源候选加载失败，保留手动输入。',
       noSignalEvidence: '当前详情没有可展示的解析、路由或上下文证据。',
-      noRewriteRecords: '当前 SQL 历史没有匹配的改写记录。'
+      noRewriteRecords: '当前 SQL 历史没有匹配的改写记录。',
     },
     messages: {
-      traceLookupRemoved: '独立追踪反查入口已移除，请通过 historyId 打开 SQL 执行历史详情。'
+      traceLookupRemoved:
+        '独立追踪反查入口已移除，请通过 historyId 打开 SQL 执行历史详情。',
     },
     detail: {
       title: '执行详情',
@@ -548,7 +689,7 @@ export default {
       targetEngine: '目标引擎',
       submittedBy: '提交人',
       submittedAt: '提交时间',
-      auditEventCount: '审计事件数'
+      auditEventCount: '审计事件数',
     },
     execution: {
       cacheHit: '缓存命中',
@@ -558,7 +699,7 @@ export default {
       errorCode: '错误码',
       errorMessage: '错误信息',
       routeDecision: '路由决策',
-      cacheSummary: '缓存摘要'
+      cacheSummary: '缓存摘要',
     },
     rewriteAudit: {
       rewriteApplied: '后端审计改写',
@@ -570,7 +711,8 @@ export default {
       activationStatusSnapshot: '激活状态快照',
       rewriteFallbackReason: '改写回退原因',
       linkedNotAppliedTitle: '有关联治理对象，但本次未发生自动改写',
-      linkedNotAppliedMessage: '本次执行历史的 rewriteApplied 不是 true；关联推荐或改写记录只作为治理证据展示，不能写成真实改写历史。'
+      linkedNotAppliedMessage:
+        '本次执行历史的 rewriteApplied 不是 true；关联推荐或改写记录只作为治理证据展示，不能写成真实改写历史。',
     },
     sql: {
       sqlFingerprint: '执行指纹',
@@ -581,12 +723,12 @@ export default {
       parameterizedSql: '参数化 SQL',
       originalSql: '原始 SQL',
       templateSql: '模板 SQL',
-      boundSql: '绑定 SQL'
+      boundSql: '绑定 SQL',
     },
     governance: {
       cache: '缓存',
       rewrite: '改写',
-      acceleration: '加速'
+      acceleration: '加速',
     },
     tabs: {
       overview: '执行概览',
@@ -595,7 +737,7 @@ export default {
       rewriteRecords: '改写记录',
       signals: '解析与路由',
       refs: '关联证据',
-      audit: '审计关联'
+      audit: '审计关联',
     },
     signals: {
       commentContext: '注释上下文',
@@ -605,13 +747,13 @@ export default {
       accessParseSummary: '数据访问解析摘要',
       bindingSummary: '参数绑定摘要',
       routeDecision: '路由决策',
-      cacheSummary: '缓存摘要'
+      cacheSummary: '缓存摘要',
     },
     refs: {
       recommendationRefs: '推荐关联',
       benchmarkRefs: '压测关联',
       auditRefs: '审计关联',
-      alertRefs: '告警关联'
+      alertRefs: '告警关联',
     },
     rewriteRecords: {
       count: '改写记录数',
@@ -637,51 +779,52 @@ export default {
       executedSql: '实际执行 SQL',
       diffSummary: 'Diff 摘要',
       ruleChain: '规则链',
-      traceRefs: '追溯引用'
+      traceRefs: '追溯引用',
     },
     audit: {
       service: '服务',
       operation: '操作',
       status: '状态',
-      createdAt: '时间'
+      createdAt: '时间',
     },
     rawEvidence: {
-      title: '原始证据'
+      title: '原始证据',
     },
     export: {
       title: '导出 SQL 执行取证',
       format: '格式',
       includeTraceDetail: '包含 trace 详情',
-      run: '执行导出'
+      run: '执行导出',
     },
     footer: {
       currentPageCount: '当前页 {count} 条',
       totalCount: '总数 {count} 条',
       pageWindow: '第 {current}/{total} 页',
-      lastQuery: '最近查询：{status} · {time}'
-    }
+      lastQuery: '最近查询：{status} · {time}',
+    },
   },
   parseRecord: {
     title: '解析历史',
-    summary: '查询解析历史、批次历史和报表解析历史，查看解析状态、失败原因、问题场景、逻辑对象和推荐关联。',
+    summary:
+      '查询解析历史、批次历史和报表解析历史，查看解析状态、失败原因、问题场景、逻辑对象和推荐关联。',
     actions: {
       openSqlHistory: '打开 SQL 历史',
-      openRecommendationResult: '打开推荐结果'
+      openRecommendationResult: '打开推荐结果',
     },
     issueSceneDetail: {
       actions: {
-        viewDetail: '查看明细'
+        viewDetail: '查看明细',
       },
       filters: {
         currentScene: '当前场景',
         report: '报表',
         logicalObject: '逻辑对象',
-        clear: '清除'
+        clear: '清除',
       },
       sections: {
         reportDetail: '报表明细',
         logicalObjectDetail: '逻辑对象明细',
-        sqlDetail: 'SQL 明细'
+        sqlDetail: 'SQL 明细',
       },
       columns: {
         issueScene: '问题场景',
@@ -702,19 +845,21 @@ export default {
         priority: '优先级',
         logicalObjects: '逻辑对象',
         issueScenes: '问题场景',
-        location: '定位'
-      }
-    }
+        location: '定位',
+      },
+    },
   },
   benchmark: {
     title: '压测报告',
     summary: '查看基线、峰值延迟、回归差异与准入判断。',
     eyebrow: '压测中心',
-    boundarySummary: '当前仓库侧已有真实压测任务/报告接口；模板与测试集仍以前端会话和目录组织，不伪装成后端 CRUD。',
+    boundarySummary:
+      '当前仓库侧已有真实压测任务/报告接口；模板与测试集仍以前端会话和目录组织，不伪装成后端 CRUD。',
     input: {
       eyebrow: '压测输入',
       title: '压测边界与关键输入',
-      summary: '租户、任务类型与 SQL 是提交真实压测任务的关键输入，成功与失败补偿流程在下方标签页执行。'
+      summary:
+        '租户、任务类型与 SQL 是提交真实压测任务的关键输入，成功与失败补偿流程在下方标签页执行。',
     },
     fields: {
       sql: 'SQL',
@@ -726,7 +871,7 @@ export default {
       pendingDelta: 'pending 增量',
       totalDelta: 'total 增量',
       rawDataPath: '原始数据路径',
-      scannedBytes: '扫描字节'
+      scannedBytes: '扫描字节',
     },
     tabs: {
       templates: '模板',
@@ -734,32 +879,34 @@ export default {
       taskFlow: '任务流',
       compensation: '失败补偿',
       report: '报告',
-      sessionTasks: '会话任务'
+      sessionTasks: '会话任务',
     },
     templates: {
       eyebrow: '模板目录',
       title: '模板列表',
-      summary: '模板是当前页面的任务预设，用于快速填充真实压测任务参数。'
+      summary: '模板是当前页面的任务预设，用于快速填充真实压测任务参数。',
     },
     testSets: {
       eyebrow: '测试集目录',
       title: '测试集列表',
-      summary: '测试集为前端会话目录，不宣称仓库已有独立 test-set API。'
+      summary: '测试集为前端会话目录，不宣称仓库已有独立 test-set API。',
     },
     taskFlow: {
       eyebrow: '压测任务流程',
       title: '成功任务流',
-      summary: '使用当前选中模板的 taskContext 提交、轮询并读取报告。'
+      summary: '使用当前选中模板的 taskContext 提交、轮询并读取报告。',
     },
     compensation: {
       eyebrow: '失败补偿',
       title: '失败补偿流',
-      summary: '失败链路会追加 FAIL_BENCHMARK，用于验证 governance 补偿队列证据。'
+      summary:
+        '失败链路会追加 FAIL_BENCHMARK，用于验证 governance 补偿队列证据。',
     },
     report: {
       eyebrow: '压测报告',
       title: '报告对比与回归结果',
-      summary: '成功执行后展示真实 report 返回的引擎结果、阈值评估、趋势图与建议。',
+      summary:
+        '成功执行后展示真实 report 返回的引擎结果、阈值评估、趋势图与建议。',
       empty: '执行成功后会在这里显示实际 report 返回值。',
       returned: '报告 {reportId} 由真实接口返回，可用格式 {formats}。',
       engineEyebrow: '引擎对比',
@@ -767,25 +914,26 @@ export default {
       regressionEyebrow: '回归结果',
       regressionTitle: '阈值与回归判断',
       trendEyebrow: '趋势与建议',
-      trendTitle: '趋势与后续建议'
+      trendTitle: '趋势与后续建议',
     },
     session: {
       eyebrow: '本次会话任务',
       title: '会话任务列表',
-      summary: '当前没有全局任务列表接口，因此仅保留本次会话发起的 benchmark 任务。',
-      empty: '当前会话尚未发起 benchmark 任务。'
+      summary:
+        '当前没有全局任务列表接口，因此仅保留本次会话发起的 benchmark 任务。',
+      empty: '当前会话尚未发起 benchmark 任务。',
     },
     actions: {
       runTemplate: '执行当前模板',
-      runCompensation: '执行失败恢复 + 补偿'
-    }
+      runCompensation: '执行失败恢复 + 补偿',
+    },
   },
   parseBatchCenter: {
     title: '批量解析',
     summary: '独立处理批次创建、模板下载、文件导入、失败重试与报表清单解析。',
     reportStatistics: {
       tabs: {
-        issueScenes: '问题场景'
+        issueScenes: '问题场景',
       },
       columns: {
         issueScene: '问题场景',
@@ -793,16 +941,16 @@ export default {
         severity: '严重度',
         reportCount: '报表数',
         logicalObjectCount: '逻辑对象',
-        ratio: '比例'
+        ratio: '比例',
       },
       labels: {
         issueScenes: '问题场景',
-        location: '定位'
+        location: '定位',
       },
       states: {
-        emptyIssueScenes: '当前没有问题场景统计。'
-      }
-    }
+        emptyIssueScenes: '当前没有问题场景统计。',
+      },
+    },
   },
   rewriteTrial: {
     title: '改写试算',
@@ -843,7 +991,7 @@ export default {
     ruleAction: '动作',
     trialConclusion: '试算结论',
     riskReason: '风险原因',
-    selectBatchFirst: '请先选择批量解析批次。'
+    selectBatchFirst: '请先选择批量解析批次。',
   },
   parseStatisticsCenter: {
     title: 'SQL解析统计中心',
@@ -872,27 +1020,28 @@ export default {
       sqlStats: 'SQL 清单',
       reportStats: '报表视角',
       priorityMatrix: '优先级矩阵',
-      importantUrgent: '重要/紧急清单'
-    }
+      importantUrgent: '重要/紧急清单',
+    },
   },
   assetCatalog: {
     title: '数据资产目录',
     summary: '查看数据源、Schema、表、逻辑视图与 DB view 的列表和详情证据。',
     eyebrow: '数据资产目录',
-    workspaceSummary: '按资产类型筛选、查看列表和详情证据，并把元数据快照、血缘、物理映射、依赖关系与 SQL 候选留在同一工作面。',
+    workspaceSummary:
+      '按资产类型筛选、查看列表和详情证据，并把元数据快照、血缘、物理映射、依赖关系与 SQL 候选留在同一工作面。',
     filters: {
       eyebrow: '资产筛选',
       title: '筛选与刷新',
       summary: '筛选状态与目录状态分离；刷新不会改变后端资产事实。',
-      schemaPlaceholder: '仅 table 列表使用'
+      schemaPlaceholder: '仅 table 列表使用',
     },
     actions: {
-      refresh: '刷新目录'
+      refresh: '刷新目录',
     },
     catalog: {
       eyebrow: '目录标签页',
       title: '资产目录',
-      summary: '当前类型 {count} 条结果'
+      summary: '当前类型 {count} 条结果',
     },
     detail: {
       eyebrow: '资产详情',
@@ -900,92 +1049,97 @@ export default {
       summary: '详情、健康状态、snapshot 与下钻证据在常驻区域展示。',
       connectionEndpoint: '连接地址',
       credentialMode: '凭证模式',
-      lastFailureReason: '最近失败原因'
+      lastFailureReason: '最近失败原因',
     },
     states: {
       emptyCatalog: '当前筛选下没有目录结果。',
-      selectAsset: '从左侧选择一个资产后显示详情。'
+      selectAsset: '从左侧选择一个资产后显示详情。',
     },
     health: {
       eyebrow: '新鲜度 / SLA / 热度',
       title: '数据到位与热度 proxy',
-      usageHeatProxy: '使用热度代理指标'
+      usageHeatProxy: '使用热度代理指标',
     },
     snapshot: {
       eyebrow: '快照证据',
-      title: '元数据快照旁证'
+      title: '元数据快照旁证',
     },
     relatedSql: {
       eyebrow: '相关 SQL',
       title: '相关 SQL 候选',
       summary: '只读候选，不执行 SQL。',
-      boundary: '当前仓库侧没有逻辑对象到 SQL 的独立查询接口，这里按 logical view `viewCode` 与 parse statistics `reportCode` 对齐展示候选。',
-      empty: '当前 logical view 还没有匹配到相关 SQL 候选。'
-    }
+      boundary:
+        '当前仓库侧没有逻辑对象到 SQL 的独立查询接口，这里按 logical view `viewCode` 与 parse statistics `reportCode` 对齐展示候选。',
+      empty: '当前 logical view 还没有匹配到相关 SQL 候选。',
+    },
   },
   routingGovernance: {
     title: '路由执行证据',
-    summary: '查看当前路由校准、历史决策与注释协议摘要；当前仅支持只读证据查看。',
+    summary:
+      '查看当前路由校准、历史决策与注释协议摘要；当前仅支持只读证据查看。',
     eyebrow: '路由执行证据',
     pageTitle: '路由执行证据与历史决策',
-    boundarySummary: '当前页只消费 route-calibration 与 query-history.routeDecision 的只读证据，不伪装成规则配置中心。',
+    boundarySummary:
+      '当前页只消费 route-calibration 与 query-history.routeDecision 的只读证据，不伪装成规则配置中心。',
     filters: {
       eyebrow: '路由筛选',
-      title: '证据范围与操作'
+      title: '证据范围与操作',
     },
     fields: {
       traceLimit: 'Trace 数量',
       traceId: 'Trace ID',
       auditEvents: '审计事件数',
-      lastSeenAt: '最后时间'
+      lastSeenAt: '最后时间',
     },
     actions: {
       refresh: '刷新路由证据',
       viewPolicySource: '查看当前策略来源',
       createRule: '新增规则',
       editRule: '修改规则',
-      openParseRecord: '打开历史详情页'
+      openParseRecord: '打开历史详情页',
     },
     tabs: {
       calibration: '校准',
       commentProtocol: '注释协议',
-      recentTraces: '最近 trace'
+      recentTraces: '最近 trace',
     },
     policy: {
       eyebrow: '当前策略',
-      title: '当前策略快照'
+      title: '当前策略快照',
     },
     comment: {
       eyebrow: '注释协议',
-      title: '注释协议摘要'
+      title: '注释协议摘要',
     },
     traces: {
       eyebrow: '路由决策证据',
       title: '路由决策历史',
       summary: 'trace 详情通过弹窗下钻，原始路由证据通过抽屉查看。',
-      state: '当前 trace 结果 {count} 条'
+      state: '当前 trace 结果 {count} 条',
     },
     detail: {
       dialogTitle: '路由决策详情',
-      historyState: '当前 trace 历史 {count} 条'
+      historyState: '当前 trace 历史 {count} 条',
     },
-    rawDrawerTitle: '路由原始证据'
+    rawDrawerTitle: '路由原始证据',
   },
   recommendationCenter: {
     title: '推荐结果',
-    summary: '查看推荐列表、推荐来源、收益、风险、推荐 SQL、SQL diff、规则链和适用条件。',
+    summary:
+      '查看推荐列表、推荐来源、收益、风险、推荐 SQL、SQL diff、规则链和适用条件。',
     eyebrow: '推荐结果',
     pageTitle: '推荐结果',
-    boundarySummary: '页面聚焦推荐结果本身；人工复核、dispatch 与 trace 只作为详情证据，SQLForge 不执行推荐 SQL、不主动装数。',
+    boundarySummary:
+      '页面聚焦推荐结果本身；人工复核、dispatch 与 trace 只作为详情证据，SQLForge 不执行推荐 SQL、不主动装数。',
     filters: {
       eyebrow: '推荐筛选',
-      title: '租户与刷新'
+      title: '租户与刷新',
     },
     sourceCategories: {
       query: '查询',
       sqlParse: 'SQL 解析',
       parseBatch: '批量解析',
-      reportBatch: '报表导入解析'
+      reportBatch: '报表导入解析',
     },
     actions: {
       refresh: '刷新推荐结果',
@@ -1005,11 +1159,11 @@ export default {
     list: {
       eyebrow: '推荐列表',
       title: '推荐列表',
-      summary: '当前租户 {count} 条 recommendation'
+      summary: '当前租户 {count} 条 recommendation',
     },
     detail: {
       eyebrow: '推荐详情',
-      title: '收益、风险与 SQL diff 详情'
+      title: '收益、风险与 SQL diff 详情',
     },
     fields: {
       benefitLevel: '收益',
@@ -1080,7 +1234,7 @@ export default {
       rollbackSql: '回滚 SQL',
       rewriteSql: 'MV 查询 SQL',
       trigger: '触发原因',
-      recommendedAction: '推荐动作'
+      recommendedAction: '推荐动作',
     },
     states: {
       selectRecommendation: '选择一个 recommendation 查看详情。',
@@ -1097,15 +1251,17 @@ export default {
       runtimeActionFailed: '运行时激活或暂停动作失败。',
       awaitingRewriteActivation: '等待改写记录激活。',
       lifecycleActionApplied: '改写记录动作已提交，状态已从后端刷新。',
-      rewriteRecordCreated: '改写记录已创建，激活并确认运行时绑定处于 ACTIVE 后生效。',
+      rewriteRecordCreated:
+        '改写记录已创建，激活并确认运行时绑定处于 ACTIVE 后生效。',
       validationRunCreated: '验证运行已创建，状态已从后端刷新。',
       rewriteAutoApplyApproved: '已批准改写记录并允许自动应用。',
-      rewriteRecordCreateUnavailable: '当前推荐缺少创建改写记录所需的原 SQL 或推荐 SQL。',
+      rewriteRecordCreateUnavailable:
+        '当前推荐缺少创建改写记录所需的原 SQL 或推荐 SQL。',
       materializedViewCreateReady: '可创建真实 MV',
       materializedViewCreateUnavailable: '当前 MV 产物不可创建。',
       materializedViewCreateSubmitted: '真实 MV 创建请求已提交。',
       noRefusalReasons: '当前没有激活资格拒绝原因。',
-      noValidationRuns: '当前改写记录没有验证运行。'
+      noValidationRuns: '当前改写记录没有验证运行。',
     },
     materializedViewCreate: {
       title: '真实 MV 创建',
@@ -1121,7 +1277,7 @@ export default {
       rulesRisk: '规则与风险',
       dispatchContract: 'Dispatch 契约',
       traceability: '追溯链',
-      dispatchEvents: 'Dispatch 事件'
+      dispatchEvents: 'Dispatch 事件',
     },
     sections: {
       focusSummary: '结果焦点',
@@ -1136,7 +1292,7 @@ export default {
       accelerationArtifact: 'L2 加速产物',
       alertLinkage: '告警联动',
       activationEligibility: '激活资格参考',
-      validationRuns: '验证运行'
+      validationRuns: '验证运行',
     },
     artifact: {
       grain: '粒度 grain',
@@ -1163,108 +1319,121 @@ export default {
       typeEvidence: '类型专属证据',
       reviewCode: '复核码',
       reviewReason: '复核原因',
-      evidenceRef: '证据引用'
+      evidenceRef: '证据引用',
     },
     reviewGuard: {
       eyebrow: '人工复核',
-      title: '风险与 diff 证据必须先复核'
+      title: '风险与 diff 证据必须先复核',
     },
     rewriteLifecycle: {
       eyebrow: '改写激活',
       title: '激活与暂停',
-      boundary: '本区只调用改写记录真实接口；只有激活成功并返回运行时绑定后才表示自动改写已生效。'
+      boundary:
+        '本区只调用改写记录真实接口；只有激活成功并返回运行时绑定后才表示自动改写已生效。',
     },
     dispatch: {
-      boundary: '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留推荐与 dispatch 回执审计。'
-    }
+      boundary:
+        '当前协同边界固定为 coordinationMode=PULL_ONLY：外部模块负责真实装数、预热执行和底层变更，SQLForge 只保留推荐与 dispatch 回执审计。',
+    },
   },
   accessCenter: {
     title: '开放接入',
     summary: '查看 API、JDBC Agent、Java SDK、接入策略与接入审计样例。',
     eyebrow: '接入工作台',
     pageTitle: '开放接入与审计样例',
-    boundarySummary: '默认展示接入审计表格，渠道、JDBC Agent、SDK 和策略边界拆入标签页；缺失写 API 的动作继续显式不可写。',
+    boundarySummary:
+      '默认展示接入审计表格，渠道、JDBC Agent、SDK 和策略边界拆入标签页；缺失写 API 的动作继续显式不可写。',
     filters: {
       eyebrow: '接入筛选',
-      title: '接入范围与操作'
+      title: '接入范围与操作',
     },
     fields: {
       accessChannel: '接入渠道',
       historyReport: '历史 / 报表',
-      mode: '模式'
+      mode: '模式',
     },
     actions: {
       refresh: '刷新接入证据',
       createStrategy: '新增接入策略',
       editStrategy: '修改策略',
-      boundaryHelp: '边界说明'
+      boundaryHelp: '边界说明',
     },
     tabs: {
       audit: '接入审计',
       channels: '渠道',
       jdbc: 'JDBC Agent',
       sdk: 'SDK / Client',
-      policy: '策略边界'
+      policy: '策略边界',
     },
     audit: {
       eyebrow: '接入审计样本',
       title: '接入审计样例',
       summary: '默认用表格呈现 query-history accessChannel 过滤结果。',
-      boundary: '当前仓库还没有独立开放给前端的 `GET /api/governance/access-audit` 控制器，因此这里先用 query-history 的 `accessChannel` 过滤面呈现审计样例。',
-      state: '当前审计样例 {count} 条'
+      boundary:
+        '当前仓库还没有独立开放给前端的 `GET /api/governance/access-audit` 控制器，因此这里先用 query-history 的 `accessChannel` 过滤面呈现审计样例。',
+      state: '当前审计样例 {count} 条',
     },
     channels: {
       eyebrow: '接入渠道',
-      title: '接入渠道'
+      title: '接入渠道',
     },
     jdbc: {
-      state: '当前 JDBC Agent 模式 {count} 条'
+      state: '当前 JDBC Agent 模式 {count} 条',
     },
     detail: {
-      dialogTitle: '接入审计详情'
+      dialogTitle: '接入审计详情',
     },
     rawDrawerTitle: '接入原始证据',
     policy: {
-      dialogTitle: '接入边界说明'
-    }
+      dialogTitle: '接入边界说明',
+    },
   },
   acceleration: {
     title: 'SQL解析',
     summary: '专注单条 SQL 解析、结构/访问结果阅读与历史追溯。',
     eyebrow: 'SQL 解析',
     rewriteValidationTitle: 'SQL 改写验证',
-    rewriteValidationSummary: '独立承载改写试算、候选 SQL、规则链、差异、推荐关联与验证运行证据。',
+    rewriteValidationSummary:
+      '独立承载改写试算、候选 SQL、规则链、差异、推荐关联与验证运行证据。',
     rewriteValidationEyebrow: 'SQL 改写验证',
-    rewriteValidationBoundary: '这里只展示试算验证证据；推荐治理对象进入推荐结果 / 改写记录，真实生产改写历史只能来自 SQL 执行历史审计字段。'
+    rewriteValidationBoundary:
+      '这里只展示试算验证证据；推荐治理对象进入推荐结果 / 改写记录，真实生产改写历史只能来自 SQL 执行历史审计字段。',
   },
   rewriteValidation: {
     title: 'SQL 改写验证',
-    summary: '提交单条 SQL 到改写试算任务，查看候选 SQL、规则链、风险、差异、推荐关联、改写记录和验证运行。',
+    summary:
+      '提交单条 SQL 到改写试算任务，查看候选 SQL、规则链、风险、差异、推荐关联、改写记录和验证运行。',
     eyebrow: '改写试算工作台',
-    boundary: '本页只创建试算、推荐关联、改写记录草稿和只读验证运行证据；不会标记生产已自动改写，也不会绕过激活门禁。',
+    boundary:
+      '本页只创建试算、推荐关联、改写记录草稿和只读验证运行证据；不会标记生产已自动改写，也不会绕过激活门禁。',
     defaults: {
-      validationReason: '改写验证页面静态试算'
+      validationReason: '改写验证页面静态试算',
     },
     sections: {
       inputKicker: '改写输入',
       inputTitle: '验证输入',
-      inputSummary: '输入原 SQL、来源证据和问题场景，后端按 REWRITE 优化任务生成候选改写。',
+      inputSummary:
+        '输入原 SQL、来源证据和问题场景，后端按 REWRITE 优化任务生成候选改写。',
       resultKicker: '改写结果',
       resultTitle: '试算结果',
-      resultSummary: '优先展示人能读懂的结论、候选 SQL、规则链和风险，原始 JSON 只在证据抽屉中下钻。',
+      resultSummary:
+        '优先展示人能读懂的结论、候选 SQL、规则链和风险，原始 JSON 只在证据抽屉中下钻。',
       suggestionTitle: '建议摘要',
       coreRecommendationTitle: '核心推荐核验',
-      coreRecommendationSummary: '展示最终推荐报告、算法链路状态和候选 SQL 是否命中净增报表关键形态。',
+      coreRecommendationSummary:
+        '展示最终推荐报告、算法链路状态和候选 SQL 是否命中净增报表关键形态。',
       diffTitle: 'SQL 差异',
       ruleRiskTitle: '规则链与风险',
       parseEvidenceTitle: '解析证据',
       recommendationKicker: '推荐关联',
       recommendationTitle: '推荐结果关联',
-      recommendationSummary: '按来源 ID 读取推荐结果；若后台已由改写任务落推荐，可直接跳转推荐详情。',
+      recommendationSummary:
+        '按来源 ID 读取推荐结果；若后台已由改写任务落推荐，可直接跳转推荐详情。',
       validationKicker: '复验运行',
       validationTitle: '改写记录复验',
-      validationSummary: '对改写记录创建验证运行，记录当前是静态试算或只读摘要验证，不把前端判断写成等价结论。',
-      rawEvidenceTitle: '原始证据'
+      validationSummary:
+        '对改写记录创建验证运行，记录当前是静态试算或只读摘要验证，不把前端判断写成等价结论。',
+      rawEvidenceTitle: '原始证据',
     },
     fields: {
       tenantId: '租户',
@@ -1317,7 +1486,7 @@ export default {
       validationReason: '复验原因',
       validationRunId: '验证 Run ID',
       validationRunStatus: '运行状态',
-      autoApplyPaused: '自动应用暂停'
+      autoApplyPaused: '自动应用暂停',
     },
     actions: {
       runRewriteValidation: '生成改写试算',
@@ -1332,13 +1501,15 @@ export default {
       viewRawEvidence: '查看原始证据',
       copy: '复制',
       format: '格式化',
-      reset: '清空结果'
+      reset: '清空结果',
     },
     messages: {
-      emptyResult: '提交改写试算后，这里会展示任务状态、推荐 SQL、规则链、风险与解析证据。',
+      emptyResult:
+        '提交改写试算后，这里会展示任务状态、推荐 SQL、规则链、风险与解析证据。',
       noRuleApplied: '当前任务未返回已应用规则，仍可把结果作为人工评审证据。',
       noRisk: '当前任务未返回风险项。',
-      noRecommendation: '当前来源下尚未读取到推荐结果。若只是人工试算，可先创建改写记录草稿。',
+      noRecommendation:
+        '当前来源下尚未读取到推荐结果。若只是人工试算，可先创建改写记录草稿。',
       noValidationRun: '当前改写记录暂无验证运行。',
       taskSucceeded: '改写试算已完成。',
       recordCreated: '改写记录草稿已创建。',
@@ -1348,7 +1519,7 @@ export default {
       shapePass: '命中',
       shapeReview: '待核验',
       shapeTokenMissing: '未发现 {token}',
-      noGroupingSetsDetected: '未发现 GROUPING SETS'
+      noGroupingSetsDetected: '未发现 GROUPING SETS',
     },
     shapeChecks: {
       rawCustomerSnapshot: '原始客户快照 CTE',
@@ -1357,12 +1528,13 @@ export default {
       metricByOrg: '机构指标聚合',
       growthByOrg: '净增口径聚合',
       unionAll: '跨层补偿 UNION ALL',
-      noGroupingSets: '避免 GROUPING SETS'
-    }
+      noGroupingSets: '避免 GROUPING SETS',
+    },
   },
   system: {
     title: '系统管理',
-    summary: '查看并维护数据源、报表接口、Redis 规则源、Dispatch 策略与系统证据。'
+    summary:
+      '查看并维护数据源、报表接口、Redis 规则源、Dispatch 策略与系统证据。',
   },
   inline: {
     viewsAccessCenterAccessCenterView: {
@@ -1373,7 +1545,8 @@ export default {
       text005: '类型化 client、重试与接入审计。',
       text006: '保留术语边界，但不宣称独立 client SDK 已全面落地。',
       text007: '默认模式；采集 SQL、注释与 query-date 证据，不接管执行。',
-      text008: '通过平台 API 执行 SQL，失败时依 fallbackStrategy 保留 direct JDBC 语义。',
+      text008:
+        '通过平台 API 执行 SQL，失败时依 fallbackStrategy 保留 direct JDBC 语义。',
       text009: '本地轻量改写与路由，再直连 JDBC；改写失败时不可静默变更。',
       text010: '规则源可配置，但不把外部 Redis 写成默认事实。',
       text011: '必填运行时配置',
@@ -1383,12 +1556,14 @@ export default {
       text015: '会回写 routeProfile 与 executionMode。',
       text016: '新增接入策略暂不可写',
       text017: '新增接入策略',
-      text018: '当前仓库对开放接入页只暴露 query-history 视角和渠道说明，没有对应的接入策略写接口。',
+      text018:
+        '当前仓库对开放接入页只暴露 query-history 视角和渠道说明，没有对应的接入策略写接口。',
       text019: '如需真实新增能力，先补后端策略写接口和审计契约。',
       text020: '修改策略暂不可写',
       text021: '修改接入策略',
-      text022: '当前页仍以接入证据和渠道语义为主，没有可提交的策略更新后端落点。',
-      text023: '后续开放写接口时，再把表单和列表明细接入这里。'
+      text022:
+        '当前页仍以接入证据和渠道语义为主，没有可提交的策略更新后端落点。',
+      text023: '后续开放写接口时，再把表单和列表明细接入这里。',
     },
     viewsAssetCatalogAssetCatalogView: {
       text001: '数据源',
@@ -1434,7 +1609,8 @@ export default {
       text041: '新鲜度',
       text042: '可查询性',
       text043: '证据',
-      text044: '依据上/下游计数、快照覆盖和可查询状态计算的代理指标，不代表真实运行热度。',
+      text044:
+        '依据上/下游计数、快照覆盖和可查询状态计算的代理指标，不代表真实运行热度。',
       text045: '新鲜度',
       text046: '元数据快照聚合',
       text047: '元数据快照聚合',
@@ -1443,7 +1619,7 @@ export default {
       text050: '上游血缘',
       text051: '下游血缘',
       text052: '物理映射',
-      text053: '依赖对象'
+      text053: '依赖对象',
     },
     viewsBenchmarkBenchmarkView: {
       text001: '基线快照模板',
@@ -1461,21 +1637,23 @@ export default {
       text013: '路由对比集',
       text014: '以对比模板驱动跨引擎样本，供路由治理和推荐结果复用。',
       text015: '基线沉淀集',
-      text016: '在 repo-side 以预置任务参数承载，不宣称独立 test-set API 已存在。',
+      text016:
+        '在 repo-side 以预置任务参数承载，不宣称独立 test-set API 已存在。',
       text017: '回归门禁集',
       text018: '聚焦阈值结论、recommendation 建议与回归阻断。',
       text019: '任务类型',
       text020: '当前阶段',
       text021: '进度',
       text022: '队列模式',
-      text023: '影子环境'
+      text023: '影子环境',
     },
     viewsDashboardDashboardView: {
       text001: '当前接口 / 窗口样本',
       text002: '近期查询窗口',
       text003: '来自 query-history 当前页窗口，成功率只按窗口计算。',
       text004: '解析总览样本',
-      text005: '来自 parse-statistics overview 的当前总览样本，不代表全租户历史。',
+      text005:
+        '来自 parse-statistics overview 的当前总览样本，不代表全租户历史。',
       text006: '解析历史窗口',
       text007: '来自 parse-history 当前页样本，只做最近解析摘要。',
       text008: '重要 / 紧急 SQL',
@@ -1511,7 +1689,8 @@ export default {
       text038: '关注改写记录',
       text039: '下钻重要 / 紧急 SQL',
       text040: '当前核心待办为空',
-      text041: '当前接口窗口没有查询失败、解析失败、高风险推荐或改写记录关注项。',
+      text041:
+        '当前接口窗口没有查询失败、解析失败、高风险推荐或改写记录关注项。',
       text042: '查询历史',
       text043: '解析历史',
       text044: '推荐结果',
@@ -1534,7 +1713,7 @@ export default {
       text061: '未使用',
       text062: '进入',
       text063: '查看',
-      text064: '处理'
+      text064: '处理',
     },
     viewsOptimizationAccelerationView: {
       text001: '解析任务',
@@ -1642,7 +1821,8 @@ export default {
       text103: '绑定参数',
       text104: '注释上下文',
       text105: '当前结果只包含结构解析证据，未触发 Access 解析。',
-      text106: '如需对象可达性与连接状态，请开启 Access 解析后重新执行综合解析。',
+      text106:
+        '如需对象可达性与连接状态，请开启 Access 解析后重新执行综合解析。',
       text107: '结构解析同步返回。',
       text108: '先创建批次，拿到模板列契约后再下载模板。',
       text109: '请先创建解析批次。',
@@ -1669,13 +1849,15 @@ export default {
       text130: '刷新状态',
       text131: '清空结果',
       text132: '调试提示',
-      text133: '把 datasourceCode 留空可以直接看到 structure-success + access-unavailable 的 partial-success 结论；填成包含 fail / unavailable 的编码可分别触发连接失败或服务不可用。',
+      text133:
+        '把 datasourceCode 留空可以直接看到 structure-success + access-unavailable 的 partial-success 结论；填成包含 fail / unavailable 的编码可分别触发连接失败或服务不可用。',
       text134: '解析结果',
       text135: '解析结果备注：结构解析、综合结论、风险判断与规则命中。',
       text136: '解析原始证据',
       text137: '查看长证据',
       text138: '查看解析历史',
-      text139: '上方输入一条 SQL 后可先做结构解析，也可直接执行综合解析查看结构、访问和综合结论。',
+      text139:
+        '上方输入一条 SQL 后可先做结构解析，也可直接执行综合解析查看结构、访问和综合结论。',
       text140: '解析结果备注',
       text141: '结构解析卡',
       text142: '还没有结构解析结果。',
@@ -1706,13 +1888,15 @@ export default {
       text167: '复制',
       text168: 'Access 解析卡',
       text169: '未执行',
-      text170: '结构解析模式不会生成 Access 解析结果；综合解析会在结构成功后异步补跑。',
+      text170:
+        '结构解析模式不会生成 Access 解析结果；综合解析会在结构成功后异步补跑。',
       text171: 'Plan 摘要',
       text172: '可用性告警',
       text173: '综合状态机追溯',
       text174: '批量解析 Dialog',
       text175: '创建批次、导入内容与查看结果',
-      text176: '批量解析已恢复为显式二级入口；创建批次、导入内容、失败重试和报表导入仍统一收进同一工作区。',
+      text176:
+        '批量解析已恢复为显式二级入口；创建批次、导入内容、失败重试和报表导入仍统一收进同一工作区。',
       text177: '查询条件 + 结果区 + 抽屉',
       text178: '批量解析',
       text179: '批次创建、导入与补跑',
@@ -1782,16 +1966,18 @@ export default {
       text243: '原始证据',
       text244: '字段说明',
       text245: '知道了',
-      text246: '查看推荐结果'
+      text246: '查看推荐结果',
     },
     viewsParseBatchParseBatchCenterView: {
       text001: '批次筛选',
       text002: '创建批次、导入内容与查看结果',
-      text003: '首屏只保留批次入口与当前结果区；模板、导入和详情都转入弹窗或抽屉。',
+      text003:
+        '首屏只保留批次入口与当前结果区；模板、导入和详情都转入弹窗或抽屉。',
       text004: '查询条件 + 结果区 + 抽屉',
       text005: '批量解析',
       text006: '当前批量解析批次',
-      text007: '本页主体只展示当前批次概览、解析结果和解析统计；创建与导入参数都在弹窗中完成。',
+      text007:
+        '本页主体只展示当前批次概览、解析结果和解析统计；创建与导入参数都在弹窗中完成。',
       text008: '批量模板',
       text009: '创建批次',
       text010: '导入内容',
@@ -1802,10 +1988,12 @@ export default {
       text015: '解析结果',
       text016: '解析统计',
       text017: '暂无解析批次',
-      text018: '使用“创建批次”建立批次，再通过“导入内容”上传模板文件或粘贴多条 SQL。',
+      text018:
+        '使用“创建批次”建立批次，再通过“导入内容”上传模板文件或粘贴多条 SQL。',
       text019: '报表导入',
       text020: '当前报表导入批次',
-      text021: '报表导入按 report_code 分组，导入参数在弹窗中完成，首屏保留批次概览与结果入口。',
+      text021:
+        '报表导入按 report_code 分组，导入参数在弹窗中完成，首屏保留批次概览与结果入口。',
       text022: '宽表模板',
       text023: '导入报表批次',
       text024: '刷新详情',
@@ -1847,7 +2035,8 @@ export default {
       text060: '关闭',
       text061: '下载模板',
       text062: '宽表模板',
-      text063: '每行代表一个报表，report_code 作为分组键，sql_1、sql_2 等列承载同一报表下的多条 SQL；空单元格会被忽略。',
+      text063:
+        '每行代表一个报表，report_code 作为分组键，sql_1、sql_2 等列承载同一报表下的多条 SQL；空单元格会被忽略。',
       text064: '宽表模板预览',
       text065: '复制',
       text066: '关闭',
@@ -1953,7 +2142,7 @@ export default {
       text166: '字段说明',
       text167: '知道了',
       text168: '选择报表批次',
-      text169: '选择解析批次'
+      text169: '选择解析批次',
     },
     viewsParseBatchUseParseBatchCenter: {
       text001: '批次状态',
@@ -2013,7 +2202,7 @@ export default {
       text055: '请上传文件或填写批量内容。',
       text056: '请先选择一个解析批次。',
       text057: '请上传报表清单文件或填写模拟内容。',
-      text058: '请先导入一个报表批次。'
+      text058: '请先导入一个报表批次。',
     },
     viewsParseRecordParseRecordBatchHistoryPane: {
       text001: '批量解析与报表导入历史',
@@ -2038,7 +2227,7 @@ export default {
       text020: '失败',
       text021: '创建时间',
       text022: '操作',
-      text023: '批量中心'
+      text023: '批量中心',
     },
     viewsParseRecordParseRecordEvidenceExportDialogs: {
       text001: '原始证据',
@@ -2047,7 +2236,7 @@ export default {
       text004: '导出原因',
       text005: '携带 Trace 明细',
       text006: '执行导出',
-      text007: '导出摘要'
+      text007: '导出摘要',
     },
     viewsParseRecordParseRecordFilterPanel: {
       text001: '租户',
@@ -2078,7 +2267,7 @@ export default {
       text026: 'Report ID',
       text027: '历史分类',
       text028: '排序模式',
-      text029: '数据源候选加载失败，保留手动输入'
+      text029: '数据源候选加载失败，保留手动输入',
     },
     viewsParseRecordParseRecordHistoryDetailDialog: {
       text001: '打开修复证据',
@@ -2115,7 +2304,7 @@ export default {
       text032: '服务',
       text033: '操作',
       text034: '状态',
-      text035: '时间'
+      text035: '时间',
     },
     viewsParseRecordParseRecordReportDetailDrawer: {
       text001: '报表导入详情',
@@ -2152,7 +2341,7 @@ export default {
       text032: '正在加载场景详情',
       text033: '按报表编码筛选',
       text034: '按逻辑对象筛选',
-      text035: '查询详情'
+      text035: '查询详情',
     },
     viewsParseRecordParseRecordReportSqlDetailDialog: {
       text001: 'SQL 级解析详情',
@@ -2163,7 +2352,7 @@ export default {
       text006: '失败定位',
       text007: '建议动作',
       text008: 'Access 解析卡',
-      text009: '打开完整解析历史'
+      text009: '打开完整解析历史',
     },
     viewsParseRecordParseRecordSqlHistoryPane: {
       text001: 'SQL 解析记录',
@@ -2177,12 +2366,12 @@ export default {
       text009: '逻辑对象类型',
       text010: '解析任务',
       text011: '目标引擎',
-      text012: '提交时间'
+      text012: '提交时间',
     },
     viewsParseRecordParseRecordView: {
       text001: '刷新列表',
       text002: '精确反查',
-      text003: '清空条件'
+      text003: '清空条件',
     },
     viewsParseRecordUseParseRecordView: {
       text001: '解析历史',
@@ -2365,7 +2554,7 @@ export default {
       text178: '新鲜度',
       text179: '兼容性',
       text180: '无问题',
-      text181: '定位待补充'
+      text181: '定位待补充',
     },
     viewsParseStatisticsParseStatisticsCenterView: {
       text001: 'SQL 总数',
@@ -2380,8 +2569,10 @@ export default {
       text010: '本次统计中出现过的不同问题场景数。',
       text011: '命中 important 判定的 SQL 数。',
       text012: '命中 urgent 判定的 SQL 数。',
-      text013: 'SQL 清单只展示元信息和问题场景；完整 SQL 应进入独立 SQL 输出区。',
-      text014: '问题定位应使用命中的短 SQL 片段、失败 token 或行列信息，不展示整条 SQL。',
+      text013:
+        'SQL 清单只展示元信息和问题场景；完整 SQL 应进入独立 SQL 输出区。',
+      text014:
+        '问题定位应使用命中的短 SQL 片段、失败 token 或行列信息，不展示整条 SQL。',
       text015: '租户',
       text016: '刷新统计',
       text017: '解析总览',
@@ -2423,7 +2614,7 @@ export default {
       text053: '当前记录没有关联 SQL 或报表定位。',
       text054: '原始 JSON',
       text055: '字段说明',
-      text056: '知道了'
+      text056: '知道了',
     },
     viewsQuerySqlQueryView: {
       text001: '不偏好加速',
@@ -2534,7 +2725,7 @@ export default {
       text106: '路由配置',
       text107: '尝试模式',
       text108: '暂无有效参数',
-      text109: '资源管理器'
+      text109: '资源管理器',
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: '全部',
@@ -2548,12 +2739,13 @@ export default {
       text009: '允许状态',
       text010: '允许类型',
       text011: '审计边界',
-      text012: '剩余责任方'
+      text012: '剩余责任方',
     },
     viewsSystemSystemView: {
       text001: '系统管理',
       text002: '数据源、接口与运行治理',
-      text003: '默认首页保持数据源管理，但新增、修改、测试和重试动作现在都在同一工作台内可见。',
+      text003:
+        '默认首页保持数据源管理，但新增、修改、测试和重试动作现在都在同一工作台内可见。',
       text004: '租户',
       text005: '刷新系统证据',
       text006: '重试失败消息',
@@ -2640,7 +2832,8 @@ export default {
       text087: '新增策略',
       text088: '系统管理边界说明',
       text089: 'Redis 规则源仍保留配置证据语义，但现在支持新增和修改。',
-      text090: 'Dispatch 策略支持新增，但当前仍不伪装为浏览器内执行，也没有修改接口。',
+      text090:
+        'Dispatch 策略支持新增，但当前仍不伪装为浏览器内执行，也没有修改接口。',
       text091: '引擎',
       text092: '版本',
       text093: '驱动类',
@@ -2665,7 +2858,65 @@ export default {
       text112: '未选择文件',
       text113: '上传',
       text114: '清空文件',
-      text115: '请选择 JDBC 驱动 .jar 文件后再上传'
+      text115: '请选择 JDBC 驱动 .jar 文件后再上传',
+      text116: '阶段 Stage',
+      text117: '超时 timeoutMs',
+      text118: '数据源编码 datasourceCode',
+      text119: '接口名称 endpointName',
+      text120: '来源类型 sourceType',
+      text121: 'HTTP 方法 httpMethod',
+      text122: '报表参数名 reportCodeParamName',
+      text123: 'SQL JSON 路径 sqlJsonPath',
+      text124: '规则源名称 sourceName',
+      text125: '键模式 keyPattern',
+      text126: '认证模式 authMode',
+      text127: '策略名称 policyName',
+      text128: '分发类型 dispatchType',
+      text129: '拉取窗口 pullWindowSeconds',
+      text130: '最大批量 maxBatchSize',
+      text131: '重试策略 retryStrategy',
+      text132: '租户上下文与运行边界',
+      text133: '配置域工作台',
+      text134:
+        '按引擎与连接模式筛选数据源，新增、修改和测试动作集中在当前工作区。',
+      text135: '当前没有匹配的数据源',
+      text136: '读写边界',
+      text137: '启用状态',
+      text138: '暂无已上传 JDBC 驱动',
+      text139: '上传驱动后可在数据源表单中选择 artifactId。',
+      text140: '新增与修改接口配置，基础地址在列表中默认遮罩。',
+      text141: '暂无报表接口',
+      text142: '新增与修改 Redis 规则源，端点默认遮罩。',
+      text143: '暂无 Redis 规则源',
+      text144: 'Dispatch 新增保留写入能力，修改入口继续展示不可写说明。',
+      text145: '暂无 Dispatch 策略',
+      text146: '租户参数',
+      text147: '访问范围',
+      text148: '字段',
+      text149: '值',
+      text150: '驱动来源 driverSourceType',
+      text151: '驱动制品 driverArtifactId',
+      text152: '驱动制品元数据 driverArtifactMeta',
+      text153: '版本标签 versionLabel',
+      text154: '加载状态 driverLoadStatus',
+      text155: '驱动摘要 driverSha256',
+      text156: '用户名 username',
+      text157: '接口基础地址 apiBaseUrl',
+      text158: '凭证引用 credentialRef',
+      text159: '凭证明文 credentialSecret',
+      text160: '凭证模式 credentialMode',
+      text161: 'TLS 启用 tlsEnabled',
+      text162: '校验对端 verifyPeer',
+      text163: '只读 readonly',
+      text164: '启用 enabled',
+      text165: '驱动类 driverClassName',
+      text166: 'Redis 端点 redisEndpoints',
+      text167: 'Redis 命名空间 redisNamespace',
+      text168: '凭证来源 credentialSource',
+      text169: '不可用时绕过 bypassOnUnavailable',
+      text170: '目标数据源 targetDatasource',
+      text171: 'JDBC 地址 jdbcUrl',
+      text172: 'JDBC 驱动类 jdbcDriverClassName',
     },
     viewsSystemUseSystemManagement: {
       text001: '数据源',
@@ -2677,15 +2928,32 @@ export default {
       text007: '数据源边界',
       text008: '支持新增、修改、查看详情和 test-connection；仍不暴露原始凭证。',
       text009: '报表接口边界',
-      text010: '支持新增与修改；列表仍强调 resolverStatus / unavailableReason 的证据语义。',
+      text010:
+        '支持新增与修改；列表仍强调 resolverStatus / unavailableReason 的证据语义。',
       text011: 'Redis 规则源边界',
-      text012: '支持新增与修改，但列表仍保留 CONFIG_ONLY / SIMULATED_READY 等证据口径。',
+      text012:
+        '支持新增与修改，但列表仍保留 CONFIG_ONLY / SIMULATED_READY 等证据口径。',
       text013: 'Dispatch 边界',
-      text014: '当前仓库支持新增 Dispatch 策略；修改动作仍缺写接口，因此保留 EXTERNAL_MODULE_REQUIRED 的执行边界说明。',
+      text014:
+        '当前仓库支持新增 Dispatch 策略；修改动作仍缺写接口，因此保留 EXTERNAL_MODULE_REQUIRED 的执行边界说明。',
       text015: '修改 Dispatch 策略暂不可写',
-      text016: '当前后端仓库只开放 Dispatch 策略新增接口，没有提供 PUT / PATCH 更新接口。',
-      text017: '如需真实修改动作，先补后端更新契约，再把表单切换为可提交。'
-    }
+      text016:
+        '当前后端仓库只开放 Dispatch 策略新增接口，没有提供 PUT / PATCH 更新接口。',
+      text017: '如需真实修改动作，先补后端更新契约，再把表单切换为可提交。',
+      text018: '{field} 为必填项。',
+      text019: '{field} 必须不小于 {min}。',
+      text020: '选择上传制品时必须选择 driverArtifactId。',
+      text021: '{enabled}/{total} 已启用',
+      text022: '暂无配置',
+      text023: '全部可用',
+      text024: '{count} 项需关注',
+      text025: '消息补偿队列',
+      text026: '租户证据已加载',
+      text027: '已停用',
+      text028: '已启用',
+      text029: '可写',
+      text030: '只读',
+    },
   },
   navigation: {
     modules: {
@@ -2701,10 +2969,10 @@ export default {
       assets: '数据资产',
       benchmark: '压测中心',
       system: '系统管理',
-      access: '开放接入'
+      access: '开放接入',
     },
     sections: {
-      datasourcesInterfaces: '数据源与接口'
+      datasourcesInterfaces: '数据源与接口',
     },
     items: {
       dashboardHome: '核心链路总览',
@@ -2722,11 +2990,11 @@ export default {
       assetCatalog: '资产目录',
       benchmarkWorkbench: '压测工作台',
       systemManagement: '系统管理',
-      openAccess: '开放接入'
+      openAccess: '开放接入',
     },
     badges: {
       temporary: '临时',
-      reference: '参考'
-    }
-  }
+      reference: '参考',
+    },
+  },
 }

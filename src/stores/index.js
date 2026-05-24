@@ -7,14 +7,46 @@ export const useTenantStore = defineStore('tenantStore', {
     tenantId: 'tenant-a',
     tenantName: 'tenant-a',
     defaultEngine: 'HETU',
-    backupEngine: 'HIVE'
+    backupEngine: 'HIVE',
+    tenantOptions: []
   }),
   actions: {
-    setTenant(payload) {
-      this.tenantId = payload.tenantId
-      this.tenantName = payload.tenantName
-      this.defaultEngine = payload.defaultEngine
-      this.backupEngine = payload.backupEngine
+    setTenant(payload = {}) {
+      if (payload.tenantId) {
+        this.tenantId = payload.tenantId
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'tenantName')) {
+        this.tenantName = payload.tenantName
+      } else if (payload.label) {
+        this.tenantName = payload.label
+      } else if (payload.tenantId) {
+        this.tenantName = payload.tenantId
+      }
+      if (payload.defaultEngine) {
+        this.defaultEngine = payload.defaultEngine
+      }
+      if (payload.backupEngine) {
+        this.backupEngine = payload.backupEngine
+      }
+    },
+    setTenantEngines(payload = {}) {
+      if (payload.defaultEngine) {
+        this.defaultEngine = payload.defaultEngine
+      }
+      if (payload.backupEngine) {
+        this.backupEngine = payload.backupEngine
+      }
+    },
+    setTenantOptions(options = []) {
+      this.tenantOptions = options
+        .map(option => ({
+          label: option.label || option.tenantName || option.tenantId || option.value,
+          value: option.value || option.tenantId,
+          tenantId: option.tenantId || option.value,
+          defaultEngine: option.defaultEngine,
+          backupEngine: option.backupEngine
+        }))
+        .filter(option => option.value)
     }
   }
 })

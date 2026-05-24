@@ -329,15 +329,43 @@ export const retryGovernanceFailedMessages = (tenantId, requestOptions = {}) =>
   })
 
 export const getGovernanceTenantConfig = (tenantId, requestOptions = {}) =>
+  getGovernanceTenantConfigForContext(tenantId, tenantId, requestOptions)
+
+export const getGovernanceTenantConfigForContext = (requestTenantId, targetTenantId, requestOptions = {}) =>
   request({
     method: 'get',
-    url: `/api/governance/tenant-config?tenantId=${encodeURIComponent(tenantId)}`,
-    tenantId,
+    url: `/api/governance/tenant-config?tenantId=${encodeURIComponent(targetTenantId)}`,
+    tenantId: normalizeTenantId(requestTenantId),
     requestOptions: {
       requestPrefix: 'frontend-governance-tenant-config',
       ...requestOptions
     }
   })
+
+export const getGovernanceTenantConfigOptions = (tenantId, requestOptions = {}) =>
+  request({
+    method: 'get',
+    url: '/api/governance/tenant-config/options',
+    tenantId: normalizeTenantId(tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-governance-tenant-config-options',
+      ...requestOptions
+    }
+  })
+
+export const updateGovernanceTenantEngines = (payload, requestOptions = {}) => {
+  const { contextTenantId, ...nextRequestOptions } = requestOptions
+  return request({
+    method: 'put',
+    url: '/api/governance/tenant-config',
+    data: payload,
+    tenantId: normalizeTenantId(contextTenantId) || normalizeTenantId(payload?.tenantId),
+    requestOptions: {
+      requestPrefix: 'frontend-governance-tenant-config-update',
+      ...nextRequestOptions
+    }
+  })
+}
 
 export const getGovernanceQueryHistoryDetail = (tenantId, historyId, requestOptions = {}) =>
   request({

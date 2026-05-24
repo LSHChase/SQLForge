@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
@@ -9,13 +10,31 @@ import {
   findActiveNavigationItem
 } from './config/routePaths.mjs'
 import { deliveryProgressEnabled, referencePagesEnabled } from './config/runtimeFlags'
+import {
+  formatRuntimeError,
+  getGovernanceTenantConfigForContext,
+  getGovernanceTenantConfigOptions,
+  updateGovernanceTenantEngines
+} from './services/runtimeGateApi'
 import { useGlobalConfigStore, useTenantStore, useUserStore } from './stores'
+import { engineOptions, uniqueOptions, withCurrentOption } from './views/common/formComponentGovernance'
 
 const route = useRoute()
 const { t, locale } = useI18n()
 const globalConfigStore = useGlobalConfigStore()
 const tenantStore = useTenantStore()
 const userStore = useUserStore()
+const workspaceForm = reactive({
+  contextTenantId: tenantStore.tenantId,
+  tenantId: tenantStore.tenantId,
+  defaultEngine: tenantStore.defaultEngine,
+  backupEngine: tenantStore.backupEngine
+})
+const workspaceLoading = reactive({
+  options: false,
+  config: false,
+  save: false
+})
 
 const navLabel = key => t(key)
 const itemLabel = item => t(item.menuLabel || item.titleKey)
@@ -52,6 +71,27 @@ const userDisplayName = computed(() =>
 const userBadge = computed(() => `${userDisplayName.value} · ${userStore.role}`)
 const breadcrumbText = computed(() => buildNavigationBreadcrumb(activeNavItem.value, navLabel, itemLabel))
 const pageTitle = computed(() => t(activeNavItem.value?.titleKey || route.meta.titleKey || 'dashboard.title'))
+const workspaceTenantOptions = computed(() => {
+  const options = tenantStore.tenantOptions.map(option => ({
+    label: option.label || option.tenantId || option.value,
+    value: option.value || option.tenantId
+  }))
+  if (!options.some(option => option.value === workspaceForm.tenantId)) {
+    options.unshift({
+      label: tenantStore.tenantName || workspaceForm.tenantId,
+      value: workspaceForm.tenantId
+    })
+  }
+  return uniqueOptions(options)
+})
+const workspaceDefaultEngineOptions = computed(() => withCurrentOption(engineOptions, workspaceForm.defaultEngine))
+const workspaceBackupEngineOptions = computed(() => withCurrentOption(engineOptions, workspaceForm.backupEngine))
+const workspaceBusy = computed(() => workspaceLoading.options || workspaceLoading.config || workspaceLoading.save)
+const workspaceDirty = computed(() =>
+  workspaceForm.tenantId !== tenantStore.tenantId
+  || workspaceForm.defaultEngine !== tenantStore.defaultEngine
+  || workspaceForm.backupEngine !== tenantStore.backupEngine
+)
 
 const handleLocaleToggle = () => {
   const nextLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
@@ -59,10 +99,102 @@ const handleLocaleToggle = () => {
   globalConfigStore.setLocale(nextLocale)
 }
 
+const applyTenantConfig = config => {
+  if (!config?.tenantId) {
+    return
+  }
+  workspaceForm.tenantId = config.tenantId
+  workspaceForm.defaultEngine = config.defaultEngine || workspaceForm.defaultEngine
+  workspaceForm.backupEngine = config.backupEngine || workspaceForm.backupEngine
+  tenantStore.setTenant({
+    tenantId: config.tenantId,
+    tenantName: config.label || config.tenantName || config.tenantId,
+    defaultEngine: workspaceForm.defaultEngine,
+    backupEngine: workspaceForm.backupEngine
+  })
+}
+
+const syncWorkspaceFormFromStore = () => {
+  workspaceForm.contextTenantId = tenantStore.tenantId
+  workspaceForm.tenantId = tenantStore.tenantId
+  workspaceForm.defaultEngine = tenantStore.defaultEngine
+  workspaceForm.backupEngine = tenantStore.backupEngine
+}
+
+const loadTenantOptions = async () => {
+  workspaceLoading.options = true
+  try {
+    const options = await getGovernanceTenantConfigOptions(workspaceForm.contextTenantId || tenantStore.tenantId, {
+      requestPrefix: 'frontend-app-tenant-options'
+    })
+    tenantStore.setTenantOptions(Array.isArray(options) ? options : [])
+  } catch (error) {
+    ElMessage.warning(`${t('common.workspaceLoadFailed')}: ${formatRuntimeError(error)}`)
+  } finally {
+    workspaceLoading.options = false
+  }
+}
+
+const loadTenantConfig = async (targetTenantId, contextTenantId = tenantStore.tenantId) => {
+  workspaceLoading.config = true
+  try {
+    const config = await getGovernanceTenantConfigForContext(contextTenantId, targetTenantId, {
+      requestPrefix: 'frontend-app-tenant-config'
+    })
+    applyTenantConfig(config)
+  } catch (error) {
+    const option = tenantStore.tenantOptions.find(item => item.value === targetTenantId || item.tenantId === targetTenantId)
+    if (option) {
+      applyTenantConfig(option)
+    }
+    ElMessage.warning(`${t('common.workspaceLoadFailed')}: ${formatRuntimeError(error)}`)
+  } finally {
+    workspaceLoading.config = false
+  }
+}
+
+const handleTenantChange = tenantId => {
+  const contextTenantId = workspaceForm.contextTenantId || tenantStore.tenantId
+  const option = tenantStore.tenantOptions.find(item => item.value === tenantId || item.tenantId === tenantId)
+  if (option) {
+    applyTenantConfig(option)
+  } else {
+    workspaceForm.tenantId = tenantId
+  }
+  loadTenantConfig(tenantId, contextTenantId)
+}
+
+const handleWorkspaceSave = async () => {
+  workspaceLoading.save = true
+  try {
+    const config = await updateGovernanceTenantEngines(
+      {
+        tenantId: workspaceForm.tenantId,
+        defaultEngine: workspaceForm.defaultEngine,
+        backupEngine: workspaceForm.backupEngine
+      },
+      {
+        contextTenantId: workspaceForm.contextTenantId || workspaceForm.tenantId,
+        requestPrefix: 'frontend-app-tenant-config-save'
+      }
+    )
+    applyTenantConfig(config)
+    await loadTenantOptions()
+    ElMessage.success(t('common.workspaceSaved'))
+  } catch (error) {
+    ElMessage.error(`${t('common.workspaceSaveFailed')}: ${formatRuntimeError(error)}`)
+  } finally {
+    workspaceLoading.save = false
+  }
+}
+
 onMounted(() => {
   globalConfigStore.setTheme('dark')
   globalConfigStore.applyTheme()
   locale.value = globalConfigStore.locale
+  syncWorkspaceFormFromStore()
+  loadTenantOptions()
+  loadTenantConfig(tenantStore.tenantId, tenantStore.tenantId)
 })
 </script>
 
@@ -190,7 +322,66 @@ onMounted(() => {
           </div>
 
           <div class="header-actions">
-            <!-- workspace-card was removed from header actions to eliminate visual redundancies of tenant/engine -->
+            <div class="workspace-card workspace-editor" data-testid="tenant-engine-switcher">
+              <label class="workspace-field workspace-field-tenant">
+                <span class="workspace-field-label sqlforge-code-label">{{ t('common.currentTenant') }}</span>
+                <el-select
+                  v-model="workspaceForm.tenantId"
+                  filterable
+                  :loading="workspaceLoading.options || workspaceLoading.config"
+                  :placeholder="t('common.workspaceTenantPlaceholder')"
+                  data-testid="workspace-tenant-select"
+                  @change="handleTenantChange"
+                >
+                  <el-option
+                    v-for="item in workspaceTenantOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </label>
+              <label class="workspace-field">
+                <span class="workspace-field-label sqlforge-code-label">{{ t('common.defaultEngine') }}</span>
+                <el-select
+                  v-model="workspaceForm.defaultEngine"
+                  :disabled="workspaceBusy"
+                  data-testid="workspace-default-engine-select"
+                >
+                  <el-option
+                    v-for="item in workspaceDefaultEngineOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </label>
+              <label class="workspace-field">
+                <span class="workspace-field-label sqlforge-code-label">{{ t('common.backupEngine') }}</span>
+                <el-select
+                  v-model="workspaceForm.backupEngine"
+                  :disabled="workspaceBusy"
+                  data-testid="workspace-backup-engine-select"
+                >
+                  <el-option
+                    v-for="item in workspaceBackupEngineOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </label>
+              <el-button
+                type="primary"
+                class="workspace-save"
+                :loading="workspaceLoading.save"
+                :disabled="!workspaceDirty || workspaceLoading.config || workspaceLoading.options"
+                data-testid="workspace-save"
+                @click="handleWorkspaceSave"
+              >
+                {{ t('common.workspaceSave') }}
+              </el-button>
+            </div>
             <el-button text class="header-action" @click="handleLocaleToggle">
               {{ localeLabel }}
             </el-button>
@@ -451,12 +642,42 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 12px;
 }
 
 .workspace-card {
-  min-width: 280px;
+  min-width: 640px;
+}
+
+.workspace-editor {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.2fr) minmax(118px, 0.8fr) minmax(118px, 0.8fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.workspace-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workspace-field-label {
+  color: var(--sqlforge-text-muted);
+  font-size: 11px;
+}
+
+:deep(.workspace-field .el-select) {
+  width: 100%;
+}
+
+.workspace-save {
+  min-height: 32px;
+  padding: 0 14px;
 }
 
 .header-action {
@@ -484,6 +705,10 @@ onMounted(() => {
 @media (max-width: 1200px) {
   .app-header {
     flex-direction: column;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
   }
 
   .workspace-card {
@@ -549,8 +774,18 @@ onMounted(() => {
     align-items: stretch;
   }
 
-  .workspace-card {
-    display: none;
+  .workspace-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+  }
+
+  .workspace-field-tenant,
+  .workspace-save {
+    grid-column: 1 / -1;
+  }
+
+  .workspace-save {
+    width: 100%;
   }
 
   .page-container {

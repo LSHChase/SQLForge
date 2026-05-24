@@ -5,7 +5,8 @@ export default {
     currentWorkspace: 'Current workspace',
     workspaceLabel: 'workspace',
     workspaceSummary: '{tenant} · default engine {engine}',
-    brandSummary: 'A unified control surface for query, parsing, benchmarking, acceleration and audit operations.',
+    brandSummary:
+      'A unified control surface for query, parsing, benchmarking, acceleration and audit operations.',
     sidebarLabel: 'navigation',
     runtimeLabel: 'runtime state',
     navGroups: {
@@ -13,11 +14,16 @@ export default {
       governanceHistory: 'governance history',
       governanceOps: 'governance ops',
       temporary: 'temporary delivery',
-      reference: 'reference pages'
+      reference: 'reference pages',
     },
     defaultEngine: 'Default engine',
     backupEngine: 'Backup engine',
     currentTenant: 'Current tenant',
+    workspaceTenantPlaceholder: 'Select tenant',
+    workspaceSave: 'Save',
+    workspaceSaved: 'Tenant engine configuration saved',
+    workspaceLoadFailed: 'Failed to load tenant configuration',
+    workspaceSaveFailed: 'Failed to save tenant configuration',
     desktopMode: 'Desktop baseline',
     temporaryPage: 'Temporary',
     nonProductionOnly: 'Non-prod only',
@@ -26,9 +32,10 @@ export default {
     actions: {
       copy: 'Copy',
       format: 'Format',
+      cancel: 'Cancel',
       reset: 'Reset',
       viewRawJson: 'View raw JSON',
-      viewRawEvidence: 'View raw evidence'
+      viewRawEvidence: 'View raw evidence',
     },
     helpMark: '?',
     fields: {
@@ -52,67 +59,79 @@ export default {
       format: 'Format',
       scenario: 'Scenario',
       report: 'Report',
-      resultStatus: 'Result status'
+      resultStatus: 'Result status',
     },
     localeToggleToEnglish: 'EN',
     localeToggleToChinese: '中',
     adaptiveNavigation: 'Adaptive navigation',
     defaultTenantName: 'System Tenant',
-    defaultUserName: 'System User'
+    defaultUserName: 'System User',
   },
   dashboard: {
     title: 'Overview',
-    summary: 'Surface core SQL workflow tasks, recent queries, recent parses, recommendation results, and rewrite-risk summaries.',
+    summary:
+      'Surface core SQL workflow tasks, recent queries, recent parses, recommendation results, and rewrite-risk summaries.',
     eyebrow: 'core overview',
     heroTitle: 'Use the homepage to assess the core SQL workflow first.',
-    heroSummary: 'The overview centralizes query load, parser stability, recommendation results, rewrite risk, and audit signals so the current workflow state is ready, traceable, and actionable.',
+    heroSummary:
+      'The overview centralizes query load, parser stability, recommendation results, rewrite risk, and audit signals so the current workflow state is ready, traceable, and actionable.',
     heroPrimary: 'Open SQL Query Analysis',
     heroSecondary: 'View Benchmark Report',
     heroFootnote: 'Dark-mode-native dashboard baseline',
     operatorHeroTitle: 'Overview focused on the core SQL workflow',
-    operatorHeroSummary: 'The homepage only summarizes and routes query, history, parsing, parse history, recommendation results, and rewrite records. Every number still comes from the current API response, window sample, or PULL_ONLY coordination fact.',
+    operatorHeroSummary:
+      'The homepage only summarizes and routes query, history, parsing, parse history, recommendation results, and rewrite records. Every number still comes from the current API response, window sample, or PULL_ONLY coordination fact.',
     operatorFocusEyebrow: 'workflow focus',
     openRisksTitle: 'Open risks',
-    openRisksSummary: 'Failed messages, dispatch failures, urgent SQL, and high-risk recommendation results are merged into one workflow focus here.',
+    openRisksSummary:
+      'Failed messages, dispatch failures, urgent SQL, and high-risk recommendation results are merged into one workflow focus here.',
     coreAttentionTitle: 'Core task sample',
-    coreAttentionSummary: 'Merges current query failures, parse failures, urgent SQL, high-risk recommendations, and rewrite-record attention items without inferring full-tenant risk.',
+    coreAttentionSummary:
+      'Merges current query failures, parse failures, urgent SQL, high-risk recommendations, and rewrite-record attention items without inferring full-tenant risk.',
     coreKpiTitle: 'Core KPI',
     primaryEntriesTitle: 'Core workflow entries',
     platformHealthRiskTitle: 'Platform health and risk',
     auxiliarySignalsTitle: 'Auxiliary evidence boundaries',
-    auxiliarySignalsSummary: 'Coordination mode, access channel, route engine, and governance messages stay as lower-priority boundary evidence instead of competing with the core homepage path.',
+    auxiliarySignalsSummary:
+      'Coordination mode, access channel, route engine, and governance messages stay as lower-priority boundary evidence instead of competing with the core homepage path.',
     issueDistributionTitle: 'Issue distribution',
     recentActivityTitle: 'Recent activity',
     nextStepsTitle: 'Recommended next steps',
     evidenceEyebrow: 'static evidence',
     evidenceBoundaryTitle: 'Evidence boundaries',
-    evidenceBoundarySummary: 'The homepage shows only facts proven by the current API response, window, or coordination mode instead of turning samples into global conclusions.',
+    evidenceBoundarySummary:
+      'The homepage shows only facts proven by the current API response, window, or coordination mode instead of turning samples into global conclusions.',
     evidenceRows: {
       parseOverview: {
         label: 'Parse overview',
-        detail: 'Taken from the current parse-statistics overview sample, not full-tenant history.'
+        detail:
+          'Taken from the current parse-statistics overview sample, not full-tenant history.',
       },
       queryWindow: {
         label: 'Query window',
-        detail: 'Taken from the current query-history page window; success, failure and hit rates are window-based.'
+        detail:
+          'Taken from the current query-history page window; success, failure and hit rates are window-based.',
       },
       messageStats: {
         label: 'Governance messages',
-        detail: 'Taken from governance admin message stats and only merges pending plus failed risk.'
+        detail:
+          'Taken from governance admin message stats and only merges pending plus failed risk.',
       },
       rewriteRecords: {
         label: 'Rewrite records',
-        detail: 'Taken from the current rewrite-records response sample for summary and navigation only.'
+        detail:
+          'Taken from the current rewrite-records response sample for summary and navigation only.',
       },
       dispatchMode: {
         label: 'Dispatch mode',
-        detail: 'Keeps showing PULL_ONLY or the backend-returned mode without pretending active push exists.'
-      }
+        detail:
+          'Keeps showing PULL_ONLY or the backend-returned mode without pretending active push exists.',
+      },
     },
     actions: {
       openQueryWorkbench: 'Open SQL Query Analysis',
       openSqlParse: 'Open SQL Parse',
-      refreshOverview: 'Refresh overview'
+      refreshOverview: 'Refresh overview',
     },
     metricLabel: 'Key metrics',
     metrics: {
@@ -120,245 +139,361 @@ export default {
       parseSuccess: 'Parser success rate',
       benchmarkPass: 'Benchmark pass rate',
       accelerationHit: 'Acceleration hit rate',
-      auditSignal: 'Audit / anomaly events'
+      auditSignal: 'Audit / anomaly events',
     },
     quickEntryTitle: 'Core workflow entries',
-    quickEntrySummary: 'Core workflows stay independent. The overview only summarizes, routes and recommends.',
+    quickEntrySummary:
+      'Core workflows stay independent. The overview only summarizes, routes and recommends.',
     healthTitle: 'Health & risk',
     healthSummary: 'Lead with conclusions, then route into the next action.',
     activityTitle: 'Recent activity',
-    activitySummary: 'Keep a runtime timeline instead of turning the homepage into static project copy.',
+    activitySummary:
+      'Keep a runtime timeline instead of turning the homepage into static project copy.',
     panorama: {
       kicker: 'project panorama',
       title: 'Project Panorama',
-      summary: 'Keep the vision, milestones, glossary and rule index on the homepage so the cockpit does not collapse into runtime metrics only.',
+      summary:
+        'Keep the vision, milestones, glossary and rule index on the homepage so the cockpit does not collapse into runtime metrics only.',
       cardLabel: 'project index',
       cards: [
         {
           title: 'Vision & mission',
-          summary: 'Force every BI SQL statement through parsing, benchmarking, rewrite, routing and acceleration governance before release so performance and consistency stay predictable.',
-          items: ['One control surface for query, parser, benchmark, acceleration and audit operations', 'Backend authority, traceable history and recorded rules stay as the platform baseline', 'Start with a single region and keep room for future multi-region expansion']
+          summary:
+            'Force every BI SQL statement through parsing, benchmarking, rewrite, routing and acceleration governance before release so performance and consistency stay predictable.',
+          items: [
+            'One control surface for query, parser, benchmark, acceleration and audit operations',
+            'Backend authority, traceable history and recorded rules stay as the platform baseline',
+            'Start with a single region and keep room for future multi-region expansion',
+          ],
         },
         {
           title: 'Roadmap & milestones',
-          summary: 'Execution moves through Phase A-F, starting from document truth and then closing frontend, backend, runtime-gate and delivery gaps in order.',
-          items: ['Phase D closes the query-execution and governance mainline', 'Phase E builds the cockpit, product pages and delivery views', 'Phase F adds deployment, CI, runtime smoke and recovery governance']
+          summary:
+            'Execution moves through Phase A-F, starting from document truth and then closing frontend, backend, runtime-gate and delivery gaps in order.',
+          items: [
+            'Phase D closes the query-execution and governance mainline',
+            'Phase E builds the cockpit, product pages and delivery views',
+            'Phase F adds deployment, CI, runtime smoke and recovery governance',
+          ],
         },
         {
           title: 'Glossary',
-          summary: 'Normalize the project vocabulary so frontend, backend, architecture and operations do not drift on the meaning of core objects.',
-          items: ['Governance chain: query -> parse -> benchmark -> acceleration -> audit', 'Task truth: tasks.md / tasks-done.md / validation log / git', 'R&D cockpit: the official homepage summary layer, not a substitute for workflow pages']
+          summary:
+            'Normalize the project vocabulary so frontend, backend, architecture and operations do not drift on the meaning of core objects.',
+          items: [
+            'Governance chain: query -> parse -> benchmark -> acceleration -> audit',
+            'Task truth: tasks.md / tasks-done.md / validation log / git',
+            'R&D cockpit: the official homepage summary layer, not a substitute for workflow pages',
+          ],
         },
         {
           title: 'Architecture rules quick reference',
-          summary: 'The rule base requires code, docs, validation and delivery write-back to remain aligned instead of leaving long-term constraints in chat context.',
-          items: ['Java 8 + Spring Boot 2.x remain hard backend constraints', 'Pages summarize and route; backend owns authority and history', 'Non-trivial work must go through foreman and task-audit governance']
-        }
-      ]
+          summary:
+            'The rule base requires code, docs, validation and delivery write-back to remain aligned instead of leaving long-term constraints in chat context.',
+          items: [
+            'Java 8 + Spring Boot 2.x remain hard backend constraints',
+            'Pages summarize and route; backend owns authority and history',
+            'Non-trivial work must go through foreman and task-audit governance',
+          ],
+        },
+      ],
     },
     architecture: {
       kicker: 'architecture design',
       title: 'Architecture Design',
-      summary: 'The dashboard keeps a compact summary of C4, topology, contracts, data model, deployment and test design, while ADRs remain the source of change truth.',
+      summary:
+        'The dashboard keeps a compact summary of C4, topology, contracts, data model, deployment and test design, while ADRs remain the source of change truth.',
       cardLabel: 'architecture index',
       cards: [
         {
           title: 'System shape',
-          summary: 'Use C4 Level 1-4 to organize system, container, component and key-module views while separating product paths from delivery-only paths.',
+          summary:
+            'Use C4 Level 1-4 to organize system, container, component and key-module views while separating product paths from delivery-only paths.',
           items: [
             '`/dashboard` stays the product homepage and the five main workflow pages remain independent',
             'Backend keeps the controller -> service -> domain/infrastructure layering contract',
-            'Bounded contexts split around query governance, optimization, benchmark and system management'
-          ]
+            'Bounded contexts split around query governance, optimization, benchmark and system management',
+          ],
         },
         {
           title: 'Service topology',
-          summary: 'Frontend and backend deploy separately, with governance capabilities coordinated across query execution, parsing, optimization, benchmark, audit and system control.',
+          summary:
+            'Frontend and backend deploy separately, with governance capabilities coordinated across query execution, parsing, optimization, benchmark, audit and system control.',
           items: [
             'query-execution accepts SQL submission and orchestrates governance',
             'optimization and benchmark evolve independently and join the mainline via explicit contracts',
-            'system, audit and delivery views cover configuration, forensics and delivery observation'
-          ]
+            'system, audit and delivery views cover configuration, forensics and delivery observation',
+          ],
         },
         {
           title: 'Contracts & data model',
-          summary: 'Important behavior enters through explicit contracts and backend validation, while history, export and audit are stitched together by traceable keys.',
+          summary:
+            'Important behavior enters through explicit contracts and backend validation, while history, export and audit are stitched together by traceable keys.',
           items: [
             'HTTP handlers return explicit JSON errors rather than ambiguous strings',
             'MySQL is the primary persistence direction for queryable and exportable history objects',
-            'Entities do not cross services directly; DTOs and service orchestration carry cross-domain flow'
-          ]
+            'Entities do not cross services directly; DTOs and service orchestration carry cross-domain flow',
+          ],
         },
         {
           title: 'Data lifecycle',
-          summary: 'Governance data is designed around hot/cold storage, immutable evidence and long-lived history rather than browser-local state.',
-          items: ['Completed results are treated as evidence and should not be rewritten casually', 'Audit logs stay queryable for at least 180 days', 'Acceleration, benchmark, repair and audit outputs can be traced through shared keys']
+          summary:
+            'Governance data is designed around hot/cold storage, immutable evidence and long-lived history rather than browser-local state.',
+          items: [
+            'Completed results are treated as evidence and should not be rewritten casually',
+            'Audit logs stay queryable for at least 180 days',
+            'Acceleration, benchmark, repair and audit outputs can be traced through shared keys',
+          ],
         },
         {
           title: 'Deployment & flow',
-          summary: 'Deployment starts from a Huawei Cloud single-region topology, while business flows cover normal execution, rollback, compensation and acceleration branches.',
-          items: ['Frontend and backend must build and deploy independently on amd64 and arm64', 'The chain covers query, parse, benchmark, acceleration and audit stages', 'Operations continue to retain logs, alerts, backup and recovery evidence']
+          summary:
+            'Deployment starts from a Huawei Cloud single-region topology, while business flows cover normal execution, rollback, compensation and acceleration branches.',
+          items: [
+            'Frontend and backend must build and deploy independently on amd64 and arm64',
+            'The chain covers query, parse, benchmark, acceleration and audit stages',
+            'Operations continue to retain logs, alerts, backup and recovery evidence',
+          ],
         },
         {
           title: 'Test architecture',
-          summary: 'Validation spans build, layered tests, runtime smoke, task audit and delivery write-back so “implemented” is never treated as “verified”.',
-          items: ['Frontend passes build and IA structure checks at minimum', 'Backend passes module tests, contract tests and runtime smoke gates', 'Architecture changes must update ADRs, validation logs and task ledgers together']
-        }
-      ]
+          summary:
+            'Validation spans build, layered tests, runtime smoke, task audit and delivery write-back so “implemented” is never treated as “verified”.',
+          items: [
+            'Frontend passes build and IA structure checks at minimum',
+            'Backend passes module tests, contract tests and runtime smoke gates',
+            'Architecture changes must update ADRs, validation logs and task ledgers together',
+          ],
+        },
+      ],
     },
     progress: {
       kicker: 'delivery truth',
       title: 'Progress Management',
       badge: 'authoritative snapshot',
       openDelivery: 'Open delivery progress',
-      deliveryHidden: 'The temporary delivery page is hidden by default in production',
+      deliveryHidden:
+        'The temporary delivery page is hidden by default in production',
       sourceTitle: 'Truth sources',
-      sourceSummary: 'Task ledgers, validation logs and the master plan are merged into a read-only snapshot; the dashboard does not maintain a second status source.',
+      sourceSummary:
+        'Task ledgers, validation logs and the master plan are merged into a read-only snapshot; the dashboard does not maintain a second status source.',
       cards: {
         active: 'Active tasks',
-        activeDetail: 'The current total of todo, in-progress, in-review and blocked items still present in `tasks.md`.',
+        activeDetail:
+          'The current total of todo, in-progress, in-review and blocked items still present in `tasks.md`.',
         done: 'Archived tasks',
-        doneDetail: 'The cumulative total derived from `tasks-done.md`, used to reflect durable delivery output.',
+        doneDetail:
+          'The cumulative total derived from `tasks-done.md`, used to reflect durable delivery output.',
         validation: 'Validation entries',
-        validationDetail: 'The validation-log total, used as a compact signal for gate activity and evidence density.',
+        validationDetail:
+          'The validation-log total, used as a compact signal for gate activity and evidence density.',
         completion: 'Overall completion',
-        completionDetail: 'Calculated from active plus archived tasks to show how much of the current delivery wave is actually closed.'
+        completionDetail:
+          'Calculated from active plus archived tasks to show how much of the current delivery wave is actually closed.',
       },
       modulesTitle: 'Phase completion',
-      modulesSummary: 'Aggregate completion by execution domain so architects can see which phase is advancing and which one is still accumulating work.',
+      modulesSummary:
+        'Aggregate completion by execution domain so architects can see which phase is advancing and which one is still accumulating work.',
       moduleMeta: '{total} tasks total, {done} done, {progress} in progress',
       recentTitle: 'Recent actions',
-      recentSummary: 'Merge task progress logs, archive records and validation entries into one compact delivery timeline.',
+      recentSummary:
+        'Merge task progress logs, archive records and validation entries into one compact delivery timeline.',
       dependenciesTitle: 'Blockers & dependency chains',
-      dependenciesSummary: 'Surface current blocker and pending reasons first, then show unresolved dependencies for active tasks.',
+      dependenciesSummary:
+        'Surface current blocker and pending reasons first, then show unresolved dependencies for active tasks.',
       blockerLabel: 'Pending now',
-      noBlockers: 'There are no explicit blocker items right now; new pending reasons will surface automatically from the latest progress logs.',
-      noDependencies: 'Active tasks do not currently expose a dependency chain worth rendering here.'
+      noBlockers:
+        'There are no explicit blocker items right now; new pending reasons will surface automatically from the latest progress logs.',
+      noDependencies:
+        'Active tasks do not currently expose a dependency chain worth rendering here.',
     },
     compliance: {
       kicker: 'compliance center',
       title: 'Compliance Center',
-      summary: 'Expose the graded-protection baseline directly on the cockpit homepage so identity, isolation, audit, encryption and backup expectations remain visible.',
+      summary:
+        'Expose the graded-protection baseline directly on the cockpit homepage so identity, isolation, audit, encryption and backup expectations remain visible.',
       sourceTitle: 'Compliance truth',
-      sourceSummary: 'This section is a read-only projection of `R-111` through `R-115` from `docs/security/compliance.md`; the frontend does not maintain a parallel policy source.',
+      sourceSummary:
+        'This section is a read-only projection of `R-111` through `R-115` from `docs/security/compliance.md`; the frontend does not maintain a parallel policy source.',
       cards: [
         {
           ruleId: 'R-111',
           title: 'Identity authentication',
-          summary: 'Every protected action must be authenticated by the backend; the core engine no longer defines product role tiers.',
-          items: ['HTTP and API requests must carry verifiable credentials', 'Unauthenticated or failed-auth requests return explicit JSON errors', 'Authentication failures and scope violations both enter the evidence trail']
+          summary:
+            'Every protected action must be authenticated by the backend; the core engine no longer defines product role tiers.',
+          items: [
+            'HTTP and API requests must carry verifiable credentials',
+            'Unauthenticated or failed-auth requests return explicit JSON errors',
+            'Authentication failures and scope violations both enter the evidence trail',
+          ],
         },
         {
           ruleId: 'R-112',
           title: 'Access control',
-          summary: 'The system isolates data by tenant ID and revalidates datasource scope across routing, execution, export and benchmark operations.',
-          items: ['All core requests carry explicit tenant context', 'Data sources, query tasks, audit records and export records are tenant-bound', 'Requests without datasource scope are denied by default with no implicit allow path']
+          summary:
+            'The system isolates data by tenant ID and revalidates datasource scope across routing, execution, export and benchmark operations.',
+          items: [
+            'All core requests carry explicit tenant context',
+            'Data sources, query tasks, audit records and export records are tenant-bound',
+            'Requests without datasource scope are denied by default with no implicit allow path',
+          ],
         },
         {
           ruleId: 'R-113',
           title: 'Security audit',
-          summary: 'SQL actions, sign-in or sign-out events, and access-scope changes must be recorded in audit logs that stay immutable for at least 180 days.',
-          items: ['Audit entries include time, tenant, user, object, result, latency and trace ID', 'Sensitive content must be masked or encrypted before logging', 'Audit storage is backed up independently and protected from direct mutation']
+          summary:
+            'SQL actions, sign-in or sign-out events, and access-scope changes must be recorded in audit logs that stay immutable for at least 180 days.',
+          items: [
+            'Audit entries include time, tenant, user, object, result, latency and trace ID',
+            'Sensitive content must be masked or encrypted before logging',
+            'Audit storage is backed up independently and protected from direct mutation',
+          ],
         },
         {
           ruleId: 'R-114',
           title: 'Encrypted storage',
-          summary: 'Database passwords, API keys and similar secrets must be encrypted at rest rather than stored in plaintext.',
+          summary:
+            'Database passwords, API keys and similar secrets must be encrypted at rest rather than stored in plaintext.',
           items: [
             'Sensitive fields are encrypted before persistence with AES-256 or an equivalent baseline',
             'Config files, logs, stack traces and exports must not leak plaintext secrets',
-            'Key management stays separate from business data and can integrate with a dedicated key service'
-          ]
+            'Key management stays separate from business data and can integrate with a dedicated key service',
+          ],
         },
         {
           ruleId: 'R-115',
           title: 'Backup & recovery',
-          summary: 'Production MySQL must use replication or an equivalent HA setup, meet the RPO/RTO targets, and keep backups encrypted.',
-          items: ['Backups include full plus required incremental or binlog strategy', 'Audit logs and core metadata sit on the priority recovery list', 'Recovery drills must leave a traceable record']
-        }
-      ]
+          summary:
+            'Production MySQL must use replication or an equivalent HA setup, meet the RPO/RTO targets, and keep backups encrypted.',
+          items: [
+            'Backups include full plus required incremental or binlog strategy',
+            'Audit logs and core metadata sit on the priority recovery list',
+            'Recovery drills must leave a traceable record',
+          ],
+        },
+      ],
     },
     rulebook: {
       kicker: 'codex rulebook',
       title: 'Codex Rulebook',
-      summary: 'This section stays read-only and highlights append-only rules, repository truth and the task-audit chain instead of leaving durable constraints inside prompts or memory.',
+      summary:
+        'This section stays read-only and highlights append-only rules, repository truth and the task-audit chain instead of leaving durable constraints inside prompts or memory.',
       cardLabel: 'rule cluster',
       sourceTitle: 'Rule sources',
-      sourceSummary: 'Rule categories, numbering and extension state are derived from the current repository truth in `docs/rules/codex-rules.md` and the compliance baseline.',
+      sourceSummary:
+        'Rule categories, numbering and extension state are derived from the current repository truth in `docs/rules/codex-rules.md` and the compliance baseline.',
       cardsSummary: {
         baseline: 'Baseline rules',
-        baselineDetail: 'The count of architecture and engineering constraints rooted in `R-001` through `R-115`.',
+        baselineDetail:
+          'The count of architecture and engineering constraints rooted in `R-001` through `R-115`.',
         validation: 'Extended validation rules',
-        validationDetail: 'The count of `R-116+` validation, phase-gate and governance-extension rules.',
+        validationDetail:
+          'The count of `R-116+` validation, phase-gate and governance-extension rules.',
         compliance: 'Compliance rules',
-        complianceDetail: 'The count of graded-protection rules derived from the security compliance document.',
+        complianceDetail:
+          'The count of graded-protection rules derived from the security compliance document.',
         sources: 'Source documents',
-        sourcesDetail: 'The number of rule and compliance authority documents directly summarized on this homepage.'
+        sourcesDetail:
+          'The number of rule and compliance authority documents directly summarized on this homepage.',
       },
       cards: [
         {
           title: 'Docs & governance',
-          summary: 'Rules require document-first execution, task ledgers, closeout discipline, and append-only history so long-term constraints survive beyond chat state.',
-          items: ['Documents outrank prompt memory', 'Long-term rules must enter `docs/` and the history ledgers', 'Non-trivial work must pass through foreman, task-audit and git traceability']
+          summary:
+            'Rules require document-first execution, task ledgers, closeout discipline, and append-only history so long-term constraints survive beyond chat state.',
+          items: [
+            'Documents outrank prompt memory',
+            'Long-term rules must enter `docs/` and the history ledgers',
+            'Non-trivial work must pass through foreman, task-audit and git traceability',
+          ],
         },
         {
           title: 'Architecture & engineering',
-          summary: 'Frontend/backend separation, Java 8 + Spring Boot 2.x, layered backend structure, MyBatis XML and independent deployment remain hard engineering limits.',
-          items: ['Frontend stays on Vue 3 + JavaScript + CSS', 'Backend stays on Java 8 + Spring Boot 2.x', 'Domain directories plus layered subdirectories remain the default backend shape']
+          summary:
+            'Frontend/backend separation, Java 8 + Spring Boot 2.x, layered backend structure, MyBatis XML and independent deployment remain hard engineering limits.',
+          items: [
+            'Frontend stays on Vue 3 + JavaScript + CSS',
+            'Backend stays on Java 8 + Spring Boot 2.x',
+            'Domain directories plus layered subdirectories remain the default backend shape',
+          ],
         },
         {
           title: 'Pages & boundaries',
-          summary: 'The overview summarizes and routes while major workflows stay on independent pages; frontend can prevalidate, but backend remains the authority for rules and history.',
-          items: ['Pages are organized around context, state, result and next step', 'Multiple core workflows should not collapse back into one long page', 'Delivered capabilities must stay visible on workflow pages']
+          summary:
+            'The overview summarizes and routes while major workflows stay on independent pages; frontend can prevalidate, but backend remains the authority for rules and history.',
+          items: [
+            'Pages are organized around context, state, result and next step',
+            'Multiple core workflows should not collapse back into one long page',
+            'Delivered capabilities must stay visible on workflow pages',
+          ],
         },
         {
           title: 'Validation & extension',
-          summary: 'The later part of the rulebook adds phase gates, task validation, delivery closeout and strict-mode constraints as machine-auditable rules.',
-          items: ['Phase entry, phase delivery and progressive compliance each have validation gates', 'Frontend build, knowledge lint and task-audit are part of the default closeout floor', 'New rules can only be appended, not used to overwrite historical meaning']
-        }
-      ]
+          summary:
+            'The later part of the rulebook adds phase gates, task validation, delivery closeout and strict-mode constraints as machine-auditable rules.',
+          items: [
+            'Phase entry, phase delivery and progressive compliance each have validation gates',
+            'Frontend build, knowledge lint and task-audit are part of the default closeout floor',
+            'New rules can only be appended, not used to overwrite historical meaning',
+          ],
+        },
+      ],
     },
     nextTitle: 'Recommended actions',
-    nextSummary: 'Move directly into the page that can resolve the current risk or drift.'
+    nextSummary:
+      'Move directly into the page that can resolve the current risk or drift.',
   },
   deliveryProgress: {
     title: 'AI Delivery Progress',
-    summary: 'Non-production page for AI task status, validation evidence and module progress only.',
+    summary:
+      'Non-production page for AI task status, validation evidence and module progress only.',
     eyebrow: 'delivery strict mode',
     heroTitle: 'Keep AI delivery truth anchored to the authoritative ledgers.',
-    heroSummary: 'This page renders a read-only snapshot derived from `tasks.md`, `tasks-done.md`, validation logs and execution plans. It does not replace the official business dashboard or maintain a parallel state source.',
+    heroSummary:
+      'This page renders a read-only snapshot derived from `tasks.md`, `tasks-done.md`, validation logs and execution plans. It does not replace the official business dashboard or maintain a parallel state source.',
     visibilityLabel: 'production hidden',
     visibilityTitle: 'This page only appears outside production',
-    visibilitySummary: 'After production cutover the entry is hidden by default, while history remains in the task ledgers, validation log and git write-back trail.',
+    visibilitySummary:
+      'After production cutover the entry is hidden by default, while history remains in the task ledgers, validation log and git write-back trail.',
     summaryTitle: 'Status overview',
-    summaryDescription: 'Start from the status distribution, then drill into active work, module progress and validation evidence.',
+    summaryDescription:
+      'Start from the status distribution, then drill into active work, module progress and validation evidence.',
     activeTasksTitle: 'Active tasks',
-    activeTasksDescription: 'Todo, in-progress, in-review and blocked tasks are all derived from the active ledger snapshot.',
+    activeTasksDescription:
+      'Todo, in-progress, in-review and blocked tasks are all derived from the active ledger snapshot.',
     moduleTitle: 'Module progress',
-    moduleDescription: 'Completion is aggregated by execution domain so architects can spot delivery density and blockers quickly.',
+    moduleDescription:
+      'Completion is aggregated by execution domain so architects can spot delivery density and blockers quickly.',
     recentChangesTitle: 'Recent changes',
-    recentChangesDescription: 'Merge task progress write-back, archived tasks and validation entries into one read-only delivery timeline.',
+    recentChangesDescription:
+      'Merge task progress write-back, archived tasks and validation entries into one read-only delivery timeline.',
     blockedTitle: 'Blockers and pending reasons',
-    blockedDescription: 'List explicit blocked tasks first; if none exist, fall back to unresolved reasons extracted from the latest progress logs.',
-    blockedFootnote: 'This list currently includes tasks explicitly marked as blocked in the ledger.',
-    pendingFootnote: 'There are no explicit blocked tasks right now, so the list falls back to pending reasons from the latest progress logs.',
+    blockedDescription:
+      'List explicit blocked tasks first; if none exist, fall back to unresolved reasons extracted from the latest progress logs.',
+    blockedFootnote:
+      'This list currently includes tasks explicitly marked as blocked in the ledger.',
+    pendingFootnote:
+      'There are no explicit blocked tasks right now, so the list falls back to pending reasons from the latest progress logs.',
     dependencyTitle: 'Dependency chains',
-    dependencyDescription: 'Break active-task dependencies apart and distinguish ledger-tracked, plan-only and untracked dependencies.',
+    dependencyDescription:
+      'Break active-task dependencies apart and distinguish ledger-tracked, plan-only and untracked dependencies.',
     completedTitle: 'Recently completed',
-    completedDescription: 'Archived tasks and commit subjects are derived from `tasks-done.md` only.',
+    completedDescription:
+      'Archived tasks and commit subjects are derived from `tasks-done.md` only.',
     validationTitle: 'Recent validation',
-    validationDescription: 'The validation timeline is a read-only view of the latest `validation-log.md` entries.',
+    validationDescription:
+      'The validation timeline is a read-only view of the latest `validation-log.md` entries.',
     changeKind: {
       progress: 'Progress update',
       done: 'Archived task',
-      validation: 'Validation'
+      validation: 'Validation',
     },
     cards: {
       todo: 'Todo',
       inProgress: 'In progress',
       inReview: 'In review',
       blocked: 'Blocked',
-      done: 'Done'
+      done: 'Done',
     },
     status: {
       todo: 'Todo',
@@ -367,12 +502,12 @@ export default {
       blocked: 'Blocked',
       done: 'Done',
       planned: 'Planned',
-      untracked: 'Untracked'
+      untracked: 'Untracked',
     },
     dependencySource: {
       ledger: 'Source: task ledger',
       plan: 'Source: execution plan',
-      external: 'Source: human follow-up'
+      external: 'Source: human follow-up',
     },
     runtime: {
       modePill: 'Mode {mode}',
@@ -380,51 +515,60 @@ export default {
       flagLabel: 'Flag state',
       scopeLabel: 'Visibility scope',
       scope: 'Visible outside production',
-      reasonNonProduction: 'The current build is non-production and the temporary page has not been disabled via `VITE_ENABLE_DELIVERY_PROGRESS=false`.',
-      reasonFlagDisabled: 'The current build is not production, but `VITE_ENABLE_DELIVERY_PROGRESS=false` explicitly disables route registration.',
-      reasonProduction: 'Production builds never register this temporary route, so the page stays hidden after cutover.',
+      reasonNonProduction:
+        'The current build is non-production and the temporary page has not been disabled via `VITE_ENABLE_DELIVERY_PROGRESS=false`.',
+      reasonFlagDisabled:
+        'The current build is not production, but `VITE_ENABLE_DELIVERY_PROGRESS=false` explicitly disables route registration.',
+      reasonProduction:
+        'Production builds never register this temporary route, so the page stays hidden after cutover.',
       flag: {
         enabled: 'Explicitly enabled',
         disabled: 'Explicitly disabled',
-        default: 'Default on'
-      }
+        default: 'Default on',
+      },
     },
     meta: {
       priority: 'Priority',
       dependsOn: 'Depends on',
       totalTasks: 'tasks',
       blockedSource: 'Source: latest progress log',
-      unresolvedCount: '{count} unresolved deps'
+      unresolvedCount: '{count} unresolved deps',
     },
     empty: {
       blockedTitle: 'No blocker items to display',
-      blockedDescription: 'This area will refresh automatically once a task enters `blocked` or a new unresolved reason appears in the latest progress logs.',
+      blockedDescription:
+        'This area will refresh automatically once a task enters `blocked` or a new unresolved reason appears in the latest progress logs.',
       dependencyTitle: 'No dependency chains yet',
-      dependencyDescription: 'Dependency structures will render here after active tasks carry `Depends on` entries.',
-      progressLog: 'No progress log yet'
-    }
+      dependencyDescription:
+        'Dependency structures will render here after active tasks carry `Depends on` entries.',
+      progressLog: 'No progress log yet',
+    },
   },
   sqlQuery: {
     title: 'SQL Query Analysis',
-    summary: 'Enter, format, validate, execute, explain, inspect rows, review lightweight analysis, launch deep parse, and link execution history.',
+    summary:
+      'Enter, format, validate, execute, explain, inspect rows, review lightweight analysis, launch deep parse, and link execution history.',
     hero: {
-      eyebrow: 'query analysis workbench'
+      eyebrow: 'query analysis workbench',
     },
     metrics: {
       resultRows: 'Result rows',
-      resultRowsDetail: 'Shows rows returned by the current response, not backend history totals.',
+      resultRowsDetail:
+        'Shows rows returned by the current response, not backend history totals.',
       validationTips: 'Validation tips',
-      validationTipsDetail: 'The frontend only gives input hints; backend validation remains authoritative.',
+      validationTipsDetail:
+        'The frontend only gives input hints; backend validation remains authoritative.',
       recentRuns: 'Recent runs',
-      recentRunsDetail: 'Shows only the latest six execution summaries in this session.',
+      recentRunsDetail:
+        'Shows only the latest six execution summaries in this session.',
       pending: 'Pending',
       review: 'Review',
       ready: 'Ready',
-      sessionOnly: 'session'
+      sessionOnly: 'session',
     },
     resultTabs: {
       access: 'Execution context',
-      history: 'History links'
+      history: 'History links',
     },
     access: {
       queryDateStatus: 'query_date status',
@@ -434,7 +578,7 @@ export default {
       bindingMode: 'Binding mode',
       logicalObjects: 'Logical objects',
       parseStatus: 'Lightweight analysis status',
-      commentContext: 'Comment context'
+      commentContext: 'Comment context',
     },
     historyAssociation: {
       sqlFingerprint: 'SQL fingerprint',
@@ -442,12 +586,14 @@ export default {
       implementationStage: 'Implementation stage',
       downloadUrl: 'Download URL',
       historyBoundary: 'History boundary',
-      backendHistory: 'History persistence, export, and audit links are governed by backend query-history.'
-    }
+      backendHistory:
+        'History persistence, export, and audit links are governed by backend query-history.',
+    },
   },
   sqlHistory: {
     title: 'SQL History Search',
-    summary: 'Search execution history, filter historical SQL, and inspect execution summaries, original SQL, template SQL, bound SQL, parse links, recommendations, and rewrite records.',
+    summary:
+      'Search execution history, filter historical SQL, and inspect execution summaries, original SQL, template SQL, bound SQL, parse links, recommendations, and rewrite records.',
     actions: {
       refresh: 'Search / refresh',
       clear: 'Clear filters',
@@ -457,11 +603,11 @@ export default {
       openRecommendationResult: 'Open recommendation result',
       focusRewriteRecords: 'View rewrite records',
       refreshRewriteRecords: 'Refresh rewrite records',
-      copy: 'Copy'
+      copy: 'Copy',
     },
     options: {
       all: 'All',
-      default: 'Default'
+      default: 'Default',
     },
     filters: {
       tenant: 'Tenant',
@@ -498,7 +644,8 @@ export default {
       selectPlaceholder: 'Select',
       eyebrow: 'history filters',
       title: 'History filters',
-      summary: 'Every filter maps to an existing query-history parameter; empty defaults preserve the history query contract.'
+      summary:
+        'Every filter maps to an existing query-history parameter; empty defaults preserve the history query contract.',
     },
     metrics: {
       label: 'SQL execution history summary',
@@ -508,13 +655,13 @@ export default {
       nonSuccess: 'Non-success',
       accessChannels: 'Access channels',
       queryDateResolved: 'query_date resolved',
-      parameterizedSql: 'Parameterized SQL'
+      parameterizedSql: 'Parameterized SQL',
     },
     queryStatus: {
       idle: 'Not queried',
       loading: 'Loading',
       success: 'Refreshed',
-      error: 'Query failed'
+      error: 'Query failed',
     },
     table: {
       kicker: 'Execution history table',
@@ -532,19 +679,22 @@ export default {
       governanceHits: 'Governance hits',
       submittedBy: 'Submitted by',
       submittedAt: 'Submitted at',
-      auditEventCount: 'Audit event count'
+      auditEventCount: 'Audit event count',
     },
     states: {
       loading: 'Loading SQL execution history',
       empty: 'No SQL execution history matches the current filters.',
       loadFailed: 'The list failed to load. Check the error above.',
       errorTitle: 'SQL history query failed',
-      datasourceOptionsFallback: 'Datasource options are unavailable; manual values remain enabled.',
-      noSignalEvidence: 'No parse, route, or context evidence is available for this detail.',
-      noRewriteRecords: 'No rewrite records match this SQL history.'
+      datasourceOptionsFallback:
+        'Datasource options are unavailable; manual values remain enabled.',
+      noSignalEvidence:
+        'No parse, route, or context evidence is available for this detail.',
+      noRewriteRecords: 'No rewrite records match this SQL history.',
     },
     messages: {
-      traceLookupRemoved: 'Standalone trace lookup has been removed. Open SQL execution history by historyId instead.'
+      traceLookupRemoved:
+        'Standalone trace lookup has been removed. Open SQL execution history by historyId instead.',
     },
     detail: {
       title: 'Execution detail',
@@ -564,7 +714,7 @@ export default {
       targetEngine: 'Target engine',
       submittedBy: 'Submitted by',
       submittedAt: 'Submitted at',
-      auditEventCount: 'Audit event count'
+      auditEventCount: 'Audit event count',
     },
     execution: {
       cacheHit: 'Cache hit',
@@ -574,7 +724,7 @@ export default {
       errorCode: 'Error code',
       errorMessage: 'Error message',
       routeDecision: 'Route decision',
-      cacheSummary: 'Cache summary'
+      cacheSummary: 'Cache summary',
     },
     rewriteAudit: {
       rewriteApplied: 'Backend audit rewrite',
@@ -585,8 +735,10 @@ export default {
       runtimeRewriteStatus: 'Runtime rewrite status',
       activationStatusSnapshot: 'Activation status snapshot',
       rewriteFallbackReason: 'Rewrite fallback reason',
-      linkedNotAppliedTitle: 'Linked governance object, no rewrite in this execution',
-      linkedNotAppliedMessage: 'This execution history does not have rewriteApplied=true; linked recommendations or rewrite records are governance evidence, not real rewrite history.'
+      linkedNotAppliedTitle:
+        'Linked governance object, no rewrite in this execution',
+      linkedNotAppliedMessage:
+        'This execution history does not have rewriteApplied=true; linked recommendations or rewrite records are governance evidence, not real rewrite history.',
     },
     sql: {
       sqlFingerprint: 'SQL fingerprint',
@@ -597,12 +749,12 @@ export default {
       parameterizedSql: 'Parameterized SQL',
       originalSql: 'Original SQL',
       templateSql: 'Template SQL',
-      boundSql: 'Bound SQL'
+      boundSql: 'Bound SQL',
     },
     governance: {
       cache: 'cache',
       rewrite: 'rewrite',
-      acceleration: 'accel'
+      acceleration: 'accel',
     },
     tabs: {
       overview: 'Execution overview',
@@ -611,7 +763,7 @@ export default {
       rewriteRecords: 'Rewrite records',
       signals: 'Parse and route',
       refs: 'Linked evidence',
-      audit: 'Audit links'
+      audit: 'Audit links',
     },
     signals: {
       commentContext: 'Comment context',
@@ -621,13 +773,13 @@ export default {
       accessParseSummary: 'Access parse summary',
       bindingSummary: 'Binding summary',
       routeDecision: 'Route decision',
-      cacheSummary: 'Cache summary'
+      cacheSummary: 'Cache summary',
     },
     refs: {
       recommendationRefs: 'Recommendation refs',
       benchmarkRefs: 'Benchmark refs',
       auditRefs: 'Audit refs',
-      alertRefs: 'Alert refs'
+      alertRefs: 'Alert refs',
     },
     rewriteRecords: {
       count: 'Rewrite records',
@@ -653,51 +805,52 @@ export default {
       executedSql: 'Executed SQL',
       diffSummary: 'Diff summary',
       ruleChain: 'Rule chain',
-      traceRefs: 'Trace refs'
+      traceRefs: 'Trace refs',
     },
     audit: {
       service: 'Service',
       operation: 'Operation',
       status: 'Status',
-      createdAt: 'Created at'
+      createdAt: 'Created at',
     },
     rawEvidence: {
-      title: 'Raw evidence'
+      title: 'Raw evidence',
     },
     export: {
       title: 'Export SQL execution evidence',
       format: 'Format',
       includeTraceDetail: 'Include trace detail',
-      run: 'Run export'
+      run: 'Run export',
     },
     footer: {
       currentPageCount: '{count} on this page',
       totalCount: '{count} total',
       pageWindow: 'Page {current}/{total}',
-      lastQuery: 'Last query: {status} · {time}'
-    }
+      lastQuery: 'Last query: {status} · {time}',
+    },
   },
   parseRecord: {
     title: 'Parse History',
-    summary: 'Search parse history, batch history, and report-import history, including parse status, failure reasons, issue scenes, logical objects, and recommendation links.',
+    summary:
+      'Search parse history, batch history, and report-import history, including parse status, failure reasons, issue scenes, logical objects, and recommendation links.',
     actions: {
       openSqlHistory: 'Open SQL history',
-      openRecommendationResult: 'Open recommendation result'
+      openRecommendationResult: 'Open recommendation result',
     },
     issueSceneDetail: {
       actions: {
-        viewDetail: 'View detail'
+        viewDetail: 'View detail',
       },
       filters: {
         currentScene: 'Current scene',
         report: 'Report',
         logicalObject: 'Logical object',
-        clear: 'Clear'
+        clear: 'Clear',
       },
       sections: {
         reportDetail: 'Report detail',
         logicalObjectDetail: 'Logical object detail',
-        sqlDetail: 'SQL detail'
+        sqlDetail: 'SQL detail',
       },
       columns: {
         issueScene: 'Issue scene',
@@ -718,19 +871,22 @@ export default {
         priority: 'Priority',
         logicalObjects: 'Logical objects',
         issueScenes: 'Issue scenes',
-        location: 'Location'
-      }
-    }
+        location: 'Location',
+      },
+    },
   },
   benchmark: {
     title: 'Benchmark Report',
-    summary: 'Inspect baseline, peak latency, regression deltas and release readiness.',
+    summary:
+      'Inspect baseline, peak latency, regression deltas and release readiness.',
     eyebrow: 'benchmark center',
-    boundarySummary: 'The repo exposes live benchmark task and report APIs; templates and test sets remain frontend session/catalog surfaces rather than backend CRUD.',
+    boundarySummary:
+      'The repo exposes live benchmark task and report APIs; templates and test sets remain frontend session/catalog surfaces rather than backend CRUD.',
     input: {
       eyebrow: 'benchmark input',
       title: 'Benchmark boundary and inputs',
-      summary: 'Tenant, task type, and SQL are the key inputs for real benchmark task submission. Success and failure-compensation flows run in the tabs below.'
+      summary:
+        'Tenant, task type, and SQL are the key inputs for real benchmark task submission. Success and failure-compensation flows run in the tabs below.',
     },
     fields: {
       sql: 'SQL',
@@ -742,7 +898,7 @@ export default {
       pendingDelta: 'Pending delta',
       totalDelta: 'Total delta',
       rawDataPath: 'Raw-data path',
-      scannedBytes: 'Scanned bytes'
+      scannedBytes: 'Scanned bytes',
     },
     tabs: {
       templates: 'Templates',
@@ -750,58 +906,66 @@ export default {
       taskFlow: 'Task flow',
       compensation: 'Failure compensation',
       report: 'Report',
-      sessionTasks: 'Session tasks'
+      sessionTasks: 'Session tasks',
     },
     templates: {
       eyebrow: 'template catalog',
       title: 'Template list',
-      summary: 'Templates are task presets on this page for quickly filling real benchmark task parameters.'
+      summary:
+        'Templates are task presets on this page for quickly filling real benchmark task parameters.',
     },
     testSets: {
       eyebrow: 'test-set catalog',
       title: 'Test-set list',
-      summary: 'Test sets are frontend session catalog entries, not a claim that a dedicated test-set API exists.'
+      summary:
+        'Test sets are frontend session catalog entries, not a claim that a dedicated test-set API exists.',
     },
     taskFlow: {
       eyebrow: 'benchmark task flow',
       title: 'Success task flow',
-      summary: 'Submit, poll, and read the report with the taskContext from the selected template.'
+      summary:
+        'Submit, poll, and read the report with the taskContext from the selected template.',
     },
     compensation: {
       eyebrow: 'failure compensation',
       title: 'Failure compensation flow',
-      summary: 'The failure path appends FAIL_BENCHMARK to verify governance compensation queue evidence.'
+      summary:
+        'The failure path appends FAIL_BENCHMARK to verify governance compensation queue evidence.',
     },
     report: {
       eyebrow: 'benchmark report',
       title: 'Report comparison and regression results',
-      summary: 'After a successful run, show live report engine results, threshold assessments, trend charts, and recommendations.',
+      summary:
+        'After a successful run, show live report engine results, threshold assessments, trend charts, and recommendations.',
       empty: 'A successful run will render the live report payload here.',
-      returned: 'Report {reportId} was returned by the live API with formats {formats}.',
+      returned:
+        'Report {reportId} was returned by the live API with formats {formats}.',
       engineEyebrow: 'engine comparison',
       comparisonTitle: 'Comparison metrics',
       regressionEyebrow: 'regression results',
       regressionTitle: 'Threshold and regression verdicts',
       trendEyebrow: 'trend & recommendation',
-      trendTitle: 'Trend charts and follow-up recommendations'
+      trendTitle: 'Trend charts and follow-up recommendations',
     },
     session: {
       eyebrow: 'session tasks',
       title: 'Session task list',
-      summary: 'There is no global benchmark-task list API yet, so this panel keeps tasks launched in this session.',
-      empty: 'No benchmark task has been launched in this session.'
+      summary:
+        'There is no global benchmark-task list API yet, so this panel keeps tasks launched in this session.',
+      empty: 'No benchmark task has been launched in this session.',
     },
     actions: {
       runTemplate: 'Run selected template',
-      runCompensation: 'Run failure recovery + compensation'
-    }
+      runCompensation: 'Run failure recovery + compensation',
+    },
   },
   parseBatchCenter: {
     title: 'Batch Parse Center',
-    summary: 'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.',
+    summary:
+      'Handle batch creation, template download, file import, failure retry, and report-catalog SQL parsing on an independent page.',
     reportStatistics: {
       tabs: {
-        issueScenes: 'Issue scenes'
+        issueScenes: 'Issue scenes',
       },
       columns: {
         issueScene: 'Issue scene',
@@ -809,16 +973,16 @@ export default {
         severity: 'Severity',
         reportCount: 'Reports',
         logicalObjectCount: 'Objects',
-        ratio: 'Ratio'
+        ratio: 'Ratio',
       },
       labels: {
         issueScenes: 'Issue scenes',
-        location: 'Location'
+        location: 'Location',
       },
       states: {
-        emptyIssueScenes: 'No issue statistics yet.'
-      }
-    }
+        emptyIssueScenes: 'No issue statistics yet.',
+      },
+    },
   },
   rewriteTrial: {
     title: 'Rewrite trial',
@@ -859,11 +1023,12 @@ export default {
     ruleAction: 'Action',
     trialConclusion: 'Trial conclusion',
     riskReason: 'Risk reason',
-    selectBatchFirst: 'Select a parse batch first.'
+    selectBatchFirst: 'Select a parse batch first.',
   },
   parseStatisticsCenter: {
     title: 'SQL Parse Statistics Center',
-    summary: 'Review parse overview, issue distribution, priority matrix, and SQL/report statistics on an independent page.',
+    summary:
+      'Review parse overview, issue distribution, priority matrix, and SQL/report statistics on an independent page.',
     severityView: 'Severity view',
     priorityView: 'Priority view',
     logicalObjectView: 'Logical object view',
@@ -888,120 +1053,130 @@ export default {
       sqlStats: 'By SQL',
       reportStats: 'By report',
       priorityMatrix: 'Priority matrix',
-      importantUrgent: 'Important or urgent list'
-    }
+      importantUrgent: 'Important or urgent list',
+    },
   },
   assetCatalog: {
     title: 'Data Asset Catalog',
-    summary: 'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.',
+    summary:
+      'Browse datasource, schema, table, logical-view, and db-view lists with detail evidence.',
     eyebrow: 'data asset catalog',
-    workspaceSummary: 'Filter by asset type, inspect lists and detail evidence, and keep metadata snapshots, lineage, physical mappings, dependencies, and SQL candidates in one workspace.',
+    workspaceSummary:
+      'Filter by asset type, inspect lists and detail evidence, and keep metadata snapshots, lineage, physical mappings, dependencies, and SQL candidates in one workspace.',
     filters: {
       eyebrow: 'asset filters',
       title: 'Filters and refresh',
-      summary: 'Filter state and catalog state stay separate; refreshing does not change backend asset facts.',
-      schemaPlaceholder: 'Used for table list only'
+      summary:
+        'Filter state and catalog state stay separate; refreshing does not change backend asset facts.',
+      schemaPlaceholder: 'Used for table list only',
     },
     actions: {
-      refresh: 'Refresh catalog'
+      refresh: 'Refresh catalog',
     },
     catalog: {
       eyebrow: 'catalog tabs',
       title: 'Asset catalog',
-      summary: '{count} entries in the current type'
+      summary: '{count} entries in the current type',
     },
     detail: {
       eyebrow: 'asset detail',
       title: 'Detail and evidence',
-      summary: 'Details, health status, snapshots, and drill-down evidence stay in the persistent detail region.',
+      summary:
+        'Details, health status, snapshots, and drill-down evidence stay in the persistent detail region.',
       connectionEndpoint: 'Connection endpoint',
       credentialMode: 'Credential mode',
-      lastFailureReason: 'Last failure reason'
+      lastFailureReason: 'Last failure reason',
     },
     states: {
       emptyCatalog: 'No catalog entries match the current filters.',
-      selectAsset: 'Select an asset from the left to render the detail panel.'
+      selectAsset: 'Select an asset from the left to render the detail panel.',
     },
     health: {
       eyebrow: 'freshness / sla / heat',
       title: 'Freshness, SLA, and heat proxy',
-      usageHeatProxy: 'Usage heat proxy'
+      usageHeatProxy: 'Usage heat proxy',
     },
     snapshot: {
       eyebrow: 'snapshot evidence',
-      title: 'Metadata snapshot evidence'
+      title: 'Metadata snapshot evidence',
     },
     relatedSql: {
       eyebrow: 'related sql',
       title: 'Related SQL candidates',
       summary: 'Read-only candidates; SQL is not executed.',
-      boundary: 'The current repo-side baseline has no dedicated logical-object to SQL endpoint, so candidates are aligned by logical-view `viewCode` and parse-statistics `reportCode`.',
-      empty: 'No related SQL candidates matched this logical view yet.'
-    }
+      boundary:
+        'The current repo-side baseline has no dedicated logical-object to SQL endpoint, so candidates are aligned by logical-view `viewCode` and parse-statistics `reportCode`.',
+      empty: 'No related SQL candidates matched this logical view yet.',
+    },
   },
   routingGovernance: {
     title: 'Routing Execution Evidence',
-    summary: 'Review routing calibration, historical decisions, and comment-protocol summaries through a read-only evidence surface.',
+    summary:
+      'Review routing calibration, historical decisions, and comment-protocol summaries through a read-only evidence surface.',
     eyebrow: 'routing execution evidence',
     pageTitle: 'Routing execution evidence and decision history',
-    boundarySummary: 'This page only consumes read-only route-calibration and query-history.routeDecision evidence instead of pretending to be a rule-configuration center.',
+    boundarySummary:
+      'This page only consumes read-only route-calibration and query-history.routeDecision evidence instead of pretending to be a rule-configuration center.',
     filters: {
       eyebrow: 'routing filters',
-      title: 'Evidence scope and actions'
+      title: 'Evidence scope and actions',
     },
     fields: {
       traceLimit: 'Trace limit',
       traceId: 'Trace ID',
       auditEvents: 'Audit events',
-      lastSeenAt: 'Last seen at'
+      lastSeenAt: 'Last seen at',
     },
     actions: {
       refresh: 'Refresh routing evidence',
       viewPolicySource: 'View current policy source',
       createRule: 'Create rule',
       editRule: 'Edit rule',
-      openParseRecord: 'Open parse-record page'
+      openParseRecord: 'Open parse-record page',
     },
     tabs: {
       calibration: 'Calibration',
       commentProtocol: 'Comment protocol',
-      recentTraces: 'Recent traces'
+      recentTraces: 'Recent traces',
     },
     policy: {
       eyebrow: 'current policy',
-      title: 'Current policy snapshot'
+      title: 'Current policy snapshot',
     },
     comment: {
       eyebrow: 'comment protocol',
-      title: 'Comment protocol summary'
+      title: 'Comment protocol summary',
     },
     traces: {
       eyebrow: 'routing-route-decision',
       title: 'Routing decision history',
-      summary: 'Trace detail opens in a dialog and raw route evidence opens in a drawer.',
-      state: '{count} trace rows currently loaded'
+      summary:
+        'Trace detail opens in a dialog and raw route evidence opens in a drawer.',
+      state: '{count} trace rows currently loaded',
     },
     detail: {
       dialogTitle: 'Routing decision detail',
-      historyState: '{count} trace history rows currently loaded'
+      historyState: '{count} trace history rows currently loaded',
     },
-    rawDrawerTitle: 'Raw routing evidence'
+    rawDrawerTitle: 'Raw routing evidence',
   },
   recommendationCenter: {
     title: 'Recommendation Results',
-    summary: 'Review recommendation lists, sources, benefits, risks, recommended SQL, SQL diff, rule chains, and applicability conditions.',
+    summary:
+      'Review recommendation lists, sources, benefits, risks, recommended SQL, SQL diff, rule chains, and applicability conditions.',
     eyebrow: 'recommendation results',
     pageTitle: 'Recommendation Results',
-    boundarySummary: 'This page centers on recommendation results; manual review, dispatch, and trace evidence remain detail support while SQLForge does not execute recommended SQL or load data.',
+    boundarySummary:
+      'This page centers on recommendation results; manual review, dispatch, and trace evidence remain detail support while SQLForge does not execute recommended SQL or load data.',
     filters: {
       eyebrow: 'recommendation filters',
-      title: 'Tenant and refresh'
+      title: 'Tenant and refresh',
     },
     sourceCategories: {
       query: 'Query',
       sqlParse: 'SQL parse',
       parseBatch: 'Batch parse',
-      reportBatch: 'Report import parse'
+      reportBatch: 'Report import parse',
     },
     actions: {
       refresh: 'Refresh recommendation results',
@@ -1021,11 +1196,11 @@ export default {
     list: {
       eyebrow: 'recommendation list',
       title: 'Recommendation list',
-      summary: '{count} recommendations for the current tenant'
+      summary: '{count} recommendations for the current tenant',
     },
     detail: {
       eyebrow: 'recommendation detail',
-      title: 'Benefit, risk, and SQL diff detail'
+      title: 'Benefit, risk, and SQL diff detail',
     },
     fields: {
       benefitLevel: 'benefit',
@@ -1096,32 +1271,39 @@ export default {
       rollbackSql: 'Rollback SQL',
       rewriteSql: 'MV query SQL',
       trigger: 'Trigger',
-      recommendedAction: 'Recommended action'
+      recommendedAction: 'Recommended action',
     },
     states: {
       selectRecommendation: 'Select a recommendation to inspect its detail.',
       loadingDetail: 'Loading recommendation detail…',
       emptyDetail: 'No recommendation is available to display yet.',
       emptyDiff: 'This recommendation has not returned SQL diff evidence yet.',
-      noDiffHunks: 'The original and recommended SQL text have no displayable difference.',
+      noDiffHunks:
+        'The original and recommended SQL text have no displayable difference.',
       noRuleEvidence: 'No rule evidence is available for this recommendation.',
       waitingCallback: 'Waiting for an external callback.',
       noRewriteRecord: 'This recommendation has no linked rewrite record.',
       readyForActivation: 'Rewrite record is ready for activation checks.',
-      runtimeActive: 'Runtime binding is ACTIVE, so automatic rewrite is active.',
+      runtimeActive:
+        'Runtime binding is ACTIVE, so automatic rewrite is active.',
       runtimePaused: 'Rewrite record is paused.',
       runtimeActionFailed: 'Runtime activation or pause action failed.',
       awaitingRewriteActivation: 'Waiting for rewrite activation.',
-      lifecycleActionApplied: 'Rewrite record action was submitted and refreshed from the backend.',
-      rewriteRecordCreated: 'Rewrite record created; it becomes active after activation and runtime binding ACTIVE.',
-      validationRunCreated: 'Validation run created and status refreshed from the backend.',
-      rewriteAutoApplyApproved: 'Rewrite record approved and auto-apply allowed.',
-      rewriteRecordCreateUnavailable: 'This recommendation is missing the original or recommended SQL required to create a rewrite record.',
+      lifecycleActionApplied:
+        'Rewrite record action was submitted and refreshed from the backend.',
+      rewriteRecordCreated:
+        'Rewrite record created; it becomes active after activation and runtime binding ACTIVE.',
+      validationRunCreated:
+        'Validation run created and status refreshed from the backend.',
+      rewriteAutoApplyApproved:
+        'Rewrite record approved and auto-apply allowed.',
+      rewriteRecordCreateUnavailable:
+        'This recommendation is missing the original or recommended SQL required to create a rewrite record.',
       materializedViewCreateReady: 'Ready to create real MV',
       materializedViewCreateUnavailable: 'This MV artifact is not creatable.',
       materializedViewCreateSubmitted: 'Real MV creation request submitted.',
       noRefusalReasons: 'No activation eligibility refusal reason is present.',
-      noValidationRuns: 'This rewrite record has no validation runs.'
+      noValidationRuns: 'This rewrite record has no validation runs.',
     },
     materializedViewCreate: {
       title: 'Real MV creation',
@@ -1138,7 +1320,7 @@ export default {
       rulesRisk: 'Rules and risk',
       dispatchContract: 'Dispatch contract',
       traceability: 'Traceability',
-      dispatchEvents: 'Dispatch events'
+      dispatchEvents: 'Dispatch events',
     },
     sections: {
       focusSummary: 'Result focus',
@@ -1153,7 +1335,7 @@ export default {
       accelerationArtifact: 'L2 acceleration artifact',
       alertLinkage: 'Alert linkage',
       activationEligibility: 'Activation eligibility reference',
-      validationRuns: 'Validation runs'
+      validationRuns: 'Validation runs',
     },
     artifact: {
       grain: 'Grain',
@@ -1180,108 +1362,124 @@ export default {
       typeEvidence: 'Type-specific evidence',
       reviewCode: 'Review code',
       reviewReason: 'Review reason',
-      evidenceRef: 'Evidence ref'
+      evidenceRef: 'Evidence ref',
     },
     reviewGuard: {
       eyebrow: 'manual review',
-      title: 'Review risk and diff evidence first'
+      title: 'Review risk and diff evidence first',
     },
     rewriteLifecycle: {
       eyebrow: 'rewrite activation',
       title: 'Activate and pause',
-      boundary: 'This section only calls real rewrite-record APIs. Automatic rewrite is active only after activation returns a runtime binding.'
+      boundary:
+        'This section only calls real rewrite-record APIs. Automatic rewrite is active only after activation returns a runtime binding.',
     },
     dispatch: {
-      boundary: 'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.'
-    }
+      boundary:
+        'The current collaboration boundary is fixed at coordinationMode=PULL_ONLY: external modules own real data loading, prewarm execution, and storage changes while SQLForge keeps recommendation plus dispatch callback evidence only.',
+    },
   },
   accessCenter: {
     title: 'Open Access',
-    summary: 'Review API, JDBC Agent, Java SDK, access strategies, and access-audit samples.',
+    summary:
+      'Review API, JDBC Agent, Java SDK, access strategies, and access-audit samples.',
     eyebrow: 'access workbench',
     pageTitle: 'Open access and audit samples',
-    boundarySummary: 'The default view shows the access-audit table, while channels, JDBC Agent, SDK, and policy boundaries move into tabs. Actions without write APIs remain explicit placeholders.',
+    boundarySummary:
+      'The default view shows the access-audit table, while channels, JDBC Agent, SDK, and policy boundaries move into tabs. Actions without write APIs remain explicit placeholders.',
     filters: {
       eyebrow: 'access filters',
-      title: 'Access scope and actions'
+      title: 'Access scope and actions',
     },
     fields: {
       accessChannel: 'Access channel',
       historyReport: 'History / Report',
-      mode: 'Mode'
+      mode: 'Mode',
     },
     actions: {
       refresh: 'Refresh access evidence',
       createStrategy: 'Create access strategy',
       editStrategy: 'Edit strategy',
-      boundaryHelp: 'Boundary help'
+      boundaryHelp: 'Boundary help',
     },
     tabs: {
       audit: 'Access audit',
       channels: 'Channels',
       jdbc: 'JDBC Agent',
       sdk: 'SDK / Client',
-      policy: 'Policy boundary'
+      policy: 'Policy boundary',
     },
     audit: {
       eyebrow: 'access audit sample',
       title: 'Access-audit samples',
-      summary: 'Render query-history accessChannel filter results in a table by default.',
-      boundary: 'The repository does not yet expose a dedicated frontend controller for `GET /api/governance/access-audit`, so this page currently renders audit samples through the query-history surface filtered by `accessChannel`.',
-      state: '{count} access-audit sample rows currently loaded'
+      summary:
+        'Render query-history accessChannel filter results in a table by default.',
+      boundary:
+        'The repository does not yet expose a dedicated frontend controller for `GET /api/governance/access-audit`, so this page currently renders audit samples through the query-history surface filtered by `accessChannel`.',
+      state: '{count} access-audit sample rows currently loaded',
     },
     channels: {
       eyebrow: 'access channels',
-      title: 'Access channels'
+      title: 'Access channels',
     },
     jdbc: {
-      state: '{count} JDBC Agent modes currently loaded'
+      state: '{count} JDBC Agent modes currently loaded',
     },
     detail: {
-      dialogTitle: 'Access audit detail'
+      dialogTitle: 'Access audit detail',
     },
     rawDrawerTitle: 'Raw access evidence',
     policy: {
-      dialogTitle: 'Access boundary guide'
-    }
+      dialogTitle: 'Access boundary guide',
+    },
   },
   acceleration: {
     title: 'SQL Parse',
-    summary: 'Focus on single-SQL parsing, structure/access results, and history traceability.',
+    summary:
+      'Focus on single-SQL parsing, structure/access results, and history traceability.',
     eyebrow: 'sql optimization SQL Parse',
     rewriteValidationTitle: 'SQL Rewrite Validation',
-    rewriteValidationSummary: 'Owns rewrite trials, candidate SQL, rule chains, diff, recommendation linkage, and validation-run evidence.',
+    rewriteValidationSummary:
+      'Owns rewrite trials, candidate SQL, rule chains, diff, recommendation linkage, and validation-run evidence.',
     rewriteValidationEyebrow: 'sql optimization Rewrite Validation',
-    rewriteValidationBoundary: 'This entry shows trial-validation evidence only; recommendation governance belongs to Recommendation Results / Rewrite Records, and real production rewrite history must come from SQL execution-history audit fields.'
+    rewriteValidationBoundary:
+      'This entry shows trial-validation evidence only; recommendation governance belongs to Recommendation Results / Rewrite Records, and real production rewrite history must come from SQL execution-history audit fields.',
   },
   rewriteValidation: {
     title: 'SQL Rewrite Validation',
-    summary: 'Submit one SQL statement to the rewrite trial task, then inspect candidate SQL, rule chains, risks, diff, recommendation links, rewrite records, and validation runs.',
+    summary:
+      'Submit one SQL statement to the rewrite trial task, then inspect candidate SQL, rule chains, risks, diff, recommendation links, rewrite records, and validation runs.',
     eyebrow: 'rewrite trial workbench',
-    boundary: 'This page only creates trial evidence, recommendation linkage, rewrite-record drafts, and read-only validation-run evidence. It never marks production auto-rewrite as happened and never bypasses activation gates.',
+    boundary:
+      'This page only creates trial evidence, recommendation linkage, rewrite-record drafts, and read-only validation-run evidence. It never marks production auto-rewrite as happened and never bypasses activation gates.',
     defaults: {
-      validationReason: 'Static trial from rewrite validation page'
+      validationReason: 'Static trial from rewrite validation page',
     },
     sections: {
       inputKicker: 'rewrite input',
       inputTitle: 'Validation input',
-      inputSummary: 'Provide original SQL, source evidence, and issue scenes. The backend REWRITE optimization task generates the candidate rewrite.',
+      inputSummary:
+        'Provide original SQL, source evidence, and issue scenes. The backend REWRITE optimization task generates the candidate rewrite.',
       resultKicker: 'rewrite result',
       resultTitle: 'Trial result',
-      resultSummary: 'Readable conclusions, candidate SQL, rule chains, and risks are shown first. Raw JSON is available only in the evidence drawer.',
+      resultSummary:
+        'Readable conclusions, candidate SQL, rule chains, and risks are shown first. Raw JSON is available only in the evidence drawer.',
       suggestionTitle: 'Suggestion summary',
       coreRecommendationTitle: 'Core recommendation check',
-      coreRecommendationSummary: 'Shows final recommendation status, algorithm-chain status, and whether the candidate SQL matches growth-report rewrite shapes.',
+      coreRecommendationSummary:
+        'Shows final recommendation status, algorithm-chain status, and whether the candidate SQL matches growth-report rewrite shapes.',
       diffTitle: 'SQL diff',
       ruleRiskTitle: 'Rule chain and risks',
       parseEvidenceTitle: 'Parse evidence',
       recommendationKicker: 'recommendation linkage',
       recommendationTitle: 'Recommendation links',
-      recommendationSummary: 'Load recommendations by source ID. If the backend persisted a recommendation from the rewrite task, open its detail directly.',
+      recommendationSummary:
+        'Load recommendations by source ID. If the backend persisted a recommendation from the rewrite task, open its detail directly.',
       validationKicker: 'validation run',
       validationTitle: 'Rewrite-record revalidation',
-      validationSummary: 'Create a validation run for the rewrite record while keeping static-trial or read-only digest evidence separate from frontend equivalence claims.',
-      rawEvidenceTitle: 'Raw evidence'
+      validationSummary:
+        'Create a validation run for the rewrite record while keeping static-trial or read-only digest evidence separate from frontend equivalence claims.',
+      rawEvidenceTitle: 'Raw evidence',
     },
     fields: {
       tenantId: 'Tenant',
@@ -1334,7 +1532,7 @@ export default {
       validationReason: 'Validation reason',
       validationRunId: 'Validation run ID',
       validationRunStatus: 'Run status',
-      autoApplyPaused: 'Auto apply paused'
+      autoApplyPaused: 'Auto apply paused',
     },
     actions: {
       runRewriteValidation: 'Generate rewrite trial',
@@ -1349,23 +1547,27 @@ export default {
       viewRawEvidence: 'View raw evidence',
       copy: 'Copy',
       format: 'Format',
-      reset: 'Clear result'
+      reset: 'Clear result',
     },
     messages: {
-      emptyResult: 'After submitting a rewrite trial, task state, recommended SQL, rule chain, risks, and parse evidence appear here.',
-      noRuleApplied: 'The task returned no applied rule. The result can still be used as manual-review evidence.',
+      emptyResult:
+        'After submitting a rewrite trial, task state, recommended SQL, rule chain, risks, and parse evidence appear here.',
+      noRuleApplied:
+        'The task returned no applied rule. The result can still be used as manual-review evidence.',
       noRisk: 'The task returned no risk item.',
-      noRecommendation: 'No recommendation was loaded for this source yet. For a manual trial, create a rewrite-record draft first.',
+      noRecommendation:
+        'No recommendation was loaded for this source yet. For a manual trial, create a rewrite-record draft first.',
       noValidationRun: 'No validation run exists for this rewrite record.',
       taskSucceeded: 'Rewrite trial completed.',
       recordCreated: 'Rewrite-record draft created.',
       validationRunCreated: 'Validation run created.',
-      backendFingerprint: 'Generated by the backend task carrier when not entered explicitly',
+      backendFingerprint:
+        'Generated by the backend task carrier when not entered explicitly',
       ruleFromTrace: 'From backend REWRITE_RULE_TRACE artifact',
       shapePass: 'Matched',
       shapeReview: 'Review',
       shapeTokenMissing: '{token} not found',
-      noGroupingSetsDetected: 'GROUPING SETS not found'
+      noGroupingSetsDetected: 'GROUPING SETS not found',
     },
     shapeChecks: {
       rawCustomerSnapshot: 'Raw customer snapshot CTE',
@@ -1374,38 +1576,50 @@ export default {
       metricByOrg: 'Metric by org',
       growthByOrg: 'Growth by org',
       unionAll: 'Cross-level UNION ALL',
-      noGroupingSets: 'Avoid GROUPING SETS'
-    }
+      noGroupingSets: 'Avoid GROUPING SETS',
+    },
   },
   system: {
     title: 'System Management',
-    summary: 'Inspect and manage datasources, report interfaces, Redis rule sources, Dispatch policies, and system evidence.'
+    summary:
+      'Inspect and manage datasources, report interfaces, Redis rule sources, Dispatch policies, and system evidence.',
   },
   inline: {
     viewsAccessCenterAccessCenterView: {
       text001: 'Page entry',
       text002: 'Frontend console and browser-launched queries.',
       text003: 'Protected HTTP API baseline.',
-      text004: 'Supports Observe / Governed Execute / Local Rewrite + Direct JDBC.',
+      text004:
+        'Supports Observe / Governed Execute / Local Rewrite + Direct JDBC.',
       text005: 'Typed client + retry + access audit.',
-      text006: 'Vocabulary is preserved without claiming a separate client SDK is fully rolled out.',
-      text007: 'Default mode; captures SQL, comment, and query-date evidence without taking over execution.',
-      text008: 'Executes SQL through the platform API and preserves direct-JDBC fallback semantics according to fallbackStrategy.',
-      text009: 'Performs lightweight local rewrite and routing before direct JDBC; rewrite failures must not silently mutate SQL.',
-      text010: 'Rule-source endpoints are configurable without claiming external Redis is the default fact.',
+      text006:
+        'Vocabulary is preserved without claiming a separate client SDK is fully rolled out.',
+      text007:
+        'Default mode; captures SQL, comment, and query-date evidence without taking over execution.',
+      text008:
+        'Executes SQL through the platform API and preserves direct-JDBC fallback semantics according to fallbackStrategy.',
+      text009:
+        'Performs lightweight local rewrite and routing before direct JDBC; rewrite failures must not silently mutate SQL.',
+      text010:
+        'Rule-source endpoints are configurable without claiming external Redis is the default fact.',
       text011: 'Required runtime configuration',
       text012: 'Audit write',
       text013: 'Writes access-audit summaries on both success and failure.',
       text014: 'Success summary',
-      text015: 'Persists routeProfile and executionMode in the success summary.',
+      text015:
+        'Persists routeProfile and executionMode in the success summary.',
       text016: 'Create access strategy is not writable yet',
       text017: 'Create access strategy',
-      text018: 'The repository currently exposes only query-history evidence and channel guidance for the access page, without a writable access-strategy API.',
-      text019: 'Add a backend policy-write API and audit contract before enabling a real create flow.',
+      text018:
+        'The repository currently exposes only query-history evidence and channel guidance for the access page, without a writable access-strategy API.',
+      text019:
+        'Add a backend policy-write API and audit contract before enabling a real create flow.',
       text020: 'Edit access strategy is not writable yet',
       text021: 'Edit access strategy',
-      text022: 'This page remains an evidence-first access surface and has no backend destination for submitted strategy updates.',
-      text023: 'Connect forms and row-level editing here only after a writable API is introduced.'
+      text022:
+        'This page remains an evidence-first access surface and has no backend destination for submitted strategy updates.',
+      text023:
+        'Connect forms and row-level editing here only after a writable API is introduced.',
     },
     viewsAssetCatalogAssetCatalogView: {
       text001: 'Datasources',
@@ -1451,7 +1665,8 @@ export default {
       text041: 'Freshness',
       text042: 'Queryability',
       text043: 'Evidence',
-      text044: 'A proxy derived from upstream/downstream counts, snapshot coverage, and queryable state rather than live runtime heat.',
+      text044:
+        'A proxy derived from upstream/downstream counts, snapshot coverage, and queryable state rather than live runtime heat.',
       text045: 'Freshness',
       text046: 'metadata snapshot aggregate',
       text047: 'metadata snapshot aggregate',
@@ -1460,67 +1675,88 @@ export default {
       text050: 'Upstream lineage',
       text051: 'Downstream lineage',
       text052: 'Physical targets',
-      text053: 'Dependencies'
+      text053: 'Dependencies',
     },
     viewsBenchmarkBenchmarkView: {
       text001: 'Baseline snapshot template',
       text002: 'Capture a stable baseline for later regression tasks.',
       text003: 'Single SQL / readonly / shadow required',
-      text004: 'A repo-side task preset rather than a dedicated template-management API.',
+      text004:
+        'A repo-side task preset rather than a dedicated template-management API.',
       text005: 'Dual-engine comparison template',
-      text006: 'Compare HETU and HIVE metrics to support routing and recommendation evidence.',
+      text006:
+        'Compare HETU and HIVE metrics to support routing and recommendation evidence.',
       text007: 'Cross-engine comparison / readonly / medium concurrency',
-      text008: 'Templates are organized as task presets on this page without claiming backend template CRUD exists.',
+      text008:
+        'Templates are organized as task presets on this page without claiming backend template CRUD exists.',
       text009: 'Regression guard template',
-      text010: 'Focus on p99 latency and scan volume to produce a release-gate verdict.',
+      text010:
+        'Focus on p99 latency and scan volume to produce a release-gate verdict.',
       text011: 'Regression validation / threshold gate / readonly',
-      text012: 'Used to render the regression mode without pretending test-set management is already persisted.',
+      text012:
+        'Used to render the regression mode without pretending test-set management is already persisted.',
       text013: 'Routing comparison set',
-      text014: 'A comparison-driven sample set reused by route-governance and recommendation pages.',
+      text014:
+        'A comparison-driven sample set reused by route-governance and recommendation pages.',
       text015: 'Baseline capture set',
-      text016: 'Carried as repo-side task presets instead of claiming a dedicated test-set API already exists.',
+      text016:
+        'Carried as repo-side task presets instead of claiming a dedicated test-set API already exists.',
       text017: 'Regression gate set',
-      text018: 'Focuses on threshold verdicts, recommendations, and regression blocking.',
+      text018:
+        'Focuses on threshold verdicts, recommendations, and regression blocking.',
       text019: 'Task type',
       text020: 'Current phase',
       text021: 'Progress',
       text022: 'Queue mode',
-      text023: 'Shadow environment'
+      text023: 'Shadow environment',
     },
     viewsDashboardDashboardView: {
       text001: 'Current API / window sample',
       text002: 'Recent query window',
-      text003: 'Taken from the current query-history page window; success rate is window-based only.',
+      text003:
+        'Taken from the current query-history page window; success rate is window-based only.',
       text004: 'Parse overview sample',
       text005: 'Taken from parse-statistics overview, not full-tenant history.',
       text006: 'Parse-history window',
-      text007: 'Taken from the current parse-history page sample for recent parse summary only.',
+      text007:
+        'Taken from the current parse-history page sample for recent parse summary only.',
       text008: 'Important / urgent SQL',
-      text009: 'From important-urgent aggregation; the frontend does not recalculate priority.',
+      text009:
+        'From important-urgent aggregation; the frontend does not recalculate priority.',
       text010: 'Recommendation result sample',
-      text011: 'Current visible recommendation count is known; adoption rate still lacks a dedicated backend aggregate.',
+      text011:
+        'Current visible recommendation count is known; adoption rate still lacks a dedicated backend aggregate.',
       text012: 'Rewrite-record sample',
-      text013: 'Taken from the current rewrite-records response and focused on activation, paused, and validation status.',
+      text013:
+        'Taken from the current rewrite-records response and focused on activation, paused, and validation status.',
       text014: 'SQL Query Analysis',
-      text015: 'Go from SQL input to execution, Explain, route summary, and result evidence.',
+      text015:
+        'Go from SQL input to execution, Explain, route summary, and result evidence.',
       text016: 'SQL History Query',
-      text017: 'Review execution history, original SQL, template SQL, bound SQL, and linked evidence.',
+      text017:
+        'Review execution history, original SQL, template SQL, bound SQL, and linked evidence.',
       text018: 'SQL Parse',
-      text019: 'Open single-SQL structure parse, access parse, issue scene, and recommended action.',
+      text019:
+        'Open single-SQL structure parse, access parse, issue scene, and recommended action.',
       text020: 'Parse History',
-      text021: 'Query parse history, batch history, report parse history, and failure reasons.',
+      text021:
+        'Query parse history, batch history, report parse history, and failure reasons.',
       text022: 'Recommendation Results',
-      text023: 'Review source, benefit, risk, recommended SQL, SQL diff, and rule chain.',
+      text023:
+        'Review source, benefit, risk, recommended SQL, SQL diff, and rule chain.',
       text024: 'Rewrite Records and History',
-      text025: 'View rewrite records created by recommendations or humans, plus validation runs and lifecycle evidence.',
+      text025:
+        'View rewrite records created by recommendations or humans, plus validation runs and lifecycle evidence.',
       text026: 'PULL_ONLY coordination',
-      text027: 'Keeps showing the backend-returned or default coordination mode without pretending active push exists.',
+      text027:
+        'Keeps showing the backend-returned or default coordination mode without pretending active push exists.',
       text028: 'View recommendations',
       text029: 'Access-channel sample',
       text030: 'Inspect history sample',
       text031: 'Route-engine sample',
       text032: 'Governance message boundary',
-      text033: 'Message stats stay as auxiliary evidence and do not define the homepage core task queue.',
+      text033:
+        'Message stats stay as auxiliary evidence and do not define the homepage core task queue.',
       text034: 'Open system management',
       text035: 'Review failed queries',
       text036: 'Inspect parse failures',
@@ -1528,7 +1764,8 @@ export default {
       text038: 'Check rewrite records',
       text039: 'Drill into important / urgent SQL',
       text040: 'No current core tasks',
-      text041: 'The current API window has no query failures, parse failures, high-risk recommendations, or rewrite-record attention items.',
+      text041:
+        'The current API window has no query failures, parse failures, high-risk recommendations, or rewrite-record attention items.',
       text042: 'Query history',
       text043: 'Parse history',
       text044: 'Recommendation result',
@@ -1536,7 +1773,8 @@ export default {
       text046: 'View',
       text047: 'Handle',
       text048: 'The current issue-distribution sample is empty.',
-      text049: 'The current query, parse, recommendation, and rewrite activity sample is empty.',
+      text049:
+        'The current query, parse, recommendation, and rewrite activity sample is empty.',
       text050: 'Unused',
       text051: 'Unused',
       text052: 'Unused',
@@ -1551,7 +1789,7 @@ export default {
       text061: 'Unused',
       text062: 'Open',
       text063: 'Open',
-      text064: 'Open'
+      text064: 'Open',
     },
     viewsOptimizationAccelerationView: {
       text001: 'Parse task',
@@ -1638,30 +1876,40 @@ export default {
       text082: 'Priority',
       text083: 'sessions',
       text084: 'batches',
-      text085: 'Unique parse task identifier for status refresh and history tracing.',
-      text086: 'SQL fingerprint identifies structurally identical or similar SQL.',
+      text085:
+        'Unique parse task identifier for status refresh and history tracing.',
+      text086:
+        'SQL fingerprint identifies structurally identical or similar SQL.',
       text087: 'Syntax status. VALID means structure parsing passed.',
       text088: 'Complexity level for SQL review and governance cost.',
       text089: 'SQL type, such as SELECT, INSERT, or another statement kind.',
-      text090: 'Priority level. P1 is the highest priority and is highlighted red.',
+      text090:
+        'Priority level. P1 is the highest priority and is highlighted red.',
       text091: 'Priority score. Higher scores need earlier handling.',
       text092: 'Whether the result is urgent. True is highlighted red.',
       text093: 'Whether the result is important for governance attention.',
       text094: 'Parser identifies the current parsing engine.',
       text095: 'Scan mode describes how the SQL reads data.',
       text096: 'Join type describes the main table-join pattern.',
-      text097: 'Compute density reflects expression, aggregation, or window-function weight.',
+      text097:
+        'Compute density reflects expression, aggregation, or window-function weight.',
       text098: 'SLA means service level objective for timeliness.',
       text099: 'Service status shows whether Access Parse is available.',
-      text100: 'Connection status shows whether datasource connectivity succeeded.',
-      text101: 'Object resolution status shows whether tables or views were resolved.',
-      text102: 'Compatibility status shows whether SQL matches the target engine.',
+      text100:
+        'Connection status shows whether datasource connectivity succeeded.',
+      text101:
+        'Object resolution status shows whether tables or views were resolved.',
+      text102:
+        'Compatibility status shows whether SQL matches the target engine.',
       text103: 'Bind parameters',
       text104: 'Comment context',
-      text105: 'This result contains structure-parse evidence only and did not trigger access parse.',
-      text106: 'Enable access parse and rerun the combined flow when reachability and connection evidence are required.',
+      text105:
+        'This result contains structure-parse evidence only and did not trigger access parse.',
+      text106:
+        'Enable access parse and rerun the combined flow when reachability and connection evidence are required.',
       text107: 'Structure parse returned synchronously.',
-      text108: 'Create a batch first so the template-column contract can be downloaded.',
+      text108:
+        'Create a batch first so the template-column contract can be downloaded.',
       text109: 'Create a parse batch first.',
       text110: 'Upload a file or provide inline batch content.',
       text111: 'Select a parse batch first.',
@@ -1686,13 +1934,16 @@ export default {
       text130: 'Refresh status',
       text131: 'Reset result',
       text132: 'Quick tip',
-      text133: 'Leave datasourceCode blank to surface a structure-success plus access-unavailable partial-success result; include fail or unavailable in the datasource code to trigger connection-failed or service-unavailable paths.',
+      text133:
+        'Leave datasourceCode blank to surface a structure-success plus access-unavailable partial-success result; include fail or unavailable in the datasource code to trigger connection-failed or service-unavailable paths.',
       text134: 'Parse result',
-      text135: 'Result note: structure parsing, overall verdict, risk judgment, and rule hits.',
+      text135:
+        'Result note: structure parsing, overall verdict, risk judgment, and rule hits.',
       text136: 'Raw parse evidence',
       text137: 'View long evidence',
       text138: 'Open parse history',
-      text139: 'Enter one SQL statement above to run a structure-only preview or a combined parse with structure, access, and the overall verdict.',
+      text139:
+        'Enter one SQL statement above to run a structure-only preview or a combined parse with structure, access, and the overall verdict.',
       text140: 'Parse result note',
       text141: 'Structure parse card',
       text142: 'No structure-parse result yet.',
@@ -1723,13 +1974,15 @@ export default {
       text167: 'Copy',
       text168: 'Access parse card',
       text169: 'Not run',
-      text170: 'Structure-only mode does not generate access-parse output; combined mode schedules it after structure success.',
+      text170:
+        'Structure-only mode does not generate access-parse output; combined mode schedules it after structure success.',
       text171: 'Plan summary',
       text172: 'Availability warning',
       text173: 'Combined state history',
       text174: 'Batch parsing dialog',
       text175: 'Create batches, ingest content, and inspect results',
-      text176: 'Batch parsing is exposed again as an explicit secondary entry while creation, import, retries, and report ingestion still stay in one workspace.',
+      text176:
+        'Batch parsing is exposed again as an explicit secondary entry while creation, import, retries, and report ingestion still stay in one workspace.',
       text177: 'Filters + results + drawers',
       text178: 'Parse batches',
       text179: 'Batch creation, import, and recovery',
@@ -1749,10 +2002,12 @@ export default {
       text193: 'Copy',
       text194: 'No failure records in the current batch.',
       text195: 'No parse batch selected',
-      text196: 'Create a batch first, then import multi-SQL text or template files through dialogs.',
+      text196:
+        'Create a batch first, then import multi-SQL text or template files through dialogs.',
       text197: 'Report catalog import',
       text198: 'Report catalog import and SQL resolution',
-      text199: 'Secondary detail stays inside drawers instead of opening a separate page.',
+      text199:
+        'Secondary detail stays inside drawers instead of opening a separate page.',
       text200: 'Import report batch',
       text201: 'Refresh detail',
       text202: 'Resolve report SQLs',
@@ -1762,7 +2017,8 @@ export default {
       text206: 'Open detail drawer',
       text207: 'Imported report items appear here.',
       text208: 'No report batch selected',
-      text209: 'Use the import dialog to upload the report catalog, then review evidence in the detail drawer.',
+      text209:
+        'Use the import dialog to upload the report catalog, then review evidence in the detail drawer.',
       text210: 'Create parse batch',
       text211: 'Tenant',
       text212: 'Batch name',
@@ -1799,16 +2055,18 @@ export default {
       text243: 'Raw evidence',
       text244: 'Field help',
       text245: 'Close',
-      text246: 'Open recommendation results'
+      text246: 'Open recommendation results',
     },
     viewsParseBatchParseBatchCenterView: {
       text001: 'Batch filters',
       text002: 'Create batches, ingest content, and inspect results',
-      text003: 'The first screen stays focused on batch entry points and the current result stage. Templates, imports, and details move into dialogs or drawers.',
+      text003:
+        'The first screen stays focused on batch entry points and the current result stage. Templates, imports, and details move into dialogs or drawers.',
       text004: 'Filters + results + drawers',
       text005: 'Parse batches',
       text006: 'Current parse batch',
-      text007: 'The page body only shows the current batch overview, parse results, and statistics. Create and ingest parameters stay in dialogs.',
+      text007:
+        'The page body only shows the current batch overview, parse results, and statistics. Create and ingest parameters stay in dialogs.',
       text008: 'Batch template',
       text009: 'Create batch',
       text010: 'Ingest content',
@@ -1819,10 +2077,12 @@ export default {
       text015: 'Parse results',
       text016: 'Parse statistics',
       text017: 'No parse batch selected',
-      text018: 'Use Create batch first, then Ingest content to upload a template file or paste multiple SQL statements.',
+      text018:
+        'Use Create batch first, then Ingest content to upload a template file or paste multiple SQL statements.',
       text019: 'Report catalog import',
       text020: 'Current report import batch',
-      text021: 'Report imports are grouped by report_code. Import parameters stay in the dialog, while the first screen keeps the batch overview and result entry points.',
+      text021:
+        'Report imports are grouped by report_code. Import parameters stay in the dialog, while the first screen keeps the batch overview and result entry points.',
       text022: 'Wide template',
       text023: 'Import report batch',
       text024: 'Refresh detail',
@@ -1836,7 +2096,8 @@ export default {
       text032: 'View this report SQL detail',
       text033: 'Imported report and SQL overview appears here.',
       text034: 'No report batch selected',
-      text035: 'Use Import report batch to upload a file or paste a report_code + multi-SQL wide table.',
+      text035:
+        'Use Import report batch to upload a file or paste a report_code + multi-SQL wide table.',
       text036: 'Create parse batch',
       text037: 'Tenant',
       text038: 'Batch name',
@@ -1858,13 +2119,15 @@ export default {
       text054: 'Cancel',
       text055: 'Confirm import',
       text056: 'Template-column contract and preview',
-      text057: 'Create a batch first so the template-column contract can be downloaded.',
+      text057:
+        'Create a batch first so the template-column contract can be downloaded.',
       text058: 'Template preview',
       text059: 'Copy',
       text060: 'Close',
       text061: 'Download template',
       text062: 'Wide table template',
-      text063: 'Each row is one report. report_code is the grouping key, while sql_1, sql_2, and later columns hold SQL rows under the same report; empty cells are ignored.',
+      text063:
+        'Each row is one report. report_code is the grouping key, while sql_1, sql_2, and later columns hold SQL rows under the same report; empty cells are ignored.',
       text064: 'Wide template preview',
       text065: 'Copy',
       text066: 'Close',
@@ -1907,7 +2170,8 @@ export default {
       text103: 'Default datasource',
       text104: 'Priority',
       text105: 'Upload file',
-      text106: 'File type is auto-detected from the filename and payload content.',
+      text106:
+        'File type is auto-detected from the filename and payload content.',
       text107: 'Inline report catalog',
       text108: 'Copy',
       text109: 'Format',
@@ -1970,7 +2234,7 @@ export default {
       text166: 'Field help',
       text167: 'Close',
       text168: 'Select report batch',
-      text169: 'Select parse batch'
+      text169: 'Select parse batch',
     },
     viewsParseBatchUseParseBatchCenter: {
       text001: 'Batch status',
@@ -2010,7 +2274,8 @@ export default {
       text035: 'Current lifecycle status of the report-import batch.',
       text036: 'Number of distinct report codes in the batch.',
       text037: 'Total SQL rows in the batch; detail lists are paginated.',
-      text038: 'SQL rows whose structure parse and access state are acceptable.',
+      text038:
+        'SQL rows whose structure parse and access state are acceptable.',
       text039: 'SQL rows that did not fully resolve successfully.',
       text040: 'Environment stage used by report import or parsing.',
       text041: 'Governance priority for the batch or SQL row.',
@@ -2018,19 +2283,23 @@ export default {
       text043: 'Total issue hits across SQL rows.',
       text044: 'SQL rows marked important by issue scoring.',
       text045: 'SQL rows marked urgent by issue scoring.',
-      text046: 'SQL rows with valid structure but partial access or downstream signals.',
+      text046:
+        'SQL rows with valid structure but partial access or downstream signals.',
       text047: 'Ratio of currently loaded SQL rows with VALID syntax.',
-      text048: 'Ratio of currently loaded SQL rows with available and connected access parse.',
+      text048:
+        'Ratio of currently loaded SQL rows with available and connected access parse.',
       text049: 'Issue scenes detected by structure parsing.',
-      text050: 'Reports where multiple SQL rows match the conservative static merge-candidate rule.',
+      text050:
+        'Reports where multiple SQL rows match the conservative static merge-candidate rule.',
       text051: 'Logical objects such as tables or views found during parsing.',
       text052: 'No issue',
-      text053: 'Create a batch first so the template-column contract can be downloaded.',
+      text053:
+        'Create a batch first so the template-column contract can be downloaded.',
       text054: 'Create a parse batch first.',
       text055: 'Upload a file or provide inline batch content.',
       text056: 'Select a parse batch first.',
       text057: 'Upload a report catalog file or provide inline mock content.',
-      text058: 'Import a report batch first.'
+      text058: 'Import a report batch first.',
     },
     viewsParseRecordParseRecordBatchHistoryPane: {
       text001: 'Batch parse and report-import history',
@@ -2055,7 +2324,7 @@ export default {
       text020: 'Failed',
       text021: 'Created at',
       text022: 'Actions',
-      text023: 'Batch center'
+      text023: 'Batch center',
     },
     viewsParseRecordParseRecordEvidenceExportDialogs: {
       text001: 'Raw evidence',
@@ -2064,7 +2333,7 @@ export default {
       text004: 'Export reason',
       text005: 'Include trace detail',
       text006: 'Run export',
-      text007: 'Export summary'
+      text007: 'Export summary',
     },
     viewsParseRecordParseRecordFilterPanel: {
       text001: 'Tenant',
@@ -2095,7 +2364,7 @@ export default {
       text026: 'Report ID',
       text027: 'History classification',
       text028: 'Sort mode',
-      text029: 'Datasource options unavailable; manual value allowed'
+      text029: 'Datasource options unavailable; manual value allowed',
     },
     viewsParseRecordParseRecordHistoryDetailDialog: {
       text001: 'Open repair evidence',
@@ -2108,7 +2377,8 @@ export default {
       text008: 'Original SQL',
       text009: 'Copy',
       text010: 'Parse result and statistics',
-      text011: 'This record has no structured parse detail; raw evidence is still available.',
+      text011:
+        'This record has no structured parse detail; raw evidence is still available.',
       text012: 'Structure parse card',
       text013: 'Query intent labels',
       text014: 'Feature dimensions',
@@ -2132,7 +2402,7 @@ export default {
       text032: 'Service',
       text033: 'Operation',
       text034: 'Status',
-      text035: 'Created at'
+      text035: 'Created at',
     },
     viewsParseRecordParseRecordReportDetailDrawer: {
       text001: 'Report import detail',
@@ -2164,12 +2434,13 @@ export default {
       text027: 'Load parse detail',
       text028: 'Open parse detail dialog',
       text029: 'Load parse detail to show structured parse statistics.',
-      text030: 'Parse history is unavailable; this card shows report-batch SQL evidence only.',
+      text030:
+        'Parse history is unavailable; this card shows report-batch SQL evidence only.',
       text031: 'SQL detail appears after report SQL resolution.',
       text032: 'Loading scene detail',
       text033: 'Filter by report code',
       text034: 'Filter by logical object',
-      text035: 'Search detail'
+      text035: 'Search detail',
     },
     viewsParseRecordParseRecordReportSqlDetailDialog: {
       text001: 'SQL parse detail',
@@ -2180,7 +2451,7 @@ export default {
       text006: 'Failure position',
       text007: 'Suggested action',
       text008: 'Access parse card',
-      text009: 'Open full parse history'
+      text009: 'Open full parse history',
     },
     viewsParseRecordParseRecordSqlHistoryPane: {
       text001: 'SQL parse records',
@@ -2194,12 +2465,12 @@ export default {
       text009: 'Logical objects',
       text010: 'Parse task',
       text011: 'Target engine',
-      text012: 'Submitted at'
+      text012: 'Submitted at',
     },
     viewsParseRecordParseRecordView: {
       text001: 'Refresh list',
       text002: 'Indexed lookup',
-      text003: 'Clear filters'
+      text003: 'Clear filters',
     },
     viewsParseRecordUseParseRecordView: {
       text001: 'Parse history',
@@ -2382,7 +2653,7 @@ export default {
       text178: 'Freshness',
       text179: 'Compatibility',
       text180: 'No issue',
-      text181: 'Location pending'
+      text181: 'Location pending',
     },
     viewsParseStatisticsParseStatisticsCenterView: {
       text001: 'Total SQL',
@@ -2397,8 +2668,10 @@ export default {
       text010: 'Number of distinct issue scenes in this statistics scope.',
       text011: 'SQL rows marked important by scoring.',
       text012: 'SQL rows marked urgent by scoring.',
-      text013: 'The SQL list shows metadata and issue scenes; full SQL belongs in a dedicated SQL output area.',
-      text014: 'Issue location should use short matched snippets, failed tokens, or line/column data instead of full SQL.',
+      text013:
+        'The SQL list shows metadata and issue scenes; full SQL belongs in a dedicated SQL output area.',
+      text014:
+        'Issue location should use short matched snippets, failed tokens, or line/column data instead of full SQL.',
       text015: 'Tenant',
       text016: 'Refresh statistics',
       text017: 'Parse overview',
@@ -2440,7 +2713,7 @@ export default {
       text053: 'No SQL or report locator is available for this record.',
       text054: 'Raw JSON',
       text055: 'Field help',
-      text056: 'Close'
+      text056: 'Close',
     },
     viewsQuerySqlQueryView: {
       text001: 'No acceleration preference',
@@ -2467,9 +2740,11 @@ export default {
       text022: 'Keep the cached route',
       text023: 'Validate recommendation-center output',
       text024: 'Next step',
-      text025: 'Use the explain dialog or governance drawer for long-form evidence.',
+      text025:
+        'Use the explain dialog or governance drawer for long-form evidence.',
       text026: 'Input normalization',
-      text027: 'Generate bound SQL after annotations and parameter bindings are applied.',
+      text027:
+        'Generate bound SQL after annotations and parameter bindings are applied.',
       text028: 'Routing decision',
       text029: 'The route profile is populated after execution.',
       text030: 'Governance write-back',
@@ -2506,9 +2781,11 @@ export default {
       text061: 'Current execution summary',
       text062: 'Recent runs',
       text063: 'The last six runs are listed here after execution.',
-      text064: 'Rows, summary, lightweight analysis, routing, and recommendation',
+      text064:
+        'Rows, summary, lightweight analysis, routing, and recommendation',
       text065: 'Rows',
-      text066: 'The result table is the default landing state once execution completes.',
+      text066:
+        'The result table is the default landing state once execution completes.',
       text067: 'Execution summary',
       text068: 'Lightweight analysis',
       text069: 'Routing',
@@ -2538,8 +2815,10 @@ export default {
       text093: 'Tuning Suggestion',
       text094: 'Cache hit',
       text095: 'Risk Level',
-      text096: 'Query served from memory. No further tuning is strictly required.',
-      text097: 'Result cache bypass. Accelerated rewriting suggestions are calculated and eligible for runtime matching.',
+      text096:
+        'Query served from memory. No further tuning is strictly required.',
+      text097:
+        'Result cache bypass. Accelerated rewriting suggestions are calculated and eligible for runtime matching.',
       text098: 'YES',
       text099: 'NO',
       text100: 'SAFE',
@@ -2551,7 +2830,7 @@ export default {
       text106: 'Route profile',
       text107: 'Attempted modes',
       text108: 'No active parameters',
-      text109: 'Explorer'
+      text109: 'Explorer',
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: 'All',
@@ -2565,12 +2844,13 @@ export default {
       text009: 'Allowed statuses',
       text010: 'Allowed types',
       text011: 'Audit boundary',
-      text012: 'Residual owner'
+      text012: 'Residual owner',
     },
     viewsSystemSystemView: {
       text001: 'System management',
       text002: 'Datasources, interfaces, and runtime governance',
-      text003: 'Datasource management remains the default landing state, while create, edit, test, and retry actions are now visible in the same workspace.',
+      text003:
+        'Datasource management remains the default landing state, while create, edit, test, and retry actions are now visible in the same workspace.',
       text004: 'Tenant',
       text005: 'Refresh system evidence',
       text006: 'Retry failed messages',
@@ -2656,8 +2936,10 @@ export default {
       text086: 'Cancel',
       text087: 'Create policy',
       text088: 'System-management boundary guide',
-      text089: 'Redis rule sources keep config-evidence semantics while now supporting create and edit.',
-      text090: 'Dispatch policies support creation, but they are still not presented as browser-executed workflows and still lack an edit API.',
+      text089:
+        'Redis rule sources keep config-evidence semantics while now supporting create and edit.',
+      text090:
+        'Dispatch policies support creation, but they are still not presented as browser-executed workflows and still lack an edit API.',
       text091: 'Engine',
       text092: 'Version',
       text093: 'Driver class',
@@ -2675,14 +2957,77 @@ export default {
       text105: 'Create Trino JDBC',
       text106: 'JDBC drivers',
       text107: 'Uploaded driver inventory',
-      text108: 'Bind datasources to uploaded artifacts by artifactId and sha256.',
+      text108:
+        'Bind datasources to uploaded artifacts by artifactId and sha256.',
       text109: 'Inspect',
       text110: 'Driver file',
       text111: 'Choose .jar file',
       text112: 'No file selected',
       text113: 'Upload',
       text114: 'Clear file',
-      text115: 'Choose a JDBC driver .jar file before uploading.'
+      text115: 'Choose a JDBC driver .jar file before uploading.',
+      text116: 'Stage',
+      text117: 'timeoutMs',
+      text118: 'datasourceCode',
+      text119: 'endpointName',
+      text120: 'sourceType',
+      text121: 'httpMethod',
+      text122: 'reportCodeParamName',
+      text123: 'sqlJsonPath',
+      text124: 'sourceName',
+      text125: 'keyPattern',
+      text126: 'authMode',
+      text127: 'policyName',
+      text128: 'dispatchType',
+      text129: 'pullWindowSeconds',
+      text130: 'maxBatchSize',
+      text131: 'retryStrategy',
+      text132: 'Tenant context and runtime boundaries',
+      text133: 'Configuration-domain workspace',
+      text134:
+        'Filter datasources by engine and connection mode; create, edit, and test actions stay inside this workspace.',
+      text135: 'No matching datasources',
+      text136: 'Write boundary',
+      text137: 'Enabled state',
+      text138: 'No uploaded JDBC drivers',
+      text139:
+        'After uploading a driver, bind it from the datasource form by artifactId.',
+      text140:
+        'Create and edit interface configuration while base URLs stay masked in the list.',
+      text141: 'No report interfaces',
+      text142:
+        'Create and edit Redis rule sources while endpoints stay masked.',
+      text143: 'No Redis rule sources',
+      text144:
+        'Dispatch creation remains writable; editing still shows the explicit non-writable boundary.',
+      text145: 'No Dispatch policies',
+      text146: 'Tenant parameters',
+      text147: 'Access scope',
+      text148: 'Field',
+      text149: 'Value',
+      text150: 'driverSourceType',
+      text151: 'driverArtifactId',
+      text152: 'driverArtifactMeta',
+      text153: 'versionLabel',
+      text154: 'driverLoadStatus',
+      text155: 'driverSha256',
+      text156: 'username',
+      text157: 'apiBaseUrl',
+      text158: 'credentialRef',
+      text159: 'credentialSecret',
+      text160: 'credentialMode',
+      text161: 'tlsEnabled',
+      text162: 'verifyPeer',
+      text163: 'readonly',
+      text164: 'enabled',
+      text165: 'driverClassName',
+      text166: 'redisEndpoints',
+      text167: 'redisNamespace',
+      text168: 'credentialSource',
+      text169: 'bypassOnUnavailable',
+      text170: 'targetDatasource',
+      text171: 'jdbcUrl',
+      text172: 'jdbcDriverClassName',
     },
     viewsSystemUseSystemManagement: {
       text001: 'Datasources',
@@ -2692,17 +3037,36 @@ export default {
       text005: 'Pending backlog',
       text006: 'Failed messages',
       text007: 'Datasource boundary',
-      text008: 'Supports create, edit, detail, and test-connection while keeping raw credentials hidden.',
+      text008:
+        'Supports create, edit, detail, and test-connection while keeping raw credentials hidden.',
       text009: 'Report-interface boundary',
-      text010: 'Supports create and edit while keeping resolverStatus and unavailableReason evidence-first.',
+      text010:
+        'Supports create and edit while keeping resolverStatus and unavailableReason evidence-first.',
       text011: 'Redis rule-source boundary',
-      text012: 'Supports create and edit while preserving CONFIG_ONLY and SIMULATED_READY evidence semantics.',
+      text012:
+        'Supports create and edit while preserving CONFIG_ONLY and SIMULATED_READY evidence semantics.',
       text013: 'Dispatch boundary',
-      text014: 'The repository supports creating dispatch policies. Editing still lacks a write API, so the EXTERNAL_MODULE_REQUIRED execution boundary remains explicit.',
+      text014:
+        'The repository supports creating dispatch policies. Editing still lacks a write API, so the EXTERNAL_MODULE_REQUIRED execution boundary remains explicit.',
       text015: 'Edit dispatch policy is not writable yet',
-      text016: 'The current backend repository exposes only Dispatch-policy creation and does not provide a PUT or PATCH update endpoint.',
-      text017: 'Add a backend update contract before converting this action into a real editable form.'
-    }
+      text016:
+        'The current backend repository exposes only Dispatch-policy creation and does not provide a PUT or PATCH update endpoint.',
+      text017:
+        'Add a backend update contract before converting this action into a real editable form.',
+      text018: '{field} is required.',
+      text019: '{field} must be at least {min}.',
+      text020: 'Select driverArtifactId when using an uploaded artifact.',
+      text021: '{enabled}/{total} enabled',
+      text022: 'No configuration',
+      text023: 'All available',
+      text024: '{count} need attention',
+      text025: 'Message retry queue',
+      text026: 'Tenant evidence loaded',
+      text027: 'Disabled',
+      text028: 'Enabled',
+      text029: 'Writable',
+      text030: 'Read only',
+    },
   },
   navigation: {
     modules: {
@@ -2718,10 +3082,10 @@ export default {
       assets: 'Data Assets',
       benchmark: 'Benchmark Center',
       system: 'System Management',
-      access: 'Open Access'
+      access: 'Open Access',
     },
     sections: {
-      datasourcesInterfaces: 'Datasources and interfaces'
+      datasourcesInterfaces: 'Datasources and interfaces',
     },
     items: {
       dashboardHome: 'Core workflow overview',
@@ -2739,11 +3103,11 @@ export default {
       assetCatalog: 'Asset catalog',
       benchmarkWorkbench: 'Benchmark workbench',
       systemManagement: 'System management',
-      openAccess: 'Open access'
+      openAccess: 'Open access',
     },
     badges: {
       temporary: 'R&D',
-      reference: 'Reference'
-    }
-  }
+      reference: 'Reference',
+    },
+  },
 }

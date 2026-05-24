@@ -27,18 +27,6 @@ _No tasks._
 - Progress log:
   - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
 
-### USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524: 实现租户与默认备用引擎前端统一维护入口
-
-- Status: in_progress
-- Priority: 1
-- Depends on: USER-CN-TENANT-CONFIG-BACKEND-API-20260524
-- Scope: src/App.vue,src/stores,src/services,src/locales
-- Validation:
-  - `python3 scripts/foreman.py validate USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524`
-- Progress log:
-  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
-  - 2026-05-24: 已在 App 顶部补租户、默认引擎、备用引擎统一维护控件；runtime API 与 Pinia tenant store 已接入 options/get/put 后端契约。
-
 
 ## In Review
 
