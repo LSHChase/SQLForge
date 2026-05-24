@@ -1,12 +1,17 @@
 package com.company.sqloptimization.application.controller;
 
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateResponse;
+import com.company.sqloptimization.application.controller.dto.MaterializedViewCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationPageVO;
 import com.company.sqloptimization.application.service.AccelerationRecommendationApplicationService;
+import com.company.sqloptimization.application.service.MaterializedViewCreateApplicationService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,9 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccelerationRecommendationController {
 
     private final AccelerationRecommendationApplicationService recommendationApplicationService;
+    private final MaterializedViewCreateApplicationService materializedViewCreateApplicationService;
 
-    public AccelerationRecommendationController(AccelerationRecommendationApplicationService recommendationApplicationService) {
+    public AccelerationRecommendationController(AccelerationRecommendationApplicationService recommendationApplicationService,
+                                                MaterializedViewCreateApplicationService materializedViewCreateApplicationService) {
         this.recommendationApplicationService = recommendationApplicationService;
+        this.materializedViewCreateApplicationService = materializedViewCreateApplicationService;
     }
 
     @GetMapping
@@ -76,5 +84,13 @@ public class AccelerationRecommendationController {
     @GetMapping("/{recommendationId}/diff")
     public RecommendationDiffVO getRecommendationDiff(@PathVariable("recommendationId") String recommendationId) {
         return recommendationApplicationService.getRecommendationDiff(recommendationId);
+    }
+
+    @PostMapping("/{recommendationId}/materialized-view/create")
+    public QueryExecutionMaterializedViewCreateResponse createMaterializedView(
+        @PathVariable("recommendationId") String recommendationId,
+        @RequestBody MaterializedViewCreateRequest request
+    ) {
+        return materializedViewCreateApplicationService.create(recommendationId, request);
     }
 }

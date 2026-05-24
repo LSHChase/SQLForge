@@ -3,15 +3,18 @@ package com.company.sqloptimization.application.controller;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.sqlforge.common.config.AuthSourceConstants;
 import com.company.sqlforge.common.config.RequestHeaderConstants;
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateResponse;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationDiffVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationPageVO;
 import com.company.sqloptimization.application.service.AccelerationRecommendationApplicationService;
+import com.company.sqloptimization.application.service.MaterializedViewCreateApplicationService;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -30,6 +34,9 @@ class AccelerationRecommendationControllerTest {
 
     @MockBean
     private AccelerationRecommendationApplicationService recommendationApplicationService;
+
+    @MockBean
+    private MaterializedViewCreateApplicationService materializedViewCreateApplicationService;
 
     @Test
     void shouldExposeRecommendationListAndDetailEndpoints() throws Exception {
@@ -174,6 +181,34 @@ class AccelerationRecommendationControllerTest {
             .andExpect(jsonPath("$.hasMore").value(true));
     }
 
+    @Test
+    void shouldExposeMaterializedViewCreateEndpoint() throws Exception {
+        QueryExecutionMaterializedViewCreateResponse response = new QueryExecutionMaterializedViewCreateResponse();
+        response.setRecommendationId("rec-001");
+        response.setRewriteRecordId("rewrite-001");
+        response.setMvName("mv_orders_customer");
+        response.setTargetEngine("HETU");
+        response.setTargetDatasource("hetu_main");
+        response.setStatus("SUCCESS");
+        response.setDdlStatus("SUCCESS");
+        response.setRefreshStatus("SUCCESS");
+        response.setRuntimeSummary("物化视图 DDL 与 refresh 已执行成功。");
+        response.setRuntimeDetailsJson("{\"status\":\"SUCCESS\"}");
+        when(materializedViewCreateApplicationService.create(eq("rec-001"), org.mockito.ArgumentMatchers.any()))
+            .thenReturn(response);
+
+        mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/recommendations/rec-001/materialized-view/create"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"rewriteRecordId\":\"rewrite-001\",\"reason\":\"manual consent\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.recommendationId").value("rec-001"))
+            .andExpect(jsonPath("$.rewriteRecordId").value("rewrite-001"))
+            .andExpect(jsonPath("$.mvName").value("mv_orders_customer"))
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.ddlStatus").value("SUCCESS"))
+            .andExpect(jsonPath("$.refreshStatus").value("SUCCESS"));
+    }
+
     private MockHttpServletRequestBuilder addProtectedHeaders(MockHttpServletRequestBuilder builder) {
         long now = System.currentTimeMillis();
         return builder
@@ -202,6 +237,7 @@ class AccelerationRecommendationControllerTest {
 
     private Map<String, Object> artifact() {
         Map<String, Object> artifact = new LinkedHashMap<String, Object>();
+        artifact.put("rule", "PRECOMPUTE_MV");
         artifact.put("mvType", "PREJOIN_MV");
         artifact.put("artifactStatus", "REVIEW_REQUIRED");
         artifact.put("grain", Collections.singletonList("customer_id"));

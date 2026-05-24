@@ -1013,6 +1013,7 @@ export default {
       createRewriteRecordAndReview: 'Create rewrite record',
       createValidationRun: 'Create validation run',
       approveAutoApply: 'Approve auto-apply',
+      createMaterializedView: 'Create real MV',
       openRewriteReview: 'Open rewrite activation',
       activateRewrite: 'Activate',
       pauseRewrite: 'Pause',
@@ -1070,6 +1071,9 @@ export default {
       policyId: 'Policy ID',
       actionReason: 'Action reason',
       status: 'Status',
+      ddlStatus: 'DDL status',
+      refreshStatus: 'Refresh status',
+      runtimeSummary: 'Runtime summary',
       validationRunId: 'Validation run ID',
       comparisonStatus: 'Comparison status',
       differenceType: 'Difference type',
@@ -1113,8 +1117,18 @@ export default {
       validationRunCreated: 'Validation run created and status refreshed from the backend.',
       rewriteAutoApplyApproved: 'Rewrite record approved and auto-apply allowed.',
       rewriteRecordCreateUnavailable: 'This recommendation is missing the original or recommended SQL required to create a rewrite record.',
+      materializedViewCreateReady: 'Ready to create real MV',
+      materializedViewCreateUnavailable: 'This MV artifact is not creatable.',
+      materializedViewCreateSubmitted: 'Real MV creation request submitted.',
       noRefusalReasons: 'No activation eligibility refusal reason is present.',
       noValidationRuns: 'This rewrite record has no validation runs.'
+    },
+    materializedViewCreate: {
+      title: 'Real MV creation',
+      confirmTitle: 'Confirm real MV creation',
+      confirmMessage:
+        'Confirm executing DDL and refresh for {mvName} on the target datasource.',
+      resultEvidence: 'Real MV creation result',
     },
     tabs: {
       summary: 'Summary',

@@ -14,6 +14,7 @@ import com.company.queryexecution.application.service.HetuRouteCalibrationServic
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
+import com.company.queryexecution.application.service.QueryExecutionMaterializedViewCreateService;
 import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
 import com.company.queryexecution.application.service.QueryExecutionRuntimeRewriteBindingService;
 import com.company.queryexecution.config.AuthProperties;
@@ -27,6 +28,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionAccelerationPlan
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadEngineSnapshot;
 import com.company.sqlforge.common.queryexecution.QueryExecutionBenchmarkWorkloadResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import java.util.Arrays;
@@ -70,6 +72,9 @@ class QueryExecutionInternalControllerTest {
 
     @MockBean
     private QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
+
+    @MockBean
+    private QueryExecutionMaterializedViewCreateService queryExecutionMaterializedViewCreateService;
 
     @Test
     void shouldReturnBenchmarkWorkloadSnapshot() throws Exception {
@@ -245,6 +250,45 @@ class QueryExecutionInternalControllerTest {
             .andExpect(jsonPath("$.implementationStage").value("RUNTIME_REWRITE_BINDING_DB_BASELINE"));
 
         verify(queryExecutionRuntimeRewriteBindingService).activate(any());
+    }
+
+    @Test
+    void shouldCreateMaterializedViewThroughInternalEndpoint() throws Exception {
+        QueryExecutionMaterializedViewCreateResponse response = new QueryExecutionMaterializedViewCreateResponse();
+        response.setRecommendationId("rec-001");
+        response.setRewriteRecordId("rewrite-001");
+        response.setMvName("mv_orders_customer");
+        response.setTargetEngine("HETU");
+        response.setTargetDatasource("hetu_main");
+        response.setStatus("SUCCESS");
+        response.setDdlStatus("SUCCESS");
+        response.setRefreshStatus("SUCCESS");
+        response.setRuntimeSummary("物化视图 DDL 与 refresh 已执行成功。");
+        response.setRuntimeDetailsJson("{\"implementationStage\":\"MATERIALIZED_VIEW_CREATE_JDBC_BASELINE\"}");
+        when(queryExecutionMaterializedViewCreateService.create(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/query-execution/internal/materialized-views/create")
+                .header("X-Tenant-Id", "tenant-a")
+                .header("X-User-Id", "service-user")
+                .header("X-Request-Id", "request-007")
+                .header("X-Trace-Id", "trace-007")
+                .header("X-Auth-Source", "header")
+                .header("X-Issued-At", "1713700000000")
+                .header("X-Expires-At", "2713700000000")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tenantId\":\"tenant-a\",\"recommendationId\":\"rec-001\","
+                    + "\"rewriteRecordId\":\"rewrite-001\",\"mvName\":\"mv_orders_customer\","
+                    + "\"targetEngine\":\"HETU\",\"targetDatasource\":\"hetu_main\","
+                    + "\"ddlSql\":\"CREATE MATERIALIZED VIEW mv_orders_customer AS SELECT 1\","
+                    + "\"refreshSql\":\"REFRESH MATERIALIZED VIEW mv_orders_customer\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.recommendationId").value("rec-001"))
+            .andExpect(jsonPath("$.rewriteRecordId").value("rewrite-001"))
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.ddlStatus").value("SUCCESS"))
+            .andExpect(jsonPath("$.refreshStatus").value("SUCCESS"));
+
+        verify(queryExecutionMaterializedViewCreateService).create(any());
     }
 
     @Test

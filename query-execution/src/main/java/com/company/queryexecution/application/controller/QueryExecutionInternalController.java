@@ -5,6 +5,7 @@ import com.company.queryexecution.application.service.HetuRouteCalibrationServic
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
 import com.company.queryexecution.application.service.QueryExecutionBenchmarkWorkloadService;
 import com.company.queryexecution.application.service.QueryExecutionCacheGovernanceRuntimeService;
+import com.company.queryexecution.application.service.QueryExecutionMaterializedViewCreateService;
 import com.company.queryexecution.application.service.QueryExecutionResultDigestService;
 import com.company.queryexecution.application.service.QueryExecutionRuntimeRewriteBindingService;
 import com.company.queryexecution.domain.query.HetuRouteCalibrationSnapshot;
@@ -17,6 +18,8 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyApply
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyInvalidateRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionCachePolicyVerifyRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateResponse;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
@@ -41,19 +44,22 @@ public class QueryExecutionInternalController {
     private final HetuRouteCalibrationService hetuRouteCalibrationService;
     private final QueryExecutionResultDigestService queryExecutionResultDigestService;
     private final QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
+    private final QueryExecutionMaterializedViewCreateService queryExecutionMaterializedViewCreateService;
 
     public QueryExecutionInternalController(QueryExecutionBenchmarkWorkloadService queryExecutionBenchmarkWorkloadService,
                                             QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService,
                                             QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService,
                                             HetuRouteCalibrationService hetuRouteCalibrationService,
                                             QueryExecutionResultDigestService queryExecutionResultDigestService,
-                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService) {
+                                            QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService,
+                                            QueryExecutionMaterializedViewCreateService queryExecutionMaterializedViewCreateService) {
         this.queryExecutionBenchmarkWorkloadService = queryExecutionBenchmarkWorkloadService;
         this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
         this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
         this.hetuRouteCalibrationService = hetuRouteCalibrationService;
         this.queryExecutionResultDigestService = queryExecutionResultDigestService;
         this.queryExecutionRuntimeRewriteBindingService = queryExecutionRuntimeRewriteBindingService;
+        this.queryExecutionMaterializedViewCreateService = queryExecutionMaterializedViewCreateService;
     }
 
     @PostMapping("/benchmark/workload/capture")
@@ -85,6 +91,13 @@ public class QueryExecutionInternalController {
         @RequestBody RuntimeRewriteBindingStateChangeRequest request
     ) {
         return queryExecutionRuntimeRewriteBindingService.pause(request);
+    }
+
+    @PostMapping("/materialized-views/create")
+    public QueryExecutionMaterializedViewCreateResponse createMaterializedView(
+        @RequestBody QueryExecutionMaterializedViewCreateRequest request
+    ) {
+        return queryExecutionMaterializedViewCreateService.create(request);
     }
 
     @GetMapping("/hetu/route-calibration")

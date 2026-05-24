@@ -616,6 +616,21 @@ export const getRecommendationDiff = (tenantId, recommendationId, requestOptions
     }
   })
 
+export const createMaterializedView = (tenantId, recommendationId, payload = {}, requestOptions = {}) =>
+  request({
+    method: 'post',
+    url: `/api/sql-optimization/recommendations/${encodeURIComponent(recommendationId)}/materialized-view/create`,
+    data: {
+      ...payload,
+      tenantId
+    },
+    tenantId,
+    requestOptions: {
+      requestPrefix: 'frontend-recommendation-materialized-view-create',
+      ...requestOptions
+    }
+  })
+
 export const createRewriteTrial = (payload, requestOptions = {}) =>
   request({
     method: 'post',

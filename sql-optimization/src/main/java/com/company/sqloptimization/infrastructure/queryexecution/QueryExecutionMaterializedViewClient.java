@@ -1,0 +1,9 @@
+package com.company.sqloptimization.infrastructure.queryexecution;
+
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateRequest;
+import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateResponse;
+
+public interface QueryExecutionMaterializedViewClient {
+
+    QueryExecutionMaterializedViewCreateResponse create(QueryExecutionMaterializedViewCreateRequest request);
+}

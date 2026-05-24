@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
+  createMaterializedView,
   createRewriteValidationRun,
   createSqlRewriteRecord,
   formatRuntimeError,
@@ -63,11 +65,16 @@ const rewriteActionForm = reactive({
   actionReason: 'frontend recommendation rewrite lifecycle'
 })
 
+const materializedViewActionForm = reactive({
+  reason: 'frontend recommendation materialized view create'
+})
+
 const loading = reactive({
   page: false,
   detail: false,
   lifecycle: false,
   lifecycleAction: '',
+  materializedViewCreate: false,
   validationRuns: false,
   sourceOptions: false
 })
@@ -100,6 +107,9 @@ const errorMessage = ref('')
 const diffErrorMessage = ref('')
 const lifecycleErrorMessage = ref('')
 const lifecycleSuccessMessage = ref('')
+const materializedViewCreateErrorMessage = ref('')
+const materializedViewCreateSuccessMessage = ref('')
+const materializedViewCreateResult = ref(null)
 const validationRunErrorMessage = ref('')
 const activeDetailTab = ref('summary')
 const preferredDetailTab = ref(normalizeDetailTab(route.query.tab || route.query.detailTab))
@@ -398,6 +408,53 @@ const accelerationArtifactCoverageRows = computed(() => accelerationArtifactDisp
 const accelerationArtifactJoinGraphRows = computed(() => accelerationArtifactDisplay.value.joinGraphRows)
 const accelerationArtifactEvidenceSections = computed(() => accelerationArtifactDisplay.value.evidenceSections)
 const accelerationArtifactSqlBlocks = computed(() => accelerationArtifactDisplay.value.sqlBlocks)
+const isMaterializedViewArtifact = computed(() =>
+  String(accelerationArtifact.value?.rule || '').toUpperCase() === 'PRECOMPUTE_MV'
+)
+const materializedViewArtifactStatus = computed(() =>
+  String(accelerationArtifact.value?.artifactStatus || '').toUpperCase()
+)
+const materializedViewBlockingReasons = computed(() => {
+  const value = accelerationArtifact.value?.blockingReasons
+  if (Array.isArray(value)) {
+    return value
+  }
+  return hasDisplayValue(value) ? [value] : []
+})
+const selectedRewriteRecordIdForMaterializedView = computed(() =>
+  selectedRewriteRecord.value?.rewriteRecordId || selectedRewriteRecordId.value || ''
+)
+const canCreateMaterializedView = computed(() => {
+  const artifact = accelerationArtifact.value || {}
+  const allowedStatus = ['GENERATED', 'REVIEW_REQUIRED'].includes(materializedViewArtifactStatus.value)
+  return Boolean(
+    selectedRecommendation.value?.recommendationId
+      && isMaterializedViewArtifact.value
+      && allowedStatus
+      && !materializedViewBlockingReasons.value.length
+      && hasDisplayValue(artifact.mvName)
+      && hasDisplayValue(artifact.targetEngine)
+      && hasDisplayValue(artifact.targetDatasource)
+      && hasDisplayValue(artifact.ddlSql)
+      && hasDisplayValue(artifact.refreshSql)
+  )
+})
+const materializedViewCreateResultCards = computed(() => {
+  const result = materializedViewCreateResult.value
+  if (!result) {
+    return []
+  }
+  return [
+    field('status', t('recommendationCenter.fields.status'), result.status),
+    field('ddlStatus', t('recommendationCenter.fields.ddlStatus'), result.ddlStatus),
+    field('refreshStatus', t('recommendationCenter.fields.refreshStatus'), result.refreshStatus),
+    field('mvName', t('recommendationCenter.fields.mvName'), result.mvName),
+    field('targetEngine', t('inline.viewsRecommendationCenterRecommendationCenterView.text006'), result.targetEngine),
+    field('targetDatasource', t('inline.viewsRecommendationCenterRecommendationCenterView.text007'), result.targetDatasource),
+    field('rewriteRecordId', t('recommendationCenter.fields.rewriteRecordId'), result.rewriteRecordId),
+    field('runtimeSummary', t('recommendationCenter.fields.runtimeSummary'), result.runtimeSummary)
+  ]
+})
 const sourceProblemRows = computed(() => normalizeArray(selectedRecommendation.value?.sourceProblems))
 const issueRuleLinkRows = computed(() => normalizeArray(selectedRecommendation.value?.issueRuleLinks))
 const preconditionRows = computed(() => normalizeArray(selectedRecommendation.value?.preconditions))
@@ -554,6 +611,12 @@ const resetRewriteLifecycle = () => {
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
   validationRunErrorMessage.value = ''
+}
+
+const resetMaterializedViewCreateState = () => {
+  materializedViewCreateErrorMessage.value = ''
+  materializedViewCreateSuccessMessage.value = ''
+  materializedViewCreateResult.value = null
 }
 
 const syncActiveDetailTabFromRoute = () => {
@@ -723,6 +786,7 @@ const refreshPage = async () => {
       activeDetailTab.value = 'summary'
       syncActiveDetailTabFromRoute()
       resetRewriteLifecycle()
+      resetMaterializedViewCreateState()
       recommendationDetailDrawerVisible.value = false
     }
   } catch (error) {
@@ -742,6 +806,7 @@ const loadRecommendation = async recommendationId => {
     activeDetailTab.value = 'summary'
     syncActiveDetailTabFromRoute()
     resetRewriteLifecycle()
+    resetMaterializedViewCreateState()
     return
   }
 
@@ -750,6 +815,7 @@ const loadRecommendation = async recommendationId => {
   diffErrorMessage.value = ''
   lifecycleErrorMessage.value = ''
   lifecycleSuccessMessage.value = ''
+  resetMaterializedViewCreateState()
   recommendationDiff.value = null
   selectedRuleDiffId.value = ''
   selectedRecommendationId.value = recommendationId
@@ -1328,6 +1394,58 @@ const createRewriteRecordAndOpenReview = async () => {
   }
 }
 
+const createRealMaterializedView = async () => {
+  if (!selectedRecommendation.value) {
+    materializedViewCreateErrorMessage.value = t('recommendationCenter.states.selectRecommendation')
+    return
+  }
+  if (!canCreateMaterializedView.value) {
+    materializedViewCreateErrorMessage.value = t('recommendationCenter.states.materializedViewCreateUnavailable')
+    return
+  }
+  const mvName = displayValue(accelerationArtifact.value?.mvName)
+  try {
+    await ElMessageBox.confirm(
+      t('recommendationCenter.materializedViewCreate.confirmMessage', { mvName }),
+      t('recommendationCenter.materializedViewCreate.confirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('recommendationCenter.actions.createMaterializedView'),
+        cancelButtonText: t('common.actions.cancel')
+      }
+    )
+  } catch {
+    return
+  }
+  loading.materializedViewCreate = true
+  materializedViewCreateErrorMessage.value = ''
+  materializedViewCreateSuccessMessage.value = ''
+  materializedViewCreateResult.value = null
+  try {
+    const response = await createMaterializedView(
+      form.tenantId,
+      selectedRecommendation.value.recommendationId,
+      {
+        rewriteRecordId: selectedRewriteRecordIdForMaterializedView.value,
+        reason: materializedViewActionForm.reason
+      },
+      {
+        requestPrefix: 'frontend-recommendation-real-materialized-view-create'
+      }
+    )
+    materializedViewCreateResult.value = response
+    materializedViewCreateSuccessMessage.value =
+      response?.runtimeSummary || t('recommendationCenter.states.materializedViewCreateSubmitted')
+    if (response?.rewriteRecordId) {
+      await refreshSelectedRewriteLifecycle(response.rewriteRecordId)
+    }
+  } catch (error) {
+    materializedViewCreateErrorMessage.value = formatRuntimeError(error)
+  } finally {
+    loading.materializedViewCreate = false
+  }
+}
+
 const openEvidenceDrawer = (title, payload) => {
   evidenceDrawerTitle.value = title
   evidenceDrawerPayload.value = payload
@@ -1866,6 +1984,83 @@ watch(
                     <el-table-column prop="description" :label="t('recommendationCenter.fields.refusalMessage')" min-width="280" show-overflow-tooltip />
                     <el-table-column prop="evidenceRef" :label="t('recommendationCenter.fields.evidenceRef')" min-width="180" show-overflow-tooltip />
                   </el-table>
+                  <section
+                    v-if="isMaterializedViewArtifact"
+                    class="artifact-subsection materialized-view-create-panel"
+                    data-testid="recommendation-real-mv-create"
+                  >
+                    <div class="evidence-heading">
+                      <h4>{{ t('recommendationCenter.materializedViewCreate.title') }}</h4>
+                      <el-tag :type="canCreateMaterializedView ? 'warning' : 'info'">
+                        {{ canCreateMaterializedView
+                          ? t('recommendationCenter.states.materializedViewCreateReady')
+                          : t('recommendationCenter.states.materializedViewCreateUnavailable') }}
+                      </el-tag>
+                    </div>
+                    <div class="materialized-view-action-grid">
+                      <label class="field-block">
+                        <span class="field-label">{{ t('recommendationCenter.fields.actionReason') }}</span>
+                        <el-input
+                          v-model="materializedViewActionForm.reason"
+                          data-testid="recommendation-real-mv-reason"
+                        />
+                      </label>
+                      <label class="field-block">
+                        <span class="field-label">{{ t('recommendationCenter.fields.rewriteRecordId') }}</span>
+                        <el-select
+                          v-model="selectedRewriteRecordId"
+                          clearable
+                          :disabled="!rewriteRecordOptions.length"
+                          :loading="loading.lifecycle"
+                          data-testid="recommendation-real-mv-rewrite-record-select"
+                          @change="loadRewriteRecordLifecycle"
+                        >
+                          <el-option
+                            v-for="item in rewriteRecordOptions"
+                            :key="item.value"
+                            :label="`${item.label} ${item.status}`"
+                            :value="item.value"
+                          />
+                        </el-select>
+                      </label>
+                      <el-button
+                        type="warning"
+                        :disabled="!canCreateMaterializedView"
+                        :loading="loading.materializedViewCreate"
+                        data-testid="recommendation-real-mv-create-button"
+                        @click="createRealMaterializedView"
+                      >
+                        {{ t('recommendationCenter.actions.createMaterializedView') }}
+                      </el-button>
+                    </div>
+                    <p
+                      v-if="materializedViewCreateErrorMessage"
+                      class="error-banner"
+                      data-testid="recommendation-real-mv-create-error"
+                    >
+                      {{ materializedViewCreateErrorMessage }}
+                    </p>
+                    <p
+                      v-if="materializedViewCreateSuccessMessage"
+                      class="success-banner"
+                      data-testid="recommendation-real-mv-create-success"
+                    >
+                      {{ materializedViewCreateSuccessMessage }}
+                    </p>
+                    <dl v-if="materializedViewCreateResult" class="description-grid" data-testid="recommendation-real-mv-create-result">
+                      <div v-for="item in materializedViewCreateResultCards" :key="item.key" class="description-item">
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ displayValue(item.value) }}</dd>
+                      </div>
+                    </dl>
+                    <el-button
+                      v-if="materializedViewCreateResult"
+                      data-testid="recommendation-real-mv-create-evidence"
+                      @click="openEvidenceDrawer(t('recommendationCenter.materializedViewCreate.resultEvidence'), materializedViewCreateResult)"
+                    >
+                      {{ t('common.actions.viewRawEvidence') }}
+                    </el-button>
+                  </section>
                   <div v-if="accelerationArtifactSqlBlocks.length" class="sql-grid sql-grid-wide">
                     <SqlCodeBlock
                       v-for="item in accelerationArtifactSqlBlocks"
@@ -2433,6 +2628,13 @@ watch(
   grid-column: 1 / -1;
 }
 
+.materialized-view-action-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) max-content;
+  gap: var(--sqlforge-space-3);
+  align-items: end;
+}
+
 .review-guard h3,
 .evidence-heading h3 {
   margin: 0;
@@ -2674,6 +2876,10 @@ watch(
   }
 
   .rewrite-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .materialized-view-action-grid {
     grid-template-columns: 1fr;
   }
 

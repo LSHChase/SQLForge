@@ -113,6 +113,8 @@ sql-optimization:
     result-digest-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_RESULT_DIGEST_BASE_URL:http://localhost:8081/api/query-execution/internal/result-digests}
     # 配置项 rewrite-binding-base-url：说明该配置的用途、默认值或运行影响。
     rewrite-binding-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_REWRITE_BINDING_BASE_URL:http://localhost:8081/api/query-execution/internal/rewrite-bindings}
+    # 配置项 materialized-view-base-url：说明该配置的用途、默认值或运行影响。
+    materialized-view-base-url: ${SQL_OPTIMIZATION_QUERY_EXECUTION_MATERIALIZED_VIEW_BASE_URL:http://localhost:8081/api/query-execution/internal/materialized-views}
     # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
     connect-timeout-ms: ${SQL_OPTIMIZATION_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
     # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。

@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-CREATE-REAL-MV-20260524: 页面创建真实 MV
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `feat(mv): create real materialized views from recommendations`
+- Priority: 1
+- Depends on: USER-CN-REWRITE-VALIDATION-ACTIVATION-UX-20260521
+- Scope: sql-optimization,query-execution,src/services/runtimeGateApi.js,src/views/recommendation-center/RecommendationCenterView.vue
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-CREATE-REAL-MV-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-24: 已补推荐详情页真实 MV 创建入口、确认动作、执行结果展示与 query-execution 创建链路；`python3 scripts/foreman.py validate USER-CN-CREATE-REAL-MV-20260524` 通过。
+- Context closeout:
+  - Completed scope: 推荐详情页新增真实 MV 创建入口、确认动作、执行结果展示和 raw evidence；sql-optimization 校验 PRECOMPUTE_MV artifact 后调用 query-execution；query-execution 新增受保护内部创建接口，解析治理 JDBC 数据源并执行 DDL 与 refresh，写入审计与改写记录 traceRefs。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112；python3 scripts/foreman.py validate USER-CN-CREATE-REAL-MV-20260524 --include-task-audit with target Maven tests, recommendation page contract, git diff --check, changed-file checkstyle and module PMD passed；npm lint/build/form-governance/sql-ui/frontend-page-governance passed through foreman validate。
+  - Residual risk: 真实 Hetu/MRS JDBC 创建 MV 的权限、方言差异和 refresh 运行耗时仍需环境窗口验证；仓库侧已覆盖合同、租户边界、HTTP 路由、JDBC 执行分支和页面入口。
+  - Next step: 在具备目标引擎环境后执行一次端到端真实 MV 创建 smoke，记录 runtimeDetailsJson 与治理审计证据。
+
 ### USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524: 实现视图感知 SQL 解析推荐与运行时改写边界
 
 - Status: done

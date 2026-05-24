@@ -8,6 +8,7 @@ public class OptimizationQueryExecutionProperties {
     private String baseUrl = "http://localhost:8081/api/query-execution/internal/acceleration-plans";
     private String resultDigestBaseUrl = "http://localhost:8081/api/query-execution/internal/result-digests";
     private String rewriteBindingBaseUrl = "http://localhost:8081/api/query-execution/internal/rewrite-bindings";
+    private String materializedViewBaseUrl = "http://localhost:8081/api/query-execution/internal/materialized-views";
     private int connectTimeoutMs = 3000;
     private int readTimeoutMs = 5000;
 
@@ -33,6 +34,14 @@ public class OptimizationQueryExecutionProperties {
 
     public void setRewriteBindingBaseUrl(String rewriteBindingBaseUrl) {
         this.rewriteBindingBaseUrl = rewriteBindingBaseUrl;
+    }
+
+    public String getMaterializedViewBaseUrl() {
+        return materializedViewBaseUrl;
+    }
+
+    public void setMaterializedViewBaseUrl(String materializedViewBaseUrl) {
+        this.materializedViewBaseUrl = materializedViewBaseUrl;
     }
 
     public int getConnectTimeoutMs() {

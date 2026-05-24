@@ -27,18 +27,6 @@ _No tasks._
 - Progress log:
   - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
 
-### USER-CN-CREATE-REAL-MV-20260524: 页面创建真实 MV
-
-- Status: in_progress
-- Priority: 1
-- Depends on: USER-CN-REWRITE-VALIDATION-ACTIVATION-UX-20260521
-- Scope: sql-optimization,query-execution,src/services/runtimeGateApi.js,src/views/recommendation-center/RecommendationCenterView.vue
-- Validation:
-  - `python3 scripts/foreman.py validate USER-CN-CREATE-REAL-MV-20260524`
-- Progress log:
-  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
-  - 2026-05-24: 已补推荐详情页真实 MV 创建入口、确认动作、执行结果展示与 query-execution 创建链路；`python3 scripts/foreman.py validate USER-CN-CREATE-REAL-MV-20260524` 通过。
-
 ### USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524: 实现租户与默认备用引擎前端统一维护入口
 
 - Status: in_progress
