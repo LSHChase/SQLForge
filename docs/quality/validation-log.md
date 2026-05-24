@@ -5704,3 +5704,32 @@
 2026-05-24T02:34:08-05:00 | USER-CN-SQL-QUERY-VIEW-METADATA-EXPLORER-20260524 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-24T02:34:08-05:00 | USER-CN-SQL-QUERY-VIEW-METADATA-EXPLORER-20260524 closeout commit | `R-168` | projected | `git commit -m 'feat(query): implement lazy-loading metadata tree and connection toolbar' (projected-precommit)`
 2026-05-24T02:34:08-05:00 | USER-CN-SQL-QUERY-VIEW-METADATA-EXPLORER-20260524 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-24T03:13:46-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-24T03:13:46-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-24T03:13:47-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-24T03:13:51-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-24T03:13:51-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-24T03:13:51-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-24T03:13:51-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-24T03:13:51-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-24T03:13:52-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-24T03:13:55-05:00 | USER-CN-TENANT-CONFIG-FRONTEND-UI-20260524 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-24T03:47:13-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-24T03:47:13-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-24T03:47:14-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-24T03:47:18-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-24T03:47:18-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-24T03:47:19-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-24T03:47:19-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-24T03:47:19-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-24T03:54:25-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-24T03:54:25-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-24T03:54:26-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-24T03:54:30-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-24T03:54:30-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-24T03:54:31-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-24T03:54:31-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-24T03:54:31-05:00 | USER-CN-CREATE-REAL-MV-20260524 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-24T04:02:08-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-24T04:02:08-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 closeout commit | `R-168` | projected | `git commit -m 'feat(rewrite): enforce view-aware runtime binding boundaries' (projected-precommit)`
+2026-05-24T04:02:08-05:00 | USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

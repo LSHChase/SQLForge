@@ -13,7 +13,7 @@
 3. 用户在推荐或改写记录上完成必要的人工复核。
 4. 系统完成或复用结果等价验证。
 5. 激活动作先调用 `query-execution` runtime binding；只有返回 `ACTIVE` 且绑定 ID / 规则版本可追溯，改写记录才进入 `activationStatus=ACTIVE`。
-6. 后续是否自动替换 SQL 由 query-execution 执行链路命中 active runtime binding 的证据决定，不得仅凭本地状态判断。
+6. 后续是否自动替换 SQL 由 query-execution 执行链路按同租户、同数据源、同指纹 / 模板族和原 SQL 表面对象名命中 active runtime binding 的证据决定，不得仅凭本地状态判断。
 7. SQL 执行历史记录原始 SQL、实际执行 SQL、改写来源、规则版本和激活状态快照。
 8. 周期比对发现差异时先通过 runtime binding 暂停运行时规则，再回写改写记录状态、告警和审计；运行时暂停失败时必须留下失败 trace，不能伪造 `activationStatus=PAUSED`。
 
@@ -25,6 +25,7 @@
 - `query-execution` 运行时绑定是 SQL 文本自动改写的运行时真值，JDBC Agent / Redis 只是后续兼容出口。
 - SQL 执行历史当前有 `rewriteApplied` 等字段；真实改写只能由执行路径命中 active runtime binding 后写入。
 - `manualReviewRequired` 只能表示风险或需要人工复核，不能作为激活状态使用。
+- DB View / 业务逻辑视图的底层表展开只用于解析、推荐、校验和审计；生产执行路径只匹配原 SQL 直接出现的表面对象名。
 
 ## 拆分原则
 
@@ -154,12 +155,13 @@
 
 ### PRW-006：在 query-execution 执行路径应用自动改写
 
-**目标**：让后续同租户、同指纹 SQL 在执行前命中 active 运行时绑定，并自动替换为已激活 SQL。
+**目标**：让后续同租户、同指纹或同模板族且表面对象名一致的 SQL 在执行前命中 active 运行时绑定，并自动替换为已激活 SQL。
 
 **范围**：
 
 - 在 `query-execution` 执行入口计算或复用 SQL 指纹。
-- 查询 active 改写绑定。
+- 从当前 SQL 轻量解析原文表面对象名；不得在执行热路径查询 view 元数据或展开底层表。
+- 查询 active 改写绑定，并要求 binding 的 `runtimeMatchObjectNames` 与当前 SQL 表面对象名一致。
 - 命中后以推荐 SQL 作为实际执行 SQL。
 - 保留原始 SQL、实际执行 SQL、绑定 ID 和规则版本。
 - 未命中或绑定暂停时保持原执行路径。
@@ -167,7 +169,8 @@
 **验收**：
 
 - 命中绑定时实际执行 SQL 为已激活推荐 SQL。
-- 未命中、租户不匹配、指纹不匹配、绑定暂停时不改写。
+- 未命中、租户不匹配、指纹 / 模板族不匹配、表面对象名不匹配、绑定暂停时不改写。
+- 多个视图引用同一底层表时，只能命中原 SQL 视图名对应的 binding，不能通过底层表命中。
 - 改写异常时按降级策略执行原 SQL 或失败，行为必须文档化并有测试覆盖。
 - 执行历史中 `rewriteApplied=true` 且能追溯绑定来源。
 

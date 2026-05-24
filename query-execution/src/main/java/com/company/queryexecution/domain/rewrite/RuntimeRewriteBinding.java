@@ -1,6 +1,10 @@
 package com.company.queryexecution.domain.rewrite;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class RuntimeRewriteBinding {
 
@@ -18,6 +22,12 @@ public class RuntimeRewriteBinding {
     private final String rewriteMatchMode;
     private final String rewriteProgramJson;
     private final String templateFamilyFingerprint;
+    private final List<LogicalObjectSurface> runtimeMatchObjectRefs;
+    private final List<String> runtimeMatchObjectNames;
+    private final List<LogicalObjectSurface> analysisPhysicalObjectRefs;
+    private final String metadataSnapshotVersion;
+    private final String viewDefinitionHash;
+    private final String metadataDegradationReason;
     private final String datasourceCode;
     private final RuntimeRewriteBindingStatus status;
     private final long ruleVersion;
@@ -47,6 +57,12 @@ public class RuntimeRewriteBinding {
             : trimToNull(builder.rewriteMatchMode);
         this.rewriteProgramJson = trimToNull(builder.rewriteProgramJson);
         this.templateFamilyFingerprint = trimToNull(builder.templateFamilyFingerprint);
+        this.runtimeMatchObjectRefs = immutableSurfaceList(builder.runtimeMatchObjectRefs);
+        this.runtimeMatchObjectNames = immutableStringList(builder.runtimeMatchObjectNames);
+        this.analysisPhysicalObjectRefs = immutableSurfaceList(builder.analysisPhysicalObjectRefs);
+        this.metadataSnapshotVersion = trimToNull(builder.metadataSnapshotVersion);
+        this.viewDefinitionHash = trimToNull(builder.viewDefinitionHash);
+        this.metadataDegradationReason = trimToNull(builder.metadataDegradationReason);
         this.datasourceCode = requireText(builder.datasourceCode, "datasourceCode");
         this.status = builder.status == null ? RuntimeRewriteBindingStatus.ACTIVE : builder.status;
         this.ruleVersion = builder.ruleVersion <= 0 ? 1L : builder.ruleVersion;
@@ -98,6 +114,12 @@ public class RuntimeRewriteBinding {
             .rewriteMatchMode(rewriteMatchMode)
             .rewriteProgramJson(rewriteProgramJson)
             .templateFamilyFingerprint(templateFamilyFingerprint)
+            .runtimeMatchObjectRefs(runtimeMatchObjectRefs)
+            .runtimeMatchObjectNames(runtimeMatchObjectNames)
+            .analysisPhysicalObjectRefs(analysisPhysicalObjectRefs)
+            .metadataSnapshotVersion(metadataSnapshotVersion)
+            .viewDefinitionHash(viewDefinitionHash)
+            .metadataDegradationReason(metadataDegradationReason)
             .datasourceCode(datasourceCode)
             .status(status)
             .ruleVersion(ruleVersion)
@@ -126,6 +148,27 @@ public class RuntimeRewriteBinding {
         return value.trim();
     }
 
+    private static List<String> immutableStringList(List<String> value) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> result = new ArrayList<String>();
+        for (String item : value) {
+            String normalized = trimToNull(item);
+            if (normalized != null && !result.contains(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    private static List<LogicalObjectSurface> immutableSurfaceList(List<LogicalObjectSurface> value) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(new ArrayList<LogicalObjectSurface>(value));
+    }
+
     public String getRuntimeBindingId() { return runtimeBindingId; }
     public String getTenantId() { return tenantId; }
     public String getRewriteRecordId() { return rewriteRecordId; }
@@ -140,6 +183,12 @@ public class RuntimeRewriteBinding {
     public String getRewriteMatchMode() { return rewriteMatchMode; }
     public String getRewriteProgramJson() { return rewriteProgramJson; }
     public String getTemplateFamilyFingerprint() { return templateFamilyFingerprint; }
+    public List<LogicalObjectSurface> getRuntimeMatchObjectRefs() { return runtimeMatchObjectRefs; }
+    public List<String> getRuntimeMatchObjectNames() { return runtimeMatchObjectNames; }
+    public List<LogicalObjectSurface> getAnalysisPhysicalObjectRefs() { return analysisPhysicalObjectRefs; }
+    public String getMetadataSnapshotVersion() { return metadataSnapshotVersion; }
+    public String getViewDefinitionHash() { return viewDefinitionHash; }
+    public String getMetadataDegradationReason() { return metadataDegradationReason; }
     public String getDatasourceCode() { return datasourceCode; }
     public RuntimeRewriteBindingStatus getStatus() { return status; }
     public long getRuleVersion() { return ruleVersion; }
@@ -167,6 +216,12 @@ public class RuntimeRewriteBinding {
         private String rewriteMatchMode;
         private String rewriteProgramJson;
         private String templateFamilyFingerprint;
+        private List<LogicalObjectSurface> runtimeMatchObjectRefs;
+        private List<String> runtimeMatchObjectNames;
+        private List<LogicalObjectSurface> analysisPhysicalObjectRefs;
+        private String metadataSnapshotVersion;
+        private String viewDefinitionHash;
+        private String metadataDegradationReason;
         private String datasourceCode;
         private RuntimeRewriteBindingStatus status;
         private long ruleVersion;
@@ -193,6 +248,12 @@ public class RuntimeRewriteBinding {
         public Builder rewriteMatchMode(String rewriteMatchMode) { this.rewriteMatchMode = rewriteMatchMode; return this; }
         public Builder rewriteProgramJson(String rewriteProgramJson) { this.rewriteProgramJson = rewriteProgramJson; return this; }
         public Builder templateFamilyFingerprint(String templateFamilyFingerprint) { this.templateFamilyFingerprint = templateFamilyFingerprint; return this; }
+        public Builder runtimeMatchObjectRefs(List<LogicalObjectSurface> runtimeMatchObjectRefs) { this.runtimeMatchObjectRefs = runtimeMatchObjectRefs; return this; }
+        public Builder runtimeMatchObjectNames(List<String> runtimeMatchObjectNames) { this.runtimeMatchObjectNames = runtimeMatchObjectNames; return this; }
+        public Builder analysisPhysicalObjectRefs(List<LogicalObjectSurface> analysisPhysicalObjectRefs) { this.analysisPhysicalObjectRefs = analysisPhysicalObjectRefs; return this; }
+        public Builder metadataSnapshotVersion(String metadataSnapshotVersion) { this.metadataSnapshotVersion = metadataSnapshotVersion; return this; }
+        public Builder viewDefinitionHash(String viewDefinitionHash) { this.viewDefinitionHash = viewDefinitionHash; return this; }
+        public Builder metadataDegradationReason(String metadataDegradationReason) { this.metadataDegradationReason = metadataDegradationReason; return this; }
         public Builder datasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; return this; }
         public Builder status(RuntimeRewriteBindingStatus status) { this.status = status; return this; }
         public Builder ruleVersion(long ruleVersion) { this.ruleVersion = ruleVersion; return this; }

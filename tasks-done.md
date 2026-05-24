@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524: 实现视图感知 SQL 解析推荐与运行时改写边界
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `feat(rewrite): enforce view-aware runtime binding boundaries`
+- Priority: 1
+- Depends on: PRW-005
+- Scope: sql-optimization,query-execution,governance,docs: 固化并实现 surfaceObjectRefs 与 expandedPhysicalObjectRefs 分层；runtime binding 仅用原 SQL 表面对象名/指纹匹配；推荐和激活保留分析物理对象证据、元数据快照与 view hash/降级原因；补齐相关测试与文档。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-24: 已实现解析 surface/expandedPhysical 分层、runtime binding 表面对象匹配、激活边界校验、元数据字段快照 schema 与相关契约文档；目标 query-execution/sql-optimization/governance 测试通过。
+- Context closeout:
+  - Completed scope: Implemented surfaceObjectRefs versus expandedPhysicalObjectRefs separation across structure parse, recommendation, rewrite-record activation, query-execution runtime binding resolution, persistence schema, shared DTOs, and contract docs; runtime matching now uses original SQL surface object names rather than expanded physical tables.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-VIEW-AWARE-REWRITE-RUNTIME-20260524; target query-execution/sql-optimization/governance tests passed during task validation.
+  - Residual risk: Real metadata freshness, view definition hash drift, and external Hetu/MRS runtime behavior still require environment-backed evidence before production rollout; repository tests cover deterministic contract and persistence boundaries only.
+  - Next step: Continue with separate in-progress tasks for real MV creation and tenant/system UI without mixing their changes into this task.
+
 ### USER-CN-SQL-QUERY-VIEW-METADATA-EXPLORER-20260524: 实现 DBeaver 风格动态元数据浏览器与编辑器顶部连接上下文栏
 
 - Status: done

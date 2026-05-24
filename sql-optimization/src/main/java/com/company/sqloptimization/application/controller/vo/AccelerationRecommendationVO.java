@@ -49,6 +49,9 @@ public class AccelerationRecommendationVO {
     private Boolean manualReviewRequired;
     private List<Map<String, Object>> sourceProblems;
     private List<Map<String, Object>> issueRuleLinks;
+    private List<Map<String, Object>> runtimeMatchObjectRefs;
+    private List<String> runtimeMatchObjectNames;
+    private List<Map<String, Object>> analysisPhysicalObjectRefs;
     private String createdBy;
     private Instant createdAt;
     private Instant updatedAt;
@@ -139,6 +142,12 @@ public class AccelerationRecommendationVO {
     public void setSourceProblems(List<Map<String, Object>> sourceProblems) { this.sourceProblems = sourceProblems; }
     public List<Map<String, Object>> getIssueRuleLinks() { return issueRuleLinks; }
     public void setIssueRuleLinks(List<Map<String, Object>> issueRuleLinks) { this.issueRuleLinks = issueRuleLinks; }
+    public List<Map<String, Object>> getRuntimeMatchObjectRefs() { return runtimeMatchObjectRefs; }
+    public void setRuntimeMatchObjectRefs(List<Map<String, Object>> runtimeMatchObjectRefs) { this.runtimeMatchObjectRefs = runtimeMatchObjectRefs; }
+    public List<String> getRuntimeMatchObjectNames() { return runtimeMatchObjectNames; }
+    public void setRuntimeMatchObjectNames(List<String> runtimeMatchObjectNames) { this.runtimeMatchObjectNames = runtimeMatchObjectNames; }
+    public List<Map<String, Object>> getAnalysisPhysicalObjectRefs() { return analysisPhysicalObjectRefs; }
+    public void setAnalysisPhysicalObjectRefs(List<Map<String, Object>> analysisPhysicalObjectRefs) { this.analysisPhysicalObjectRefs = analysisPhysicalObjectRefs; }
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }

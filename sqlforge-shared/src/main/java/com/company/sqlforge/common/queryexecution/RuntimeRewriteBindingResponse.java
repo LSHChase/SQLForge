@@ -1,5 +1,8 @@
 package com.company.sqlforge.common.queryexecution;
 
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import java.util.List;
+
 public class RuntimeRewriteBindingResponse {
 
     private String tenantId;
@@ -16,6 +19,12 @@ public class RuntimeRewriteBindingResponse {
     private String rewriteMatchMode;
     private String rewriteProgramJson;
     private String templateFamilyFingerprint;
+    private List<LogicalObjectSurface> runtimeMatchObjectRefs;
+    private List<String> runtimeMatchObjectNames;
+    private List<LogicalObjectSurface> analysisPhysicalObjectRefs;
+    private String metadataSnapshotVersion;
+    private String viewDefinitionHash;
+    private String metadataDegradationReason;
     private String datasourceCode;
     private String status;
     private boolean active;
@@ -54,6 +63,18 @@ public class RuntimeRewriteBindingResponse {
     public void setRewriteProgramJson(String rewriteProgramJson) { this.rewriteProgramJson = rewriteProgramJson; }
     public String getTemplateFamilyFingerprint() { return templateFamilyFingerprint; }
     public void setTemplateFamilyFingerprint(String templateFamilyFingerprint) { this.templateFamilyFingerprint = templateFamilyFingerprint; }
+    public List<LogicalObjectSurface> getRuntimeMatchObjectRefs() { return runtimeMatchObjectRefs; }
+    public void setRuntimeMatchObjectRefs(List<LogicalObjectSurface> runtimeMatchObjectRefs) { this.runtimeMatchObjectRefs = runtimeMatchObjectRefs; }
+    public List<String> getRuntimeMatchObjectNames() { return runtimeMatchObjectNames; }
+    public void setRuntimeMatchObjectNames(List<String> runtimeMatchObjectNames) { this.runtimeMatchObjectNames = runtimeMatchObjectNames; }
+    public List<LogicalObjectSurface> getAnalysisPhysicalObjectRefs() { return analysisPhysicalObjectRefs; }
+    public void setAnalysisPhysicalObjectRefs(List<LogicalObjectSurface> analysisPhysicalObjectRefs) { this.analysisPhysicalObjectRefs = analysisPhysicalObjectRefs; }
+    public String getMetadataSnapshotVersion() { return metadataSnapshotVersion; }
+    public void setMetadataSnapshotVersion(String metadataSnapshotVersion) { this.metadataSnapshotVersion = metadataSnapshotVersion; }
+    public String getViewDefinitionHash() { return viewDefinitionHash; }
+    public void setViewDefinitionHash(String viewDefinitionHash) { this.viewDefinitionHash = viewDefinitionHash; }
+    public String getMetadataDegradationReason() { return metadataDegradationReason; }
+    public void setMetadataDegradationReason(String metadataDegradationReason) { this.metadataDegradationReason = metadataDegradationReason; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
     public String getStatus() { return status; }

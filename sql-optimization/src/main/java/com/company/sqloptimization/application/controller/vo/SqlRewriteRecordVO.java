@@ -46,6 +46,12 @@ public class SqlRewriteRecordVO {
     private List<Map<String, Object>> ruleChain;
     private List<Map<String, Object>> sourceProblems;
     private List<Map<String, Object>> issueRuleLinks;
+    private List<Map<String, Object>> runtimeMatchObjectRefs;
+    private List<String> runtimeMatchObjectNames;
+    private List<Map<String, Object>> analysisPhysicalObjectRefs;
+    private String metadataSnapshotVersion;
+    private String viewDefinitionHash;
+    private String metadataDegradationReason;
     private Map<String, Object> diffSummary;
     private Map<String, Object> risk;
     private Map<String, Object> traceRefs;
@@ -132,6 +138,18 @@ public class SqlRewriteRecordVO {
     public void setSourceProblems(List<Map<String, Object>> sourceProblems) { this.sourceProblems = sourceProblems; }
     public List<Map<String, Object>> getIssueRuleLinks() { return issueRuleLinks; }
     public void setIssueRuleLinks(List<Map<String, Object>> issueRuleLinks) { this.issueRuleLinks = issueRuleLinks; }
+    public List<Map<String, Object>> getRuntimeMatchObjectRefs() { return runtimeMatchObjectRefs; }
+    public void setRuntimeMatchObjectRefs(List<Map<String, Object>> runtimeMatchObjectRefs) { this.runtimeMatchObjectRefs = runtimeMatchObjectRefs; }
+    public List<String> getRuntimeMatchObjectNames() { return runtimeMatchObjectNames; }
+    public void setRuntimeMatchObjectNames(List<String> runtimeMatchObjectNames) { this.runtimeMatchObjectNames = runtimeMatchObjectNames; }
+    public List<Map<String, Object>> getAnalysisPhysicalObjectRefs() { return analysisPhysicalObjectRefs; }
+    public void setAnalysisPhysicalObjectRefs(List<Map<String, Object>> analysisPhysicalObjectRefs) { this.analysisPhysicalObjectRefs = analysisPhysicalObjectRefs; }
+    public String getMetadataSnapshotVersion() { return metadataSnapshotVersion; }
+    public void setMetadataSnapshotVersion(String metadataSnapshotVersion) { this.metadataSnapshotVersion = metadataSnapshotVersion; }
+    public String getViewDefinitionHash() { return viewDefinitionHash; }
+    public void setViewDefinitionHash(String viewDefinitionHash) { this.viewDefinitionHash = viewDefinitionHash; }
+    public String getMetadataDegradationReason() { return metadataDegradationReason; }
+    public void setMetadataDegradationReason(String metadataDegradationReason) { this.metadataDegradationReason = metadataDegradationReason; }
     public Map<String, Object> getDiffSummary() { return diffSummary; }
     public void setDiffSummary(Map<String, Object> diffSummary) { this.diffSummary = diffSummary; }
     public Map<String, Object> getRisk() { return risk; }

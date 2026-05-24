@@ -220,6 +220,8 @@ public class StructureParseApplicationService {
                     structureParserMode
                 );
                 result.setLogicalObjectHits(logicalObjectExpansion.getHits());
+                result.setSurfaceObjectRefs(logicalObjectExpansion.getSurfaceRefs());
+                result.setExpandedPhysicalObjectRefs(logicalObjectExpansion.getExpandedPhysicalRefs());
                 result.setRiskTags(buildRiskTags(profile, logicalObjectExpansion));
                 result.setRewriteCandidates(sqlOptimizationPipelineService.deriveRewriteCandidateRules(profile));
                 result.setIssues(buildIssues(profile, logicalObjectExpansion));
@@ -320,7 +322,10 @@ public class StructureParseApplicationService {
             result.setFailureSnippet(failureSnippet);
         }
         result.setQueryDateSummary(buildHeuristicQueryDateSummary(heuristicProfile));
-        result.setLogicalObjectHits(buildHeuristicLogicalObjectHits(heuristicProfile));
+        List<StructureParseLogicalObjectHit> heuristicHits = buildHeuristicLogicalObjectHits(heuristicProfile);
+        result.setLogicalObjectHits(heuristicHits);
+        result.setSurfaceObjectRefs(heuristicHits);
+        result.setExpandedPhysicalObjectRefs(filterPhysicalObjectRefs(heuristicHits));
         result.setRiskTags(buildInvalidRiskTags(sqlTooLong));
         result.setRewriteCandidates(Collections.<String>emptyList());
         result.setIssues(issues);
@@ -1304,7 +1309,7 @@ public class StructureParseApplicationService {
             fallback = resolveGovernanceDbViewFallback(qualifiedObject, context);
         }
         if (fallback != null && Boolean.TRUE.equals(fallback.getResolved())) {
-            return applyGovernanceDbViewFallback(qualifiedObject, fallback, context);
+            return applyGovernanceDbViewFallback(qualifiedObject, fallback, depth, context);
         }
         if (isDbViewHeuristic(qualifiedObject.getQualifiedName())) {
             StructureParseLogicalObjectHit hit = buildLogicalObjectHit(
@@ -1315,6 +1320,9 @@ public class StructureParseApplicationService {
             );
             hit.setMappedPhysicalTargets(Collections.<String>emptyList());
             context.getResult().addHit(hit);
+            if (depth == 0) {
+                context.getResult().addSurfaceRef(hit);
+            }
             context.getResult().addUnresolvedReason(
                 "view=" + hit.getObjectKey() + "，原因="
                     + metadataFailureReason(metadata, "DB_VIEW_HEURISTIC_WITHOUT_DEFINITION")
@@ -1329,6 +1337,9 @@ public class StructureParseApplicationService {
         );
         tableHit.setMappedPhysicalTargets(Collections.singletonList(tableHit.getObjectKey()));
         context.getResult().addHit(tableHit);
+        if (depth == 0) {
+            context.getResult().addSurfaceRef(tableHit);
+        }
         return Collections.singletonList(tableHit.getObjectKey());
     }
 
@@ -1343,6 +1354,9 @@ public class StructureParseApplicationService {
             Boolean.TRUE
         );
         context.getResult().addHit(viewHit);
+        if (depth == 0) {
+            context.getResult().addSurfaceRef(viewHit);
+        }
         String visitKey = context.visitKey(viewHit.getObjectKey());
         if (context.isVisited(visitKey)) {
             viewHit.setResolved(Boolean.FALSE);
@@ -1408,6 +1422,7 @@ public class StructureParseApplicationService {
 
     private List<String> applyGovernanceDbViewFallback(QualifiedObjectName qualifiedObject,
                                                        GovernanceDbViewResolveResponse fallback,
+                                                       int depth,
                                                        ViewExpansionContext context) {
         StructureParseLogicalObjectHit viewHit = buildLogicalObjectHit(
             LogicalObjectType.DB_VIEW,
@@ -1419,6 +1434,9 @@ public class StructureParseApplicationService {
             viewHit.setObjectKey(fallback.getObjectKey());
         }
         context.getResult().addHit(viewHit);
+        if (depth == 0) {
+            context.getResult().addSurfaceRef(viewHit);
+        }
         return applyGovernanceDbViewDependencies(viewHit, fallback, context);
     }
 
@@ -2244,6 +2262,8 @@ public class StructureParseApplicationService {
         response.setSqlType(result.getSqlType());
         response.setQueryDateSummary(toQueryDateSummaryVO(result.getQueryDateSummary()));
         response.setLogicalObjectHits(toLogicalObjectHitVOs(result.getLogicalObjectHits()));
+        response.setSurfaceObjectRefs(toLogicalObjectHitVOs(result.getSurfaceObjectRefs()));
+        response.setExpandedPhysicalObjectRefs(toLogicalObjectHitVOs(result.getExpandedPhysicalObjectRefs()));
         response.setRiskTags(result.getRiskTags());
         response.setRewriteCandidates(result.getRewriteCandidates());
         response.setIssues(toIssueVOs(result.getIssues()));
@@ -2420,6 +2440,19 @@ public class StructureParseApplicationService {
         return vos;
     }
 
+    private List<StructureParseLogicalObjectHit> filterPhysicalObjectRefs(List<StructureParseLogicalObjectHit> hits) {
+        if (hits == null || hits.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<StructureParseLogicalObjectHit> result = new ArrayList<StructureParseLogicalObjectHit>();
+        for (StructureParseLogicalObjectHit hit : hits) {
+            if (hit != null && hit.getObjectType() == LogicalObjectType.TABLE) {
+                result.add(hit);
+            }
+        }
+        return result;
+    }
+
     private List<StructureParseIssueVO> toIssueVOs(List<StructureParseIssue> issues) {
         if (issues == null || issues.isEmpty()) {
             return Collections.emptyList();
@@ -2550,11 +2583,18 @@ public class StructureParseApplicationService {
 
         private final Map<String, StructureParseLogicalObjectHit> hitsByKey =
             new LinkedHashMap<String, StructureParseLogicalObjectHit>();
+        private final Map<String, StructureParseLogicalObjectHit> surfaceRefsByKey =
+            new LinkedHashMap<String, StructureParseLogicalObjectHit>();
+        private final Map<String, StructureParseLogicalObjectHit> expandedPhysicalRefsByKey =
+            new LinkedHashMap<String, StructureParseLogicalObjectHit>();
         private final List<String> unresolvedReasons = new ArrayList<String>();
 
         private void addHit(StructureParseLogicalObjectHit hit) {
             if (hit == null || !StringUtils.hasText(hit.getObjectKey())) {
                 return;
+            }
+            if (hit.getObjectType() == LogicalObjectType.TABLE) {
+                expandedPhysicalRefsByKey.put(hit.getObjectKey(), hit);
             }
             StructureParseLogicalObjectHit existing = hitsByKey.get(hit.getObjectKey());
             if (existing == null) {
@@ -2572,8 +2612,22 @@ public class StructureParseApplicationService {
             existing.setMappedPhysicalTargets(mergeTargets(existing.getMappedPhysicalTargets(), hit.getMappedPhysicalTargets()));
         }
 
+        private void addSurfaceRef(StructureParseLogicalObjectHit hit) {
+            if (hit != null && StringUtils.hasText(hit.getObjectKey())) {
+                surfaceRefsByKey.put(hit.getObjectKey(), hit);
+            }
+        }
+
         private List<StructureParseLogicalObjectHit> getHits() {
             return new ArrayList<StructureParseLogicalObjectHit>(hitsByKey.values());
+        }
+
+        private List<StructureParseLogicalObjectHit> getSurfaceRefs() {
+            return new ArrayList<StructureParseLogicalObjectHit>(surfaceRefsByKey.values());
+        }
+
+        private List<StructureParseLogicalObjectHit> getExpandedPhysicalRefs() {
+            return new ArrayList<StructureParseLogicalObjectHit>(expandedPhysicalRefsByKey.values());
         }
 
         private void addUnresolvedReason(String reason) {

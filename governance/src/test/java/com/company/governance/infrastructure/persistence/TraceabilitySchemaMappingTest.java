@@ -41,9 +41,12 @@ class TraceabilitySchemaMappingTest {
         assertContains(schema, "CREATE TABLE IF NOT EXISTS database_view_ref");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS database_view_dependency");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS metadata_snapshot");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS metadata_column_snapshot");
         assertContains(schema, "upstream_refs_json JSON DEFAULT NULL");
         assertContains(schema, "downstream_refs_json JSON DEFAULT NULL");
         assertContains(schema, "uk_metadata_snapshot_tenant_object");
+        assertContains(schema, "source_column_refs_json JSON DEFAULT NULL");
+        assertContains(schema, "idx_metadata_column_snapshot_object");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS export_record");
         assertContains(schema, "config_snapshot_id VARCHAR(64) DEFAULT NULL");
         assertContains(schema, "result_id VARCHAR(64) DEFAULT NULL");
@@ -157,6 +160,17 @@ class TraceabilitySchemaMappingTest {
         assertContains(migration, "INSERT INTO metadata_snapshot");
         assertContains(migration, "snapshot-001");
         assertContains(migration, "ON DUPLICATE KEY UPDATE");
+    }
+
+    @Test
+    void shouldProvideIncrementalMigrationForMetadataColumnSnapshot() throws IOException {
+        String migration = readRepositoryFile("sql/migrations/V20260524_002__metadata_column_snapshot.sql");
+
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS metadata_column_snapshot");
+        assertContains(migration, "source_column_refs_json JSON DEFAULT NULL");
+        assertContains(migration, "uk_metadata_column_snapshot_object_column");
+        assertContains(migration, "idx_metadata_column_snapshot_object");
+        assertNotContains(migration, "FOREIGN KEY");
     }
 
     @Test

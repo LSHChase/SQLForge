@@ -6,6 +6,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
@@ -15,7 +17,9 @@ import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateResult;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -80,6 +84,8 @@ public class QueryExecutionRuntimeRewriteBindingService {
             runtimeRewriteBindingRepository.findLatestByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
         long nextRuleVersion = latest == null ? 1L : latest.getRuleVersion() + 1L;
         Instant now = Instant.now();
+        List<LogicalObjectSurface> runtimeMatchObjectRefs = resolveRuntimeMatchObjectRefs(request);
+        List<String> runtimeMatchObjectNames = resolveRuntimeMatchObjectNames(request, runtimeMatchObjectRefs);
         RuntimeRewriteBinding binding = RuntimeRewriteBinding.builder()
             .runtimeBindingId(newRuntimeBindingId())
             .tenantId(tenantId)
@@ -95,6 +101,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
             .rewriteMatchMode(resolveRewriteMatchMode(request))
             .rewriteProgramJson(resolveRewriteProgramJson(request))
             .templateFamilyFingerprint(resolveTemplateFamilyFingerprint(request))
+            .runtimeMatchObjectRefs(runtimeMatchObjectRefs)
+            .runtimeMatchObjectNames(runtimeMatchObjectNames)
+            .analysisPhysicalObjectRefs(nullSafeSurfaceList(request.getAnalysisPhysicalObjectRefs()))
+            .metadataSnapshotVersion(request.getMetadataSnapshotVersion())
+            .viewDefinitionHash(request.getViewDefinitionHash())
+            .metadataDegradationReason(request.getMetadataDegradationReason())
             .datasourceCode(requireText(request.getDatasourceCode(), "datasourceCode"))
             .ruleVersion(nextRuleVersion)
             .runtimeRuleVersion(RULE_VERSION_PREFIX + nextRuleVersion)
@@ -136,11 +148,15 @@ public class QueryExecutionRuntimeRewriteBindingService {
         String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
         requireProtectedTenant(tenantId);
         String sqlFingerprint = requireText(request.getSqlFingerprint(), "sqlFingerprint");
+        List<String> currentRuntimeMatchObjectNames = resolveRequestedRuntimeMatchObjectNames(request);
         RuntimeRewriteBinding binding =
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
         if (binding != null) {
             if (!datasourceMatches(request, binding)) {
                 return missingResponse(tenantId, sqlFingerprint, "没有生效的运行时改写绑定与数据源证据匹配。");
+            }
+            if (!runtimeObjectNamesMatch(currentRuntimeMatchObjectNames, binding)) {
+                return missingResponse(tenantId, sqlFingerprint, "生效的运行时改写绑定未通过 SQL 表面对象名匹配。");
             }
             RuntimeSqlRewriteTemplateResult templateResult = resolveTemplateReplay(binding, request);
             if (!templateResult.isApplied() && StringUtils.hasText(binding.getOriginalSqlText())) {
@@ -158,7 +174,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
                 sqlFingerprint
             );
         }
-        RuntimeTemplateMatch match = resolveTemplateFamilyMatch(tenantId, sqlFingerprint, request);
+        RuntimeTemplateMatch match = resolveTemplateFamilyMatch(
+            tenantId,
+            sqlFingerprint,
+            request,
+            currentRuntimeMatchObjectNames
+        );
         if (match.isAmbiguous()) {
             return missingResponse(tenantId, sqlFingerprint, "多个运行时改写模板同时匹配，已保守跳过自动改写。");
         }
@@ -224,6 +245,12 @@ public class QueryExecutionRuntimeRewriteBindingService {
             ? binding.getRewriteProgramJson()
             : templateResult == null ? null : templateResult.getProgramJson());
         response.setTemplateFamilyFingerprint(binding.getTemplateFamilyFingerprint());
+        response.setRuntimeMatchObjectRefs(binding.getRuntimeMatchObjectRefs());
+        response.setRuntimeMatchObjectNames(binding.getRuntimeMatchObjectNames());
+        response.setAnalysisPhysicalObjectRefs(binding.getAnalysisPhysicalObjectRefs());
+        response.setMetadataSnapshotVersion(binding.getMetadataSnapshotVersion());
+        response.setViewDefinitionHash(binding.getViewDefinitionHash());
+        response.setMetadataDegradationReason(binding.getMetadataDegradationReason());
         response.setDatasourceCode(binding.getDatasourceCode());
         response.setStatus(binding.getStatus().name());
         response.setActive(binding.isActive());
@@ -258,6 +285,11 @@ public class QueryExecutionRuntimeRewriteBindingService {
             "ruleVersion", Long.valueOf(binding.getRuleVersion()),
             "rewriteMatchMode", binding.getRewriteMatchMode(),
             "templateFamilyFingerprint", binding.getTemplateFamilyFingerprint(),
+            "runtimeMatchObjectNames", binding.getRuntimeMatchObjectNames(),
+            "analysisPhysicalObjectRefs", binding.getAnalysisPhysicalObjectRefs(),
+            "metadataSnapshotVersion", binding.getMetadataSnapshotVersion(),
+            "viewDefinitionHash", binding.getViewDefinitionHash(),
+            "metadataDegradationReason", binding.getMetadataDegradationReason(),
             "activatedAt", binding.getActivatedAt() == null ? null : binding.getActivatedAt().toString(),
             "activatedBy", binding.getActivatedBy()
         );
@@ -286,7 +318,8 @@ public class QueryExecutionRuntimeRewriteBindingService {
 
     private RuntimeTemplateMatch resolveTemplateFamilyMatch(String tenantId,
                                                            String sqlFingerprint,
-                                                           RuntimeRewriteBindingResolveRequest request) {
+                                                           RuntimeRewriteBindingResolveRequest request,
+                                                           List<String> currentRuntimeMatchObjectNames) {
         if (!StringUtils.hasText(request == null ? null : request.getSqlText())) {
             return RuntimeTemplateMatch.none();
         }
@@ -296,6 +329,9 @@ public class QueryExecutionRuntimeRewriteBindingService {
             if (candidate == null
                 || sqlFingerprint.equals(candidate.getSqlFingerprint())
                 || !datasourceMatches(request, candidate)) {
+                continue;
+            }
+            if (!runtimeObjectNamesMatch(currentRuntimeMatchObjectNames, candidate)) {
                 continue;
             }
             RuntimeSqlRewriteTemplateResult templateResult = resolveTemplateReplay(candidate, request);
@@ -344,6 +380,57 @@ public class QueryExecutionRuntimeRewriteBindingService {
             return request.getSqlFingerprint();
         }
         return RuntimeSqlRewriteTemplateEngine.templateFamilyFingerprint(request.getOriginalSqlText());
+    }
+
+    private List<LogicalObjectSurface> resolveRuntimeMatchObjectRefs(RuntimeRewriteBindingActivationRequest request) {
+        if (request != null && request.getRuntimeMatchObjectRefs() != null
+            && !request.getRuntimeMatchObjectRefs().isEmpty()) {
+            return nullSafeSurfaceList(request.getRuntimeMatchObjectRefs());
+        }
+        return SqlSurfaceObjectRefExtractor.extractSurfaceRefs(request == null ? null : request.getOriginalSqlText());
+    }
+
+    private List<String> resolveRuntimeMatchObjectNames(RuntimeRewriteBindingActivationRequest request,
+                                                        List<LogicalObjectSurface> refs) {
+        if (request != null && request.getRuntimeMatchObjectNames() != null
+            && !request.getRuntimeMatchObjectNames().isEmpty()) {
+            return SqlSurfaceObjectRefExtractor.normalizeObjectNames(request.getRuntimeMatchObjectNames());
+        }
+        return SqlSurfaceObjectRefExtractor.surfaceObjectNames(refs);
+    }
+
+    private List<String> resolveRequestedRuntimeMatchObjectNames(RuntimeRewriteBindingResolveRequest request) {
+        if (request == null) {
+            return Collections.emptyList();
+        }
+        if (request.getRuntimeMatchObjectNames() != null && !request.getRuntimeMatchObjectNames().isEmpty()) {
+            return SqlSurfaceObjectRefExtractor.normalizeObjectNames(request.getRuntimeMatchObjectNames());
+        }
+        if (request.getRuntimeMatchObjectRefs() != null && !request.getRuntimeMatchObjectRefs().isEmpty()) {
+            return SqlSurfaceObjectRefExtractor.surfaceObjectNames(request.getRuntimeMatchObjectRefs());
+        }
+        return SqlSurfaceObjectRefExtractor.extractSurfaceObjectNames(request.getSqlText());
+    }
+
+    private boolean runtimeObjectNamesMatch(List<String> currentNames, RuntimeRewriteBinding binding) {
+        List<String> bindingNames = binding == null
+            ? Collections.<String>emptyList()
+            : SqlSurfaceObjectRefExtractor.normalizeObjectNames(binding.getRuntimeMatchObjectNames());
+        if (bindingNames.isEmpty()) {
+            return true;
+        }
+        List<String> normalizedCurrent = SqlSurfaceObjectRefExtractor.normalizeObjectNames(currentNames);
+        if (normalizedCurrent.isEmpty()) {
+            return false;
+        }
+        return new LinkedHashSet<String>(bindingNames).equals(new LinkedHashSet<String>(normalizedCurrent));
+    }
+
+    private List<LogicalObjectSurface> nullSafeSurfaceList(List<LogicalObjectSurface> refs) {
+        if (refs == null || refs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<LogicalObjectSurface>(refs);
     }
 
     private JdbcAgentRewriteRuleSyncResult syncActivate(RuntimeRewriteBinding binding) {

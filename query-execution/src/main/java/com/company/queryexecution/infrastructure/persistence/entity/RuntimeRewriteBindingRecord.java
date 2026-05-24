@@ -18,6 +18,12 @@ public class RuntimeRewriteBindingRecord {
     private String rewriteMatchMode;
     private String rewriteProgramJson;
     private String templateFamilyFingerprint;
+    private String runtimeMatchObjectRefsJson;
+    private String runtimeMatchObjectNamesJson;
+    private String analysisPhysicalObjectRefsJson;
+    private String metadataSnapshotVersion;
+    private String viewDefinitionHash;
+    private String metadataDegradationReason;
     private String datasourceCode;
     private String status;
     private Long ruleVersion;
@@ -58,6 +64,18 @@ public class RuntimeRewriteBindingRecord {
     public void setRewriteProgramJson(String rewriteProgramJson) { this.rewriteProgramJson = rewriteProgramJson; }
     public String getTemplateFamilyFingerprint() { return templateFamilyFingerprint; }
     public void setTemplateFamilyFingerprint(String templateFamilyFingerprint) { this.templateFamilyFingerprint = templateFamilyFingerprint; }
+    public String getRuntimeMatchObjectRefsJson() { return runtimeMatchObjectRefsJson; }
+    public void setRuntimeMatchObjectRefsJson(String runtimeMatchObjectRefsJson) { this.runtimeMatchObjectRefsJson = runtimeMatchObjectRefsJson; }
+    public String getRuntimeMatchObjectNamesJson() { return runtimeMatchObjectNamesJson; }
+    public void setRuntimeMatchObjectNamesJson(String runtimeMatchObjectNamesJson) { this.runtimeMatchObjectNamesJson = runtimeMatchObjectNamesJson; }
+    public String getAnalysisPhysicalObjectRefsJson() { return analysisPhysicalObjectRefsJson; }
+    public void setAnalysisPhysicalObjectRefsJson(String analysisPhysicalObjectRefsJson) { this.analysisPhysicalObjectRefsJson = analysisPhysicalObjectRefsJson; }
+    public String getMetadataSnapshotVersion() { return metadataSnapshotVersion; }
+    public void setMetadataSnapshotVersion(String metadataSnapshotVersion) { this.metadataSnapshotVersion = metadataSnapshotVersion; }
+    public String getViewDefinitionHash() { return viewDefinitionHash; }
+    public void setViewDefinitionHash(String viewDefinitionHash) { this.viewDefinitionHash = viewDefinitionHash; }
+    public String getMetadataDegradationReason() { return metadataDegradationReason; }
+    public void setMetadataDegradationReason(String metadataDegradationReason) { this.metadataDegradationReason = metadataDegradationReason; }
     public String getDatasourceCode() { return datasourceCode; }
     public void setDatasourceCode(String datasourceCode) { this.datasourceCode = datasourceCode; }
     public String getStatus() { return status; }

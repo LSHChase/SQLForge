@@ -4,6 +4,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import com.company.sqloptimization.application.controller.dto.AccelerationRecommendationCreateRequest;
 import com.company.sqloptimization.application.controller.vo.AccelerationRecommendationVO;
 import com.company.sqloptimization.application.controller.vo.RecommendationPageVO;
@@ -17,6 +19,8 @@ import com.company.sqloptimization.domain.recommendation.repository.Acceleration
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -293,7 +297,9 @@ public class AccelerationRecommendationApplicationService {
         vo.setUnappliedRules(recommendation.getUnappliedRules());
         vo.setPreconditions(recommendation.getPreconditions());
         vo.setSemanticRisks(recommendation.getSemanticRisks());
-        vo.setAccelerationArtifact(accelerationArtifactSnapshotService.resolveForResponse(recommendation));
+        Map<String, Object> accelerationArtifact =
+            accelerationArtifactSnapshotService.resolveForResponse(recommendation);
+        vo.setAccelerationArtifact(accelerationArtifact);
         vo.setExpectedBenefit(recommendation.getExpectedBenefit());
         vo.setEstimatedCost(recommendation.getEstimatedCost());
         vo.setConfidence(recommendation.getConfidence());
@@ -303,10 +309,46 @@ public class AccelerationRecommendationApplicationService {
         vo.setManualReviewRequired(Boolean.valueOf(recommendation.isManualReviewRequired()));
         vo.setSourceProblems(recommendation.getSourceProblems());
         vo.setIssueRuleLinks(recommendation.getIssueRuleLinks());
+        List<LogicalObjectSurface> runtimeMatchObjectRefs =
+            SqlSurfaceObjectRefExtractor.extractSurfaceRefs(recommendation.getSourceSqlText());
+        vo.setRuntimeMatchObjectRefs(surfaceMaps(runtimeMatchObjectRefs));
+        vo.setRuntimeMatchObjectNames(SqlSurfaceObjectRefExtractor.surfaceObjectNames(runtimeMatchObjectRefs));
+        vo.setAnalysisPhysicalObjectRefs(artifactList(accelerationArtifact, "analysisPhysicalObjectRefs"));
         vo.setCreatedBy(recommendation.getCreatedBy());
         vo.setCreatedAt(recommendation.getCreatedAt());
         vo.setUpdatedAt(recommendation.getUpdatedAt());
         return vo;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> artifactList(Map<String, Object> artifact, String key) {
+        if (artifact == null || !(artifact.get(key) instanceof List)) {
+            return Collections.emptyList();
+        }
+        return (List<Map<String, Object>>) artifact.get(key);
+    }
+
+    private List<Map<String, Object>> surfaceMaps(List<LogicalObjectSurface> refs) {
+        if (refs == null || refs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (LogicalObjectSurface ref : refs) {
+            if (ref == null) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("objectType", ref.getObjectType());
+            item.put("objectKey", ref.getObjectKey());
+            item.put("objectName", ref.getObjectName());
+            item.put("catalogName", ref.getCatalogName());
+            item.put("schemaName", ref.getSchemaName());
+            item.put("matchSource", ref.getMatchSource());
+            item.put("resolved", ref.getResolved());
+            item.put("mappedPhysicalTargets", ref.getMappedPhysicalTargets());
+            result.add(item);
+        }
+        return result;
     }
 
     private GovernanceSourceType inferSourceType(AccelerationRecommendationCreateRequest request) {

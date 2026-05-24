@@ -5,19 +5,32 @@ import com.company.queryexecution.domain.rewrite.RuntimeRewriteBindingStatus;
 import com.company.queryexecution.domain.rewrite.repository.RuntimeRewriteBindingRepository;
 import com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord;
 import com.company.queryexecution.infrastructure.persistence.mapper.RuntimeRewriteBindingMapper;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import com.company.sqlforge.common.utils.JsonUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 @Repository
 public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBindingRepository {
 
     private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
+    private static final TypeReference<List<LogicalObjectSurface>> SURFACE_LIST_TYPE =
+        new TypeReference<List<LogicalObjectSurface>>() {
+        };
+    private static final TypeReference<List<String>> STRING_LIST_TYPE =
+        new TypeReference<List<String>>() {
+        };
 
     private final RuntimeRewriteBindingMapper runtimeRewriteBindingMapper;
+    private final ObjectMapper objectMapper = JsonUtils.objectMapper();
 
     public MybatisRuntimeRewriteBindingRepository(RuntimeRewriteBindingMapper runtimeRewriteBindingMapper) {
         this.runtimeRewriteBindingMapper = runtimeRewriteBindingMapper;
@@ -91,6 +104,12 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
         record.setRewriteMatchMode(binding.getRewriteMatchMode());
         record.setRewriteProgramJson(binding.getRewriteProgramJson());
         record.setTemplateFamilyFingerprint(binding.getTemplateFamilyFingerprint());
+        record.setRuntimeMatchObjectRefsJson(toJson(binding.getRuntimeMatchObjectRefs()));
+        record.setRuntimeMatchObjectNamesJson(toJson(binding.getRuntimeMatchObjectNames()));
+        record.setAnalysisPhysicalObjectRefsJson(toJson(binding.getAnalysisPhysicalObjectRefs()));
+        record.setMetadataSnapshotVersion(binding.getMetadataSnapshotVersion());
+        record.setViewDefinitionHash(binding.getViewDefinitionHash());
+        record.setMetadataDegradationReason(binding.getMetadataDegradationReason());
         record.setDatasourceCode(binding.getDatasourceCode());
         record.setStatus(binding.getStatus().name());
         record.setRuleVersion(Long.valueOf(binding.getRuleVersion()));
@@ -121,6 +140,12 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
             .rewriteMatchMode(record.getRewriteMatchMode())
             .rewriteProgramJson(record.getRewriteProgramJson())
             .templateFamilyFingerprint(record.getTemplateFamilyFingerprint())
+            .runtimeMatchObjectRefs(readSurfaces(record.getRuntimeMatchObjectRefsJson()))
+            .runtimeMatchObjectNames(readStrings(record.getRuntimeMatchObjectNamesJson()))
+            .analysisPhysicalObjectRefs(readSurfaces(record.getAnalysisPhysicalObjectRefsJson()))
+            .metadataSnapshotVersion(record.getMetadataSnapshotVersion())
+            .viewDefinitionHash(record.getViewDefinitionHash())
+            .metadataDegradationReason(record.getMetadataDegradationReason())
             .datasourceCode(record.getDatasourceCode())
             .status(record.getStatus() == null ? null : RuntimeRewriteBindingStatus.valueOf(record.getStatus()))
             .ruleVersion(record.getRuleVersion() == null ? 1L : record.getRuleVersion().longValue())
@@ -141,5 +166,37 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
 
     private Instant toInstant(LocalDateTime dateTime) {
         return dateTime == null ? null : dateTime.toInstant(DATABASE_ZONE_OFFSET);
+    }
+
+    private String toJson(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof List && ((List<?>) value).isEmpty()) {
+            return null;
+        }
+        return JsonUtils.toJson(value);
+    }
+
+    private List<LogicalObjectSurface> readSurfaces(String json) {
+        if (!StringUtils.hasText(json)) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, SURFACE_LIST_TYPE);
+        } catch (Exception ex) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<String> readStrings(String json) {
+        if (!StringUtils.hasText(json)) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, STRING_LIST_TYPE);
+        } catch (Exception ex) {
+            return Collections.emptyList();
+        }
     }
 }

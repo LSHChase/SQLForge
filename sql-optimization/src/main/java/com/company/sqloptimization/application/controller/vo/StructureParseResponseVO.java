@@ -21,6 +21,8 @@ public class StructureParseResponseVO {
     private List<StructureParseRiskVO> riskChecklist;
     private StructureParseQueryDateSummaryVO queryDateSummary;
     private List<LogicalObjectSurface> logicalObjectHits;
+    private List<LogicalObjectSurface> surfaceObjectRefs;
+    private List<LogicalObjectSurface> expandedPhysicalObjectRefs;
     private List<String> riskTags;
     private List<String> rewriteCandidates;
     private List<StructureParseIssueVO> issues;
@@ -157,6 +159,22 @@ public class StructureParseResponseVO {
 
     public void setLogicalObjectHits(List<LogicalObjectSurface> logicalObjectHits) {
         this.logicalObjectHits = logicalObjectHits;
+    }
+
+    public List<LogicalObjectSurface> getSurfaceObjectRefs() {
+        return surfaceObjectRefs;
+    }
+
+    public void setSurfaceObjectRefs(List<LogicalObjectSurface> surfaceObjectRefs) {
+        this.surfaceObjectRefs = surfaceObjectRefs;
+    }
+
+    public List<LogicalObjectSurface> getExpandedPhysicalObjectRefs() {
+        return expandedPhysicalObjectRefs;
+    }
+
+    public void setExpandedPhysicalObjectRefs(List<LogicalObjectSurface> expandedPhysicalObjectRefs) {
+        this.expandedPhysicalObjectRefs = expandedPhysicalObjectRefs;
     }
 
     public List<String> getRiskTags() {

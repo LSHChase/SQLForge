@@ -2,6 +2,7 @@ package com.company.queryexecution.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,6 +11,7 @@ import com.company.queryexecution.domain.rewrite.RuntimeRewriteBinding;
 import com.company.queryexecution.domain.rewrite.RuntimeRewriteBindingStatus;
 import com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord;
 import com.company.queryexecution.infrastructure.persistence.mapper.RuntimeRewriteBindingMapper;
+import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,11 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals("TEMPLATE_CONDITION_REPLAY", record.getRewriteMatchMode());
         assertEquals("{\"programVersion\":\"template-replay-v1\"}", record.getRewriteProgramJson());
         assertEquals("family-001", record.getTemplateFamilyFingerprint());
+        assertNotNull(record.getRuntimeMatchObjectNamesJson());
+        assertTrue(record.getRuntimeMatchObjectNamesJson().contains("orders"));
+        assertNotNull(record.getAnalysisPhysicalObjectRefsJson());
+        assertEquals("metadata-v1", record.getMetadataSnapshotVersion());
+        assertEquals("view-hash-001", record.getViewDefinitionHash());
         assertEquals("ACTIVE", record.getStatus());
         assertEquals(Long.valueOf(3), record.getRuleVersion());
         assertEquals("runtime-rewrite-v3", record.getRuntimeRuleVersion());
@@ -59,6 +66,9 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals("runtime-rewrite-v4", binding.getRuntimeRuleVersion());
         assertEquals("TEMPLATE_CONDITION_REPLAY", binding.getRewriteMatchMode());
         assertEquals("family-002", binding.getTemplateFamilyFingerprint());
+        assertEquals("orders", binding.getRuntimeMatchObjectNames().get(0));
+        assertEquals("metadata-v2", binding.getMetadataSnapshotVersion());
+        assertEquals("view-hash-002", binding.getViewDefinitionHash());
         assertEquals("validation divergence", binding.getPauseReason());
         assertEquals(Instant.parse("2026-05-11T14:05:00Z"), binding.getPausedAt());
     }
@@ -79,6 +89,11 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
             .rewriteMatchMode("TEMPLATE_CONDITION_REPLAY")
             .rewriteProgramJson("{\"programVersion\":\"template-replay-v1\"}")
             .templateFamilyFingerprint("family-001")
+            .runtimeMatchObjectRefs(SqlSurfaceObjectRefExtractor.extractSurfaceRefs("SELECT * FROM orders"))
+            .runtimeMatchObjectNames(SqlSurfaceObjectRefExtractor.extractSurfaceObjectNames("SELECT * FROM orders"))
+            .analysisPhysicalObjectRefs(SqlSurfaceObjectRefExtractor.extractSurfaceRefs("SELECT * FROM orders_base"))
+            .metadataSnapshotVersion("metadata-v1")
+            .viewDefinitionHash("view-hash-001")
             .datasourceCode("hetu_main")
             .ruleVersion(3L)
             .runtimeRuleVersion("runtime-rewrite-v3")
@@ -105,6 +120,11 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         record.setRewriteMatchMode("TEMPLATE_CONDITION_REPLAY");
         record.setRewriteProgramJson("{\"programVersion\":\"template-replay-v1\"}");
         record.setTemplateFamilyFingerprint("family-002");
+        record.setRuntimeMatchObjectRefsJson("[{\"objectType\":\"TABLE\",\"objectName\":\"orders\",\"objectKey\":\"TABLE:orders\"}]");
+        record.setRuntimeMatchObjectNamesJson("[\"orders\"]");
+        record.setAnalysisPhysicalObjectRefsJson("[{\"objectType\":\"TABLE\",\"objectName\":\"orders_base\",\"objectKey\":\"TABLE:orders_base\"}]");
+        record.setMetadataSnapshotVersion("metadata-v2");
+        record.setViewDefinitionHash("view-hash-002");
         record.setDatasourceCode("hetu_main");
         record.setStatus("PAUSED");
         record.setRuleVersion(Long.valueOf(4));

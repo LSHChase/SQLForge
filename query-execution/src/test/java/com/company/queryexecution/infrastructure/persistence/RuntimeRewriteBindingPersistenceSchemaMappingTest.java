@@ -27,6 +27,8 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(schema, "original_sql_text MEDIUMTEXT DEFAULT NULL");
         assertContains(schema, "rewrite_program_json MEDIUMTEXT DEFAULT NULL");
         assertContains(schema, "template_family_fingerprint VARCHAR(128) DEFAULT NULL");
+        assertContains(schema, "runtime_match_object_names_json JSON DEFAULT NULL");
+        assertContains(schema, "analysis_physical_object_refs_json JSON DEFAULT NULL");
         assertContains(schema, "active_binding_key VARCHAR(320) GENERATED ALWAYS AS");
         assertContains(schema, "UNIQUE KEY uk_runtime_rewrite_active_binding (active_binding_key)");
     }
@@ -58,6 +60,19 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
     }
 
     @Test
+    void shouldProvideViewAwareRuntimeMatchMigrationWithoutPhysicalForeignKeys() throws IOException {
+        String migration = readRepositoryFile(
+            "sql/migrations/V20260524_001__view_aware_runtime_rewrite_binding.sql"
+        );
+
+        assertContains(migration, "runtime_match_object_refs_json JSON DEFAULT NULL");
+        assertContains(migration, "runtime_match_object_names_json JSON DEFAULT NULL");
+        assertContains(migration, "analysis_physical_object_refs_json JSON DEFAULT NULL");
+        assertContains(migration, "metadata_degradation_reason VARCHAR(512) DEFAULT NULL");
+        assertFalse(migration.toUpperCase().contains("FOREIGN KEY"), "view-aware migration 不得新增物理外键约束");
+    }
+
+    @Test
     void shouldKeepMapperXmlAlignedWithRuntimeRewriteBindingTable() throws IOException {
         String mapper = readMapper("mapper/RuntimeRewriteBindingMapper.xml");
 
@@ -67,6 +82,8 @@ class RuntimeRewriteBindingPersistenceSchemaMappingTest {
         assertContains(mapper, "ORDER BY rule_version DESC, created_at DESC");
         assertContains(mapper, "runtime_rule_version");
         assertContains(mapper, "rewrite_program_json");
+        assertContains(mapper, "runtime_match_object_names_json");
+        assertContains(mapper, "analysis_physical_object_refs_json");
         assertContains(mapper, "selectActiveByTenantId");
         assertFalse(mapper.contains("${"), "runtime rewrite binding mapper 必须使用绑定参数");
     }

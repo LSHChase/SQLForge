@@ -10,6 +10,7 @@ import com.company.queryexecution.domain.rewrite.RuntimeRewriteBindingStatus;
 import com.company.queryexecution.domain.rewrite.repository.RuntimeRewriteBindingRepository;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
@@ -165,6 +166,44 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         assertEquals("ACTIVE", response.getStatus());
         assertEquals("fp-current-different", response.getSqlFingerprint());
         assertEquals("SELECT id FROM orders WHERE tenant_id = 8", response.getRecommendedSqlText());
+    }
+
+    @Test
+    void shouldMatchRuntimeRewriteOnlyOnSurfaceObjectNames() {
+        setRequestContext();
+        QueryExecutionRuntimeRewriteBindingService service =
+            new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository());
+        RuntimeRewriteBindingActivationRequest request = activationRequest("rewrite-view-001");
+        request.setSqlFingerprint("fp-view-001");
+        request.setOriginalSqlText("SELECT * FROM vw_orders WHERE tenant_id = 1");
+        request.setRecommendedSqlText("SELECT id FROM vw_orders");
+        request.setRuntimeMatchObjectRefs(SqlSurfaceObjectRefExtractor.extractSurfaceRefs(request.getOriginalSqlText()));
+        request.setRuntimeMatchObjectNames(SqlSurfaceObjectRefExtractor.extractSurfaceObjectNames(request.getOriginalSqlText()));
+        request.setAnalysisPhysicalObjectRefs(SqlSurfaceObjectRefExtractor.extractSurfaceRefs("SELECT * FROM orders_base"));
+        RuntimeRewriteBindingResponse activated = service.activate(request);
+
+        assertEquals(Arrays.asList("vw_orders"), activated.getRuntimeMatchObjectNames());
+        assertEquals("orders_base", activated.getAnalysisPhysicalObjectRefs().get(0).getObjectName());
+
+        RuntimeRewriteBindingResolveRequest bottomTableRequest = new RuntimeRewriteBindingResolveRequest();
+        bottomTableRequest.setTenantId("tenant-a");
+        bottomTableRequest.setSqlFingerprint("fp-view-001");
+        bottomTableRequest.setSqlText("SELECT * FROM vw_orders WHERE tenant_id = 2");
+        bottomTableRequest.setRuntimeMatchObjectNames(Arrays.asList("orders_base"));
+        assertEquals("MISSING", service.resolveActive(bottomTableRequest).getStatus());
+
+        RuntimeRewriteBindingResolveRequest extractedBottomTableRequest = new RuntimeRewriteBindingResolveRequest();
+        extractedBottomTableRequest.setTenantId("tenant-a");
+        extractedBottomTableRequest.setSqlFingerprint("fp-view-001");
+        extractedBottomTableRequest.setSqlText("SELECT * FROM orders_base WHERE tenant_id = 2");
+        assertEquals("MISSING", service.resolveActive(extractedBottomTableRequest).getStatus());
+
+        RuntimeRewriteBindingResolveRequest viewRequest = new RuntimeRewriteBindingResolveRequest();
+        viewRequest.setTenantId("tenant-a");
+        viewRequest.setSqlFingerprint("fp-view-001");
+        viewRequest.setSqlText("SELECT * FROM vw_orders WHERE tenant_id = 2");
+        viewRequest.setRuntimeMatchObjectNames(Arrays.asList("vw_orders"));
+        assertEquals("ACTIVE", service.resolveActive(viewRequest).getStatus());
     }
 
     private RuntimeRewriteBindingActivationRequest activationRequest(String rewriteRecordId) {

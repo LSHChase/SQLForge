@@ -692,6 +692,32 @@ CREATE TABLE IF NOT EXISTS metadata_snapshot (
   KEY idx_metadata_snapshot_status (tenant_id, freshness_status, sla_status, queryability_status, evidence_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governance metadata snapshot catalog';
 
+CREATE TABLE IF NOT EXISTS metadata_column_snapshot (
+  column_snapshot_id VARCHAR(64) NOT NULL COMMENT '字段级元数据快照标识符',
+  snapshot_id VARCHAR(64) NOT NULL COMMENT '关联 metadata_snapshot 标识符',
+  tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
+  datasource_code VARCHAR(128) DEFAULT NULL COMMENT '数据源编码',
+  object_type VARCHAR(32) NOT NULL COMMENT '对象类型：DB_VIEW/TABLE/LOGICAL_VIEW 等',
+  object_key VARCHAR(255) NOT NULL COMMENT '规范对象键',
+  column_name VARCHAR(255) NOT NULL COMMENT '字段名称',
+  column_ordinal INT DEFAULT NULL COMMENT '字段序号',
+  data_type VARCHAR(128) DEFAULT NULL COMMENT '字段类型',
+  nullable_flag TINYINT(1) DEFAULT NULL COMMENT '是否可空',
+  primary_key_flag TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否主键或唯一键证据',
+  partition_key_flag TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否分区字段证据',
+  expression_text TEXT DEFAULT NULL COMMENT '视图字段表达式或派生字段定义',
+  source_column_refs_json JSON DEFAULT NULL COMMENT '展开后的来源字段引用快照',
+  evidence_source VARCHAR(64) DEFAULT NULL COMMENT '证据来源',
+  snapshot_time DATETIME DEFAULT NULL COMMENT '字段快照采集时间',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间戳',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间戳',
+  PRIMARY KEY (column_snapshot_id),
+  UNIQUE KEY uk_metadata_column_snapshot_object_column (tenant_id, object_key, column_name),
+  KEY idx_metadata_column_snapshot_parent (tenant_id, snapshot_id),
+  KEY idx_metadata_column_snapshot_object (tenant_id, object_key, column_ordinal),
+  KEY idx_metadata_column_snapshot_datasource_time (tenant_id, datasource_code, snapshot_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Governance field-level metadata snapshot catalog';
+
 CREATE TABLE IF NOT EXISTS sql_parse_history (
   parse_history_id VARCHAR(128) NOT NULL COMMENT 'sql-optimization 持有的 SQL 解析历史标识符',
   tenant_id VARCHAR(64) NOT NULL COMMENT '所属租户标识符',
@@ -1124,6 +1150,12 @@ CREATE TABLE IF NOT EXISTS runtime_rewrite_binding (
   rewrite_match_mode VARCHAR(64) NOT NULL DEFAULT 'EXACT_FINGERPRINT' COMMENT '运行时改写匹配模式：EXACT_FINGERPRINT/TEMPLATE_CONDITION_REPLAY',
   rewrite_program_json MEDIUMTEXT DEFAULT NULL COMMENT '参数化改写模板、谓词来源、适用前置条件与风险边界证据',
   template_family_fingerprint VARCHAR(128) DEFAULT NULL COMMENT '忽略可重放 WHERE 条件后的模板族指纹',
+  runtime_match_object_refs_json JSON DEFAULT NULL COMMENT '激活时原 SQL 表面对象引用快照，仅用于运行时匹配边界',
+  runtime_match_object_names_json JSON DEFAULT NULL COMMENT '激活时原 SQL 表面对象名集合，禁止写入展开后的底层表作为匹配键',
+  analysis_physical_object_refs_json JSON DEFAULT NULL COMMENT '解析推荐阶段展开的底层物理对象证据，仅用于分析验证',
+  metadata_snapshot_version VARCHAR(128) DEFAULT NULL COMMENT '激活校验使用的元数据快照版本',
+  view_definition_hash VARCHAR(128) DEFAULT NULL COMMENT '激活校验使用的 view definition hash',
+  metadata_degradation_reason VARCHAR(512) DEFAULT NULL COMMENT '元数据不可用、过期或降级的原因快照',
   datasource_code VARCHAR(128) NOT NULL COMMENT '运行时数据源或方言证据',
   status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE' COMMENT '运行时改写绑定状态：ACTIVE/PAUSED',
   rule_version BIGINT NOT NULL DEFAULT 1 COMMENT '每租户与 SQL 指纹单调递增的运行时规则版本',

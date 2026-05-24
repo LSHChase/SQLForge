@@ -60,6 +60,8 @@ class StructureParseContractTest {
         response.setSqlFingerprint("fp-001");
         response.setQueryDateSummary(queryDateSummary);
         response.setLogicalObjectHits(Collections.singletonList(logicalObjectHit));
+        response.setSurfaceObjectRefs(Collections.singletonList(logicalObjectHit));
+        response.setExpandedPhysicalObjectRefs(Collections.singletonList(logicalObjectHit));
         response.setIssues(Collections.singletonList(issue));
         StructureParseIntentProfileVO intentProfile = new StructureParseIntentProfileVO();
         intentProfile.setScanMode("PARTITION_RANGE_SCAN");
@@ -137,6 +139,8 @@ class StructureParseContractTest {
         assertEquals("RESOLVED", response.getQueryDateSummary().getQueryDateStatus());
         assertEquals("BUSINESS_VIEW", response.getLogicalObjectHits().get(0).getObjectType());
         assertEquals("BUSINESS_VIEW:sales_daily_view", response.getLogicalObjectHits().get(0).getObjectKey());
+        assertEquals("sales_daily_view", response.getSurfaceObjectRefs().get(0).getObjectName());
+        assertEquals("sales_daily_view", response.getExpandedPhysicalObjectRefs().get(0).getObjectName());
         assertEquals("P2", response.getPriorityLevel());
     }
 }

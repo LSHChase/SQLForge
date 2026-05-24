@@ -36,6 +36,18 @@
         <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="templateFamilyFingerprint" column="template_family_fingerprint"/>
         <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
+        <result property="runtimeMatchObjectRefsJson" column="runtime_match_object_refs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
+        <result property="runtimeMatchObjectNamesJson" column="runtime_match_object_names_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
+        <result property="analysisPhysicalObjectRefsJson" column="analysis_physical_object_refs_json"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
+        <result property="metadataSnapshotVersion" column="metadata_snapshot_version"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
+        <result property="viewDefinitionHash" column="view_definition_hash"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
+        <result property="metadataDegradationReason" column="metadata_degradation_reason"/>
+        <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="datasourceCode" column="datasource_code"/>
         <!-- 配置项 result：说明该配置的用途、默认值或运行影响。 -->
         <result property="status" column="status"/>
@@ -64,8 +76,10 @@
         runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
         source_kind, source_id, sql_fingerprint, original_sql_digest, original_sql_text,
         recommended_sql_text, rewrite_match_mode, rewrite_program_json, template_family_fingerprint,
-        datasource_code, status, rule_version, runtime_rule_version, activated_by, activated_at,
-        paused_by, paused_at, pause_reason, created_at, updated_at
+        runtime_match_object_refs_json, runtime_match_object_names_json, analysis_physical_object_refs_json,
+        metadata_snapshot_version, view_definition_hash, metadata_degradation_reason, datasource_code,
+        status, rule_version, runtime_rule_version, activated_by, activated_at, paused_by, paused_at,
+        pause_reason, created_at, updated_at
     </sql>
 
     <!-- 配置项 select id=selectByRuntimeBindingId：说明该配置的用途、默认值或运行影响。 -->
@@ -119,14 +133,18 @@
             runtime_binding_id, tenant_id, rewrite_record_id, recommendation_id, source_type,
             source_kind, source_id, sql_fingerprint, original_sql_digest, original_sql_text,
             recommended_sql_text, rewrite_match_mode, rewrite_program_json, template_family_fingerprint,
-            datasource_code, status, rule_version, runtime_rule_version, activated_by, activated_at,
-            paused_by, paused_at, pause_reason, created_at, updated_at
+            runtime_match_object_refs_json, runtime_match_object_names_json, analysis_physical_object_refs_json,
+            metadata_snapshot_version, view_definition_hash, metadata_degradation_reason, datasource_code,
+            status, rule_version, runtime_rule_version, activated_by, activated_at, paused_by, paused_at,
+            pause_reason, created_at, updated_at
         ) VALUES (
             #{runtimeBindingId}, #{tenantId}, #{rewriteRecordId}, #{recommendationId}, #{sourceType},
             #{sourceKind}, #{sourceId}, #{sqlFingerprint}, #{originalSqlDigest}, #{originalSqlText},
             #{recommendedSqlText}, #{rewriteMatchMode}, #{rewriteProgramJson}, #{templateFamilyFingerprint},
-            #{datasourceCode}, #{status}, #{ruleVersion}, #{runtimeRuleVersion}, #{activatedBy}, #{activatedAt},
-            #{pausedBy}, #{pausedAt}, #{pauseReason}, #{createdAt}, #{updatedAt}
+            #{runtimeMatchObjectRefsJson}, #{runtimeMatchObjectNamesJson}, #{analysisPhysicalObjectRefsJson},
+            #{metadataSnapshotVersion}, #{viewDefinitionHash}, #{metadataDegradationReason}, #{datasourceCode},
+            #{status}, #{ruleVersion}, #{runtimeRuleVersion}, #{activatedBy}, #{activatedAt}, #{pausedBy},
+            #{pausedAt}, #{pauseReason}, #{createdAt}, #{updatedAt}
         )
     </insert>
 
@@ -146,6 +164,12 @@
             rewrite_match_mode = #{rewriteMatchMode},
             rewrite_program_json = #{rewriteProgramJson},
             template_family_fingerprint = #{templateFamilyFingerprint},
+            runtime_match_object_refs_json = #{runtimeMatchObjectRefsJson},
+            runtime_match_object_names_json = #{runtimeMatchObjectNamesJson},
+            analysis_physical_object_refs_json = #{analysisPhysicalObjectRefsJson},
+            metadata_snapshot_version = #{metadataSnapshotVersion},
+            view_definition_hash = #{viewDefinitionHash},
+            metadata_degradation_reason = #{metadataDegradationReason},
             datasource_code = #{datasourceCode},
             status = #{status},
             rule_version = #{ruleVersion},

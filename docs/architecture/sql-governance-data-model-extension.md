@@ -36,6 +36,7 @@
 - `CommentContext`
 - `SqlBindingSnapshot`
 - `MetadataSnapshot`
+- `MetadataColumnSnapshot`
 - `BusinessLogicalView`
 - `DatabaseViewRef`
 - `LogicalObjectRef`
@@ -113,6 +114,7 @@
 - `query_history`
 - `execution_result`
 - `metadata_snapshot`
+- `metadata_column_snapshot`
 - `config_snapshot`
 - `export_record`
 - `audit_log`
@@ -150,6 +152,7 @@
   - 结构化字段：`tenant_id`,`source_type`,`source_id`,`batch_key`,`parse_task_id`,`sql_fingerprint`,`datasource_code`,`datasource_type`,`report_code`,`stage_code`,`biz_date`,`query_date_start`,`query_date_end`,`query_date_status`,`access_channel`,`parser_mode`,`binding_mode`,`parameterized_sql_flag`,`result_status`,`target_engine`,`trace_id`,`request_id`,`saga_id`,`submitted_by`,`submitted_at`,`created_at`,`updated_at`
   - 大文本字段：`sql_text`,`sql_template_text`
   - JSON 字段：`structure_parse_summary_json`,`access_parse_summary_json`,`result_summary_json`,`result_payload_json`,`query_context_json`,`comment_context_json`,`binding_summary_json`,`logical_object_hits_json`,`issue_scenes_json`,`logical_object_keys_json`
+  - 视图感知解析：`query_context_json` 或结构解析响应必须能区分 `surfaceObjectRefs` 与 `expandedPhysicalObjectRefs`；前者表示原 SQL 直接出现的逻辑视图、DB View 或表，后者表示 view definition 展开的底层物理对象证据
   - 追溯键：`tenant_id`,`parse_history_id`,`parse_task_id`,`sql_fingerprint`,`source_type`,`source_id`,`batch_key`,`report_code`,`datasource_code`,`trace_id`,`request_id`,`saga_id`
   - 来源类型：`STRUCTURE_PARSE`,`COMBINED_PARSE`,`PARSE_BATCH`,`REPORT_BATCH`,`END_OF_DAY_SLOW_SQL`
   - 边界：仅承载 SQL 解析记录；不得再把解析记录写入 governance `query_history` 或使用 `historyType=SQL_PARSE` 做逻辑隔离
@@ -203,8 +206,18 @@
   - 结构化字段：`tenant_id`,`recommendation_id`,`optimization_task_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`sql_fingerprint`,`datasource_code`,`status`,`validation_status`,`auto_apply_allowed`,`manual_review_required`,`validation_policy_id`,`last_validation_run_id`,`last_compared_at`,`alert_status`,`created_by`,`created_at`,`updated_at`
   - 大文本字段：`original_sql_text`,`recommended_sql_text`,`executed_sql_text`
   - JSON 字段：`rule_chain_json`,`diff_summary_json`,`risk_json`,`trace_refs_json`
+  - 视图感知激活证据：`trace_refs_json` 保存 `runtimeMatchObjectRefs`,`runtimeMatchObjectNames`,`analysisPhysicalObjectRefs`,`metadataSnapshotVersion`,`viewDefinitionHash`,`metadataDegradationReason`；运行时匹配对象只能来自原 SQL 表面对象，展开后的底层表只能作为分析证据
   - 追溯键：`tenant_id`,`rewrite_record_id`,`recommendation_id`,`optimization_task_id`,`source_type`,`source_kind`,`source_id`,`history_id`,`parse_history_id`,`sql_fingerprint`
   - 边界：承载改写建议、diff、验证状态和实际执行 SQL 追溯；不得把推荐状态误写成装数或真实物理加速完成
+- `runtime_rewrite_binding`
+  - 所属服务：`query-execution`
+  - 主键：`runtime_binding_id`
+  - 结构化字段：`tenant_id`,`rewrite_record_id`,`recommendation_id`,`source_type`,`source_kind`,`source_id`,`sql_fingerprint`,`original_sql_digest`,`datasource_code`,`status`,`rule_version`,`runtime_rule_version`,`activated_by`,`activated_at`,`paused_by`,`paused_at`
+  - 大文本字段：`original_sql_text`,`recommended_sql_text`,`rewrite_program_json`
+  - JSON 字段：`runtime_match_object_refs_json`,`runtime_match_object_names_json`,`analysis_physical_object_refs_json`
+  - 元数据字段：`metadata_snapshot_version`,`view_definition_hash`,`metadata_degradation_reason`
+  - 追溯键：`tenant_id`,`runtime_binding_id`,`rewrite_record_id`,`sql_fingerprint`,`template_family_fingerprint`
+  - 边界：生产执行热路径只用 `tenantId + datasource + sqlFingerprint/templateFamily + runtime_match_object_names_json` 匹配 active binding；`analysis_physical_object_refs_json` 不得作为命中键
 - `rewrite_validation_run`
   - 所属服务：`sql-optimization`，只读执行可通过 `query-execution` 协同，压测或回归证据可通过 `benchmark-engine` 协同；`benchmark-engine` 不拥有本对象的长期真值
   - 主键：`validation_run_id`
@@ -234,6 +247,17 @@
   - 大文本字段：`sql_text`
   - JSON 字段：`tags_json`,`bind_parameters_json`,`raw_case_data_json`
   - 追溯键：`tenant_id(经 test set 间接关联)`,`test_set_id`,`case_id`,`report_code`,`sql_fingerprint`,`import_batch_id(经 test set 间接关联)`
+
+元数据同步对象：
+
+- `MetadataColumnSnapshot`
+  - 所属服务：`governance`
+  - 主表：`metadata_column_snapshot`
+  - 结构化字段：`column_snapshot_id`,`snapshot_id`,`tenant_id`,`datasource_code`,`object_type`,`object_key`,`column_name`,`column_ordinal`,`data_type`,`nullable_flag`,`primary_key_flag`,`partition_key_flag`,`evidence_source`,`snapshot_time`
+  - 大文本字段：`expression_text`
+  - JSON 字段：`source_column_refs_json`
+  - 追溯键：`tenant_id`,`snapshot_id`,`object_key`,`column_name`,`datasource_code`
+  - 边界：用于定期和按需元数据同步后的字段级结构、view 字段表达式和降级解析证据；不得作为 query-execution 自动改写热路径依赖
 
 配置对象：
 

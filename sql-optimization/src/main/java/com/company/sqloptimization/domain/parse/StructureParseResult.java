@@ -10,6 +10,8 @@ public class StructureParseResult {
     private String sqlType;
     private StructureParseQueryDateSummary queryDateSummary;
     private List<StructureParseLogicalObjectHit> logicalObjectHits;
+    private List<StructureParseLogicalObjectHit> surfaceObjectRefs;
+    private List<StructureParseLogicalObjectHit> expandedPhysicalObjectRefs;
     private List<String> riskTags;
     private List<String> rewriteCandidates;
     private List<StructureParseIssue> issues;
@@ -80,6 +82,22 @@ public class StructureParseResult {
 
     public void setLogicalObjectHits(List<StructureParseLogicalObjectHit> logicalObjectHits) {
         this.logicalObjectHits = logicalObjectHits;
+    }
+
+    public List<StructureParseLogicalObjectHit> getSurfaceObjectRefs() {
+        return surfaceObjectRefs;
+    }
+
+    public void setSurfaceObjectRefs(List<StructureParseLogicalObjectHit> surfaceObjectRefs) {
+        this.surfaceObjectRefs = surfaceObjectRefs;
+    }
+
+    public List<StructureParseLogicalObjectHit> getExpandedPhysicalObjectRefs() {
+        return expandedPhysicalObjectRefs;
+    }
+
+    public void setExpandedPhysicalObjectRefs(List<StructureParseLogicalObjectHit> expandedPhysicalObjectRefs) {
+        this.expandedPhysicalObjectRefs = expandedPhysicalObjectRefs;
     }
 
     public List<String> getRiskTags() {

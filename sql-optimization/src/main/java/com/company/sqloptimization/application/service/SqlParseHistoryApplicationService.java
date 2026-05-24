@@ -359,6 +359,8 @@ public class SqlParseHistoryApplicationService {
         queryContext.put("queryDateStatus", history.getQueryDateStatus());
         queryContext.put("bindingSummary", parseJsonMap(buildBindingSummaryJson(request, history.getSqlFingerprint())));
         queryContext.put("logicalObjectHits", structureParse.getLogicalObjectHits());
+        queryContext.put("surfaceObjectRefs", structureParse.getSurfaceObjectRefs());
+        queryContext.put("expandedPhysicalObjectRefs", structureParse.getExpandedPhysicalObjectRefs());
         queryContext.put("structureParseSummary", structureParse);
         if (accessParse != null) {
             queryContext.put("accessParseSummary", accessParse);

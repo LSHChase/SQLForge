@@ -5,6 +5,8 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
+import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivationRequest;
@@ -42,6 +44,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -365,6 +368,7 @@ public class SqlRewriteRecordApplicationService {
             }
         });
         requireMvRuntimeRewriteSqlAligned(rewriteRecord);
+        requireRuntimeSurfaceBoundary(rewriteRecord);
         RewriteActivationEligibility eligibility = evaluateActivationEligibility(rewriteRecord);
         boolean developmentDirectActivation = shouldUseDevelopmentDirectActivation(eligibility);
         if (!developmentDirectActivation) {
@@ -511,6 +515,11 @@ public class SqlRewriteRecordApplicationService {
             lifecycleEvidence.put("runtimeStatus", runtimeResponse.getStatus());
             lifecycleEvidence.put("runtimeActive", Boolean.valueOf(runtimeResponse.isActive()));
             lifecycleEvidence.put("runtimeRuleVersion", runtimeResponse.getRuntimeRuleVersion());
+            lifecycleEvidence.put("runtimeMatchObjectNames", runtimeResponse.getRuntimeMatchObjectNames());
+            lifecycleEvidence.put("analysisPhysicalObjectRefs", runtimeResponse.getAnalysisPhysicalObjectRefs());
+            lifecycleEvidence.put("metadataSnapshotVersion", runtimeResponse.getMetadataSnapshotVersion());
+            lifecycleEvidence.put("viewDefinitionHash", runtimeResponse.getViewDefinitionHash());
+            lifecycleEvidence.put("metadataDegradationReason", runtimeResponse.getMetadataDegradationReason());
             lifecycleEvidence.put("runtimeSummary", runtimeResponse.getRuntimeSummary());
             lifecycleEvidence.put("runtimeDetails", parseJsonString(runtimeResponse.getRuntimeDetailsJson()));
         }
@@ -759,6 +768,10 @@ public class SqlRewriteRecordApplicationService {
 
     private RuntimeRewriteBindingActivationRequest buildRuntimeActivationRequest(SqlRewriteRecord rewriteRecord,
                                                                            String operator) {
+        List<LogicalObjectSurface> runtimeMatchObjectRefs =
+            runtimeMatchObjectRefs(rewriteRecord.getTraceRefs(), rewriteRecord.getOriginalSqlText());
+        List<LogicalObjectSurface> analysisPhysicalObjectRefs =
+            traceSurfaceList(rewriteRecord.getTraceRefs(), "analysisPhysicalObjectRefs");
         RuntimeRewriteBindingActivationRequest request = new RuntimeRewriteBindingActivationRequest();
         request.setTenantId(rewriteRecord.getTenantId());
         request.setRewriteRecordId(rewriteRecord.getRewriteRecordId());
@@ -780,9 +793,47 @@ public class SqlRewriteRecordApplicationService {
         request.setTemplateFamilyFingerprint(
             RuntimeSqlRewriteTemplateEngine.templateFamilyFingerprint(rewriteRecord.getOriginalSqlText())
         );
+        request.setRuntimeMatchObjectRefs(runtimeMatchObjectRefs);
+        request.setRuntimeMatchObjectNames(SqlSurfaceObjectRefExtractor.surfaceObjectNames(runtimeMatchObjectRefs));
+        request.setAnalysisPhysicalObjectRefs(analysisPhysicalObjectRefs);
+        request.setMetadataSnapshotVersion(traceText(rewriteRecord.getTraceRefs(), "metadataSnapshotVersion"));
+        request.setViewDefinitionHash(traceText(rewriteRecord.getTraceRefs(), "viewDefinitionHash"));
+        request.setMetadataDegradationReason(traceText(rewriteRecord.getTraceRefs(), "metadataDegradationReason"));
         request.setDatasourceCode(firstText(rewriteRecord.getDatasourceCode(), "hetu_main"));
         request.setActivatedBy(operator);
         return request;
+    }
+
+    private void requireRuntimeSurfaceBoundary(SqlRewriteRecord rewriteRecord) {
+        List<LogicalObjectSurface> originalSurfaceRefs =
+            SqlSurfaceObjectRefExtractor.extractSurfaceRefs(rewriteRecord.getOriginalSqlText());
+        if (!containsLogicalViewSurface(originalSurfaceRefs)) {
+            return;
+        }
+        List<String> originalNames = SqlSurfaceObjectRefExtractor.surfaceObjectNames(originalSurfaceRefs);
+        List<String> recommendedNames =
+            SqlSurfaceObjectRefExtractor.extractSurfaceObjectNames(rewriteRecord.getRecommendedSqlText());
+        if (new LinkedHashSet<String>(originalNames).equals(new LinkedHashSet<String>(recommendedNames))) {
+            return;
+        }
+        throw new BizException(
+            ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID,
+            HttpStatus.CONFLICT,
+            "推荐 SQL 已改变原 SQL 逻辑视图或 DB View 表面对象边界，禁止自动激活"
+        );
+    }
+
+    private boolean containsLogicalViewSurface(List<LogicalObjectSurface> refs) {
+        if (refs == null) {
+            return false;
+        }
+        for (LogicalObjectSurface ref : refs) {
+            String objectType = ref == null ? null : trimToNull(ref.getObjectType());
+            if ("DB_VIEW".equals(objectType) || "BUSINESS_VIEW".equals(objectType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private RuntimeRewriteBindingStateChangeRequest buildRuntimeStateChangeRequest(SqlRewriteRecord rewriteRecord,
@@ -1012,12 +1063,55 @@ public class SqlRewriteRecordApplicationService {
             request.getSourceProblems(),
             request.getIssueRuleLinks()
         );
+        traceRefs = enrichViewAwareRuntimeTraceRefs(traceRefs, request);
         Map<String, Object> storedArtifact = storedGeneratedMvArtifact(request.getRecommendationId(), tenantId);
         if (storedArtifact == null) {
             return traceRefs;
         }
         requireRecommendedSqlTextMatchesArtifact(request.getRecommendedSqlText(), storedArtifact);
         return normalizeMvArtifactTraceRefs(traceRefs, storedArtifact, request.getRecommendationId());
+    }
+
+    private Map<String, Object> enrichViewAwareRuntimeTraceRefs(Map<String, Object> traceRefs,
+                                                                SqlRewriteRecordCreateRequest request) {
+        Map<String, Object> result = traceRefs == null
+            ? new LinkedHashMap<String, Object>()
+            : new LinkedHashMap<String, Object>(traceRefs);
+        if (request != null && request.getRuntimeMatchObjectRefs() != null
+            && !request.getRuntimeMatchObjectRefs().isEmpty()) {
+            result.put("runtimeMatchObjectRefs", request.getRuntimeMatchObjectRefs());
+        }
+        if (request != null && request.getRuntimeMatchObjectNames() != null
+            && !request.getRuntimeMatchObjectNames().isEmpty()) {
+            result.put("runtimeMatchObjectNames", request.getRuntimeMatchObjectNames());
+        }
+        if (request != null && request.getAnalysisPhysicalObjectRefs() != null
+            && !request.getAnalysisPhysicalObjectRefs().isEmpty()) {
+            result.put("analysisPhysicalObjectRefs", request.getAnalysisPhysicalObjectRefs());
+        }
+        putTraceTextIfPresent(result, "metadataSnapshotVersion", request == null ? null : request.getMetadataSnapshotVersion());
+        putTraceTextIfPresent(result, "viewDefinitionHash", request == null ? null : request.getViewDefinitionHash());
+        putTraceTextIfPresent(result, "metadataDegradationReason", request == null ? null : request.getMetadataDegradationReason());
+        if (!result.containsKey("runtimeMatchObjectRefs") || !result.containsKey("runtimeMatchObjectNames")) {
+            List<LogicalObjectSurface> runtimeMatchObjectRefs =
+                SqlSurfaceObjectRefExtractor.extractSurfaceRefs(request == null ? null : request.getOriginalSqlText());
+            result.put("runtimeMatchObjectRefs", runtimeMatchObjectRefs);
+            result.put("runtimeMatchObjectNames", SqlSurfaceObjectRefExtractor.surfaceObjectNames(runtimeMatchObjectRefs));
+        }
+        if (!result.containsKey("analysisPhysicalObjectRefs")) {
+            Object expandedPhysical = result.get("expandedPhysicalObjectRefs");
+            if (expandedPhysical != null) {
+                result.put("analysisPhysicalObjectRefs", expandedPhysical);
+            }
+        }
+        return result;
+    }
+
+    private void putTraceTextIfPresent(Map<String, Object> traceRefs, String key, String value) {
+        String normalized = trimToNull(value);
+        if (normalized != null) {
+            traceRefs.put(key, normalized);
+        }
     }
 
     private Map<String, Object> storedGeneratedMvArtifact(String recommendationId,
@@ -1344,6 +1438,17 @@ public class SqlRewriteRecordApplicationService {
         vo.setRuleChain(record.getRuleChain());
         vo.setSourceProblems(traceList(record.getTraceRefs(), "sourceProblems"));
         vo.setIssueRuleLinks(traceList(record.getTraceRefs(), "issueRuleLinks"));
+        List<LogicalObjectSurface> runtimeMatchObjectRefs =
+            runtimeMatchObjectRefs(record.getTraceRefs(), record.getOriginalSqlText());
+        vo.setRuntimeMatchObjectRefs(surfaceMaps(runtimeMatchObjectRefs));
+        List<String> runtimeMatchObjectNames = traceStringList(record.getTraceRefs(), "runtimeMatchObjectNames");
+        vo.setRuntimeMatchObjectNames(runtimeMatchObjectNames.isEmpty()
+            ? SqlSurfaceObjectRefExtractor.surfaceObjectNames(runtimeMatchObjectRefs)
+            : runtimeMatchObjectNames);
+        vo.setAnalysisPhysicalObjectRefs(surfaceMaps(traceSurfaceList(record.getTraceRefs(), "analysisPhysicalObjectRefs")));
+        vo.setMetadataSnapshotVersion(traceText(record.getTraceRefs(), "metadataSnapshotVersion"));
+        vo.setViewDefinitionHash(traceText(record.getTraceRefs(), "viewDefinitionHash"));
+        vo.setMetadataDegradationReason(traceText(record.getTraceRefs(), "metadataDegradationReason"));
         vo.setDiffSummary(record.getDiffSummary());
         vo.setRisk(record.getRisk());
         vo.setTraceRefs(record.getTraceRefs());
@@ -1367,12 +1472,117 @@ public class SqlRewriteRecordApplicationService {
         return result;
     }
 
+    private List<LogicalObjectSurface> runtimeMatchObjectRefs(Map<String, Object> traceRefs, String originalSqlText) {
+        List<LogicalObjectSurface> refs = traceSurfaceList(traceRefs, "runtimeMatchObjectRefs");
+        if (!refs.isEmpty()) {
+            return refs;
+        }
+        return SqlSurfaceObjectRefExtractor.extractSurfaceRefs(originalSqlText);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<LogicalObjectSurface> traceSurfaceList(Map<String, Object> traceRefs, String key) {
+        if (traceRefs == null || !(traceRefs.get(key) instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<Object> items = (List<Object>) traceRefs.get(key);
+        List<LogicalObjectSurface> result = new ArrayList<LogicalObjectSurface>();
+        for (Object item : items) {
+            LogicalObjectSurface surface = toLogicalObjectSurface(item);
+            if (surface != null) {
+                result.add(surface);
+            }
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private LogicalObjectSurface toLogicalObjectSurface(Object item) {
+        if (item instanceof LogicalObjectSurface) {
+            return (LogicalObjectSurface) item;
+        }
+        if (!(item instanceof Map)) {
+            return null;
+        }
+        Map<String, Object> map = (Map<String, Object>) item;
+        LogicalObjectSurface surface = new LogicalObjectSurface();
+        surface.setObjectType(textValue(map.get("objectType")));
+        surface.setObjectKey(textValue(map.get("objectKey")));
+        surface.setObjectName(textValue(map.get("objectName")));
+        surface.setCatalogName(textValue(map.get("catalogName")));
+        surface.setSchemaName(textValue(map.get("schemaName")));
+        surface.setMatchSource(textValue(map.get("matchSource")));
+        surface.setResolved(booleanValue(map.get("resolved")));
+        surface.setMappedPhysicalTargets(stringListValue(map.get("mappedPhysicalTargets")));
+        return surface.getObjectName() == null && surface.getObjectKey() == null ? null : surface;
+    }
+
+    private String traceText(Map<String, Object> traceRefs, String key) {
+        return traceRefs == null ? null : textValue(traceRefs.get(key));
+    }
+
+    private List<Map<String, Object>> surfaceMaps(List<LogicalObjectSurface> refs) {
+        if (refs == null || refs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (LogicalObjectSurface ref : refs) {
+            if (ref == null) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("objectType", ref.getObjectType());
+            item.put("objectKey", ref.getObjectKey());
+            item.put("objectName", ref.getObjectName());
+            item.put("catalogName", ref.getCatalogName());
+            item.put("schemaName", ref.getSchemaName());
+            item.put("matchSource", ref.getMatchSource());
+            item.put("resolved", ref.getResolved());
+            item.put("mappedPhysicalTargets", ref.getMappedPhysicalTargets());
+            result.add(item);
+        }
+        return result;
+    }
+
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> traceList(Map<String, Object> traceRefs, String key) {
         if (traceRefs == null || !(traceRefs.get(key) instanceof List)) {
             return Collections.emptyList();
         }
         return (List<Map<String, Object>>) traceRefs.get(key);
+    }
+
+    private List<String> traceStringList(Map<String, Object> traceRefs, String key) {
+        if (traceRefs == null || !(traceRefs.get(key) instanceof List)) {
+            return Collections.emptyList();
+        }
+        return stringListValue(traceRefs.get(key));
+    }
+
+    private Boolean booleanValue(Object value) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof String) {
+            return Boolean.valueOf((String) value);
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> stringListValue(Object value) {
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<Object> items = (List<Object>) value;
+        List<String> result = new ArrayList<String>();
+        for (Object item : items) {
+            String text = textValue(item);
+            if (text != null) {
+                result.add(text);
+            }
+        }
+        return result;
     }
 
     private RewriteActivationEligibilityVO toActivationEligibilityVo(RewriteActivationEligibility eligibility) {

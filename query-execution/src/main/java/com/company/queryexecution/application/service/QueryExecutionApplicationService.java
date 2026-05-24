@@ -31,6 +31,7 @@ import com.company.sqlforge.common.jdbcagent.JdbcAgentSqlCommentParser;
 import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.logicalobject.LogicalObjectType;
+import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.utils.JsonUtils;
@@ -1175,10 +1176,16 @@ public class QueryExecutionApplicationService {
         }
         try {
             RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
+            List<LogicalObjectSurface> runtimeMatchObjectRefs =
+                SqlSurfaceObjectRefExtractor.extractSurfaceRefs(effectiveSql);
             resolveRequest.setTenantId(request.getTenantId());
             resolveRequest.setSqlFingerprint(effectiveSqlFingerprint);
             resolveRequest.setSqlText(effectiveSql);
             resolveRequest.setDatasourceCode(resolveRuntimeRewriteDatasourceEvidence(request, effectiveSql));
+            resolveRequest.setRuntimeMatchObjectRefs(runtimeMatchObjectRefs);
+            resolveRequest.setRuntimeMatchObjectNames(
+                SqlSurfaceObjectRefExtractor.surfaceObjectNames(runtimeMatchObjectRefs)
+            );
             RuntimeRewriteBindingResponse response =
                 queryExecutionRuntimeRewriteBindingService.resolveActive(resolveRequest);
             if (response == null || !response.isActive()) {

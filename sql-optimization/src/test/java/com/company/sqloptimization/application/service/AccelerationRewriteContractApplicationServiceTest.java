@@ -426,6 +426,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("tenant-a:fp-publish", published.getRuntimeBindingScope());
         assertEquals("fp-publish", published.getActivatedSqlFingerprint());
         assertEquals(1, runtimeClient.activateCount);
+        assertEquals(Collections.singletonList("orders"), runtimeClient.lastActivateRequest.getRuntimeMatchObjectNames());
         Map<?, ?> publishTrace = (Map<?, ?>) published.getTraceRefs().get("activationEvidence");
         assertEquals("ACTIVATE", publishTrace.get("action"));
         assertEquals("ACTIVE", publishTrace.get("activationStatus"));
@@ -433,6 +434,32 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("ACTIVE", publishTrace.get("runtimeStatus"));
         assertEquals("rwb-001", publishTrace.get("runtimeBindingId"));
         assertEquals("fp-publish", runtimeClient.lastActivateRequest.getSqlFingerprint());
+    }
+
+    @Test
+    void shouldRejectViewRewriteActivationWhenRecommendedSqlUsesPhysicalTable() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
+            repository,
+            null,
+            new ResultDigestComparisonEngine(),
+            runtimeClient,
+            developmentDirectActivationProperties()
+        );
+        setTenant("tenant-a");
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-view-boundary");
+        request.setOriginalSqlText("SELECT * FROM vw_orders WHERE tenant_id = 1");
+        request.setRecommendedSqlText("SELECT id FROM orders_base WHERE tenant_id = 1");
+        SqlRewriteRecordVO created = service.createRewriteRecord(request);
+
+        BizException exception = assertThrows(
+            BizException.class,
+            () -> service.activateRewriteRecord(created.getRewriteRecordId(), publishActionRequest("activate view rewrite"))
+        );
+
+        assertEquals(ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_STATE_TRANSITION_INVALID, exception.getCode());
+        assertEquals(0, runtimeClient.activateCount);
     }
 
     @Test
@@ -1002,6 +1029,12 @@ class AccelerationRewriteContractApplicationServiceTest {
             response.setSourceId(request.getSourceId());
             response.setOriginalSqlDigest(request.getOriginalSqlDigest());
             response.setRecommendedSqlText(request.getRecommendedSqlText());
+            response.setRuntimeMatchObjectRefs(request.getRuntimeMatchObjectRefs());
+            response.setRuntimeMatchObjectNames(request.getRuntimeMatchObjectNames());
+            response.setAnalysisPhysicalObjectRefs(request.getAnalysisPhysicalObjectRefs());
+            response.setMetadataSnapshotVersion(request.getMetadataSnapshotVersion());
+            response.setViewDefinitionHash(request.getViewDefinitionHash());
+            response.setMetadataDegradationReason(request.getMetadataDegradationReason());
             response.setDatasourceCode(request.getDatasourceCode());
             response.setStatus("ACTIVE");
             response.setActive(true);

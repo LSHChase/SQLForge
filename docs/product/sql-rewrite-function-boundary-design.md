@@ -83,6 +83,10 @@ SQL 改写能力应拆成三个功能面：
 - `differenceType`
 - `autoApplyAllowed`
 - `manualReviewRequired`
+- `surfaceObjectRefs`
+- `expandedPhysicalObjectRefs`
+- `runtimeMatchObjectNames`
+- `analysisPhysicalObjectRefs`
 
 ### Single SQL Design
 
@@ -215,6 +219,8 @@ SQL 改写能力应拆成三个功能面：
 6. 激活资格、验证结果和告警是后端门禁和审计证据，页面按钮不得绕过这些接口直接改状态。
 7. 周期比对失败时，运行时暂停走 runtime binding；若暂停失败，只能记录失败 trace 和告警，不得直接改数据库状态伪造运行时暂停。
 8. 生产 runtime binding 的推荐 SQL 表达为模板 / 规则程序，不得只保存为固定整条替换文本；执行时可在同租户 `ACTIVE` 安全边界内按模板族匹配，并把当前 SQL 参数和可迁移 WHERE 条件重放到推荐 SQL 模板。
+9. 视图感知改写采用“视图 + 模板”口径：解析、推荐和验证阶段可以展开 DB View / 业务逻辑视图并展示 `expandedPhysicalObjectRefs` / `analysisPhysicalObjectRefs`，运行时 binding 只能保存并匹配原 SQL 中直接出现的 `runtimeMatchObjectRefs` / `runtimeMatchObjectNames`。
+10. 若推荐 SQL 把原 SQL 中的逻辑视图或 DB View 直接替换为底层表，系统只能把它作为推荐或人工治理记录，不允许生产自动激活。
 
 `manualReviewRequired=true` 只表示需要人工查看，不表示已激活或已进入生产运行。
 
@@ -236,6 +242,7 @@ SQL 改写能力应拆成三个功能面：
 - 绕过后端状态接口。
 - 把非 `ACTIVE` 状态展示为默认自动改写已生效。
 - 直接修改 `query_history` 的真实执行结果。
+- 把 view definition 展开的底层表当成运行时匹配对象，导致多个视图共用底层表时误套用改写规则。
 
 ## Function 3: 真实 SQL 改写历史
 
@@ -399,6 +406,7 @@ SQL 解析记录对应的改写必须按以下规则归属：
 - `governance` owns query history query surface and history aggregation。
 - `query-execution` owns runtime execution evidence and binding application in execution path。
 - `benchmark-engine` can provide regression evidence but cannot become rewrite validation truth.
+- `governance` metadata snapshots own view/table/column catalog evidence for fallback, recommendation and activation validation; query-execution runtime lookup must not depend on live metadata expansion.
 
 跨页面只能通过 ID 和只读聚合关联：
 
