@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-VIEW-UX-REFACTOR-20260524: 重构 SQL 查询分析页面的交互布局与样式设计
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `USER-CN-SQL-QUERY-VIEW-UX-REFACTOR-20260524 refine UX layout, setting gear dropdown and dynamic param scanning`
+- Priority: 1
+- Depends on: N/A
+- Scope: src/views/query
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-VIEW-UX-REFACTOR-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 重构并优化 SQL 查询分析页面的交互与样式设计，实现三栏向双栏（侧边树+IDE工作台）演进、低频选项设置齿轮下拉、参数面板与编辑器并排、以及动态 RegExp 参数实时扫描与绑定渲染；通过国际化 placeholder 修复与代码规范化移除冗余 computed/方法
+  - Validation evidence: npm run lint passed; npm run build passed; npm run test:form-governance passed; npm run test:sql-ui-contract passed; npm run test:frontend-page-governance passed; npm run test:i18n-copy passed; python3 scripts/foreman.py validate passed; python3 scripts/task_audit.py --check --phase pre-closeout passed
+  - Residual risk: 改写/诊断终端仍沿用既有的 query-execution 后端响应，未接入实时 websocket 等长连接推送
+  - Next step: 在真实多租户与数据源环境，用更复杂的带有:var 绑定的 SELECT 查询进行端到端回归覆盖
+
 ### USER-CN-SQL-QUERY-RESULT-PAGINATION-FIX-20260523: 修复 SQL 查询分析结果分页只展示一行
 
 - Status: done

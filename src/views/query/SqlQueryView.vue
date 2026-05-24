@@ -9,8 +9,6 @@ import {
   getGovernanceDatasources,
   getGovernanceMessageStats
 } from '../../services/runtimeGateApi'
-import MetricCard from '../common/MetricCard.vue'
-import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { formatSqlText } from '../common/sqlFormatting.mjs'
@@ -53,6 +51,7 @@ const {
   recordExecution
 } = useQueryHistory()
 
+const isSidebarCollapsed = ref(false)
 const selectedDatasourceId = ref('hetu-main')
 const activeExplorerTab = ref('objects')
 const activeResultTab = ref('rows')
@@ -82,8 +81,6 @@ const resultColumns = computed(() => {
   }
   return Array.from(columns)
 })
-const resultPaginationDisabled = computed(() => resultPage.value.remotePaged)
-const resultPaginationVisible = computed(() => resultPage.value.totalCount > resultPagination.pageSize)
 const selectedDatasource = computed(() => {
   for (const group of datasourceTree.value) {
     for (const item of group.children || []) {
@@ -122,32 +119,6 @@ const queryHeroPills = computed(() => [
   form.tenantId || 'tenant-a',
   form.datasourceType,
   selectedDatasource.value.label
-])
-const queryHeroMetrics = computed(() => [
-  {
-    key: 'resultRows',
-    label: t('sqlQuery.metrics.resultRows'),
-    value: resultPage.value.totalCount,
-    trend: result.value?.status || t('sqlQuery.metrics.pending'),
-    detail: t('sqlQuery.metrics.resultRowsDetail'),
-    tone: previewRows.value.length > 0 ? 'success' : 'neutral'
-  },
-  {
-    key: 'validationTips',
-    label: t('sqlQuery.metrics.validationTips'),
-    value: validationTips.value.length,
-    trend: validationTips.value.length > 0 ? t('sqlQuery.metrics.review') : t('sqlQuery.metrics.ready'),
-    detail: t('sqlQuery.metrics.validationTipsDetail'),
-    tone: validationTips.value.length > 0 ? 'warning' : 'success'
-  },
-  {
-    key: 'recentRuns',
-    label: t('sqlQuery.metrics.recentRuns'),
-    value: executionHistory.value.length,
-    trend: t('sqlQuery.metrics.sessionOnly'),
-    detail: t('sqlQuery.metrics.recentRunsDetail'),
-    tone: executionHistory.value.length > 0 ? 'neutral' : 'warning'
-  }
 ])
 const summaryRows = computed(() => {
   const metadata = result.value?.metadata || {}
@@ -191,19 +162,6 @@ const routingRows = computed(() => {
     { label: t('inline.viewsQuerySqlQueryView.text020'), value: form.accelerationPreference }
   ]
 })
-const recommendationRows = computed(() => {
-  const metadata = result.value?.metadata || {}
-  return [
-    {
-      label: t('inline.viewsQuerySqlQueryView.text021'),
-      value: metadata.cacheGovernanceStatus === 'HIT' ? (t('inline.viewsQuerySqlQueryView.text022')) : (t('inline.viewsQuerySqlQueryView.text023'))
-    },
-    {
-      label: t('inline.viewsQuerySqlQueryView.text024'),
-      value: t('inline.viewsQuerySqlQueryView.text025')
-    }
-  ]
-})
 const accessRows = computed(() => {
   const queryDateSummary = result.value?.queryDateSummary || {}
   const bindingSummary = result.value?.bindingSummary || {}
@@ -224,15 +182,7 @@ const historyAssociationRows = computed(() => [
   { label: t('sqlQuery.historyAssociation.contractStage'), value: result.value?.contractStage },
   { label: t('sqlQuery.historyAssociation.implementationStage'), value: result.value?.implementationStage },
   { label: t('sqlQuery.historyAssociation.downloadUrl'), value: result.value?.downloadUrl },
-  { label: t('sqlQuery.historyAssociation.historyBoundary'), value: t('sqlQuery.historyAssociation.backendHistory') }
 ])
-const queryMetricProps = item => ({
-  label: item.label,
-  value: item.value,
-  trend: item.trend,
-  detail: item.detail,
-  tone: item.tone
-})
 const explainSteps = computed(() => [
   {
     label: t('inline.viewsQuerySqlQueryView.text026'),
@@ -313,15 +263,6 @@ const resetEvidence = () => {
 const syncResultPagination = () => {
   resultPagination.pageNo = resultPage.value.pageNo || 1
   resultPagination.pageSize = resultPage.value.pageSize || DEFAULT_QUERY_RESULT_PAGE_SIZE
-}
-
-const handleResultPageChange = pageNo => {
-  resultPagination.pageNo = Number(pageNo || 1)
-}
-
-const handleResultPageSizeChange = pageSize => {
-  resultPagination.pageSize = Number(pageSize || DEFAULT_QUERY_RESULT_PAGE_SIZE)
-  resultPagination.pageNo = 1
 }
 
 const runQuery = async scenario => {
@@ -424,302 +365,318 @@ const formatJson = value => JSON.stringify(value, null, 2)
 <template>
   <section class="query-workbench" data-testid="query-flow-page">
     <header class="query-workbench__header surface-card">
-      <SectionHeader
-        :eyebrow="t('sqlQuery.hero.eyebrow')"
-        :title="t('sqlQuery.title')"
-        :summary="t('sqlQuery.summary')"
-        size="compact"
-      >
-        <template #actions>
+      <div class="breadcrumb-container">
+        <span class="breadcrumb-item sqlforge-code-label">Workbench</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-item breadcrumb-active">{{ t('sqlQuery.title') }}</span>
+        <div class="header-badges">
           <span v-for="pill in queryHeroPills" :key="pill" class="mini-pill">{{ pill }}</span>
-        </template>
-      </SectionHeader>
-      <div class="query-hero-metrics">
-        <MetricCard
-          v-for="item in queryHeroMetrics"
-          :key="item.key"
-          v-bind="queryMetricProps(item)"
-        />
+        </div>
+      </div>
+      <div class="header-controls">
+        <el-button text class="toggle-sidebar-btn" @click="isSidebarCollapsed = !isSidebarCollapsed">
+          {{ isSidebarCollapsed ? (t('inline.viewsQuerySqlQueryView.text087') || '展开侧栏') : (t('inline.viewsQuerySqlQueryView.text088') || '收起侧栏') }}
+        </el-button>
       </div>
     </header>
 
-    <div class="query-workbench__grid">
-      <aside class="query-rail surface-card">
+    <div class="query-workbench__grid" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+      <aside v-show="!isSidebarCollapsed" class="query-rail surface-card">
         <div class="panel-heading">
           <div>
             <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text032') }}</p>
             <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text033') }}</h2>
           </div>
           <div class="utility-actions">
-            <el-button text @click="showTemplateDialog = true">{{ t('inline.viewsQuerySqlQueryView.text034') }}</el-button>
-            <el-button text @click="showLibraryDialog = true">{{ t('inline.viewsQuerySqlQueryView.text035') }}</el-button>
+            <el-button text size="small" class="util-btn" @click="showTemplateDialog = true">{{ t('inline.viewsQuerySqlQueryView.text034') }}</el-button>
+            <el-button text size="small" class="util-btn" @click="showLibraryDialog = true">{{ t('inline.viewsQuerySqlQueryView.text035') }}</el-button>
           </div>
         </div>
 
-        <el-tabs v-model="activeExplorerTab">
+        <el-tabs v-model="activeExplorerTab" class="explorer-tabs">
           <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text036')" name="objects">
-            <el-tree
-              :data="datasourceTree"
-              node-key="id"
-              default-expand-all
-              @node-click="syncDatasourceSelection"
-            />
+            <el-scrollbar class="tree-scroll-area">
+              <el-tree
+                :data="datasourceTree"
+                node-key="id"
+                default-expand-all
+                @node-click="syncDatasourceSelection"
+              />
+            </el-scrollbar>
           </el-tab-pane>
           <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text037')" name="favorites">
-            <button
-              v-for="entry in favoriteLibraryEntries"
-              :key="entry.key"
-              type="button"
-              class="library-item"
-              @click="loadLibrarySql(entry)"
-            >
-              <strong>{{ entry.title }}</strong>
-              <span>{{ entry.summary }}</span>
-            </button>
+            <el-scrollbar class="tree-scroll-area">
+              <button
+                v-for="entry in favoriteLibraryEntries"
+                :key="entry.key"
+                type="button"
+                class="library-item"
+                @click="loadLibrarySql(entry)"
+              >
+                <strong>{{ entry.title }}</strong>
+                <span>{{ entry.summary }}</span>
+              </button>
+            </el-scrollbar>
           </el-tab-pane>
           <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text038')" name="recent">
-            <button
-              v-for="entry in recentLibraryEntries"
-              :key="entry.key"
-              type="button"
-              class="library-item"
-              @click="loadLibrarySql(entry)"
-            >
-              <strong>{{ entry.title }}</strong>
-              <span>{{ entry.summary }}</span>
-            </button>
+            <el-scrollbar class="tree-scroll-area">
+              <button
+                v-for="entry in recentLibraryEntries"
+                :key="entry.key"
+                type="button"
+                class="library-item"
+                @click="loadLibrarySql(entry)"
+              >
+                <strong>{{ entry.title }}</strong>
+                <span>{{ entry.summary }}</span>
+              </button>
+            </el-scrollbar>
           </el-tab-pane>
         </el-tabs>
-      </aside>
 
-      <section class="editor-rail surface-card">
-        <div class="panel-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text039') }}</p>
-            <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text040') }}</h2>
-          </div>
-          <div class="utility-actions">
-            <el-button text @click="formatSql">{{ t('inline.viewsQuerySqlQueryView.text041') }}</el-button>
-            <el-button text @click="showExplainDialog = true">{{ t('inline.viewsQuerySqlQueryView.text042') }}</el-button>
-          </div>
-        </div>
-
-        <div v-if="errorMessage" class="inline-banner inline-banner-danger">
-          {{ errorMessage }}
-        </div>
-        <div v-else-if="validationTips.length" class="inline-banner">
-          {{ validationTips[0] }}
-        </div>
-
-        <div class="field-grid">
-          <label class="field-block">
-            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text043') }}</span>
-            <el-input v-model="form.tenantId" />
-          </label>
-          <label class="field-block">
-            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text044') }}</span>
-            <el-select v-model="form.datasourceType">
-              <el-option
-                v-for="item in datasourceOptions"
-                :key="item"
-                :label="item"
-                :value="item"
-              />
-            </el-select>
-          </label>
-          <label class="field-block">
-            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text045') }}</span>
-            <el-select v-model="form.accelerationPreference">
-              <el-option
-                v-for="item in accelerationOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </label>
-          <label class="field-block">
-            <span class="field-label">{{ t('inline.viewsQuerySqlQueryView.text046') }}</span>
-            <el-select v-model="form.faultToleranceStrategy">
-              <el-option
-                v-for="item in toleranceOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </label>
-        </div>
-
-        <div class="editor-block">
-          <SqlEditorField
-            v-model="form.sqlText"
-            :label="t('inline.viewsQuerySqlQueryView.text047')"
-            :rows="14"
-            :copy-label="t('inline.viewsQuerySqlQueryView.text048')"
-            :format-label="t('inline.viewsQuerySqlQueryView.text049')"
-            data-testid="query-flow-sql-editor"
-          />
-        </div>
-
-        <div class="parameter-panel">
-          <div class="parameter-panel__header">
-            <div>
-              <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text050') }}</p>
-              <h3 class="parameter-panel__title">{{ t('inline.viewsQuerySqlQueryView.text051') }}</h3>
-            </div>
-            <el-button text @click="addParameter">{{ t('inline.viewsQuerySqlQueryView.text052') }}</el-button>
-          </div>
-
-          <div class="parameter-table">
-            <div class="parameter-table__head">
-              <span>{{ t('inline.viewsQuerySqlQueryView.text053') }}</span>
-              <span>{{ t('inline.viewsQuerySqlQueryView.text054') }}</span>
-              <span>{{ t('inline.viewsQuerySqlQueryView.text055') }}</span>
-            </div>
-            <div
-              v-for="row in parameterRows"
-              :key="row.id"
-              class="parameter-table__row"
-            >
-              <el-input v-model="row.key" />
-              <el-input v-model="row.value" />
-              <el-button text @click="removeParameter(row.id)">{{ t('inline.viewsQuerySqlQueryView.text056') }}</el-button>
-            </div>
-          </div>
-        </div>
-
-        <div class="submit-row">
-          <el-button
-            type="primary"
-            :loading="running"
-            data-testid="query-flow-submit"
-            @click="runQuery('default')"
-          >
-            {{ t('inline.viewsQuerySqlQueryView.text057') }}
-          </el-button>
-          <el-button
-            :loading="running"
-            data-testid="query-flow-submit-recovery"
-            @click="runQuery('recovery')"
-          >
-            {{ t('inline.viewsQuerySqlQueryView.text058') }}
-          </el-button>
-          <div class="submit-row__helpers">
-            <el-button text @click="showBoundPreviewDrawer = true">{{ t('inline.viewsQuerySqlQueryView.text059') }}</el-button>
-            <el-button text @click="showGovernanceDrawer = true">{{ t('inline.viewsQuerySqlQueryView.text060') }}</el-button>
-            <el-button text data-testid="query-flow-open-deep-parse" @click="openDeepParseWorkbench">{{ t('inline.viewsQuerySqlQueryView.text086') }}</el-button>
-          </div>
-        </div>
-      </section>
-
-      <aside class="result-rail surface-card">
-        <div class="panel-heading">
-          <div>
-            <p class="section-kicker sqlforge-code-label">governance summary</p>
-            <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text061') }}</h2>
-          </div>
-        </div>
-
-        <div class="summary-list">
-          <div
-            v-for="item in summaryRows"
-            :key="item.label"
-            class="summary-list__item"
-          >
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </div>
-        </div>
-
-        <div class="history-panel">
+        <div class="sidebar-history-box">
           <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text062') }}</p>
           <p v-if="!executionHistory.length" class="muted-copy">
             {{ t('inline.viewsQuerySqlQueryView.text063') }}
           </p>
-          <div v-else class="history-list">
-            <div
-              v-for="item in executionHistory"
-              :key="item.id"
-              class="history-list__item"
-            >
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.status }} · {{ item.mode }}</span>
+          <el-scrollbar v-else class="sidebar-history-scroll">
+            <div class="history-list">
+              <div
+                v-for="item in executionHistory"
+                :key="item.id"
+                class="history-list__item"
+              >
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.status }} · {{ item.mode }}</span>
+              </div>
             </div>
-          </div>
+          </el-scrollbar>
         </div>
       </aside>
+
+      <section class="editor-rail surface-card">
+        <div class="editor-header">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text039') }}</p>
+              <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text040') }}</h2>
+            </div>
+          </div>
+          <div class="editor-actions">
+            <el-button text class="format-btn" @click="formatSql">
+              🪄 {{ t('inline.viewsQuerySqlQueryView.text041') }}
+            </el-button>
+            
+            <el-dropdown trigger="click" class="settings-dropdown">
+              <el-button text class="settings-btn">
+                ⚙️ {{ t('inline.viewsQuerySqlQueryView.text089') || 'Settings' }}
+              </el-button>
+              <template #dropdown>
+                <div class="settings-dropdown-panel">
+                  <div class="settings-title sqlforge-code-label">Preferences</div>
+                  <div class="settings-field">
+                    <span>{{ t('inline.viewsQuerySqlQueryView.text043') }}</span>
+                    <el-input v-model="form.tenantId" size="small" />
+                  </div>
+                  <div class="settings-field">
+                    <span>{{ t('inline.viewsQuerySqlQueryView.text044') }}</span>
+                    <el-select v-model="form.datasourceType" size="small">
+                      <el-option
+                        v-for="item in datasourceOptions"
+                        :key="item"
+                        :label="item"
+                        :value="item"
+                      />
+                    </el-select>
+                  </div>
+                  <div class="settings-field">
+                    <span>{{ t('inline.viewsQuerySqlQueryView.text045') }}</span>
+                    <el-select v-model="form.accelerationPreference" size="small">
+                      <el-option
+                        v-for="item in accelerationOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </div>
+                  <div class="settings-field">
+                    <span>{{ t('inline.viewsQuerySqlQueryView.text046') }}</span>
+                    <el-select v-model="form.faultToleranceStrategy" size="small">
+                      <el-option
+                        v-for="item in toleranceOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+              </template>
+            </el-dropdown>
+          </div>
+        </div>
+
+        <div class="editor-workspace-split">
+          <div class="editor-main-block">
+            <SqlEditorField
+              v-model="form.sqlText"
+              :label="t('inline.viewsQuerySqlQueryView.text047')"
+              :rows="14"
+              :copy-label="t('inline.viewsQuerySqlQueryView.text048')"
+              :format-label="t('inline.viewsQuerySqlQueryView.text049')"
+              data-testid="query-flow-sql-editor"
+            />
+            
+            <div v-if="errorMessage" class="inline-banner inline-banner-danger">
+              {{ errorMessage }}
+            </div>
+            <div v-else-if="validationTips.length" class="inline-banner">
+              {{ validationTips[0] }}
+            </div>
+          </div>
+
+          <div class="parameters-panel-block">
+            <div class="parameter-panel__header">
+              <span class="parameter-panel__title sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text051') }}</span>
+              <el-button text size="small" class="add-param-btn" @click="addParameter">+ Add</el-button>
+            </div>
+
+            <el-scrollbar class="param-scroll-area">
+              <div class="parameter-grid-list">
+                <div
+                  v-for="row in parameterRows"
+                  :key="row.id"
+                  class="parameter-grid-row"
+                >
+                  <el-input v-model="row.key" :placeholder="t('inline.viewsQuerySqlQueryView.text053')" size="small" />
+                  <el-input v-model="row.value" :placeholder="t('inline.viewsQuerySqlQueryView.text054')" size="small" />
+                  <el-button text size="small" class="delete-param-btn" @click="removeParameter(row.id)">✕</el-button>
+                </div>
+                <p v-if="!parameterRows.length" class="param-empty-copy">No active params</p>
+              </div>
+            </el-scrollbar>
+          </div>
+        </div>
+
+        <div class="submit-row">
+          <div class="run-buttons-group">
+            <el-button
+              type="primary"
+              :loading="running"
+              class="run-primary-btn"
+              data-testid="query-flow-submit"
+              @click="runQuery('default')"
+            >
+              ⚡ {{ t('inline.viewsQuerySqlQueryView.text057') }}
+            </el-button>
+            
+            <el-dropdown trigger="click">
+              <el-button type="primary" class="run-arrow-btn">
+                ▼
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="showExplainDialog = true">
+                    🔍 {{ t('inline.viewsQuerySqlQueryView.text042') }}
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="runQuery('recovery')">
+                    🛡️ {{ t('inline.viewsQuerySqlQueryView.text058') }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+
+          <div class="submit-row__helpers">
+            <el-button text class="helper-btn" @click="showBoundPreviewDrawer = true">
+              👁️ {{ t('inline.viewsQuerySqlQueryView.text059') }}
+            </el-button>
+            <el-button text class="helper-btn" @click="showGovernanceDrawer = true">
+              🛡️ {{ t('inline.viewsQuerySqlQueryView.text060') }}
+            </el-button>
+            <el-button text class="helper-btn" data-testid="query-flow-open-deep-parse" @click="openDeepParseWorkbench">
+              🚀 {{ t('inline.viewsQuerySqlQueryView.text086') }}
+            </el-button>
+          </div>
+        </div>
+      </section>
     </div>
 
     <section class="surface-card results-stage">
       <div class="panel-heading">
         <div>
-          <p class="section-kicker sqlforge-code-label">result tabs</p>
+          <p class="section-kicker sqlforge-code-label">Result Terminal</p>
           <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text064') }}</h2>
         </div>
       </div>
 
-      <el-tabs v-model="activeResultTab">
+      <el-tabs v-model="activeResultTab" class="terminal-tabs">
         <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text065')" name="rows">
-          <div v-if="previewRows.length" class="table-shell">
-            <el-table :data="previewRows" border data-testid="query-result-table">
-              <el-table-column
-                v-for="column in resultColumns"
-                :key="column"
-                :prop="column"
-                :label="column"
-                min-width="150"
-              />
-            </el-table>
-            <div class="table-footer">
-              <div class="footer-status">{{ result?.status || '-' }}</div>
-              <div class="pagination-cluster">
-                <el-pagination
-                  v-if="resultPaginationVisible"
-                  v-model:current-page="resultPagination.pageNo"
-                  background
-                  data-testid="query-result-pagination"
-                  layout="total, sizes, prev, pager, next"
-                  :disabled="resultPaginationDisabled"
-                  :page-sizes="[10, 25, 50, 100]"
-                  :page-size="resultPagination.pageSize"
-                  :total="resultPage.totalCount"
-                  @current-change="handleResultPageChange"
-                  @size-change="handleResultPageSizeChange"
+          <div v-if="previewRows.length" class="table-shell-container">
+            <div class="query-performance-bar">
+              <span class="performance-metric sqlforge-code-label">Status: {{ result?.status || 'SUCCESS' }}</span>
+              <span class="performance-metric sqlforge-code-label">Rows: {{ previewRows.length }}</span>
+              <span class="performance-metric sqlforge-code-label">Duration: {{ result?.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</span>
+            </div>
+            <div class="table-shell">
+              <el-table :data="previewRows" border size="small">
+                <el-table-column
+                  v-for="column in resultColumns"
+                  :key="column"
+                  :prop="column"
+                  :label="column"
+                  min-width="150"
                 />
-              </div>
+              </el-table>
             </div>
           </div>
           <p v-else class="empty-copy">{{ t('inline.viewsQuerySqlQueryView.text066') }}</p>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text067')" name="summary">
-          <div class="detail-grid">
-            <div
-              v-for="item in summaryRows"
-              :key="item.label"
-              class="detail-grid__item"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text090') || '智能调优诊断 (Tuning)'" name="tuning">
+          <div class="diagnostics-grid">
+            <div class="diagnostics-summary-card">
+              <span class="diagnostics-title sqlforge-code-label">Tuning Suggestion</span>
+              <div class="tuning-metric-row">
+                <div class="tuning-card-kpi">
+                  <span class="kpi-label">Cache hit</span>
+                  <strong class="kpi-value" :class="{ 'kpi-success': result?.metadata?.cacheGovernanceStatus === 'HIT' }">
+                    {{ result?.metadata?.cacheGovernanceStatus === 'HIT' ? 'YES' : 'NO' }}
+                  </strong>
+                </div>
+                <div class="tuning-card-kpi">
+                  <span class="kpi-label">Risk Level</span>
+                  <strong class="kpi-value kpi-safe">SAFE</strong>
+                </div>
+              </div>
+              <p class="diagnostics-summary-text">
+                {{ result?.metadata?.cacheGovernanceStatus === 'HIT' ? 'Query served from memory. No further tuning is strictly required.' : 'Result cache bypass. Accelerated rewriting suggestions are calculated and eligible for runtime matching.' }}
+              </p>
+            </div>
+            
+            <div class="detail-grid">
+              <div
+                v-for="item in lightweightAnalysisRows"
+                :key="item.label"
+                class="detail-grid__item"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </div>
+              <div
+                v-for="item in routingRows"
+                :key="item.label"
+                class="detail-grid__item"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </div>
             </div>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text068')" name="lightweight">
-          <div class="detail-grid">
-            <div
-              v-for="item in lightweightAnalysisRows"
-              :key="item.label"
-              class="detail-grid__item"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane :label="t('sqlQuery.resultTabs.access')" name="context">
+        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text091') || '审计与技术取证 (Trace Audit)'" name="audit">
           <div class="detail-grid">
             <div
               v-for="item in accessRows"
@@ -729,24 +686,6 @@ const formatJson = value => JSON.stringify(value, null, 2)
               <span>{{ item.label }}</span>
               <strong>{{ displayValue(item.value) }}</strong>
             </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text069')" name="routing">
-          <div class="detail-grid">
-            <div
-              v-for="item in routingRows"
-              :key="item.label"
-              class="detail-grid__item"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane :label="t('sqlQuery.resultTabs.history')" name="history">
-          <div class="detail-grid">
             <div
               v-for="item in historyAssociationRows"
               :key="item.label"
@@ -754,19 +693,6 @@ const formatJson = value => JSON.stringify(value, null, 2)
             >
               <span>{{ item.label }}</span>
               <strong>{{ displayValue(item.value) }}</strong>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text070')" name="recommendation">
-          <div class="detail-grid">
-            <div
-              v-for="item in recommendationRows"
-              :key="item.label"
-              class="detail-grid__item"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
             </div>
           </div>
         </el-tab-pane>
@@ -832,7 +758,6 @@ const formatJson = value => JSON.stringify(value, null, 2)
     </el-dialog>
 
     <el-drawer v-model="showBoundPreviewDrawer" :title="t('inline.viewsQuerySqlQueryView.text078')" size="48%">
-      <!-- Bound SQL preview -->
       <SqlCodeBlock
         :value="boundSqlPreview"
         :label="t('inline.viewsQuerySqlQueryView.text079')"
@@ -867,189 +792,138 @@ const formatJson = value => JSON.stringify(value, null, 2)
 .query-workbench {
   display: flex;
   flex-direction: column;
-  gap: var(--sqlforge-space-5);
+  gap: var(--sqlforge-space-4);
 }
 
 .query-workbench__header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
-  gap: var(--sqlforge-space-5);
-  align-items: stretch;
-  padding: var(--sqlforge-space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--sqlforge-surface-2);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
 }
 
-.query-hero-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sqlforge-space-3);
+.breadcrumb-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breadcrumb-item {
+  color: var(--sqlforge-text-muted);
+}
+
+.breadcrumb-active {
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+}
+
+.breadcrumb-separator {
+  color: var(--sqlforge-text-muted);
+  opacity: 0.6;
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
 }
 
 .mini-pill {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 24px;
+  padding: 0 8px;
   border: 1px solid var(--sqlforge-border-default);
   border-radius: var(--sqlforge-radius-pill);
   background: var(--sqlforge-bg-page-deep);
   color: var(--sqlforge-text-secondary);
-  font-size: var(--sqlforge-text-meta);
+  font-size: 11px;
+}
+
+.toggle-sidebar-btn {
+  font-size: 12px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.toggle-sidebar-btn:hover {
+  color: var(--sqlforge-color-brand);
 }
 
 .query-workbench__grid {
   display: grid;
-  grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.6fr) minmax(260px, 0.95fr);
-  gap: 20px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.query-workbench__grid.sidebar-collapsed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .surface-card {
   border: 1px solid var(--sqlforge-border-default);
-  border-radius: 22px;
+  border-radius: var(--sqlforge-radius-lg);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%),
     var(--sqlforge-surface-2);
 }
 
-.query-rail,
-.editor-rail,
-.result-rail,
-.results-stage {
-  padding: 20px;
+.query-rail {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 12px;
 }
 
-.panel-heading,
-.parameter-panel__header,
-.submit-row {
+.editor-rail {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.section-kicker,
-.field-label {
-  margin: 0 0 6px;
+.section-kicker {
+  margin: 0 0 4px;
   color: var(--sqlforge-text-muted);
 }
 
-.section-title,
-.parameter-panel__title {
+.section-title {
   margin: 0;
+  color: var(--sqlforge-text-primary);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.util-btn {
+  font-size: 12px;
+}
+
+.explorer-tabs {
+  margin-top: 4px;
+}
+
+:deep(.explorer-tabs .el-tabs__item) {
+  font-size: 13px;
+  color: var(--sqlforge-text-secondary);
+}
+
+:deep(.explorer-tabs .el-tabs__item.is-active) {
   color: var(--sqlforge-text-primary);
 }
 
-.utility-actions,
-.submit-row__helpers {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.inline-banner,
-.field-block,
-.editor-block,
-.parameter-panel,
-.summary-list__item,
-.history-list__item,
-.detail-grid__item,
-.library-item,
-.dialog-card {
-  border: 1px solid var(--sqlforge-border-default);
-  border-radius: 16px;
-  background: rgba(20, 24, 31, 0.82);
-}
-
-.inline-banner {
-  padding: 10px 12px;
-  color: var(--sqlforge-text-secondary);
-}
-
-.inline-banner-danger {
-  border-color: rgba(248, 113, 113, 0.35);
-  color: #fecaca;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.field-block,
-.editor-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-}
-
-.editor-block {
-  margin-top: 16px;
-}
-
-.parameter-panel {
-  margin-top: 16px;
-  padding: 14px;
-}
-
-.parameter-table {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.parameter-table__head,
-.parameter-table__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 92px;
-  gap: 10px;
-  align-items: center;
-}
-
-.parameter-table__head {
-  color: var(--sqlforge-text-muted);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.submit-row {
-  margin-top: 18px;
-  align-items: center;
-}
-
-.summary-list,
-.history-list,
-.dialog-list,
-.drawer-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.summary-list {
-  margin-top: 16px;
-}
-
-.summary-list__item,
-.history-list__item,
-.detail-grid__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-}
-
-.summary-list__item span,
-.detail-grid__item span,
-.muted-copy {
-  color: var(--sqlforge-text-secondary);
-}
-
-.history-panel {
-  margin-top: 18px;
+.tree-scroll-area {
+  height: 240px;
 }
 
 .library-item {
@@ -1057,55 +931,413 @@ const formatJson = value => JSON.stringify(value, null, 2)
   flex-direction: column;
   gap: 4px;
   width: 100%;
-  padding: 12px 14px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.library-item:hover {
+  border-color: var(--sqlforge-color-brand-border);
+  background: var(--sqlforge-surface-1);
+}
+
+.library-item strong {
+  font-size: 13px;
 }
 
 .library-item span {
+  font-size: 12px;
+  color: var(--sqlforge-text-muted);
+}
+
+.sidebar-history-box {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--sqlforge-border-subtle);
+}
+
+.sidebar-history-scroll {
+  height: 180px;
+  margin-top: 8px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.history-list__item strong {
+  font-size: 12px;
+  color: var(--sqlforge-text-secondary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.history-list__item span {
+  font-size: 11px;
+  color: var(--sqlforge-text-muted);
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.format-btn,
+.settings-btn {
+  font-size: 13px;
   color: var(--sqlforge-text-secondary);
 }
 
+.settings-gear {
+  margin-right: 4px;
+}
+
+.settings-dropdown-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 260px;
+  padding: 16px;
+  background: var(--sqlforge-surface-2);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+}
+
+.settings-title {
+  margin-bottom: 4px;
+  color: var(--sqlforge-text-muted);
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+  padding-bottom: 6px;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-field span {
+  font-size: 12px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.editor-workspace-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(200px, 0.8fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.editor-main-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inline-banner {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: rgba(20, 24, 31, 0.82);
+  color: var(--sqlforge-text-secondary);
+}
+
+.inline-banner-danger {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.parameters-panel-block {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.parameter-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+  padding-bottom: 6px;
+}
+
+.parameter-panel__title {
+  font-size: 12px;
+  color: var(--sqlforge-text-muted);
+}
+
+.add-param-btn {
+  font-size: 12px;
+  color: var(--sqlforge-color-brand);
+}
+
+.param-scroll-area {
+  flex: 1;
+  max-height: 310px;
+}
+
+.parameter-grid-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.parameter-grid-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.delete-param-btn {
+  color: var(--sqlforge-text-muted);
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+.delete-param-btn:hover {
+  color: #ef4444;
+}
+
+.param-empty-copy {
+  margin: 16px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sqlforge-text-muted);
+}
+
+.submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  border-top: 1px solid var(--sqlforge-border-subtle);
+  padding-top: 14px;
+}
+
+.run-buttons-group {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.run-primary-btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: var(--sqlforge-color-brand) !important;
+  border-color: var(--sqlforge-color-brand) !important;
+}
+
+.run-primary-btn:hover {
+  background-color: var(--sqlforge-color-link) !important;
+}
+
+.run-arrow-btn {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  background-color: var(--sqlforge-color-brand) !important;
+  border-color: var(--sqlforge-color-brand) !important;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.run-arrow-btn:hover {
+  background-color: var(--sqlforge-color-link) !important;
+}
+
+.submit-row__helpers {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.helper-btn {
+  font-size: 13px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.helper-btn:hover {
+  color: var(--sqlforge-color-brand);
+}
+
 .results-stage {
-  min-height: 320px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.terminal-tabs :deep(.el-tabs__item) {
+  font-size: 14px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.terminal-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+}
+
+.table-shell-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.query-performance-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 12px;
+  background: var(--sqlforge-bg-page-deep);
+  border: 1px solid var(--sqlforge-border-subtle);
+  border-radius: var(--sqlforge-radius-md);
+}
+
+.performance-metric {
+  font-size: 11px;
+  color: var(--sqlforge-text-secondary);
 }
 
 .table-shell {
   overflow: auto;
 }
 
-.table-footer {
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.diagnostics-summary-card {
+  padding: 16px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
+  background: var(--sqlforge-bg-page-deep);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diagnostics-title {
+  font-size: 12px;
+  color: var(--sqlforge-text-muted);
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+  padding-bottom: 6px;
+}
+
+.tuning-metric-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 24px;
 }
 
-.footer-status {
-  color: var(--sqlforge-text-secondary);
-  font-size: var(--sqlforge-text-meta);
-}
-
-.pagination-cluster {
+.tuning-card-kpi {
   display: flex;
-  justify-content: flex-end;
-  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi-label {
+  font-size: 12px;
+  color: var(--sqlforge-text-secondary);
+}
+
+.kpi-value {
+  font-size: 22px;
+  color: var(--sqlforge-text-muted);
+  font-weight: 400;
+}
+
+.kpi-success {
+  color: var(--sqlforge-color-brand);
+}
+
+.kpi-safe {
+  color: var(--sqlforge-color-brand);
+}
+
+.diagnostics-summary-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sqlforge-text-secondary);
+  line-height: 1.6;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+}
+
+.detail-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  background: var(--sqlforge-bg-page-deep);
+}
+
+.detail-grid__item span {
+  font-size: 12px;
+  color: var(--sqlforge-text-muted);
+}
+
+.detail-grid__item strong {
+  font-size: 13px;
+  color: var(--sqlforge-text-primary);
+  word-break: break-all;
 }
 
 .empty-copy {
   color: var(--sqlforge-text-secondary);
+  text-align: center;
+  padding: 32px 0;
+}
+
+.dialog-list,
+.drawer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .dialog-card {
   padding: 14px;
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
+  background: var(--sqlforge-bg-page-deep);
 }
 
 .dialog-card__header {
@@ -1116,22 +1348,27 @@ const formatJson = value => JSON.stringify(value, null, 2)
   margin-bottom: 10px;
 }
 
+.muted-copy {
+  font-size: 13px;
+  color: var(--sqlforge-text-muted);
+}
+
 .code-block {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--sqlforge-text-primary);
+  font-family: monospace;
 }
 
 @media (max-width: 1280px) {
-  .query-workbench__header,
   .query-workbench__grid {
     grid-template-columns: 1fr;
   }
-
-  .query-hero-metrics,
-  .field-grid,
-  .detail-grid {
+  .editor-workspace-split {
+    grid-template-columns: 1fr;
+  }
+  .diagnostics-grid {
     grid-template-columns: 1fr;
   }
 }

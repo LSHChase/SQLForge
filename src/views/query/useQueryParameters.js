@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 export function useQueryParameters(sqlTextRef) {
   const parameterRows = ref([
@@ -38,8 +38,44 @@ export function useQueryParameters(sqlTextRef) {
     return snapshot
   })
 
+  const rawSqlText = computed(() => {
+    return typeof sqlTextRef === 'function' ? sqlTextRef() : sqlTextRef.value
+  })
+
+  // Watch the SQL text to automatically capture parameter variables like :query_date
+  watch(
+    rawSqlText,
+    (newSql) => {
+      if (!newSql) return
+      
+      const matches = String(newSql).match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g)
+      if (!matches) return
+
+      const uniqueKeys = [...new Set(matches.map(m => m.slice(1)))]
+      const currentKeys = new Set(parameterRows.value.map(row => row.key).filter(Boolean))
+
+      uniqueKeys.forEach(key => {
+        if (!currentKeys.has(key)) {
+          // If there is an empty parameter placeholder row, overwrite it
+          const emptyRow = parameterRows.value.find(row => !row.key)
+          if (emptyRow) {
+            emptyRow.key = key
+          } else {
+            parameterRows.value.push({
+              id: nextParameterId.value,
+              key: key,
+              value: ''
+            })
+            nextParameterId.value += 1
+          }
+        }
+      })
+    },
+    { immediate: true }
+  )
+
   const boundSqlPreview = computed(() => {
-    let preview = typeof sqlTextRef === 'function' ? sqlTextRef() : sqlTextRef.value
+    let preview = rawSqlText.value
     preview = String(preview || '')
     for (const [key, value] of Object.entries(parameterSnapshot.value)) {
       preview = preview.replaceAll(`:${key}`, `'${value}'`)
