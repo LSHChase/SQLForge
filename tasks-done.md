@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-AUDIT-TEMP-INMEMORY-STATIC-20260525: 审计项目中的内存实现、静态常量结果与临时代替功能
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `Audit temp in-memory and static substitutes`
+- Priority: 1
+- Depends on: N/A
+- Scope: 全仓库只读审计：找出 inmemory、静态常量/静态结果、mock/simulated/synthetic/fallback/placeholder 等临时替代实现或内容；说明为什么存在、风险与推荐后续完善方向；不做业务代码修改。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-AUDIT-TEMP-INMEMORY-STATIC-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Completed a repository-wide read-only audit of in-memory repositories, static outputs, simulated/synthetic/mock/fallback/placeholder paths, and documented risk-ranked follow-ups.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-AUDIT-TEMP-INMEMORY-STATIC-20260525; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check.
+  - Residual risk: This task is documentation-only; business-code hardening remains in the recommended task pack and existing unrelated implementation changes were left untouched.
+  - Next step: Materialize follow-up hardening tasks for report batch persistence, fallback gating, runtime evidence separation, cache/repository profile gates, and real rewrite evidence upgrades.
+
 ### USER-CN-FIX-SQL-QUERY-RESULT-EXPLAIN-20260525: 修正 SQL 查询分析页执行结果展示
 
 - Status: done
