@@ -3,7 +3,6 @@ SET NAMES utf8mb4;
 USE sqlforge;
 
 INSERT INTO tenant_config (
-  id,
   tenant_id,
   quota_concurrent,
   quota_storage,
@@ -12,22 +11,40 @@ INSERT INTO tenant_config (
   audit_level,
   retention_days,
   acceleration_quota
-) VALUES (
-  1,
-  'system',
-  20,
-  2048,
-  'HETU',
-  'HIVE',
-  'NORMAL',
-  180,
-  50
-)
+) VALUES
+  (
+    'system',
+    20,
+    2048,
+    'HETU',
+    'HIVE',
+    'NORMAL',
+    180,
+    50
+  ),
+  (
+    'tenant-a',
+    20,
+    2048,
+    'HETU',
+    'HIVE',
+    'NORMAL',
+    180,
+    50
+  ),
+  (
+    'tenant-b',
+    20,
+    2048,
+    'TRINO',
+    'HIVE',
+    'NORMAL',
+    180,
+    50
+  )
 ON DUPLICATE KEY UPDATE
   quota_concurrent = VALUES(quota_concurrent),
   quota_storage = VALUES(quota_storage),
-  default_engine = VALUES(default_engine),
-  backup_engine = VALUES(backup_engine),
   audit_level = VALUES(audit_level),
   retention_days = VALUES(retention_days),
   acceleration_quota = VALUES(acceleration_quota),

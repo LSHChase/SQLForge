@@ -180,6 +180,18 @@ governance:
             - READ
             # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
             - MANAGE
+      # 配置项 tenant-b：说明该配置的用途、默认值或运行影响。
+      tenant-b:
+        # 配置项 governance-tenant-config：说明该配置的用途、默认值或运行影响。
+        governance-tenant-config:
+          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          state: ACTIVE
+          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          actions:
+            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            - READ
+            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            - MANAGE
   # 配置项 datasource-driver：说明该配置的用途、默认值或运行影响。
   datasource-driver:
     # 配置项 max-file-size：说明该配置的用途、默认值或运行影响。

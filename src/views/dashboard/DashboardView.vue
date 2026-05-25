@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import { DEFAULT_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import { useTenantStore } from '../../stores'
 import {
   getDispatchContract,
@@ -27,7 +28,7 @@ const router = useRouter()
 const tenantStore = useTenantStore()
 
 const form = reactive({
-  tenantId: tenantStore.tenantId || 'tenant-a'
+  tenantId: tenantStore.tenantId || DEFAULT_TENANT_ID
 })
 
 const loading = ref(false)
@@ -613,6 +614,14 @@ function formatTimestamp(value) {
 onMounted(() => {
   loadDashboardEvidence()
 })
+
+watch(
+  () => tenantStore.tenantId,
+  tenantId => {
+    form.tenantId = tenantId || DEFAULT_TENANT_ID
+    loadDashboardEvidence()
+  }
+)
 </script>
 
 <template>

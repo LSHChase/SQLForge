@@ -4,13 +4,14 @@ import {
   getGovernanceDatasources,
   getGovernanceQueryHistoryPage
 } from '../../services/runtimeGateApi'
+import { SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import {
   buildDatasourceOptions,
   buildTenantOptions,
   withCurrentOption
 } from '../common/formComponentGovernance'
 
-const DEFAULT_HISTORY_CONTEXT_TENANT_ID = 'tenant-a'
+const DEFAULT_HISTORY_CONTEXT_TENANT_ID = SAMPLE_TENANT_ID
 const DEFAULT_PAGE_SIZE = 10
 
 const DEFAULT_SEARCH_FORM = Object.freeze({
@@ -91,7 +92,9 @@ export const useSqlHistoryList = ({ routeTenantId, historyType }) => {
 
   const routeTenantValue = computed(() => normalizeQueryValue(routeTenantId.value))
   const requestTenantId = computed(
-    () => normalizeQueryValue(searchForm.tenantId) || routeTenantValue.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID
+    () => normalizeQueryValue(searchForm.tenantId)
+      || routeTenantValue.value
+      || DEFAULT_HISTORY_CONTEXT_TENANT_ID
   )
   const tableRows = computed(() => tablePage.value?.items || [])
   const classificationSummary = computed(() => tablePage.value?.classificationSummary || {})

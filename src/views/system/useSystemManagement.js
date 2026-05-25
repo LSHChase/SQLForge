@@ -1,5 +1,7 @@
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { DEFAULT_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import { useTenantStore } from '../../stores'
 import {
   ackModeOptions,
   authModeOptions,
@@ -30,6 +32,7 @@ import {
   getGovernanceRedisRuleSources,
   getGovernanceReportInterfaces,
   getGovernanceTenantConfig,
+  getGovernanceTenantConfigOptions,
   retryGovernanceFailedMessages,
   testGovernanceDatasourceConnection,
   uploadGovernanceDatasourceDriver,
@@ -40,9 +43,10 @@ import {
 
 export function useSystemManagement() {
   const { t, locale } = useI18n()
+  const tenantStore = useTenantStore()
 
   const form = reactive({
-    tenantId: 'system',
+    tenantId: tenantStore.tenantId || DEFAULT_TENANT_ID,
   })
 
   const loading = reactive({
@@ -64,6 +68,7 @@ export function useSystemManagement() {
   const detailPayload = ref(null)
   const errorMessage = ref('')
   const tenantConfig = ref(null)
+  const tenantOptionRecords = ref([])
   const stats = ref(null)
   const datasources = ref([])
   const datasourceDrivers = ref([])
@@ -316,6 +321,7 @@ export function useSystemManagement() {
 
   const tenantOptions = computed(() =>
     buildTenantOptions(
+      tenantOptionRecords.value,
       form.tenantId,
       tenantConfig.value,
       datasources.value,
@@ -664,6 +670,9 @@ export function useSystemManagement() {
     errorMessage.value = ''
     try {
       const tenantId = form.tenantId
+      const tenantOptionsPromise = getGovernanceTenantConfigOptions('system', {
+        requestPrefix: 'frontend-system-tenant-options',
+      })
       const [
         nextTenantConfig,
         nextStats,
@@ -691,12 +700,20 @@ export function useSystemManagement() {
           requestPrefix: 'frontend-system-dispatch-policies',
         }),
       ])
+      const tenantOptionsResult = await Promise.allSettled([
+        tenantOptionsPromise,
+      ])
       const datasourceDriversResult = await Promise.allSettled([
         getGovernanceDatasourceDrivers(tenantId, {
           requestPrefix: 'frontend-system-datasource-drivers',
         }),
       ])
       tenantConfig.value = nextTenantConfig
+      tenantOptionRecords.value =
+        tenantOptionsResult[0].status === 'fulfilled' &&
+        Array.isArray(tenantOptionsResult[0].value)
+          ? tenantOptionsResult[0].value
+          : []
       stats.value = nextStats
       datasources.value = Array.isArray(nextDatasources) ? nextDatasources : []
       datasourceDrivers.value =
@@ -1193,6 +1210,24 @@ export function useSystemManagement() {
   onMounted(() => {
     loadSystemEvidence()
   })
+
+  watch(
+    () => tenantStore.tenantId,
+    tenantId => {
+      form.tenantId = tenantId || DEFAULT_TENANT_ID
+      selectedDatasourceId.value = ''
+      detailDrawerVisible.value = false
+      detailPayload.value = null
+      datasourceFilter.engineType = ''
+      datasourceFilter.connectionMode = ''
+      resetFormState(datasourceForm, buildDatasourceForm)
+      resetFormState(driverUploadForm, buildDriverUploadForm)
+      resetFormState(reportForm, buildReportForm)
+      resetFormState(redisForm, buildRedisForm)
+      resetFormState(dispatchForm, buildDispatchForm)
+      loadSystemEvidence()
+    }
+  )
 
   return {
     ackModeOptions,

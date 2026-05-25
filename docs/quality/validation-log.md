@@ -5845,3 +5845,24 @@
 2026-05-24T22:26:13-05:00 | USER-CN-OPTIMIZE-SQL-COMPONENTS-20260524 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-24T22:26:13-05:00 | USER-CN-OPTIMIZE-SQL-COMPONENTS-20260524 closeout commit | `R-168` | projected | `git commit -m 'feat: optimize SQL components and resolve cursor offset' (projected-precommit)`
 2026-05-24T22:26:13-05:00 | USER-CN-OPTIMIZE-SQL-COMPONENTS-20260524 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-25T02:10:48-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-25T02:10:48-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-25T02:10:50-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-25T02:10:54-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-25T02:10:54-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-25T02:10:54-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-25T02:10:55-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-25T02:10:55-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-25T02:10:55-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-25T02:10:56-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `mvn -pl governance -am -Dtest=TenantConfigApplicationServiceTest,TenantAccessLogicImplTest test -Dsurefire.failIfNoSpecifiedTests=false`
+2026-05-25T02:10:57-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `mvn -B -pl governance checkstyle:check -Dcheckstyle.includes=**/GovernanceAccessProperties.java,**/TenantConfigApplicationServiceTest.java,**/TenantAccessLogicImplTest.java`
+2026-05-25T02:11:11-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `npm run smoke:frontend-dev`
+2026-05-25T02:11:15-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-25T02:11:19-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-25T02:11:19-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-25T02:12:17-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-25T02:12:17-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 dynamic tenant defaults' (projected-precommit)`
+2026-05-25T02:12:17-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-25T02:12:17-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-25T02:12:17-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
+2026-05-25T02:12:17-05:00 | USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `mvn -pl governance -am -Dtest=TenantConfigApplicationServiceTest,TenantAccessLogicImplTest test -Dsurefire.failIfNoSpecifiedTests=false (projected-precommit)`

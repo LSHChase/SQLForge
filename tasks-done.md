@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525: 顶部租户默认与低风险动态化计划
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `feat(frontend): USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 dynamic tenant defaults`
+- Priority: 1
+- Depends on: N/A
+- Scope: 继续收口顶部租户默认值与低风险动态化计划：让前端默认租户、租户可见数据源候选、查询/推荐/历史/系统页默认请求上下文从硬编码样例转向租户配置与低风险回退；同步治理默认授权种子、前端静态契约检查和相关单元测试；不改变租户隔离、runtime binding ACTIVE、安全边界或外部环境依赖。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 顶部工作区默认租户收口到 system，并保留 system 默认显示名兜底；前端新增统一 tenant defaults 与治理数据源候选归一化 helper，查询、解析、改写验证、推荐中心、SQL 历史、解析历史、Dashboard 与 System 页面改为优先消费当前租户/后端候选并保留低风险样例回退；治理默认 tenant-config 种子补齐 system/tenant-a/tenant-b 与 tenant-b 配置访问；dev/portable smoke mocks 与 portable 产物同步更新。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525 --include-task-audit --extra-command 'mvn -pl governance -am -Dtest=TenantConfigApplicationServiceTest,TenantAccessLogicImplTest test -Dsurefire.failIfNoSpecifiedTests=false' --extra-command 'mvn -B -pl governance checkstyle:check -Dcheckstyle.includes=**/GovernanceAccessProperties.java,**/TenantConfigApplicationServiceTest.java,**/TenantAccessLogicImplTest.java' --extra-command 'npm run smoke:frontend-dev' --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'git diff --check' passed.
+  - Residual risk: 真实运行环境仍依赖已登记的治理 datasource_config；当某租户没有可见数据源时，查询页会显示无可用数据源并阻止执行，而不是伪造 hetu_main。portable smoke 覆盖 mock-backed 前端路径，不替代 live backend 验证。
+  - Next step: 在目标环境通过系统管理页为业务租户维护 datasource_config 后，刷新顶部租户选择并确认查询页自动采用该租户的首个可见数据源。
+
 ### USER-CN-OPTIMIZE-SQL-COMPONENTS-20260524: 优化本项目所有的页面上展示sql的组件（光标偏移与大SQL性能）
 
 - Status: done

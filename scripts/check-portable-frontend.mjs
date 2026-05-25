@@ -347,9 +347,54 @@ const startMockBackend = async port => {
         return
       }
 
+      if (request.url.startsWith('/api/governance/tenant-config/options')) {
+        requireProxyHeaders(request)
+        writeJson(response, 200, [
+          {
+            tenantId: 'system',
+            label: 'System Admin',
+            defaultEngine: 'HETU',
+            backupEngine: 'HIVE'
+          },
+          {
+            tenantId: 'tenant-a',
+            label: 'Tenant A (Portable)',
+            defaultEngine: 'HETU',
+            backupEngine: 'HIVE'
+          },
+          {
+            tenantId: 'tenant-b',
+            label: 'Tenant B (Portable)',
+            defaultEngine: 'TRINO',
+            backupEngine: 'HIVE'
+          }
+        ])
+        return
+      }
+
+      if (request.url.startsWith('/api/governance/tenant-config')) {
+        requireProxyHeaders(request)
+        const targetUrl = new URL(request.url, 'http://portable-smoke.local')
+        const targetTenantId = targetUrl.searchParams.get('tenantId') || 'system'
+        writeJson(response, 200, {
+          tenantId: targetTenantId,
+          quotaConcurrent: 20,
+          quotaStorage: 2048,
+          defaultEngine: targetTenantId === 'tenant-b' ? 'TRINO' : 'HETU',
+          backupEngine: 'HIVE',
+          auditLevel: 'NORMAL',
+          retentionDays: 180,
+          accelerationQuota: 50
+        })
+        return
+      }
+
       if (request.url.startsWith('/api/governance/datasources')) {
         requireProxyHeaders(request)
-        writeJson(response, 200, [])
+        writeJson(response, 200, [
+          { datasourceCode: 'hetu_main', datasourceName: 'Hetu main', engineType: 'HETU' },
+          { datasourceCode: 'hive_archive', datasourceName: 'Hive archive', engineType: 'HIVE' }
+        ])
         return
       }
 

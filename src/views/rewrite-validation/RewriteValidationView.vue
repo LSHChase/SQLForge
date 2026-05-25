@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import { SAMPLE_DATASOURCE_CODE, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import {
   createRewriteValidationRun,
   createSqlRewriteRecord,
@@ -17,14 +18,19 @@ import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlCompareBlock from '../common/SqlCompareBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import { buildDatasourceOptions, withCurrentOption } from '../common/formComponentGovernance'
+import {
+  findDatasourceOption,
+  firstDatasourceForEngine,
+  groupGovernanceDatasources
+} from '../common/governanceDatasourceOptions.mjs'
 
 const { t } = useI18n()
 const router = useRouter()
 
 const form = reactive({
-  tenantId: 'tenant-a',
+  tenantId: SAMPLE_TENANT_ID,
   datasourceType: 'AUTO',
-  datasourceCode: 'hetu_main',
+  datasourceCode: SAMPLE_DATASOURCE_CODE,
   sourceKind: 'MANUAL',
   sourceId: 'manual-rewrite-validation',
   parseHistoryId: '',
@@ -401,6 +407,14 @@ async function loadGovernanceDatasources() {
       requestPrefix: 'frontend-rewrite-validation-governance-datasources'
     })
     governanceDatasources.value = Array.isArray(response) ? response : []
+    const grouped = groupGovernanceDatasources(governanceDatasources.value)
+    const selectedDatasource =
+      findDatasourceOption(grouped, form.datasourceCode, form.datasourceType)
+      || firstDatasourceForEngine(grouped, form.datasourceType)
+    if (selectedDatasource && selectedDatasource.datasourceCode !== form.datasourceCode) {
+      form.datasourceCode = selectedDatasource.datasourceCode
+      form.datasourceType = selectedDatasource.datasourceType || form.datasourceType
+    }
   } catch {
     governanceDatasources.value = []
   } finally {

@@ -982,15 +982,21 @@ const runBrowserSmoke = async baseUrl => {
     if (pathname === '/api/governance/tenant-config/options') {
       await fulfillJson(route, [
         {
+          tenantId: 'system',
+          label: 'System Admin',
+          defaultEngine: 'HETU',
+          backupEngine: 'HIVE'
+        },
+        {
           tenantId: 'tenant-a',
           label: 'Tenant A (Development)',
           defaultEngine: 'HETU',
           backupEngine: 'HIVE'
         },
         {
-          tenantId: 'system',
-          label: 'System Admin',
-          defaultEngine: 'HETU',
+          tenantId: 'tenant-b',
+          label: 'Tenant B (Development)',
+          defaultEngine: 'TRINO',
           backupEngine: 'HIVE'
         }
       ])

@@ -4,6 +4,7 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import { DEFAULT_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import {
   createMaterializedView,
   createRewriteValidationRun,
@@ -27,6 +28,7 @@ import {
   pauseSqlRewriteRecord,
   reviewSqlRewriteRecord
 } from '../../services/runtimeGateApi'
+import { useTenantStore } from '../../stores'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlCompareBlock from '../common/SqlCompareBlock.vue'
@@ -40,6 +42,7 @@ import { buildRecommendedSqlDisplay } from '../common/sqlCompare.mjs'
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+const tenantStore = useTenantStore()
 
 const normalizeQueryValue = value => (Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim())
 const DETAIL_TAB_NAMES = [
@@ -58,7 +61,7 @@ const normalizeDetailTab = value => {
 }
 
 const form = reactive({
-  tenantId: normalizeQueryValue(route.query.tenantId) || 'tenant-a'
+  tenantId: normalizeQueryValue(route.query.tenantId) || tenantStore.tenantId || DEFAULT_TENANT_ID
 })
 
 const rewriteActionForm = reactive({
@@ -626,7 +629,7 @@ const syncActiveDetailTabFromRoute = () => {
 }
 
 const syncRouteQueryState = () => {
-  form.tenantId = normalizeQueryValue(route.query.tenantId) || 'tenant-a'
+  form.tenantId = normalizeQueryValue(route.query.tenantId) || tenantStore.tenantId || DEFAULT_TENANT_ID
   const nextSourceCategory = normalizeSourceCategoryFromRoute()
   if (nextSourceCategory) {
     if (recommendationFilters.sourceCategory !== nextSourceCategory) {
@@ -1559,6 +1562,22 @@ watch(
   () => route.fullPath,
   async () => {
     syncRouteQueryState()
+    await refreshPage()
+  }
+)
+
+watch(
+  () => tenantStore.tenantId,
+  async tenantId => {
+    form.tenantId = tenantId || DEFAULT_TENANT_ID
+    recommendationFilters.sourceObjectId = ''
+    sourceObjectOptions.value = []
+    selectedRecommendationId.value = ''
+    selectedRecommendation.value = null
+    recommendationDiff.value = null
+    recommendationTrace.value = null
+    resetRewriteLifecycle()
+    resetMaterializedViewCreateState()
     await refreshPage()
   }
 )

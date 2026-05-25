@@ -144,14 +144,16 @@ class TenantConfigApplicationServiceTest {
         when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config", "READ")).thenReturn(true);
         when(repository.findAll()).thenReturn(Arrays.asList(
             tenantConfig("system", DataSourceTypeEnum.HETU, DataSourceTypeEnum.HIVE),
-            tenantConfig("tenant-a", DataSourceTypeEnum.TRINO, DataSourceTypeEnum.HIVE)
+            tenantConfig("tenant-a", DataSourceTypeEnum.TRINO, DataSourceTypeEnum.HIVE),
+            tenantConfig("tenant-b", DataSourceTypeEnum.TRINO, DataSourceTypeEnum.HIVE)
         ));
 
         List<TenantConfigOptionVO> options = service.listTenantOptions();
 
-        assertEquals(2, options.size());
+        assertEquals(3, options.size());
         assertEquals("system", options.get(0).getTenantId());
         assertEquals("tenant-a", options.get(1).getTenantId());
+        assertEquals("tenant-b", options.get(2).getTenantId());
         verify(repository).findAll();
     }
 

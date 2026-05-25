@@ -30,6 +30,9 @@ public class GovernanceAccessProperties {
         datasourceScopes.put("system", datasourceScopes(
             "governance-tenant-config", datasource("ACTIVE", "READ", "MANAGE")
         ));
+        datasourceScopes.put("tenant-b", datasourceScopes(
+            "governance-tenant-config", datasource("ACTIVE", "READ", "MANAGE")
+        ));
     }
 
     public boolean isEnabled() {

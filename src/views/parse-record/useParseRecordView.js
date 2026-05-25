@@ -2,6 +2,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import { SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import {
   exportSqlParseHistory,
   formatRuntimeError,
@@ -22,7 +23,7 @@ const { locale, t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const DEFAULT_HISTORY_CONTEXT_TENANT_ID = 'tenant-a'
+const DEFAULT_HISTORY_CONTEXT_TENANT_ID = SAMPLE_TENANT_ID
 const normalizeQueryValue = value => String(value || '').trim()
 const HISTORY_WORKBENCH_TABS = new Set(['sqlHistory', 'batchHistory'])
 const BATCH_HISTORY_TABS = new Set(['parse', 'report'])
@@ -161,7 +162,11 @@ const historyWorkbenchTitle = computed(() => {
   return t('inline.viewsParseRecordUseParseRecordView.text002')
 })
 const routeTenantId = computed(() => normalizeQueryValue(route.query.tenantId))
-const requestTenantId = computed(() => normalizeQueryValue(form.tenantId) || routeTenantId.value || DEFAULT_HISTORY_CONTEXT_TENANT_ID)
+const requestTenantId = computed(() =>
+  normalizeQueryValue(form.tenantId)
+    || routeTenantId.value
+    || DEFAULT_HISTORY_CONTEXT_TENANT_ID
+)
 const tenantOptions = computed(() => buildTenantOptions(form.tenantId, rows.value))
 const classificationSummary = computed(() => page.value?.classificationSummary || {})
 const sortModeLabel = computed(() => {
@@ -1784,6 +1789,7 @@ const syncHistoryWorkbenchTabFromRoute = () => {
 }
 
 const syncLookupFieldsFromRoute = () => {
+  form.tenantId = routeTenantId.value
   form.traceId = hasQueryValue('traceId') ? String(route.query.traceId) : ''
   form.taskId = hasQueryValue('taskId') ? String(route.query.taskId) : ''
   form.reportId = hasQueryValue('reportId') ? String(route.query.reportId) : ''

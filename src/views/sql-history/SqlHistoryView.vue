@@ -1165,6 +1165,7 @@ watch(
     await openRouteDeepLink()
   }
 )
+
 </script>
 
 <template>

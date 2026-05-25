@@ -1,11 +1,12 @@
 import { createPinia, defineStore } from 'pinia'
+import { DEFAULT_TENANT_ID } from '../config/tenantDefaults.mjs'
 
 export const pinia = createPinia()
 
 export const useTenantStore = defineStore('tenantStore', {
   state: () => ({
-    tenantId: 'tenant-a',
-    tenantName: 'tenant-a',
+    tenantId: DEFAULT_TENANT_ID,
+    tenantName: '',
     defaultEngine: 'HETU',
     backupEngine: 'HIVE',
     tenantOptions: []

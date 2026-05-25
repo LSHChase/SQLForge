@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import { SAMPLE_DATASOURCE_CODE, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import {
   executeQuery,
   formatRuntimeError,
@@ -14,6 +15,12 @@ import {
 } from '../../services/runtimeGateApi'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
+import {
+  findDatasourceOption,
+  firstDatasourceForEngine,
+  flattenDatasourceGroups,
+  groupGovernanceDatasources
+} from '../common/governanceDatasourceOptions.mjs'
 import { sqlTemplates, sqlLibrary } from './sqlTemplates'
 import {
   DEFAULT_QUERY_RESULT_PAGE_SIZE,
@@ -30,10 +37,13 @@ const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
 const datasourceTree = ref([])
 const datasourceGroupedMap = ref(new Map())
+const datasourceInventoryLoading = ref(false)
+const datasourceInventoryError = ref('')
 const searchQuery = ref('')
 const selectedSchema = ref('')
 const schemaOptions = ref([])
 const objectsTreeRef = ref(null)
+const treeVersion = ref(0)
 
 const treeProps = {
   label: 'label',
@@ -94,22 +104,19 @@ const loadSchemasForDatasource = async (datasourceCode) => {
 const currentEngineDatasources = computed(() => {
   const engine = form.datasourceType
   if (!engine || engine === 'AUTO') {
-    const list = []
-    datasourceGroupedMap.value.forEach((children) => {
-      list.push(...children)
-    })
-    return list
+    return flattenDatasourceGroups(datasourceGroupedMap.value)
   }
   return datasourceGroupedMap.value.get(engine) || []
 })
+const hasAvailableDatasources = computed(() => flattenDatasourceGroups(datasourceGroupedMap.value).length > 0)
+const queryRunDisabled = computed(() => running.value || !form.datasourceCode)
 
 const handleEngineChange = async () => {
   const datasources = currentEngineDatasources.value
   if (datasources.length > 0) {
     const found = datasources.find(d => d.datasourceCode === form.datasourceCode)
     if (!found) {
-      form.datasourceCode = datasources[0].datasourceCode
-      selectedDatasourceId.value = datasources[0].id
+      syncDatasourceFields(datasources[0], { keepDatasourceType: form.datasourceType === 'AUTO' })
     }
   } else {
     form.datasourceCode = ''
@@ -122,8 +129,7 @@ const handleDatasourceChange = async () => {
   const datasources = currentEngineDatasources.value
   const found = datasources.find(d => d.datasourceCode === form.datasourceCode)
   if (found) {
-    selectedDatasourceId.value = found.id
-    form.datasourceType = found.datasourceType
+    syncDatasourceFields(found)
   }
   await loadSchemasForDatasource(form.datasourceCode)
 }
@@ -169,20 +175,7 @@ const loadTreeNode = async (node, resolve) => {
       const records = await getGovernanceDatasources(tenantId, {
         requestPrefix: 'frontend-query-datasource-inventory'
       })
-      const grouped = new Map()
-      for (const record of records || []) {
-        const engineType = String(record.engineType || 'UNKNOWN').toUpperCase()
-        if (!grouped.has(engineType)) {
-          grouped.set(engineType, [])
-        }
-        grouped.get(engineType).push({
-          id: record.datasourceId || `${engineType}-${record.datasourceCode}`,
-          label: `${record.datasourceCode}.${record.stage || 'PROD'}`,
-          datasourceType: engineType,
-          datasourceCode: record.datasourceCode,
-          stage: record.stage
-        })
-      }
+      const grouped = groupGovernanceDatasources(records)
       datasourceGroupedMap.value = grouped
       
       const engines = Array.from(grouped.keys()).map(engine => ({
@@ -195,8 +188,7 @@ const loadTreeNode = async (node, resolve) => {
       resolve(engines)
       
       if (!form.datasourceCode) {
-        const firstEngine = Array.from(grouped.keys())[0]
-        const firstDs = grouped.get(firstEngine)?.[0]
+        const firstDs = firstDatasourceForEngine(grouped, form.datasourceType)
         if (firstDs) {
           syncDatasourceSelection(firstDs)
         }
@@ -339,11 +331,11 @@ const loadTreeNode = async (node, resolve) => {
 }
 
 const form = reactive({
-  tenantId: 'tenant-a',
+  tenantId: SAMPLE_TENANT_ID,
   sqlText:
     '--report_code=RPT_SALES_DAILY\n--stage=PROD\n--biz_date=2026-04-27\n--tenant_id=tenant-a\n--datasource=hetu_main\nSELECT * FROM orders WHERE query_date = :query_date LIMIT :limit',
   datasourceType: 'AUTO',
-  datasourceCode: 'hetu_main',
+  datasourceCode: SAMPLE_DATASOURCE_CODE,
   accelerationPreference: 'PREFER_ACCELERATED',
   faultToleranceStrategy: 'FAIL_FAST'
 })
@@ -401,17 +393,27 @@ const handleResultPageSizeChange = pageSize => {
   resultPagination.pageSize = Number(pageSize || DEFAULT_QUERY_RESULT_PAGE_SIZE)
   resultPagination.pageNo = 1
 }
-const selectedDatasource = computed(() => {
-  for (const group of datasourceTree.value) {
-    for (const item of group.children || []) {
-      if (item.id === selectedDatasourceId.value) {
-        return item
-      }
-    }
+const selectedDatasource = computed(() =>
+  findDatasourceOption(datasourceGroupedMap.value, form.datasourceCode, form.datasourceType)
+    || { label: form.datasourceCode || '-', datasourceType: form.datasourceType, datasourceCode: form.datasourceCode }
+)
+const fallbackDatasourceOptions = ['AUTO', 'TRINO', 'HETU', 'HIVE']
+const datasourceOptions = computed(() => {
+  const dynamicEngines = Array.from(datasourceGroupedMap.value.keys())
+    .map(value => String(value || '').trim().toUpperCase())
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .sort()
+  if (dynamicEngines.length === 0) {
+    return fallbackDatasourceOptions
   }
-  return datasourceTree.value[0]?.children?.[0] || { label: form.datasourceCode || '-', datasourceType: form.datasourceType, datasourceCode: form.datasourceCode }
+  const options = ['AUTO', ...dynamicEngines]
+  const current = String(form.datasourceType || '').trim().toUpperCase()
+  if (current && !options.includes(current)) {
+    options.push(current)
+  }
+  return options
 })
-const datasourceOptions = computed(() => ['AUTO', 'TRINO', 'HETU', 'HIVE'])
 const accelerationOptions = computed(() => [
   { value: 'NONE', label: t('inline.viewsQuerySqlQueryView.text001') },
   { value: 'PREFER_ACCELERATED', label: t('inline.viewsQuerySqlQueryView.text002') }
@@ -513,13 +515,19 @@ const explainSteps = computed(() => [
   }
 ])
 
-const syncDatasourceSelection = async datasource => {
+const syncDatasourceFields = (datasource, options = {}) => {
   if (!datasource?.datasourceType) {
     return
   }
   selectedDatasourceId.value = datasource.id
-  form.datasourceType = datasource.datasourceType
+  if (!options.keepDatasourceType) {
+    form.datasourceType = datasource.datasourceType
+  }
   form.datasourceCode = datasource.datasourceCode || form.datasourceCode
+}
+
+const syncDatasourceSelection = async datasource => {
+  syncDatasourceFields(datasource)
   await loadSchemasForDatasource(form.datasourceCode)
 }
 
@@ -594,6 +602,10 @@ const syncResultPagination = () => {
 }
 
 const runQuery = async scenario => {
+  if (!form.datasourceCode) {
+    errorMessage.value = datasourceInventoryError.value || t('inline.viewsQuerySqlQueryView.text066')
+    return
+  }
   running.value = true
   resetEvidence()
 
@@ -640,39 +652,43 @@ const runQuery = async scenario => {
 }
 
 const loadDatasourceInventory = async () => {
-  const records = await getGovernanceDatasources(form.tenantId, {
-    requestPrefix: 'frontend-query-datasource-inventory'
-  })
-  const grouped = new Map()
-  for (const record of records || []) {
-    const engineType = String(record.engineType || 'UNKNOWN').toUpperCase()
-    if (!grouped.has(engineType)) {
-      grouped.set(engineType, [])
-    }
-    grouped.get(engineType).push({
-      id: record.datasourceId || `${engineType}-${record.datasourceCode}`,
-      label: `${record.datasourceCode}.${record.stage || 'PROD'}`,
-      datasourceType: engineType,
-      datasourceCode: record.datasourceCode,
-      stage: record.stage
+  datasourceInventoryLoading.value = true
+  datasourceInventoryError.value = ''
+  try {
+    const records = await getGovernanceDatasources(form.tenantId, {
+      requestPrefix: 'frontend-query-datasource-inventory'
     })
-  }
-  datasourceGroupedMap.value = grouped
-  datasourceTree.value = Array.from(grouped.entries()).map(([engineType, children]) => ({
-    id: `${engineType.toLowerCase()}-inventory`,
-    label: `${engineType} inventory`,
-    children
-  }))
-  const firstDatasource = datasourceTree.value[0]?.children?.[0]
-  if (firstDatasource) {
-    await syncDatasourceSelection(firstDatasource)
+    const grouped = groupGovernanceDatasources(records)
+    datasourceGroupedMap.value = grouped
+    datasourceTree.value = Array.from(grouped.entries()).map(([engineType, children]) => ({
+      id: `${engineType.toLowerCase()}-inventory`,
+      label: `${engineType} inventory`,
+      children
+    }))
+    const current = findDatasourceOption(grouped, form.datasourceCode, form.datasourceType)
+    const nextDatasource = current || firstDatasourceForEngine(grouped, form.datasourceType)
+    if (nextDatasource) {
+      await syncDatasourceSelection(nextDatasource)
+    } else {
+      selectedDatasourceId.value = ''
+      schemaOptions.value = []
+      selectedSchema.value = ''
+    }
+    treeVersion.value += 1
+  } catch (error) {
+    datasourceTree.value = []
+    datasourceGroupedMap.value = new Map()
+    selectedDatasourceId.value = ''
+    schemaOptions.value = []
+    selectedSchema.value = ''
+    datasourceInventoryError.value = formatRuntimeError(error)
+  } finally {
+    datasourceInventoryLoading.value = false
   }
 }
 
 onMounted(() => {
-  loadDatasourceInventory().catch(() => {
-    datasourceTree.value = []
-  })
+  loadDatasourceInventory()
 })
 
 const displayValue = value => {
@@ -722,6 +738,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             <el-scrollbar class="tree-scroll-area">
               <el-tree
                 ref="objectsTreeRef"
+                :key="treeVersion"
                 class="objects-metadata-tree"
                 :props="treeProps"
                 lazy
@@ -793,6 +810,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
                 v-model="form.datasourceType"
                 :placeholder="locale === 'zh-CN' ? '引擎' : 'Engine'"
                 size="small"
+                :disabled="datasourceInventoryLoading"
                 style="width: 100px; flex-shrink: 0;"
                 @change="handleEngineChange"
               >
@@ -808,6 +826,8 @@ const formatJson = value => JSON.stringify(value, null, 2)
                 v-model="form.datasourceCode"
                 :placeholder="locale === 'zh-CN' ? '数据源' : 'Datasource'"
                 size="small"
+                :loading="datasourceInventoryLoading"
+                :disabled="!hasAvailableDatasources"
                 style="width: 150px; flex-shrink: 0;"
                 @change="handleDatasourceChange"
               >
@@ -826,6 +846,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
                 style="width: 160px; min-width: 100px;"
                 filterable
                 clearable
+                :disabled="!form.datasourceCode"
                 @change="handleSchemaChange"
               >
                 <el-option
@@ -902,6 +923,12 @@ const formatJson = value => JSON.stringify(value, null, 2)
             <div v-if="errorMessage" class="inline-banner inline-banner-danger">
               {{ errorMessage }}
             </div>
+            <div v-else-if="datasourceInventoryError" class="inline-banner inline-banner-danger">
+              {{ datasourceInventoryError }}
+            </div>
+            <div v-else-if="!hasAvailableDatasources && !form.datasourceCode" class="inline-banner">
+              {{ t('inline.viewsQuerySqlQueryView.text066') }}
+            </div>
             <div v-else-if="validationTips.length" class="inline-banner">
               {{ validationTips[0] }}
             </div>
@@ -935,6 +962,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             <el-button
               type="primary"
               :loading="running"
+              :disabled="queryRunDisabled"
               class="run-primary-btn"
               data-testid="query-flow-submit"
               @click="runQuery('default')"
@@ -944,6 +972,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             
             <el-button
               :loading="running"
+              :disabled="queryRunDisabled"
               class="run-secondary-btn"
               data-testid="query-flow-submit-recovery"
               @click="runQuery('recovery')"
@@ -967,7 +996,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             <el-button text class="helper-btn" @click="showGovernanceDrawer = true">
               🛡️ {{ t('inline.viewsQuerySqlQueryView.text060') }}
             </el-button>
-            <el-button text class="helper-btn" data-testid="query-flow-open-deep-parse" @click="openDeepParseWorkbench">
+            <el-button text class="helper-btn" :disabled="!form.datasourceCode" data-testid="query-flow-open-deep-parse" @click="openDeepParseWorkbench">
               🚀 {{ t('inline.viewsQuerySqlQueryView.text086') }}
             </el-button>
           </div>

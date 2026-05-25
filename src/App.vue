@@ -103,12 +103,16 @@ const applyTenantConfig = config => {
   if (!config?.tenantId) {
     return
   }
+  const resolvedTenantName =
+    config.tenantId === 'system' && !config.tenantName && !config.label
+      ? ''
+      : config.label || config.tenantName || config.tenantId
   workspaceForm.tenantId = config.tenantId
   workspaceForm.defaultEngine = config.defaultEngine || workspaceForm.defaultEngine
   workspaceForm.backupEngine = config.backupEngine || workspaceForm.backupEngine
   tenantStore.setTenant({
     tenantId: config.tenantId,
-    tenantName: config.label || config.tenantName || config.tenantId,
+    tenantName: resolvedTenantName,
     defaultEngine: workspaceForm.defaultEngine,
     backupEngine: workspaceForm.backupEngine
   })

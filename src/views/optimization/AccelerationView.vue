@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
+import { SAMPLE_DATASOURCE_CODE, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import {
   createParseBatch,
   createRewriteTrial,
@@ -23,6 +24,11 @@ import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import RewriteValidationView from '../rewrite-validation/RewriteValidationView.vue'
 import { buildDatasourceOptions, withCurrentOption } from '../common/formComponentGovernance'
+import {
+  findDatasourceOption,
+  firstDatasourceForEngine,
+  groupGovernanceDatasources
+} from '../common/governanceDatasourceOptions.mjs'
 import { riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
 
 const route = useRoute()
@@ -33,8 +39,8 @@ const combinedTerminalStatuses = new Set(['ACCESS_SUCCEEDED', 'PARTIAL_SUCCEEDED
 const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
 const form = reactive({
-  tenantId: 'tenant-a',
-  datasourceCode: 'hetu_main',
+  tenantId: SAMPLE_TENANT_ID,
+  datasourceCode: SAMPLE_DATASOURCE_CODE,
   bindingMode: 'POSITIONAL',
   parserMode: 'JSQLPARSER',
   connectionRequired: true,
@@ -45,12 +51,12 @@ const form = reactive({
 })
 
 const parseBatchForm = reactive({
-  tenantId: 'tenant-a',
+  tenantId: SAMPLE_TENANT_ID,
   batchName: 'batch-alpha',
   importMode: 'TABULAR_FILE',
   fileType: 'CSV',
   templateVersion: 'v1',
-  datasourceCode: 'hetu_main',
+  datasourceCode: SAMPLE_DATASOURCE_CODE,
   parserMode: 'JSQLPARSER',
   structureParseOnly: false,
   directInputMode: 'SQL_LINES',
@@ -60,16 +66,16 @@ const parseBatchForm = reactive({
 
 const retryForm = reactive({
   failureFilter: 'UNAVAILABLE',
-  datasourceCode: 'hetu_main',
+  datasourceCode: SAMPLE_DATASOURCE_CODE,
   forceRecheckAvailability: false
 })
 
 const reportBatchForm = reactive({
-  tenantId: 'tenant-a',
+  tenantId: SAMPLE_TENANT_ID,
   batchName: 'report-batch-alpha',
   fileType: 'TXT',
   reportCodeField: 'report_code',
-  datasourceCode: 'hetu_main',
+  datasourceCode: SAMPLE_DATASOURCE_CODE,
   parserMode: 'JSQLPARSER',
   stage: 'PROD',
   priority: 'high',
@@ -1175,6 +1181,12 @@ async function loadGovernanceDatasources() {
       requestPrefix: 'frontend-parse-workbench-governance-datasources'
     })
     governanceDatasources.value = Array.isArray(response) ? response : []
+    const grouped = groupGovernanceDatasources(governanceDatasources.value)
+    const selectedDatasource =
+      findDatasourceOption(grouped, form.datasourceCode) || firstDatasourceForEngine(grouped)
+    if (selectedDatasource && selectedDatasource.datasourceCode !== form.datasourceCode) {
+      form.datasourceCode = selectedDatasource.datasourceCode
+    }
   } catch (error) {
     governanceDatasources.value = []
   }

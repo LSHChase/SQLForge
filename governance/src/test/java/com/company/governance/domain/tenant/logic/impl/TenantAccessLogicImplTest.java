@@ -13,6 +13,7 @@ class TenantAccessLogicImplTest {
         TenantAccessLogicImpl logic = new TenantAccessLogicImpl(new GovernanceAccessProperties());
 
         assertTrue(logic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ"));
+        assertTrue(logic.validateDataSourceAccess("tenant-b", "governance-tenant-config", "READ"));
     }
 
     @Test

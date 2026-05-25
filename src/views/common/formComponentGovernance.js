@@ -1,6 +1,8 @@
+import { DEFAULT_TENANT_ID, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+
 export const knownTenantOptions = [
-  { label: 'system', value: 'system' },
-  { label: 'tenant-a', value: 'tenant-a' },
+  { label: DEFAULT_TENANT_ID, value: DEFAULT_TENANT_ID },
+  { label: SAMPLE_TENANT_ID, value: SAMPLE_TENANT_ID },
   { label: 'tenant-b', value: 'tenant-b' }
 ]
 
