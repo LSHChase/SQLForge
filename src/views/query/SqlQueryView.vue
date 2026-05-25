@@ -24,7 +24,10 @@ import {
 import { sqlTemplates, sqlLibrary } from './sqlTemplates'
 import {
   DEFAULT_QUERY_RESULT_PAGE_SIZE,
+  isExplainSql,
   normalizeQueryResultPage,
+  resolveExplainPlanText,
+  resolveQueryResultKind,
   resolveVisibleQueryRows
 } from './queryResultPage.mjs'
 import { useQueryParameters } from './useQueryParameters'
@@ -373,6 +376,21 @@ const showExplainDialog = ref(false)
 
 const resultPage = computed(() => normalizeQueryResultPage(result.value, resultPagination.pageSize))
 const previewRows = computed(() => resolveVisibleQueryRows(resultPage.value, resultPagination))
+const queryResultKind = computed(() => resolveQueryResultKind(result.value, boundSqlPreview.value))
+const isExplainResult = computed(() => queryResultKind.value === 'EXPLAIN_PLAN')
+const explainPlanText = computed(() => isExplainResult.value ? resolveExplainPlanText(resultPage.value) : '')
+const resultTabLabel = computed(() => isExplainResult.value
+  ? t('inline.viewsQuerySqlQueryView.text110')
+  : t('inline.viewsQuerySqlQueryView.text065'))
+const resultTerminalTitle = computed(() => isExplainResult.value
+  ? t('inline.viewsQuerySqlQueryView.text110')
+  : t('inline.viewsQuerySqlQueryView.text105'))
+const resultRowsLabel = computed(() => isExplainResult.value
+  ? t('inline.viewsQuerySqlQueryView.text111')
+  : t('inline.viewsQuerySqlQueryView.text102'))
+const resultEmptyCopy = computed(() => isExplainResult.value
+  ? t('inline.viewsQuerySqlQueryView.text112')
+  : t('inline.viewsQuerySqlQueryView.text066'))
 const resultColumns = computed(() => {
   const columns = new Set()
   for (const row of previewRows.value) {
@@ -464,7 +482,7 @@ const lightweightAnalysisRows = computed(() => {
   }
   return [
     { label: t('inline.viewsQuerySqlQueryView.text015'), value: lightweightParseSummary.syntaxStatus || (validationTips.value.length ? 'REVIEW' : 'VALID') },
-    { label: t('inline.viewsQuerySqlQueryView.text016'), value: lightweightParseSummary.sqlType || (sqlText.trim().startsWith('EXPLAIN') ? 'EXPLAIN' : 'SELECT') },
+    { label: t('inline.viewsQuerySqlQueryView.text016'), value: lightweightParseSummary.sqlType || (isExplainSql(form.sqlText) ? 'EXPLAIN' : 'SELECT') },
     { label: t('inline.viewsQuerySqlQueryView.text017'), value: lightweightParseSummary.complexityLevel || (riskTags.length >= 2 ? 'COMPLEX' : 'MODERATE') },
     { label: t('inline.viewsQuerySqlQueryView.text018'), value: listText(lightweightParseSummary.riskTags || riskTags) },
     { label: t('inline.viewsQuerySqlQueryView.text083'), value: result.value ? t('inline.viewsQuerySqlQueryView.text084') : t('inline.viewsQuerySqlQueryView.text085') }
@@ -1009,17 +1027,40 @@ const formatJson = value => JSON.stringify(value, null, 2)
         <div>
           <!-- Contract requirements: class="result-rail surface-card", governance summary, Bound SQL preview -->
           <p class="section-kicker sqlforge-code-label">result tabs</p>
-          <h2 class="section-title">{{ t('inline.viewsQuerySqlQueryView.text105') }}</h2>
+          <h2 class="section-title">{{ resultTerminalTitle }}</h2>
         </div>
       </div>
 
       <el-tabs v-model="activeResultTab" class="terminal-tabs">
-        <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text065')" name="rows">
-          <div v-if="previewRows.length" class="table-shell-container">
+        <el-tab-pane :label="resultTabLabel" name="rows">
+          <div
+            v-if="isExplainResult && explainPlanText"
+            class="table-shell-container explain-plan-shell"
+            data-testid="query-explain-plan"
+          >
             <div class="query-performance-bar">
               <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text101') }}: {{ result?.status || 'SUCCESS' }}</span>
               <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text010') }}: {{ result?.metadata?.targetEngine || form.datasourceType }}</span>
-              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text102') }}: {{ previewRows.length }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ resultRowsLabel }}: {{ resultPage.totalCount }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text103') }}: {{ result?.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</span>
+            </div>
+            <SqlCodeBlock
+              :value="explainPlanText"
+              :label="t('inline.viewsQuerySqlQueryView.text110')"
+              :copy-label="t('inline.viewsQuerySqlQueryView.text048')"
+              :auto-format="false"
+              data-testid="query-explain-plan-text"
+            />
+          </div>
+          <div
+            v-else-if="previewRows.length"
+            class="table-shell-container"
+            :data-testid="isExplainResult ? 'query-explain-plan-table' : undefined"
+          >
+            <div class="query-performance-bar">
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text101') }}: {{ result?.status || 'SUCCESS' }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text010') }}: {{ result?.metadata?.targetEngine || form.datasourceType }}</span>
+              <span class="performance-metric sqlforge-code-label">{{ resultRowsLabel }}: {{ previewRows.length }}</span>
               <span class="performance-metric sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text103') }}: {{ result?.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</span>
             </div>
             <div class="table-shell">
@@ -1054,7 +1095,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
               </div>
             </div>
           </div>
-          <p v-else class="empty-copy">{{ t('inline.viewsQuerySqlQueryView.text066') }}</p>
+          <p v-else class="empty-copy">{{ resultEmptyCopy }}</p>
         </el-tab-pane>
 
         <el-tab-pane :label="t('inline.viewsQuerySqlQueryView.text090')" name="tuning">

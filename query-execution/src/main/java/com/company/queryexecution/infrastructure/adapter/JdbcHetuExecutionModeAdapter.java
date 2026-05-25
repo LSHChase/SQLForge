@@ -10,7 +10,6 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveResponse;
 import com.company.sqlforge.common.jdbc.ManagedJdbcConnectionFactory;
-import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -144,13 +143,9 @@ public class JdbcHetuExecutionModeAdapter implements HetuExecutionModeAdapter {
         int columnCount = metadata.getColumnCount();
         while (resultSet.next() && rows.size() < maxRows) {
             Map<String, Object> row = new LinkedHashMap<String, Object>();
-            row.put("engine", "HETU");
-            row.put("mode", "PRIMARY");
-            row.put("executionMode", QueryExecutionAccessMode.JDBC.name());
             for (int index = 1; index <= columnCount; index++) {
                 row.put(metadata.getColumnLabel(index), resultSet.getObject(index));
             }
-            row.put("sqlFingerprint", SqlFingerprintUtils.fingerprint(String.valueOf(row)));
             rows.add(row);
         }
         return rows;

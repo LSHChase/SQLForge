@@ -2831,6 +2831,9 @@ export default {
       text107: 'Attempted modes',
       text108: 'No active parameters',
       text109: 'Explorer',
+      text110: 'Execution Plan',
+      text111: 'Plan rows',
+      text112: 'Run an EXPLAIN SQL statement to view the returned execution plan here.',
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: 'All',

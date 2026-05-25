@@ -4,6 +4,27 @@
 
 ## Done
 
+### USER-CN-FIX-SQL-QUERY-RESULT-EXPLAIN-20260525: 修正 SQL 查询分析页执行结果展示
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `fix(query-execution): USER-CN-FIX-SQL-QUERY-RESULT-EXPLAIN-20260525 keep rows business-only`
+- Priority: 1
+- Depends on: N/A
+- Scope: Implement the confirmed plan for /api/query-execution/queries/execute and SQL 查询分析: rows must contain only engine-returned business columns, diagnostic execution fields remain in metadata/summary fields, and SqlQueryView/queryResultPage rendering must show ordinary SELECT/WITH/SHOW/DESCRIBE results as data lists while user-written EXPLAIN SQL is labeled and rendered as an execution plan without changing the Explain button into auto execution.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-SQL-QUERY-RESULT-EXPLAIN-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-25: removed adapter/service diagnostic row decoration so simulated paths return empty `rows`, JDBC reads only `ResultSetMetaData` columns, and REST/CLIENT preserve only returned row fields.
+  - 2026-05-25: added SQL 查询分析 result-kind handling so `EXPLAIN` responses render as execution plans while ordinary query responses keep the paged result table.
+  - 2026-05-25: validation passed via `python3 scripts/foreman.py validate USER-CN-FIX-SQL-QUERY-RESULT-EXPLAIN-20260525 --extra-command "mvn -pl query-execution -am test" --extra-command "node scripts/check-query-workbench-contract.mjs"`.
+- Context closeout:
+  - Completed scope: Backend query execution rows now contain only engine-returned business columns; simulated and direct-success paths return empty rows without diagnostic records; SQL 查询分析 detects user-written EXPLAIN and renders single-column plan text or multi-column plan tables while preserving normal paged data rows.
+  - Validation evidence: Passed: mvn -pl query-execution -am test; node scripts/check-query-workbench-contract.mjs; npm run test:sql-ui-contract; npm run lint; npm run build; npm run test:form-governance; npm run test:frontend-page-governance; node scripts/check-developer-copy-language.mjs --changed; python3 scripts/foreman.py validate USER-CN-FIX-SQL-QUERY-RESULT-EXPLAIN-20260525 with extra Maven and query-workbench contract commands.
+  - Residual risk: No known repo-closed residual risk; live Hetu/MRS result shape validation remains covered by existing environment-backed HARN-016.
+  - Next step: Use external Hetu/MRS smoke evidence when the blocked environment window opens; no additional repository follow-up is required for this task.
+
 ### USER-CN-TOP-TENANT-DEFAULT-LOW-RISK-DYNAMIC-20260525: 顶部租户默认与低风险动态化计划
 
 - Status: done

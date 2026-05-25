@@ -7,7 +7,10 @@ const viewPath = path.join(root, 'src/views/query/SqlQueryView.vue')
 const source = fs.readFileSync(viewPath, 'utf8')
 const helperPath = path.join(root, 'src/views/query/queryResultPage.mjs')
 const {
+  isExplainQueryResult,
   normalizeQueryResultPage,
+  resolveExplainPlanText,
+  resolveQueryResultKind,
   resolveVisibleQueryRows
 } = await import(pathToFileURL(helperPath).href)
 
@@ -27,6 +30,9 @@ const requiredTokens = [
   'normalizeQueryResultPage',
   'data-testid="query-result-table"',
   'data-testid="query-result-pagination"',
+  'data-testid="query-explain-plan"',
+  'query-explain-plan-table',
+  'query-explain-plan-text',
   'class="table-footer"',
   'class="pagination-cluster"'
 ]
@@ -84,6 +90,51 @@ const nestedPagedRowsPage = normalizeQueryResultPage({
 })
 if (nestedPagedRowsPage.items.length !== 2 || nestedPagedRowsPage.items[1]?.orderId !== 'order-22') {
   missing.push('nested paged rows normalization')
+}
+
+const explainResult = {
+  metadata: {
+    actualSql: '--trace=unit\nEXPLAIN SELECT * FROM orders'
+  },
+  lightweightParseSummary: {
+    sqlType: 'EXPLAIN'
+  },
+  rows: [
+    { 'Query Plan': 'Fragment 0 [SINGLE]' },
+    { 'Query Plan': '  Output[order_id]' }
+  ]
+}
+const explainRowsPage = normalizeQueryResultPage(explainResult)
+if (!isExplainQueryResult(explainResult) || resolveQueryResultKind(explainResult) !== 'EXPLAIN_PLAN') {
+  missing.push('EXPLAIN result kind detection')
+}
+if (resolveExplainPlanText(explainRowsPage) !== 'Fragment 0 [SINGLE]\n  Output[order_id]') {
+  missing.push('single-column EXPLAIN plan text rendering')
+}
+
+const commentDetectedExplainResult = {
+  metadata: {
+    actualSql: '/* route probe */\n-- trace\nEXPLAIN SELECT * FROM orders'
+  },
+  lightweightParseSummary: {
+    sqlType: 'SELECT'
+  },
+  rows: [{ plan: 'Plan text' }]
+}
+if (!isExplainQueryResult(commentDetectedExplainResult)) {
+  missing.push('comment-stripped EXPLAIN SQL detection')
+}
+
+const multiColumnExplainPage = normalizeQueryResultPage({
+  lightweightParseSummary: {
+    sqlType: 'EXPLAIN'
+  },
+  rows: [
+    { stage: '0', operator: 'Scan' }
+  ]
+})
+if (resolveExplainPlanText(multiColumnExplainPage) !== '') {
+  missing.push('multi-column EXPLAIN must stay tabular')
 }
 
 if (missing.length > 0) {

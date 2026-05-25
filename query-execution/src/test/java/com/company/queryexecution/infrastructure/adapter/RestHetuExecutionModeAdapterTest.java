@@ -1,6 +1,7 @@
 package com.company.queryexecution.infrastructure.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,9 +47,10 @@ class RestHetuExecutionModeAdapterTest {
             assertTrue(step.isCacheHit());
             assertTrue(step.isAccelerationApplied());
             assertEquals(1, step.getRows().size());
-            assertEquals("HETU", step.getRows().get(0).get("engine"));
-            assertEquals("PRIMARY", step.getRows().get(0).get("mode"));
-            assertEquals("REST", step.getRows().get(0).get("executionMode"));
+            assertFalse(step.getRows().get(0).containsKey("engine"));
+            assertFalse(step.getRows().get(0).containsKey("mode"));
+            assertFalse(step.getRows().get(0).containsKey("executionMode"));
+            assertFalse(step.getRows().get(0).containsKey("sqlFingerprint"));
             assertEquals(1, ((Number) step.getRows().get(0).get("id")).intValue());
             assertEquals("READY", step.getRows().get(0).get("state"));
             assertEquals("Bearer secret-token", authorizationHeader.get());

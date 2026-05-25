@@ -41,6 +41,8 @@ import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,12 +75,12 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("HETU_REAL_INTEGRATION", response.getImplementationStage());
         assertFalse(response.isDegraded());
         assertNull(response.getError());
-        assertEquals(1, response.getRows().size());
+        assertTrue(response.getRows().isEmpty());
         assertFalse(response.getMetadata().isAccelerationApplied());
         assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
         assertEquals(1, response.getMetadata().getAttemptedModes().size());
         assertEquals("SIMULATED", response.getMetadata().getAttemptedModes().get(0));
-        assertEquals(1, response.getMetadata().getRowCount());
+        assertEquals(0, response.getMetadata().getRowCount());
         assertTrue(output.getOut().contains("operation=QUERY_EXECUTE_SYNC"));
         assertTrue(output.getOut().contains("status=START"));
         assertTrue(output.getOut().contains("to=PRIMARY_ROUTE_SELECTED"));
@@ -124,6 +126,44 @@ class QueryExecutionApplicationServiceTest {
         assertEquals(Boolean.FALSE, response.getCacheSummary().get("cacheHit"));
         assertEquals("SELECT", response.getLightweightParseSummary().get("sqlType"));
         assertEquals("VALID", response.getLightweightParseSummary().get("syntaxStatus"));
+    }
+
+    @Test
+    void shouldPreserveExplainRowsAndExposeExplainSqlType() {
+        setRequestContext("tenant-a");
+        QueryExecutionApplicationService service =
+            newService(new QueryExecutionAdapter() {
+                @Override
+                public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
+                                                  String actualSql,
+                                                  QueryExecuteRequest request,
+                                                  boolean degradedPath) {
+                    Map<String, Object> row = new LinkedHashMap<String, Object>();
+                    row.put("Query Plan", "Fragment 0 [SINGLE]\n  Output[order_id]");
+                    return new QueryExecutionStep(
+                        targetEngine,
+                        Collections.<Map<String, Object>>singletonList(row),
+                        12L,
+                        1L,
+                        false,
+                        false,
+                        "JDBC",
+                        Collections.singletonList("JDBC")
+                    );
+                }
+            }, mockGovernanceClient(), new SimpleMeterRegistry());
+
+        QueryExecuteResponse response = service.executeSynchronously(
+            baseRequest("--trace=unit\nEXPLAIN SELECT order_id FROM orders")
+        );
+
+        assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
+        assertEquals("EXPLAIN", response.getLightweightParseSummary().get("sqlType"));
+        assertEquals("JDBC", response.getMetadata().getExecutionMode());
+        assertEquals(1, response.getMetadata().getRowCount());
+        assertEquals("Fragment 0 [SINGLE]\n  Output[order_id]", response.getRows().get(0).get("Query Plan"));
+        assertFalse(response.getRows().get(0).containsKey("executionMode"));
+        assertFalse(response.getRows().get(0).containsKey("sqlFingerprint"));
     }
 
     @Test
@@ -200,8 +240,8 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("DEV_REWRITE_DIRECT_SUCCESS", response.getMetadata().getExecutionMode());
         assertEquals("DEV_RUNTIME_REWRITE_SHORT_CIRCUIT", response.getMetadata().getRouteProfile());
         assertTrue(response.getMetadata().isRewriteApplied());
-        assertEquals(1, response.getRows().size());
-        assertEquals(Boolean.TRUE, response.getRows().get(0).get("rewriteApplied"));
+        assertTrue(response.getRows().isEmpty());
+        assertEquals(0, response.getMetadata().getRowCount());
         assertEquals("rewrite-001", response.getMetadata().getRewriteRecordId());
         assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
         assertEquals(Long.valueOf(3L), response.getMetadata().getRuleVersion());
@@ -568,7 +608,7 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("HIVE_FALLBACK", response.getMetadata().getExecutionMode());
         assertEquals(1, response.getMetadata().getAttemptedModes().size());
         assertEquals("HIVE_FALLBACK", response.getMetadata().getAttemptedModes().get(0));
-        assertEquals(1, response.getMetadata().getRowCount());
+        assertEquals(0, response.getMetadata().getRowCount());
         assertNull(response.getError());
         assertEquals(1.0D, meterRegistry.get("sqlforge.query.execution.fallbacks").tags(
             "requested_datasource", "HETU",
@@ -743,7 +783,7 @@ class QueryExecutionApplicationServiceTest {
         assertEquals("QUERY_EXECUTION", historyRequest.getHistoryType());
         assertEquals("SUCCESS", historyRequest.getResultStatus());
         assertEquals("HETU", historyRequest.getTargetEngine());
-        assertEquals(Long.valueOf(1L), historyRequest.getReturnedRowCount());
+        assertEquals(Long.valueOf(0L), historyRequest.getReturnedRowCount());
         assertEquals(Boolean.FALSE, historyRequest.getCacheHit());
         assertEquals(Boolean.FALSE, historyRequest.getRewriteApplied());
         assertEquals(Boolean.FALSE, historyRequest.getAccelerationApplied());

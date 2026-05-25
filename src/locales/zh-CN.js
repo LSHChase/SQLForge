@@ -2726,6 +2726,9 @@ export default {
       text107: '尝试模式',
       text108: '暂无有效参数',
       text109: '资源管理器',
+      text110: '执行计划',
+      text111: '计划行数',
+      text112: '执行 EXPLAIN SQL 后会在这里展示引擎返回的执行计划。',
     },
     viewsRecommendationCenterRecommendationCenterView: {
       text001: '全部',

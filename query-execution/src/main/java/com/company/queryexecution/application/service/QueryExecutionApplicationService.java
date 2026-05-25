@@ -608,17 +608,9 @@ public class QueryExecutionApplicationService {
 
     private QueryExecutionStep buildDevelopmentRewriteStep(DataSourceTypeEnum primaryEngine,
                                                            RuntimeRewriteResolution runtimeRewriteResolution) {
-        Map<String, Object> row = new LinkedHashMap<String, Object>();
-        row.put("executionStatus", "SUCCESS");
-        row.put("executionMode", STATE_DEV_REWRITE_DIRECT_SUCCESS);
-        row.put("rewriteApplied", Boolean.TRUE);
-        row.put("rewriteRecordId", runtimeRewriteResolution.getRewriteRecordId());
-        row.put("runtimeBindingId", runtimeRewriteResolution.getRuntimeBindingId());
-        row.put("runtimeRuleVersion", runtimeRewriteResolution.getRuntimeRuleVersion());
-        row.put("actualSqlFingerprint", runtimeRewriteResolution.getActualSqlFingerprint());
         return new QueryExecutionStep(
             primaryEngine,
-            Collections.<Map<String, Object>>singletonList(row),
+            Collections.<Map<String, Object>>emptyList(),
             1L,
             0L,
             false,

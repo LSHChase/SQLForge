@@ -51,11 +51,7 @@ public class ClientHetuExecutionModeAdapter implements HetuExecutionModeAdapter 
         }
         List<Map<String, Object>> sanitized = new ArrayList<Map<String, Object>>();
         for (Map<String, Object> row : rows) {
-            Map<String, Object> copy = new LinkedHashMap<String, Object>(row);
-            copy.put("engine", "HETU");
-            copy.put("mode", degradedPath ? "FALLBACK" : "PRIMARY");
-            copy.put("executionMode", QueryExecutionAccessMode.CLIENT.name());
-            sanitized.add(copy);
+            sanitized.add(new LinkedHashMap<String, Object>(row));
         }
         return sanitized;
     }

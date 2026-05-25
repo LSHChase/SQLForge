@@ -5,11 +5,7 @@ import com.company.queryexecution.domain.query.AccelerationPreference;
 import com.company.queryexecution.domain.query.QueryExecutionAccessMode;
 import com.company.queryexecution.domain.query.QueryExecutionStep;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
-import com.company.sqlforge.common.utils.SqlFingerprintUtils;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,7 +27,7 @@ public class DeterministicQueryExecutionAdapter implements QueryExecutionAdapter
         long scannedRows = resolveScannedRows(actualSql);
         return new QueryExecutionStep(
             targetEngine,
-            buildRows(targetEngine, actualSql, degradedPath, accelerationApplied),
+            Collections.<Map<String, Object>>emptyList(),
             elapsedMs,
             scannedRows,
             false,
@@ -39,21 +35,6 @@ public class DeterministicQueryExecutionAdapter implements QueryExecutionAdapter
             resolveExecutionMode(targetEngine, degradedPath).name(),
             Collections.singletonList(resolveExecutionMode(targetEngine, degradedPath).name())
         );
-    }
-
-    private List<Map<String, Object>> buildRows(DataSourceTypeEnum targetEngine,
-                                                String actualSql,
-                                                boolean degradedPath,
-                                                boolean accelerationApplied) {
-        List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
-        Map<String, Object> row = new LinkedHashMap<String, Object>();
-        row.put("engine", targetEngine.name());
-        row.put("mode", degradedPath ? "FALLBACK" : "PRIMARY");
-        row.put("executionMode", resolveExecutionMode(targetEngine, degradedPath).name());
-        row.put("sqlFingerprint", SqlFingerprintUtils.fingerprint(actualSql));
-        row.put("accelerationApplied", Boolean.valueOf(accelerationApplied));
-        rows.add(row);
-        return rows;
     }
 
     private long resolveElapsedMs(DataSourceTypeEnum targetEngine, String actualSql, boolean accelerationApplied) {

@@ -89,11 +89,7 @@ public class RestHetuExecutionModeAdapter implements HetuExecutionModeAdapter {
             if (sanitized.size() >= maxRows) {
                 break;
             }
-            Map<String, Object> copy = new LinkedHashMap<String, Object>(row);
-            copy.put("engine", "HETU");
-            copy.put("mode", "PRIMARY");
-            copy.put("executionMode", QueryExecutionAccessMode.REST.name());
-            sanitized.add(copy);
+            sanitized.add(new LinkedHashMap<String, Object>(row));
         }
         return sanitized;
     }

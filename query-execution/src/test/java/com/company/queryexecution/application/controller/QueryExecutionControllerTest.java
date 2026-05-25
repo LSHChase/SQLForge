@@ -49,7 +49,7 @@ class QueryExecutionControllerTest {
         when(queryExecutionApplicationService.executeSynchronously(any()))
             .thenReturn(new QueryExecuteResponse(
                 QueryExecutionStatus.SUCCESS,
-                Collections.singletonList(Collections.<String, Object>singletonMap("engine", "HETU")),
+                Collections.singletonList(Collections.<String, Object>singletonMap("order_id", "order-001")),
                 null,
                 new QueryExecutionMetadataVO(
                     "HETU",
@@ -114,7 +114,8 @@ class QueryExecutionControllerTest {
             .andExpect(jsonPath("$.metadata.executionMode").value("CLIENT"))
             .andExpect(jsonPath("$.metadata.attemptedModes[0]").value("CLIENT"))
             .andExpect(jsonPath("$.metadata.rowCount").value(1))
-            .andExpect(jsonPath("$.rows[0].engine").value("HETU"))
+            .andExpect(jsonPath("$.rows[0].order_id").value("order-001"))
+            .andExpect(jsonPath("$.rows[0].mode").doesNotExist())
             .andExpect(jsonPath("$.commentContext.report_code").value("RPT_SALES_DAILY"))
             .andExpect(jsonPath("$.queryDateSummary.queryDateStatus").value("RESOLVED"))
             .andExpect(jsonPath("$.bindingSummary.bindingRenderStatus").value("SUCCESS"))

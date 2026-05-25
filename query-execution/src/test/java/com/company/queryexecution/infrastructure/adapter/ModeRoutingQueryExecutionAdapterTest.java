@@ -1,7 +1,6 @@
 package com.company.queryexecution.infrastructure.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,7 +42,7 @@ class ModeRoutingQueryExecutionAdapterTest {
 
         assertEquals("HIVE_FALLBACK", step.getExecutionMode());
         assertEquals(Collections.singletonList("HIVE_FALLBACK"), step.getAttemptedModes());
-        assertFalse(step.getRows().isEmpty());
+        assertTrue(step.getRows().isEmpty());
     }
 
     @Test
@@ -94,7 +93,7 @@ class ModeRoutingQueryExecutionAdapterTest {
 
         assertEquals("REST", step.getExecutionMode());
         assertEquals(Arrays.asList("JDBC", "JDBC:FAILED_EXECUTION", "REST"), step.getAttemptedModes());
-        assertEquals("REST", step.getRows().get(0).get("executionMode"));
+        assertEquals("ok", step.getRows().get(0).get("result"));
         assertEquals("REPO_CLOSED_BASELINE", step.getRouteProfile());
         assertEquals(Arrays.asList("JDBC", "REST"), step.getRouteOrder());
     }
@@ -216,8 +215,7 @@ class ModeRoutingQueryExecutionAdapterTest {
 
     private QueryExecutionStep sampleStep(String executionMode) {
         Map<String, Object> row = new LinkedHashMap<String, Object>();
-        row.put("engine", "HETU");
-        row.put("executionMode", executionMode);
+        row.put("result", "ok");
         return new QueryExecutionStep(
             DataSourceTypeEnum.HETU,
             Collections.<Map<String, Object>>singletonList(row),

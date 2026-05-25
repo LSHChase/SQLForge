@@ -83,6 +83,66 @@ const normalizeRows = rows => {
   })
 }
 
+export const stripLeadingSqlComments = sqlText => {
+  let remaining = String(sqlText || '').trimStart()
+  let consumed = true
+  while (consumed && remaining) {
+    consumed = false
+    remaining = remaining.trimStart()
+    if (remaining.startsWith('--')) {
+      const nextLineIndex = remaining.indexOf('\n')
+      remaining = nextLineIndex === -1 ? '' : remaining.slice(nextLineIndex + 1)
+      consumed = true
+    } else if (remaining.startsWith('/*')) {
+      const endIndex = remaining.indexOf('*/', 2)
+      remaining = endIndex === -1 ? '' : remaining.slice(endIndex + 2)
+      consumed = true
+    }
+  }
+  return remaining.trimStart()
+}
+
+export const isExplainSql = sqlText =>
+  /^EXPLAIN\b/i.test(stripLeadingSqlComments(sqlText))
+
+export const isExplainQueryResult = (response, executedSql = '') => {
+  const sqlType = String(response?.lightweightParseSummary?.sqlType || '').trim().toUpperCase()
+  const actualSql = response?.metadata?.actualSql || executedSql
+  return sqlType === 'EXPLAIN' || isExplainSql(actualSql)
+}
+
+export const resolveQueryResultKind = (response, executedSql = '') =>
+  isExplainQueryResult(response, executedSql) ? 'EXPLAIN_PLAN' : 'DATA_ROWS'
+
+const planCellText = value => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  if (isRecord(value) || Array.isArray(value)) {
+    return JSON.stringify(value)
+  }
+  return String(value)
+}
+
+export const resolveExplainPlanText = resultPage => {
+  const items = Array.isArray(resultPage?.items) ? resultPage.items : []
+  if (!items.length) {
+    return ''
+  }
+  const lines = []
+  for (const row of items) {
+    if (!isRecord(row)) {
+      return ''
+    }
+    const keys = Object.keys(row)
+    if (keys.length !== 1) {
+      return ''
+    }
+    lines.push(planCellText(row[keys[0]]))
+  }
+  return lines.join('\n').trim()
+}
+
 const extractRows = payload => {
   if (Array.isArray(payload)) {
     if (payload.length === 1 && looksLikePageEnvelope(payload[0])) {

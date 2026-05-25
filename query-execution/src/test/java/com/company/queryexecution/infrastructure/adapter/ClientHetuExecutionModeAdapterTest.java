@@ -1,6 +1,7 @@
 package com.company.queryexecution.infrastructure.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
@@ -41,9 +42,11 @@ class ClientHetuExecutionModeAdapterTest {
         assertEquals(Collections.singletonList("CLIENT"), step.getAttemptedModes());
         assertEquals(21L, step.getElapsedMs());
         assertEquals(64L, step.getScannedRows());
-        assertEquals("HETU", step.getRows().get(0).get("engine"));
-        assertEquals("PRIMARY", step.getRows().get(0).get("mode"));
-        assertEquals("CLIENT", step.getRows().get(0).get("executionMode"));
+        assertEquals("ok", step.getRows().get(0).get("value"));
+        assertFalse(step.getRows().get(0).containsKey("engine"));
+        assertFalse(step.getRows().get(0).containsKey("mode"));
+        assertFalse(step.getRows().get(0).containsKey("executionMode"));
+        assertFalse(step.getRows().get(0).containsKey("sqlFingerprint"));
     }
 
     @Test
