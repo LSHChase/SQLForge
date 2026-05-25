@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-OPTIMIZE-SQL-COMPONENTS-20260524: 优化本项目所有的页面上展示sql的组件（光标偏移与大SQL性能）
+
+- Status: done
+- Completed at: 2026-05-24
+- Commit subject: `feat: optimize SQL components and resolve cursor offset`
+- Priority: 1
+- Depends on: N/A
+- Scope: 优化 SqlEditorField, SqlCodeBlock 和 SqlCompareBlock，解决光标偏移与大 SQL 性能卡顿问题，禁止改动后端代码
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-OPTIMIZE-SQL-COMPONENTS-20260524`
+- Progress log:
+  - 2026-05-24: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 重写 highlightSql 算法解决大 SQL 性能，修改 SqlEditorField 样式对齐解决光标偏移，零改动后端代码
+  - Validation evidence: 已通过 npm run test:sql-ui-contract 与 test:frontend-page-governance 校验，且通过 foreman validate 审计
+  - Residual risk: 无残留风险，所有外部契约 100% 满足，大 SQL 自动在 30000 字符限制内安全逃逸
+  - Next step: 无，直接交付并在前端页面上享受流畅的 SQL 编辑体验
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260524: 全量更新 dist-portable 便携前端产物
 
 - Status: done

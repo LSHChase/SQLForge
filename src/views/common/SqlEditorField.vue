@@ -154,12 +154,25 @@ const syncScroll = event => {
   word-break: break-word;
   overflow-wrap: break-word;
   tab-size: 2;
+  letter-spacing: normal !important;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
 .sql-editor-field__highlight {
-  overflow: hidden;
+  overflow: auto;
   color: var(--sqlforge-text-primary);
   pointer-events: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.sql-editor-field__highlight::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .sql-editor-field__highlight code {
@@ -200,7 +213,8 @@ const syncScroll = event => {
 
 :deep(.sql-token-keyword) {
   color: var(--sqlforge-color-brand);
-  font-weight: 800;
+  font-weight: normal;
+  text-shadow: 0 0 0.2px var(--sqlforge-color-brand);
 }
 
 :deep(.sql-token-identifier) {
@@ -209,12 +223,13 @@ const syncScroll = event => {
 
 :deep(.sql-token-literal) {
   color: #f0b86e;
-  font-weight: 600;
+  font-weight: normal;
+  text-shadow: 0 0 0.1px #f0b86e;
 }
 
 :deep(.sql-token-number) {
   color: #9bc8ff;
-  font-weight: 700;
+  font-weight: normal;
 }
 
 :deep(.sql-token-comment) {
@@ -224,6 +239,6 @@ const syncScroll = event => {
 
 :deep(.sql-token-operator) {
   color: #d6a7ff;
-  font-weight: 700;
+  font-weight: normal;
 }
 </style>
