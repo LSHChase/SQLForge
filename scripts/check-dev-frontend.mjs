@@ -950,6 +950,53 @@ const runBrowserSmoke = async baseUrl => {
       return
     }
 
+    if (pathname === '/api/governance/tenant-config') {
+      if (request.method() === 'PUT') {
+        const payload = parseJsonBody(request)
+        await fulfillJson(route, {
+          tenantId: payload.tenantId || 'tenant-a',
+          quotaConcurrent: 20,
+          quotaStorage: 2048,
+          defaultEngine: payload.defaultEngine || 'HETU',
+          backupEngine: payload.backupEngine || 'HIVE',
+          auditLevel: 'NORMAL',
+          retentionDays: 180,
+          accelerationQuota: 50
+        })
+      } else {
+        const targetTenantId = requestUrl.searchParams.get('tenantId') || 'tenant-a'
+        await fulfillJson(route, {
+          tenantId: targetTenantId,
+          quotaConcurrent: 20,
+          quotaStorage: 2048,
+          defaultEngine: 'HETU',
+          backupEngine: 'HIVE',
+          auditLevel: 'NORMAL',
+          retentionDays: 180,
+          accelerationQuota: 50
+        })
+      }
+      return
+    }
+
+    if (pathname === '/api/governance/tenant-config/options') {
+      await fulfillJson(route, [
+        {
+          tenantId: 'tenant-a',
+          label: 'Tenant A (Development)',
+          defaultEngine: 'HETU',
+          backupEngine: 'HIVE'
+        },
+        {
+          tenantId: 'system',
+          label: 'System Admin',
+          defaultEngine: 'HETU',
+          backupEngine: 'HIVE'
+        }
+      ])
+      return
+    }
+
     if (pathname === '/api/governance/metadata/schemas') {
       await fulfillJson(route, [
         { schemaName: 'sales', catalogName: 'lakehouse' },
