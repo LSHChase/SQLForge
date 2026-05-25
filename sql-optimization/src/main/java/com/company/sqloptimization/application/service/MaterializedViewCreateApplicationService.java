@@ -90,6 +90,7 @@ public class MaterializedViewCreateApplicationService {
         if (artifact == null || artifact.isEmpty()) {
             throw invalidArgument("accelerationArtifact", "推荐缺少可创建的 PRECOMPUTE_MV 产物快照");
         }
+        artifact = withRecommendationTargets(artifact, recommendation);
         requireEquals(RULE_PRECOMPUTE_MV, textValue(artifact.get("rule")), "accelerationArtifact.rule");
         String artifactStatus = textValue(artifact.get("artifactStatus"));
         if (!STATUS_GENERATED.equals(artifactStatus) && !STATUS_REVIEW_REQUIRED.equals(artifactStatus)) {
@@ -104,6 +105,19 @@ public class MaterializedViewCreateApplicationService {
         requireText(textValue(artifact.get("targetDatasource")), "accelerationArtifact.targetDatasource");
         requireText(textValue(artifact.get("targetEngine")), "accelerationArtifact.targetEngine");
         return artifact;
+    }
+
+    private Map<String, Object> withRecommendationTargets(Map<String, Object> artifact,
+                                                          AccelerationRecommendation recommendation) {
+        Map<String, Object> result = new LinkedHashMap<String, Object>(artifact);
+        if (!StringUtils.hasText(textValue(result.get("targetDatasource")))) {
+            result.put("targetDatasource", recommendation.getTargetDatasource());
+        }
+        if (!StringUtils.hasText(textValue(result.get("targetEngine")))
+            || "AUTO".equalsIgnoreCase(textValue(result.get("targetEngine")))) {
+            result.put("targetEngine", recommendation.getTargetEngine());
+        }
+        return result;
     }
 
     private SqlRewriteRecord resolveRewriteRecord(MaterializedViewCreateRequest request,

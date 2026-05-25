@@ -91,6 +91,31 @@ class MaterializedViewCreateApplicationServiceTest {
     }
 
     @Test
+    void shouldCreateMvForRewriteRecommendationWhenArtifactIsGenerated() {
+        setTenant("tenant-a");
+        InMemoryAccelerationRecommendationRepository recommendationRepository =
+            new InMemoryAccelerationRecommendationRepository();
+        InMemorySqlRewriteRecordRepository rewriteRecordRepository = new InMemorySqlRewriteRecordRepository();
+        recommendationRepository.save(recommendation("rec-rewrite", "tenant-a", "GENERATED", Collections.emptyMap())
+            .toBuilder()
+            .recommendationType(RecommendationType.REWRITE)
+            .targetEngine("AUTO")
+            .build());
+        RecordingMaterializedViewClient client = new RecordingMaterializedViewClient("SUCCESS", "SUCCESS", "SUCCESS");
+        MaterializedViewCreateApplicationService service =
+            new MaterializedViewCreateApplicationService(recommendationRepository, rewriteRecordRepository, client);
+
+        QueryExecutionMaterializedViewCreateResponse response =
+            service.create("rec-rewrite", request("tenant-a", null));
+
+        assertEquals("SUCCESS", response.getStatus());
+        assertEquals("rec-rewrite", client.lastRequest.getRecommendationId());
+        assertEquals("HETU", client.lastRequest.getTargetEngine());
+        assertEquals("hetu_main", client.lastRequest.getTargetDatasource());
+        assertEquals("CREATE MATERIALIZED VIEW mv_orders_customer AS SELECT 1", client.lastRequest.getDdlSql());
+    }
+
+    @Test
     void shouldRejectBlockedOrMissingSqlArtifact() {
         setTenant("tenant-a");
         InMemoryAccelerationRecommendationRepository recommendationRepository =

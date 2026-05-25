@@ -107,13 +107,26 @@ class L2RollupMvCandidateGeneratorTest {
     }
 
     @Test
+    void shouldGenerateExactCountDistinctRollupByRetainingDistinctKey() {
+        Map<String, Object> artifact = artifact("SELECT DATE_TRUNC('month', order_date) AS order_month, "
+            + "COUNT(DISTINCT customer_id) AS unique_customers "
+            + "FROM orders GROUP BY DATE_TRUNC('month', order_date)");
+
+        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertEquals("ROLLUP_MV", artifact.get("mvType"));
+        assertTrue(maps(artifact.get("blockingReasons")).isEmpty());
+
+        String ddlSql = String.valueOf(artifact.get("ddlSql"));
+        assertTrue(ddlSql.contains("customer_id"));
+
+        String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
+        assertTrue(rewriteSql.contains("COUNT(DISTINCT customer_id) AS unique_customers"));
+        assertTrue(rewriteSql.contains("FROM " + artifact.get("mvName")));
+        assertFalse(rewriteSql.contains("FROM orders"));
+    }
+
+    @Test
     void shouldBlockNonMergeableRollupMeasuresWithoutPublishableSql() {
-        assertBlocked(
-            artifact("SELECT DATE_TRUNC('month', order_date) AS order_month, "
-                + "COUNT(DISTINCT customer_id) AS unique_customers "
-                + "FROM orders GROUP BY DATE_TRUNC('month', order_date)"),
-            "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE"
-        );
         assertBlocked(
             artifact("SELECT DATE_TRUNC('month', order_date) AS order_month, "
                 + "APPROX_PERCENTILE(amount, 0.95) AS p95_amount "

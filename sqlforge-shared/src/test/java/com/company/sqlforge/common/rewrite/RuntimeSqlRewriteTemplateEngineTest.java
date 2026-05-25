@@ -80,12 +80,12 @@ class RuntimeSqlRewriteTemplateEngineTest {
     }
 
     @Test
-    void shouldInjectPortableNestedResidualPredicateIntoRawSnapshotCte() {
+    void shouldInjectPortableNestedResidualPredicateIntoFirstInjectableCte() {
         RuntimeSqlRewriteTemplateResult result = RuntimeSqlRewriteTemplateEngine.rewrite(
             "SELECT org_no FROM (SELECT org_no FROM fact WHERE 1 = 1 AND org_no = '41H006' "
                 + "GROUP BY org_no) s GROUP BY org_no",
-            "WITH raw_customer_snapshot AS (SELECT org_no FROM fact WHERE org_level = 4 "
-                + "AND org_no = '41H006' GROUP BY org_no) SELECT org_no FROM raw_customer_snapshot",
+            "WITH mv_seed AS (SELECT org_no FROM fact WHERE org_level = 4 "
+                + "AND org_no = '41H006' GROUP BY org_no) SELECT org_no FROM mv_seed",
             "SELECT org_no FROM (SELECT org_no FROM fact WHERE 1 = 1 AND channel_code = 'MOBILE' "
                 + "AND org_no = '41H006' GROUP BY org_no) s GROUP BY org_no"
         );

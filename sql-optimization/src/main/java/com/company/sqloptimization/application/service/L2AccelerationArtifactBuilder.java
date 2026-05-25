@@ -50,7 +50,9 @@ final class L2AccelerationArtifactBuilder {
             input.sourceSqlText,
             profile == null ? null : profile.getNormalizedSql()
         ));
-        String targetEngine = normalizeEngine(input.targetEngine);
+        L2MaterializedViewTargetEngineResolver.Resolution targetEngineResolution =
+            L2MaterializedViewTargetEngineResolver.resolve(input.targetEngine, input.targetDatasource, sourceSql);
+        String targetEngine = targetEngineResolution.getTargetEngine();
         Map<String, Object> advancedStructureProfile = profile == null
             ? null
             : profile.toAdvancedStructureProfile();
@@ -60,7 +62,7 @@ final class L2AccelerationArtifactBuilder {
             L2GrainMeasureDeriver.derive(advancedStructureProfile, predicateClassification);
         List<Map<String, Object>> blockingReasons = blockingReasons(
             sourceSql,
-            targetEngine,
+            targetEngineResolution,
             profile,
             predicateClassification,
             grainMeasureDerivation
@@ -78,10 +80,10 @@ final class L2AccelerationArtifactBuilder {
             profile,
             grainMeasureDerivation
         );
-        L2SnapshotAggregateReportMvCandidateGenerator.CandidateSql snapshotAggregateCandidateSql =
-            L2SnapshotAggregateReportMvCandidateGenerator.generate(sourceSql, mvName, targetEngine, profile);
+        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql snapshotAggregateCandidateSql =
+            L2DynamicSnapshotAggregateMvCandidateGenerator.generate(sourceSql, mvName, targetEngine, profile);
         if (snapshotAggregateCandidateSql != null) {
-            return snapshotAggregateArtifact(input, targetEngine, mvName, snapshotAggregateCandidateSql);
+            return snapshotAggregateArtifact(input, targetEngine, targetEngineResolution, mvName, snapshotAggregateCandidateSql);
         }
         if (blockingReasons.isEmpty()) {
             if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
@@ -184,6 +186,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("artifactStatus", artifactStatus(blockingReasons, reviewWarnings));
         artifact.put("mvName", mvName);
         artifact.put("targetEngine", targetEngine);
+        artifact.put("targetEngineResolution", targetEngineResolution.toEvidence());
         artifact.put("targetDatasource", input.targetDatasource);
         artifact.put("dialect", L2MaterializedViewDialectRenderer.dialect(targetEngine));
         artifact.put("grain", grainMeasureDerivation.getGrain());
@@ -265,8 +268,9 @@ final class L2AccelerationArtifactBuilder {
     private static Map<String, Object> snapshotAggregateArtifact(
         AccelerationRecommendationInput input,
         String targetEngine,
+        L2MaterializedViewTargetEngineResolver.Resolution targetEngineResolution,
         String mvName,
-        L2SnapshotAggregateReportMvCandidateGenerator.CandidateSql candidateSql) {
+        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql candidateSql) {
         List<Map<String, Object>> blockingReasons = candidateSql.getBlockingReasons();
         List<Map<String, Object>> reviewWarnings = blockingReasons.isEmpty()
             ? candidateSql.getReviewWarnings()
@@ -277,6 +281,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("artifactStatus", artifactStatus(blockingReasons, reviewWarnings));
         artifact.put("mvName", mvName);
         artifact.put("targetEngine", targetEngine);
+        artifact.put("targetEngineResolution", targetEngineResolution.toEvidence());
         artifact.put("targetDatasource", input.targetDatasource);
         artifact.put("dialect", L2MaterializedViewDialectRenderer.dialect(targetEngine));
         artifact.put("grain", candidateSql.getGrain());
@@ -412,7 +417,7 @@ final class L2AccelerationArtifactBuilder {
     }
 
     private static List<Map<String, Object>> blockingReasons(String sourceSql,
-                                                             String targetEngine,
+                                                             L2MaterializedViewTargetEngineResolver.Resolution targetEngineResolution,
                                                              SqlOptimizationPipelineService.ParsedSqlProfile profile,
                                                              L2PredicateClassifier.PredicateClassificationResult
                                                                  predicateClassification,
@@ -422,9 +427,10 @@ final class L2AccelerationArtifactBuilder {
         if (!StringUtils.hasText(sourceSql)) {
             reasons.add(reason("SOURCE_SQL_REQUIRED", "缺少原 SQL，不能生成物化视图 AS SELECT。"));
         }
-        if (!StringUtils.hasText(targetEngine) || "AUTO".equals(targetEngine)) {
-            reasons.add(reason("TARGET_ENGINE_REQUIRED", "缺少明确目标引擎方言，不能声明 DDL 可执行。"));
-        } else if (!L2MaterializedViewDialectRenderer.supports(targetEngine)) {
+        String targetEngine = targetEngineResolution == null ? "" : targetEngineResolution.getTargetEngine();
+        if (targetEngineResolution != null && targetEngineResolution.isUnsupportedExplicitEngine()) {
+            reasons.add(reason("UNSUPPORTED_TARGET_ENGINE", "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"));
+        } else if (!StringUtils.hasText(targetEngine) || !L2MaterializedViewDialectRenderer.supports(targetEngine)) {
             reasons.add(reason("UNSUPPORTED_TARGET_ENGINE", "当前 V1 仅生成 HETU/HIVE/SPARK 物化视图草案。"));
         }
         if (profile == null) {

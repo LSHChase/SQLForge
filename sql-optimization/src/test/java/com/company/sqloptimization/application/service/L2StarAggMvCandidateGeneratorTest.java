@@ -129,18 +129,25 @@ class L2StarAggMvCandidateGeneratorTest {
     }
 
     @Test
-    void shouldBlockNonMergeableMeasuresBeforeSqlGeneration() {
+    void shouldGenerateExactCountDistinctByRetainingDistinctFactKey() {
         Map<String, Object> artifact = artifact("SELECT p.category, s.city, COUNT(DISTINCT o.customer_id) AS users "
             + "FROM orders o "
             + "JOIN products p ON o.product_id = p.product_id "
             + "JOIN shops s ON o.shop_id = s.shop_id "
             + "GROUP BY p.category, s.city");
 
-        assertEquals("BLOCKED", artifact.get("artifactStatus"));
+        assertEquals("REVIEW_REQUIRED", artifact.get("artifactStatus"));
         assertEquals("STAR_AGG_MV", artifact.get("mvType"));
-        assertTrue(hasReason(maps(artifact.get("blockingReasons")), "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE"));
-        assertNull(artifact.get("ddlSql"));
-        assertNull(artifact.get("rewriteSql"));
+        assertTrue(maps(artifact.get("blockingReasons")).isEmpty());
+
+        String ddlSql = String.valueOf(artifact.get("ddlSql"));
+        assertTrue(ddlSql.contains("o.customer_id AS customer_id"));
+
+        String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
+        assertTrue(rewriteSql.contains("COUNT(DISTINCT customer_id) AS users"));
+        assertTrue(rewriteSql.contains("FROM " + artifact.get("mvName")));
+        assertFalse(rewriteSql.contains("JOIN products"));
+        assertFalse(rewriteSql.contains("JOIN shops"));
     }
 
     @Test

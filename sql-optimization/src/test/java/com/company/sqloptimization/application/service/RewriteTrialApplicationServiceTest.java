@@ -141,9 +141,9 @@ class RewriteTrialApplicationServiceTest {
         assertFalse(run.getItems().get(0).getCandidateSql().contains("GROUPING SETS"));
         assertTrue(run.getItems().get(0).getCandidateSql().contains("UNION ALL"));
         assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(),
-            L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+            L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
         assertTrue(containsLink(run.getItems().get(0).getIssueRuleLinks(),
-            L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+            L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
 
         AccelerationRecommendation recommendation =
             recommendationRepository.findByRecommendationId(run.getItems().get(0).getRecommendationId());
@@ -153,6 +153,17 @@ class RewriteTrialApplicationServiceTest {
         assertEquals("NOT_VALIDATED", recommendation.getValidationStatus().name());
         assertFalse(recommendation.isAutoApplyAllowed());
         assertTrue(recommendation.isManualReviewRequired());
+        assertEquals("HETU", recommendation.getTargetEngine());
+        assertFalse(recommendation.getAccelerationArtifact().isEmpty());
+        assertEquals("PRECOMPUTE_MV", recommendation.getAccelerationArtifact().get("rule"));
+        assertEquals("HETU", recommendation.getAccelerationArtifact().get("targetEngine"));
+        assertEquals("REVIEW_REQUIRED", recommendation.getAccelerationArtifact().get("artifactStatus"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("ddlSql"))
+            .contains("CREATE MATERIALIZED VIEW"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))
+            .contains("report_customer_snapshot"));
+        assertEquals("TARGET_DATASOURCE_HINT",
+            nestedMap(recommendation.getAccelerationArtifact(), "targetEngineResolution").get("resolutionSource"));
     }
 
     @Test

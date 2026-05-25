@@ -95,17 +95,23 @@ class L2GrainMeasureDeriverTest {
     }
 
     @Test
-    void shouldBlockCountDistinctAndOmitPublishableSql() {
+    void shouldGenerateExactCountDistinctByRetainingDistinctKeyInGrain() {
         Map<String, Object> artifact = artifact(
             "SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"
         );
 
-        assertEquals("BLOCKED", artifact.get("artifactStatus"));
-        assertTrue(hasReason(maps(artifact.get("blockingReasons")), "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE"));
-        assertEquals(Boolean.FALSE, map(artifact.get("coverage")).get("coversMeasures"));
-        assertNull(artifact.get("ddlSql"));
-        assertNull(artifact.get("rewriteSql"));
-        assertFalse(Boolean.TRUE.equals(measureByName(maps(artifact.get("measures")), "unique_customers").get("mergeable")));
+        assertEquals("GENERATED", artifact.get("artifactStatus"));
+        assertContains(strings(artifact.get("grain")), "customer_id");
+        assertEquals(Boolean.TRUE, map(artifact.get("coverage")).get("coversMeasures"));
+        assertTrue(maps(artifact.get("blockingReasons")).isEmpty());
+        assertTrue(String.valueOf(artifact.get("ddlSql")).contains("GROUP BY region, customer_id"));
+        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains(
+            "COUNT(DISTINCT customer_id) AS unique_customers"
+        ));
+        Map<String, Object> measure = measureByName(maps(artifact.get("measures")), "unique_customers");
+        assertEquals("COUNT_DISTINCT", measure.get("measureType"));
+        assertEquals(Boolean.TRUE, measure.get("mergeable"));
+        assertEquals("EXACT_DISTINCT_KEY_IN_GRAIN", measure.get("safeReaggregateStrategy"));
     }
 
     @Test

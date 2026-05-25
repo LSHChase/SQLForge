@@ -600,11 +600,90 @@ public final class RuntimeSqlRewriteTemplateEngine {
         }
 
         private static String injectResidualPredicates(String recommendedSql, List<String> residualPredicates) {
-            String injected = injectIntoCteWhere(recommendedSql, "raw_customer_snapshot", residualPredicates);
-            if (StringUtils.hasText(injected)) {
-                return injected;
+            for (String cteName : cteNames(recommendedSql)) {
+                String injected = injectIntoCteWhere(recommendedSql, cteName, residualPredicates);
+                if (StringUtils.hasText(injected)) {
+                    return injected;
+                }
             }
             return null;
+        }
+
+        private static List<String> cteNames(String sql) {
+            List<String> names = new ArrayList<String>();
+            if (!StringUtils.hasText(sql) || !sql.trim().toLowerCase(Locale.ROOT).startsWith("with ")) {
+                return names;
+            }
+            int cursor = sql.toLowerCase(Locale.ROOT).indexOf("with") + "with".length();
+            while (cursor < sql.length()) {
+                cursor = skipWhitespaceAndComma(sql, cursor);
+                int nameStart = cursor;
+                if (nameStart >= sql.length()) {
+                    break;
+                }
+                String name;
+                if (sql.charAt(nameStart) == '"') {
+                    int nameEnd = sql.indexOf('"', nameStart + 1);
+                    if (nameEnd < 0) {
+                        break;
+                    }
+                    name = sql.substring(nameStart + 1, nameEnd);
+                    cursor = nameEnd + 1;
+                } else {
+                    while (cursor < sql.length() && isIdentifierChar(sql.charAt(cursor))) {
+                        cursor++;
+                    }
+                    name = sql.substring(nameStart, cursor);
+                }
+                if (!StringUtils.hasText(name)) {
+                    break;
+                }
+                int asIndex = findKeywordAtDepth(sql, "as", cursor, null);
+                if (asIndex < 0) {
+                    break;
+                }
+                int openIndex = sql.indexOf('(', asIndex);
+                if (openIndex < 0) {
+                    break;
+                }
+                int closeIndex = findMatchingParen(sql, openIndex);
+                if (closeIndex < 0) {
+                    break;
+                }
+                names.add(name);
+                cursor = closeIndex + 1;
+                int next = skipWhitespaceAndComma(sql, cursor);
+                if (!startsWithWord(sql, next, "SELECT") && next < sql.length() && sql.charAt(next - 1) != ',') {
+                    cursor = next;
+                }
+                if (startsWithWord(sql, next, "SELECT")) {
+                    break;
+                }
+            }
+            return names;
+        }
+
+        private static int skipWhitespaceAndComma(String sql, int cursor) {
+            int index = cursor;
+            while (index < sql.length() && (Character.isWhitespace(sql.charAt(index)) || sql.charAt(index) == ',')) {
+                index++;
+            }
+            return index;
+        }
+
+        private static boolean isIdentifierChar(char value) {
+            return Character.isLetterOrDigit(value) || value == '_' || value == '$';
+        }
+
+        private static boolean startsWithWord(String sql, int offset, String word) {
+            if (sql == null || offset < 0 || offset + word.length() > sql.length()) {
+                return false;
+            }
+            if (!sql.regionMatches(true, offset, word, 0, word.length())) {
+                return false;
+            }
+            int end = offset + word.length();
+            return end >= sql.length() || !Character.isLetterOrDigit(sql.charAt(end));
         }
 
         private static String injectIntoCteWhere(String sql, String cteName, List<String> residualPredicates) {

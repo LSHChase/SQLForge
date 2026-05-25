@@ -210,7 +210,7 @@ public class RewriteTrialApplicationService {
 
     private static Set<String> candidateRewriteProblems() {
         LinkedHashSet<String> values = new LinkedHashSet<String>(SAFE_REWRITE_PROBLEMS);
-        values.add(L2SnapshotAggregateReportMvCandidateGenerator.RULE);
+        values.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
         return Collections.unmodifiableSet(values);
     }
 
@@ -813,6 +813,19 @@ public class RewriteTrialApplicationService {
         }
         SqlOptimizationPipelineService.RecommendationRuleOutputModel ruleModel =
             pipelineService.buildRecommendationRuleOutputModel(profile);
+        Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+            new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                sqlText,
+                DataSourceTypeEnum.AUTO.name(),
+                trimToNull(datasourceCode),
+                sqlFingerprint,
+                reportCodeFromSql(sqlText),
+                "rewrite_trial_" + firstText(sqlFingerprint, recommendationId),
+                null
+            ),
+            profile
+        );
+        String targetEngine = targetEngineFromArtifact(accelerationArtifact);
         Instant now = Instant.now();
         AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
             .recommendationId(recommendationId)
@@ -825,7 +838,7 @@ public class RewriteTrialApplicationService {
             .sqlFingerprint(sqlFingerprint)
             .sourceSqlText(sqlText)
             .recommendedSqlText(firstText(candidateSql, sqlText))
-            .targetEngine(DataSourceTypeEnum.AUTO.name())
+            .targetEngine(firstText(targetEngine, DataSourceTypeEnum.AUTO.name()))
             .targetDatasource(trimToNull(datasourceCode))
             .summary("解析问题已生成改写试算候选：" + String.join(", ", sourceIssueScenes(sourceProblems)))
             .reason(firstText(suggestion.getPrimaryRecommendation(), "已根据解析问题生成保守改写试算。"))
@@ -845,6 +858,7 @@ public class RewriteTrialApplicationService {
             .unappliedRules(ruleModel.getUnappliedRules())
             .preconditions(ruleModel.getPreconditions())
             .semanticRisks(ruleModel.getSemanticRisks())
+            .accelerationArtifact(accelerationArtifact)
             .expectedBenefit(expectedBenefitWithPlanEvidence(ruleModel.getExpectedBenefit(), planEvidence))
             .estimatedCost(estimatedCostWithPlanEvidence(ruleModel.getEstimatedCost(), planEvidence))
             .confidence(ruleModel.getConfidence())
@@ -858,6 +872,27 @@ public class RewriteTrialApplicationService {
             .build();
         recommendationRepository.save(recommendation);
         return recommendationId;
+    }
+
+    private String targetEngineFromArtifact(Map<String, Object> accelerationArtifact) {
+        if (accelerationArtifact == null || accelerationArtifact.isEmpty()) {
+            return null;
+        }
+        return objectText(accelerationArtifact.get("targetEngine"));
+    }
+
+    private String reportCodeFromSql(String sqlText) {
+        if (!StringUtils.hasText(sqlText)) {
+            return null;
+        }
+        String[] lines = sqlText.split("\\r?\\n");
+        for (String line : lines) {
+            String trimmed = line == null ? "" : line.trim();
+            if (trimmed.toUpperCase(Locale.ROOT).startsWith("-- YH_RPTID=")) {
+                return trimToNull(trimmed.substring("-- YH_RPTID=".length()));
+            }
+        }
+        return null;
     }
 
     private GovernanceSourceKind resolveGovernanceSourceKind(String sourceKind) {
@@ -1246,7 +1281,7 @@ public class RewriteTrialApplicationService {
         if ("OR_PREDICATE_INDEX_RISK".equals(scene) || "NESTED_SUBQUERY_RISK".equals(scene)) {
             return "HIGH";
         }
-        if (L2SnapshotAggregateReportMvCandidateGenerator.RULE.equals(scene)) {
+        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
             return "MEDIUM";
         }
         if ("SELECT_STAR".equals(scene) || "LEADING_WILDCARD_LIKE_RISK".equals(scene)) {
@@ -1269,14 +1304,14 @@ public class RewriteTrialApplicationService {
         if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
             return safeRuleSummary(scene);
         }
-        if (L2SnapshotAggregateReportMvCandidateGenerator.RULE.equals(scene)) {
+        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
             return "复杂报表重复扫描可生成客户时点聚合快照改写候选";
         }
         return manualProblemSummary(scene);
     }
 
     private String candidateRuleLevel(String scene) {
-        return L2SnapshotAggregateReportMvCandidateGenerator.RULE.equals(scene) ? "L2" : "L0";
+        return L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene) ? "L2" : "L0";
     }
 
     private String safeRuleSummary(String rule) {

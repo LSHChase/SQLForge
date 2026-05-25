@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DYNAMIC-MV-REWRITE-TEST01-20260525: 实现 test01 动态 MV 解析与改写
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `Implement dynamic MV rewrite for test01`
+- Priority: 1
+- Depends on: N/A
+- Scope: 实现动态/模板解析改写能力覆盖 docs/test01.sql：深层派生表、UNION ALL、多段 LEFT JOIN、中文双引号别名、COUNT DISTINCT、AUTO 引擎解析、rewrite trial 推荐 MV 产物落库与真实 MV 创建；静态 test01 规则仅作为临时核验 oracle，完成后不得作为生产解析改写入口。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-REWRITE-TEST01-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 动态/模板化 MV 解析改写覆盖 docs/test01.sql；补齐深层派生表、UNION ALL、多段 LEFT JOIN、中文双引号别名、COUNT DISTINCT 精确重聚合、AUTO 引擎解析、rewrite trial 推荐产物落库和推荐类型创建 MV。
+  - Validation evidence: mvn -pl sql-optimization -am test；git diff --check；python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-REWRITE-TEST01-20260525；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 生成的 MV/改写仍标记为 PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE，激活前需要 validationSql 结果差异校验和人工复核。
+  - Next step: 如需上线自动应用，接入真实执行校验与生产级成本证据。
+
 ### USER-CN-AUDIT-TEMP-INMEMORY-STATIC-20260525: 审计项目中的内存实现、静态常量结果与临时代替功能
 
 - Status: done

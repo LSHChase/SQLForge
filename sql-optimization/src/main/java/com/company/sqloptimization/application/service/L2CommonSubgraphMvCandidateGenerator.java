@@ -31,6 +31,8 @@ final class L2CommonSubgraphMvCandidateGenerator {
 
     private static final Pattern QUALIFIED_COLUMN_PATTERN =
         Pattern.compile("(?i)\\b([A-Z_][A-Z0-9_$]*)\\.([A-Z_][A-Z0-9_$]*)\\b");
+    private static final Pattern QUOTED_QUALIFIED_COLUMN_PATTERN =
+        Pattern.compile("\"([^\"]+)\"\\s*\\.\\s*\"([^\"]+)\"");
     private static final Pattern IDENTIFIER_PATTERN =
         Pattern.compile("(?i)\\b[A-Z_][A-Z0-9_$]*\\b");
     private static final Set<String> SQL_KEYWORDS = new LinkedHashSet<String>(Arrays.asList(
@@ -200,12 +202,6 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 "公共子图包含当前时间、随机或会话函数，缺少稳定化策略时不能物化。"
             ));
         }
-        if (profile != null && profile.isSetOperation()) {
-            reasons.add(reason(
-                "SET_OPERATION_COMMON_SUBGRAPH_UNSUPPORTED",
-                "集合运算的公共子图边界需要额外覆盖证明，AMV-009 默认阻断。"
-            ));
-        }
         for (Map<String, Object> cte : mapList(advancedStructureProfile.get("ctes"))) {
             if (Boolean.TRUE.equals(cte.get("recursive"))) {
                 reasons.add(reason(
@@ -213,12 +209,6 @@ final class L2CommonSubgraphMvCandidateGenerator {
                     "递归 CTE 不能独立物化为 AMV-009 的公共子图 MV。"
                 ));
             }
-        }
-        if (hasCteDependency(advancedStructureProfile)) {
-            reasons.add(reason(
-                "CTE_DEPENDENCY_COMMON_SUBGRAPH_UNSUPPORTED",
-                "公共子图 CTE 依赖同一 WITH 中的其他 CTE，AMV-009 暂不生成嵌套 CTE 物化 SQL。"
-            ));
         }
         if (hasSubgraphOrderOrLimit(advancedStructureProfile)) {
             reasons.add(reason(
@@ -337,11 +327,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
             Select select = parseSelect(subgraphSql);
             PlainSelect plainSelect = plainSelect(select);
             if (plainSelect == null || plainSelect.getSelectItems() == null) {
-                blockingReasons.add(reason(
-                    "SUBGRAPH_SELECT_UNSUPPORTED",
-                    "公共子图必须是可解析的简单 SELECT。"
-                ));
-                return new OutputColumns(Collections.<String>emptyList(), columns, blockingReasons);
+                    return outputColumnsByText(subgraphSql);
             }
             for (SelectItem item : plainSelect.getSelectItems()) {
                 if (item instanceof AllColumns || item instanceof AllTableColumns) {
@@ -376,16 +362,52 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 columns.add(cleanIdentifier(output));
             }
         } catch (JSQLParserException ex) {
-            blockingReasons.add(reason(
-                "SUBGRAPH_SELECT_UNSUPPORTED",
-                "公共子图 SQL 无法解析为受支持 SELECT。"
-            ));
+            return outputColumnsByText(subgraphSql);
         }
         LinkedHashSet<String> normalized = new LinkedHashSet<String>();
         for (String column : columns) {
             normalized.add(normalizeIdentifier(column));
         }
         return new OutputColumns(new ArrayList<String>(columns), normalized, blockingReasons);
+    }
+
+    private static OutputColumns outputColumnsByText(String subgraphSql) {
+        LinkedHashSet<String> columns = new LinkedHashSet<String>();
+        String firstSelectList = firstSelectList(subgraphSql);
+        if (!StringUtils.hasText(firstSelectList)) {
+            return new OutputColumns(
+                Collections.<String>emptyList(),
+                Collections.<String>emptySet(),
+                Collections.singletonList(reason(
+                    "SUBGRAPH_SELECT_UNSUPPORTED",
+                    "公共子图 SQL 无法解析出可证明的 SELECT 输出字段。"
+                ))
+            );
+        }
+        for (String item : splitTopLevelComma(firstSelectList)) {
+            String alias = trailingAlias(item);
+            if (!StringUtils.hasText(alias)) {
+                alias = trailingColumnName(item);
+            }
+            if (StringUtils.hasText(alias)) {
+                columns.add(cleanIdentifier(alias));
+            }
+        }
+        if (columns.isEmpty()) {
+            return new OutputColumns(
+                Collections.<String>emptyList(),
+                Collections.<String>emptySet(),
+                Collections.singletonList(reason(
+                    "SUBGRAPH_OUTPUT_COLUMNS_UNRESOLVED",
+                    "公共子图表达式输出缺少稳定别名，不能证明上层查询字段覆盖。"
+                ))
+            );
+        }
+        LinkedHashSet<String> normalized = new LinkedHashSet<String>();
+        for (String column : columns) {
+            normalized.add(normalizeIdentifier(column));
+        }
+        return new OutputColumns(new ArrayList<String>(columns), normalized, Collections.<Map<String, Object>>emptyList());
     }
 
     private static Select parseSelect(String sql) throws JSQLParserException {
@@ -407,13 +429,21 @@ final class L2CommonSubgraphMvCandidateGenerator {
         String upperQuery = "CTE".equals(candidate.sourceKind)
             ? extractMainQueryAfterWith(sourceSql)
             : removeSubgraphSql(sourceSql, candidate);
-        String text = stripStringLiterals(upperQuery);
-        text = text.replaceAll("(?i)\\bAS\\s+[A-Z_][A-Z0-9_$]*\\b", " ");
+        String text = stripSingleQuotedLiterals(upperQuery);
+        text = text.replaceAll("(?i)\\bAS\\s+(?:\"[^\"]+\"|[A-Z_][A-Z0-9_$]*)\\b", " ");
         LinkedHashSet<String> result = new LinkedHashSet<String>();
         LinkedHashSet<String> relationNames = new LinkedHashSet<String>();
         addIfText(relationNames, normalizeIdentifier(candidate.sourceName));
         addIfText(relationNames, normalizeIdentifier(candidate.alias));
 
+        Matcher quotedQualified = QUOTED_QUALIFIED_COLUMN_PATTERN.matcher(text);
+        while (quotedQualified.find()) {
+            String qualifier = normalizeIdentifier(quotedQualified.group(1));
+            String column = normalizeIdentifier(quotedQualified.group(2));
+            if (relationNames.contains(qualifier)) {
+                result.add(column);
+            }
+        }
         Matcher qualified = QUALIFIED_COLUMN_PATTERN.matcher(text);
         while (qualified.find()) {
             String qualifier = normalizeIdentifier(qualified.group(1));
@@ -422,7 +452,9 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 result.add(column);
             }
         }
-        String withoutFrom = text.replaceAll("(?is)\\bFROM\\b.+?(\\bWHERE\\b|\\bGROUP\\s+BY\\b|\\bHAVING\\b|$)", " $1 ");
+        String withoutFrom = stripDoubleQuotedIdentifiers(
+            text.replaceAll("(?is)\\bFROM\\b.+?(\\bWHERE\\b|\\bGROUP\\s+BY\\b|\\bHAVING\\b|$)", " $1 ")
+        );
         Matcher identifiers = IDENTIFIER_PATTERN.matcher(withoutFrom);
         while (identifiers.find()) {
             String token = normalizeIdentifier(identifiers.group());
@@ -480,7 +512,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
         String subgraphPattern = Pattern.quote(stripOuterParentheses(candidate.subgraphSql));
         Pattern pattern = Pattern.compile(
             "(?is)\\(\\s*" + subgraphPattern + "\\s*\\)\\s+(?:AS\\s+)?"
-                + (StringUtils.hasText(alias) ? Pattern.quote(alias) : "[A-Z_][A-Z0-9_$]*")
+                + quotedIdentifierPattern(alias)
         );
         Matcher matcher = pattern.matcher(normalizedSource);
         if (matcher.find()) {
@@ -736,6 +768,125 @@ final class L2CommonSubgraphMvCandidateGenerator {
             builder.append(inSingleQuote || inDoubleQuote ? ' ' : current);
         }
         return builder.toString();
+    }
+
+    private static String stripSingleQuotedLiterals(String sql) {
+        if (sql == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(sql.length());
+        boolean inSingleQuote = false;
+        for (int i = 0; i < sql.length(); i++) {
+            char current = sql.charAt(i);
+            if (current == '\'') {
+                inSingleQuote = !inSingleQuote;
+                builder.append(' ');
+                continue;
+            }
+            builder.append(inSingleQuote ? ' ' : current);
+        }
+        return builder.toString();
+    }
+
+    private static String stripDoubleQuotedIdentifiers(String sql) {
+        return sql == null ? "" : sql.replaceAll("\"[^\"]+\"", " ");
+    }
+
+    private static String firstSelectList(String sql) {
+        String normalized = trimTrailingSemicolon(stripOuterParentheses(sql));
+        int selectIndex = findKeywordAtDepth(normalized, "SELECT", 0);
+        if (selectIndex < 0) {
+            return "";
+        }
+        int fromIndex = findKeywordAtDepth(normalized, "FROM", selectIndex + "SELECT".length());
+        if (fromIndex < 0 || fromIndex <= selectIndex) {
+            return "";
+        }
+        return normalized.substring(selectIndex + "SELECT".length(), fromIndex).trim();
+    }
+
+    private static int findKeywordAtDepth(String sql, String keyword, int offset) {
+        int depth = 0;
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        for (int i = Math.max(0, offset); i <= sql.length() - keyword.length(); i++) {
+            char current = sql.charAt(i);
+            if (current == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+            if (current == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+                continue;
+            }
+            if (inSingleQuote || inDoubleQuote) {
+                continue;
+            }
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+            if (current == ')') {
+                depth = Math.max(0, depth - 1);
+                continue;
+            }
+            if (depth == 0 && startsWithWord(sql, i, keyword)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static List<String> splitTopLevelComma(String value) {
+        List<String> result = new ArrayList<String>();
+        int depth = 0;
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        int start = 0;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (current == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (current == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (!inSingleQuote && !inDoubleQuote) {
+                if (current == '(') {
+                    depth++;
+                } else if (current == ')') {
+                    depth = Math.max(0, depth - 1);
+                } else if (current == ',' && depth == 0) {
+                    result.add(value.substring(start, i).trim());
+                    start = i + 1;
+                }
+            }
+        }
+        result.add(value.substring(start).trim());
+        return result;
+    }
+
+    private static String trailingAlias(String item) {
+        Matcher quoted = Pattern.compile("(?is)\\s+AS\\s+\"([^\"]+)\"\\s*$").matcher(item == null ? "" : item);
+        if (quoted.find()) {
+            return quoted.group(1);
+        }
+        Matcher unquoted = Pattern.compile("(?is)\\s+AS\\s+([A-Z_][A-Z0-9_$]*)\\s*$").matcher(item == null ? "" : item);
+        return unquoted.find() ? unquoted.group(1) : "";
+    }
+
+    private static String trailingColumnName(String item) {
+        Matcher quoted = Pattern.compile("\"([^\"]+)\"\\s*$").matcher(item == null ? "" : item);
+        if (quoted.find()) {
+            return quoted.group(1);
+        }
+        Matcher unquoted = Pattern.compile("(?is)([A-Z_][A-Z0-9_$]*)\\s*$").matcher(item == null ? "" : item);
+        return unquoted.find() ? unquoted.group(1) : "";
+    }
+
+    private static String quotedIdentifierPattern(String identifier) {
+        if (!StringUtils.hasText(identifier)) {
+            return "\"[^\"]+\"|[A-Z_][A-Z0-9_$]*";
+        }
+        return "(?:\"" + Pattern.quote(identifier) + "\"|" + Pattern.quote(identifier) + ")";
     }
 
     private static Map<String, Object> reason(String code, String description) {

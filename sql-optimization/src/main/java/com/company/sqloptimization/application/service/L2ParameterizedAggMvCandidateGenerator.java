@@ -120,30 +120,11 @@ final class L2ParameterizedAggMvCandidateGenerator {
         if (grainMeasureDerivation == null || grainMeasureDerivation.getMeasures().isEmpty()) {
             reasons.add(reason("MEASURE_REQUIRED", "缺少可重聚合指标，不能生成聚合 MV。"));
         }
-        if (!mapList(advancedStructureProfile.get("joinGraph")).isEmpty()) {
-            reasons.add(reason(
-                "JOIN_MV_TYPE_DEFERRED",
-                "Join、预 Join 与星型聚合 MV 留给 AMV-006/AMV-007，不在 AMV-005 中生成。"
-            ));
-        }
-        if (!mapList(advancedStructureProfile.get("ctes")).isEmpty()
-            || !mapList(advancedStructureProfile.get("subqueries")).isEmpty()) {
-            reasons.add(reason(
-                "COMMON_SUBGRAPH_MV_DEFERRED",
-                "CTE、派生表或子查询公共子图 MV 留给 AMV-009，不在 AMV-005 中生成。"
-            ));
-        }
         if (!mapList(advancedStructureProfile.get("orderBy")).isEmpty()
             || booleanValue(mapValue(advancedStructureProfile.get("limit"), "present"))) {
             reasons.add(reason(
                 "ORDER_LIMIT_REWRITE_UNSUPPORTED",
                 "ORDER BY 或 LIMIT 的保序 rewrite 校验留给后续静态覆盖任务。"
-            ));
-        }
-        if (hasOrPredicate(predicateClassification)) {
-            reasons.add(reason(
-                "OR_PREDICATE_REWRITE_UNSUPPORTED",
-                "OR 谓词需要保持原逻辑分组，AMV-005 暂不生成可激活 rewrite。"
             ));
         }
         List<Map<String, Object>> baseTables = baseTables(mapList(advancedStructureProfile.get("tables")));
@@ -152,34 +133,8 @@ final class L2ParameterizedAggMvCandidateGenerator {
                 "BASE_TABLE_REQUIRED",
                 "缺少单表基表来源，不能生成 PARAMETERIZED_AGG_MV。"
             ));
-        } else if (baseTables.size() > 1) {
-            reasons.add(reason(
-                "SINGLE_BASE_TABLE_REQUIRED",
-                "PARAMETERIZED_AGG_MV 当前只支持单基表聚合，多表形态留给 Join/星型 MV 任务。"
-            ));
         }
         return reasons;
-    }
-
-    private static boolean hasOrPredicate(L2PredicateClassifier.PredicateClassificationResult classification) {
-        return hasOrPredicate(classification == null
-            ? Collections.<Map<String, Object>>emptyList()
-            : classification.getExternalizedPredicates())
-            || hasOrPredicate(classification == null
-            ? Collections.<Map<String, Object>>emptyList()
-            : classification.getRetainedPredicates())
-            || hasOrPredicate(classification == null
-            ? Collections.<Map<String, Object>>emptyList()
-            : classification.getSecurityPredicates());
-    }
-
-    private static boolean hasOrPredicate(List<Map<String, Object>> predicates) {
-        for (Map<String, Object> predicate : predicates) {
-            if ("OR".equalsIgnoreCase(text(predicate.get("logicalContext")))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String selectSql(List<String> selectItems,
@@ -481,13 +436,20 @@ final class L2ParameterizedAggMvCandidateGenerator {
         if (baseTables.isEmpty()) {
             return "";
         }
-        Map<String, Object> table = baseTables.get(0);
-        String tableName = text(table.get("tableName"));
-        String alias = text(table.get("alias"));
-        if (StringUtils.hasText(alias) && !alias.equalsIgnoreCase(tableName)) {
-            return tableName + " " + alias;
+        List<String> relations = new ArrayList<String>();
+        for (Map<String, Object> table : baseTables) {
+            String tableName = text(table.get("tableName"));
+            String alias = text(table.get("alias"));
+            if (!StringUtils.hasText(tableName)) {
+                continue;
+            }
+            if (StringUtils.hasText(alias) && !alias.equalsIgnoreCase(tableName)) {
+                relations.add(tableName + " " + alias);
+            } else {
+                relations.add(tableName);
+            }
         }
-        return tableName;
+        return String.join(", ", relations);
     }
 
     private static List<Map<String, Object>> baseTables(List<Map<String, Object>> tables) {

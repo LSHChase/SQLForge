@@ -1266,7 +1266,7 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"));
-        assertTrue(containsRule(model.getRuleChain(), L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+        assertTrue(containsRule(model.getRuleChain(), L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
         assertFalse(model.isAutoApplyAllowed());
 
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
@@ -1366,7 +1366,7 @@ class SqlOptimizationPipelineServiceTest {
         );
 
         assertTrue(profile.getRepeatedTableScanCount() >= 4, "repeatedTableScanCount=" + profile.getRepeatedTableScanCount());
-        assertTrue(containsRule(model.getRuleChain(), L2SnapshotAggregateReportMvCandidateGenerator.RULE));
+        assertTrue(containsRule(model.getRuleChain(), L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
         assertTrue(rewriteCandidateSql.contains("rpt_customer_asset_snapshot"), rewriteCandidateSql);
         assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_level2_no"), rewriteCandidateSql);

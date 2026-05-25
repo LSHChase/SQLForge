@@ -51,7 +51,7 @@ class L2MaterializedViewLargeSqlQualityTest {
             generated("parameterized-case-sum", "PARAMETERIZED_AGG_MV",
                 "SELECT customer_id, SUM(CASE WHEN status = 'PAID' THEN amount ELSE 0 END) AS paid_amount "
                     + "FROM orders GROUP BY customer_id"),
-            blocked("parameterized-count-distinct", "PARAMETERIZED_AGG_MV", "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE",
+            generated("parameterized-count-distinct", "PARAMETERIZED_AGG_MV",
                 "SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"),
             blocked("parameterized-select-star", "PARAMETERIZED_AGG_MV", "EXPLICIT_PROJECTION_REQUIRED",
                 "SELECT *, SUM(amount) AS total_amount FROM orders GROUP BY customer_id"),

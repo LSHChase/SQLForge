@@ -28,6 +28,12 @@ class L2MaterializedViewAmv016RegressionTest {
                     + "WHERE dt = DATE '2026-05-01' AND region = 'CN' GROUP BY customer_id"
             ),
             new AmvCase(
+                "PARAMETERIZED_AGG_MV",
+                "GENERATED",
+                null,
+                "SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"
+            ),
+            new AmvCase(
                 "PREJOIN_MV",
                 "REVIEW_REQUIRED",
                 "ROW_AMPLIFICATION_METADATA_MISSING",
@@ -86,11 +92,6 @@ class L2MaterializedViewAmv016RegressionTest {
     @Test
     void shouldKeepBlockedSamplesForAllAdvancedMvTypesWithoutPublishableSqlBundle() {
         List<AmvCase> cases = Arrays.asList(
-            new AmvCase(
-                "PARAMETERIZED_AGG_MV",
-                "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE",
-                "SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"
-            ),
             new AmvCase(
                 "PREJOIN_MV",
                 "OUTER_JOIN_PREJOIN_UNSUPPORTED",

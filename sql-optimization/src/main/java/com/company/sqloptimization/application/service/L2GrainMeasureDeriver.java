@@ -48,10 +48,13 @@ final class L2GrainMeasureDeriver {
             return DerivationResult.empty();
         }
 
-        GrainDerivation grainDerivation = deriveGrain(advancedStructureProfile, predicateClassification);
         MeasureDerivation measureDerivation = deriveMeasures(
             mapList(advancedStructureProfile.get("projections")),
             mapList(advancedStructureProfile.get("aggregations"))
+        );
+        GrainDerivation grainDerivation = withDistinctMeasureKeys(
+            deriveGrain(advancedStructureProfile, predicateClassification),
+            measureDerivation.measures
         );
         LinkedHashMap<String, Object> coverage = coverage(
             grainDerivation,
@@ -260,12 +263,7 @@ final class L2GrainMeasureDeriver {
 
     private static DeriveOutcome deriveMeasure(AggregateCall call, String alias, int sequence) {
         if (call.distinct && "COUNT".equals(call.functionName)) {
-            return nonMergeableOutcome(
-                alias,
-                call,
-                "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE",
-                "COUNT(DISTINCT) 不能在缺少 sketch/状态聚合策略时安全重聚合。"
-            );
+            return DeriveOutcome.single(exactCountDistinctMeasure(alias, call, sequence));
         }
         if (DIRECT_MERGEABLE_FUNCTIONS.contains(call.functionName)) {
             String name = measureName(alias, call.functionName, call.argument, sequence);
@@ -370,6 +368,18 @@ final class L2GrainMeasureDeriver {
         return measure;
     }
 
+    private static LinkedHashMap<String, Object> exactCountDistinctMeasure(String alias,
+                                                                            AggregateCall call,
+                                                                            int sequence) {
+        String name = measureName(alias, "count_distinct", call.argument, sequence);
+        LinkedHashMap<String, Object> measure = baseMeasure(name, "COUNT_DISTINCT", call.expression, true);
+        measure.put("rewriteExpression", "COUNT(DISTINCT " + distinctKeyOutputName(call.argument) + ")");
+        measure.put("distinctArgument", call.argument);
+        measure.put("safeReaggregateStrategy", "EXACT_DISTINCT_KEY_IN_GRAIN");
+        measure.put("reviewRequired", Boolean.FALSE);
+        return measure;
+    }
+
     private static Map<String, Object> component(String name,
                                                  String role,
                                                  String measureType,
@@ -425,6 +435,23 @@ final class L2GrainMeasureDeriver {
         return reason;
     }
 
+    private static GrainDerivation withDistinctMeasureKeys(GrainDerivation grainDerivation,
+                                                           List<Map<String, Object>> measures) {
+        List<String> grain = new ArrayList<String>(grainDerivation.grain);
+        Set<String> seen = new LinkedHashSet<String>();
+        for (String item : grain) {
+            seen.add(normalizeName(item));
+        }
+        for (Map<String, Object> measure : measures) {
+            if (!"COUNT_DISTINCT".equals(text(measure.get("measureType")))) {
+                continue;
+            }
+            String distinctArgument = text(measure.get("distinctArgument"));
+            addText(grain, seen, distinctArgument);
+        }
+        return new GrainDerivation(grain, grainDerivation.hasTimeRollup);
+    }
+
     private static String rewriteExpression(String functionName, String measureName) {
         if ("COUNT".equals(functionName) || "SUM".equals(functionName)) {
             return "SUM(" + measureName + ")";
@@ -436,6 +463,30 @@ final class L2GrainMeasureDeriver {
             return "MAX(" + measureName + ")";
         }
         return functionName + "(" + measureName + ")";
+    }
+
+    private static String distinctKeyOutputName(String argument) {
+        String cleaned = StringUtils.hasText(argument)
+            ? argument.replace("`", "").replace("\"", "").trim()
+            : "";
+        int dot = cleaned.lastIndexOf('.');
+        if (dot >= 0) {
+            cleaned = cleaned.substring(dot + 1);
+        }
+        cleaned = cleaned.toLowerCase(Locale.ROOT)
+            .replaceAll("[^a-z0-9]+", "_")
+            .replaceAll("^_+", "")
+            .replaceAll("_+$", "");
+        if (!StringUtils.hasText(cleaned)) {
+            cleaned = "distinct_key";
+        }
+        if (Character.isDigit(cleaned.charAt(0))) {
+            cleaned = "d_" + cleaned;
+        }
+        if (cleaned.length() > 64) {
+            cleaned = cleaned.substring(0, 64).replaceAll("_+$", "");
+        }
+        return cleaned;
     }
 
     private static RatioParts splitTopLevelDivision(String expression) {

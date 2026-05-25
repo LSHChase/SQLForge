@@ -138,13 +138,13 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
             artifact("SELECT customer_id FROM orders GROUP BY customer_id"),
             "MEASURE_REQUIRED"
         );
-        assertBlocked(
-            artifactWithEngine(
-                "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id",
-                "AUTO"
-            ),
-            "TARGET_ENGINE_REQUIRED"
+        Map<String, Object> autoArtifact = artifactWithEngine(
+            "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id",
+            "AUTO"
         );
+        assertEquals("GENERATED", autoArtifact.get("artifactStatus"));
+        assertEquals("HETU", autoArtifact.get("targetEngine"));
+        assertEquals("DEFAULT_ENGINE", map(autoArtifact.get("targetEngineResolution")).get("resolutionSource"));
         assertBlocked(
             artifactWithEngine(
                 "SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id",
@@ -159,10 +159,14 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
             ),
             "UNSUPPORTED_TARGET_ENGINE"
         );
-        assertBlocked(
-            artifact("SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"),
-            "COUNT_DISTINCT_MEASURE_NOT_MERGEABLE"
+        Map<String, Object> countDistinctArtifact = artifact(
+            "SELECT region, COUNT(DISTINCT customer_id) AS unique_customers FROM orders GROUP BY region"
         );
+        assertEquals("GENERATED", countDistinctArtifact.get("artifactStatus"));
+        assertTrue(String.valueOf(countDistinctArtifact.get("ddlSql")).contains("customer_id"));
+        assertTrue(String.valueOf(countDistinctArtifact.get("rewriteSql")).contains(
+            "COUNT(DISTINCT customer_id) AS unique_customers"
+        ));
         assertBlocked(
             artifact("SELECT region, APPROX_PERCENTILE(amount, 0.95) AS p95_amount FROM orders GROUP BY region"),
             "PERCENTILE_MEASURE_NOT_MERGEABLE"
@@ -184,11 +188,11 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
 
     @Test
     void shouldBlockDeferredNonPrejoinMvShapesAndUnsafeRewriteCasesWithoutSql() {
-        assertBlocked(
-            artifact("SELECT region, SUM(amount) AS total_amount FROM orders "
-                + "WHERE region = 'CN' OR region = 'US' GROUP BY region"),
-            "OR_PREDICATE_REWRITE_UNSUPPORTED"
-        );
+        Map<String, Object> orPredicateArtifact = artifact("SELECT region, SUM(amount) AS total_amount FROM orders "
+            + "WHERE region = 'CN' OR region = 'US' GROUP BY region");
+        assertEquals("GENERATED", orPredicateArtifact.get("artifactStatus"));
+        assertTrue(String.valueOf(orPredicateArtifact.get("rewriteSql")).contains("'CN'"));
+        assertTrue(String.valueOf(orPredicateArtifact.get("rewriteSql")).contains("'US'"));
         assertBlocked(
             artifact("SELECT region, SUM(amount) AS total_amount FROM orders "
                 + "GROUP BY region ORDER BY total_amount DESC LIMIT 10"),
@@ -270,5 +274,10 @@ class L2ParameterizedAggMvCandidateGeneratorTest {
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> maps(Object value) {
         return (List<Map<String, Object>>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> map(Object value) {
+        return (Map<String, Object>) value;
     }
 }

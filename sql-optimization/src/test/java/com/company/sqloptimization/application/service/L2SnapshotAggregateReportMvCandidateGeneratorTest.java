@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class L2SnapshotAggregateReportMvCandidateGeneratorTest {
+class L2DynamicSnapshotAggregateMvCandidateGeneratorTest {
 
     private static final String BASE_DATE = "20260430";
     private static final String CURRENT_DATE = "20260519";

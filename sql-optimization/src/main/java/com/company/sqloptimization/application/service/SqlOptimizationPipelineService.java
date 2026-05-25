@@ -483,14 +483,14 @@ public class SqlOptimizationPipelineService {
     public OptimizationTaskSuggestion buildRewriteSuggestion(ParsedSqlProfile profile) {
         RewriteOutcome outcome = profile == null ? RewriteOutcome.empty() : profile.getRewriteOutcome();
         RewriteCoreIrSnapshot coreIrSnapshot = profile == null ? null : buildRewriteCoreIr(profile);
-        L2SnapshotAggregateReportMvCandidateGenerator.RewriteCandidate snapshotRewrite =
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate snapshotRewrite =
             profile == null
                 ? null
-                : L2SnapshotAggregateReportMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
+                : L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
         if (snapshotRewrite != null && StringUtils.hasText(snapshotRewrite.getRewriteSql())) {
             List<String> appliedRules = new ArrayList<String>(outcome.appliedRules);
-            if (!appliedRules.contains(L2SnapshotAggregateReportMvCandidateGenerator.RULE)) {
-                appliedRules.add(L2SnapshotAggregateReportMvCandidateGenerator.RULE);
+            if (!appliedRules.contains(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE)) {
+                appliedRules.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
             }
             outcome = new RewriteOutcome(snapshotRewrite.getRewriteSql(), appliedRules);
         }
@@ -903,14 +903,14 @@ public class SqlOptimizationPipelineService {
                 l0RuleDescription(appliedRule)
             ));
         }
-        L2SnapshotAggregateReportMvCandidateGenerator.RewriteCandidate snapshotRewrite =
-            L2SnapshotAggregateReportMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate snapshotRewrite =
+            L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
         if (snapshotRewrite != null) {
             Map<String, Object> snapshotRule = ruleEntry(
                 "L1",
-                L2SnapshotAggregateReportMvCandidateGenerator.RULE,
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
                 "REWRITE_CANDIDATE_GENERATED",
-                "STATIC_PARSE",
+                "DYNAMIC_QUERY_BLOCK_TEMPLATE",
                 Boolean.FALSE,
                 "已将重复快照聚合报表改写为客户-日期粒度快照后再做条件聚合，需完成结果差异和计划形态验证。"
             );
@@ -918,12 +918,12 @@ public class SqlOptimizationPipelineService {
             snapshotRule.put("rewriteEvidence", snapshotRewrite.getEvidence());
             ruleChain.add(snapshotRule);
             preconditions.add(preconditionEntry(
-                L2SnapshotAggregateReportMvCandidateGenerator.RULE,
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
                 "THREE_WAY_VALIDATION_REQUIRED",
                 "生产激活前必须至少完成结果集差异、核心指标差异和计划扫描形态三类验证。"
             ));
             semanticRisks.add(semanticRiskEntry(
-                L2SnapshotAggregateReportMvCandidateGenerator.RULE,
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
                 "COUNT_DISTINCT_REWRITE",
                 "MEDIUM",
                 "COUNT DISTINCT 被重写为客户快照粒度条件聚合，日期、机构层级和阈值边界必须与原 SQL 对齐。"
