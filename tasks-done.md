@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525: 动态 MV 模板运行时完成度审计
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `chore: audit dynamic MV runtime rewrite completion`
+- Priority: 1
+- Depends on: USER-CN-DYNAMIC-MV-REWRITE-TEST01-20260525
+- Scope: Audit current implementation against the active objective: verify docs/test01.sql dynamic/template MV recommendation, materialized-view creation artifact, runtime SQL Query Analysis rewrite execution, and template hits when parameter values or portable WHERE predicates change; implement narrowly scoped fixes only if evidence is missing.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Audited the active objective against current code and tests: docs/test01.sql dynamic/template MV recommendation, MV DDL/rewrite artifact generation, runtime rewrite activation, SQL Query Analysis execution path, and template hits for parameter changes plus portable added WHERE predicates are covered by existing implementation; no business code changes were required.
+  - Validation evidence: java -version = OpenJDK 1.8.0_112; mvn -pl sqlforge-shared,query-execution,sql-optimization -am -Dtest=RuntimeSqlRewriteTemplateEngineTest,QueryExecutionRuntimeRewriteBindingServiceTest,QueryExecutionApplicationServiceTest,RewriteTrialApplicationServiceTest,L2SnapshotAggregateReportMvCandidateGeneratorTest,ProductionRewriteClosedLoopEndToEndTest test -Dsurefire.failIfNoSpecifiedTests=false; python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525; python3 scripts/task_audit.py --check --phase pre-closeout; git diff --check
+  - Residual risk: Repo-closed evidence proves template recommendation and runtime rewrite behavior; live Hetu/MRS MV DDL permissions, refresh cost, and production data equivalence remain environment-backed validation items before production rollout.
+  - Next step: Use the existing environment-backed Hetu/MRS smoke window to capture live MV creation and execution evidence when credentials and target cluster access are available.
+
 ### USER-CN-DYNAMIC-MV-REWRITE-TEST01-20260525: 实现 test01 动态 MV 解析与改写
 
 - Status: done
