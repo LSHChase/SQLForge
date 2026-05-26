@@ -611,7 +611,7 @@ export default {
     },
     filters: {
       tenant: 'Tenant',
-      tenantPlaceholder: 'Uses route tenant or tenant-a by default',
+      tenantPlaceholder: 'Uses route tenant or system by default',
       reportKey: 'SQL/report key',
       reportKeyPlaceholder: 'Enter reportCode or SQL fingerprint',
       datasource: 'Datasource',
@@ -1919,7 +1919,7 @@ export default {
       text115: 'Single SQL parsing workspace',
       text116: 'Tenant',
       text117: 'Datasource code',
-      text118: 'hetu_main / leave blank to trigger partial-success',
+      text118: 'Select or enter datasource code',
       text119: 'Binding mode',
       text120: 'Run access parse',
       text121: 'Copy',

@@ -16,11 +16,17 @@ import {
   resolveReportBatchSqls,
   retryParseBatchAccess
 } from '../../services/runtimeGateApi'
+import {
+  resolveRuntimeDatasourceCode,
+  resolveRuntimeTenantId
+} from '../../config/tenantDefaults.mjs'
 import { issueSceneHelpText } from '../common/issueSceneHelp.mjs'
 
 export function useParseBatchCenter() {
   const { t, locale } = useI18n()
   const route = useRoute()
+  const initialTenantId = resolveRuntimeTenantId()
+  const initialDatasourceCode = resolveRuntimeDatasourceCode()
 
   const activeWorkspace = ref('parse')
   const parseUploadFile = ref(null)
@@ -102,12 +108,12 @@ export function useParseBatchCenter() {
   })
 
   const parseBatchForm = reactive({
-    tenantId: 'tenant-a',
+    tenantId: initialTenantId,
     batchName: 'batch-alpha',
     importMode: 'TABULAR_FILE',
     fileType: 'CSV',
     templateVersion: 'v1',
-    datasourceCode: 'hetu_main',
+    datasourceCode: initialDatasourceCode,
     parserMode: 'JSQLPARSER',
     structureParseOnly: false,
     directInputMode: 'SQL_LINES',
@@ -117,15 +123,15 @@ export function useParseBatchCenter() {
 
   const retryForm = reactive({
     failureFilter: 'UNAVAILABLE',
-    datasourceCode: 'hetu_main',
+    datasourceCode: initialDatasourceCode,
     forceRecheckAvailability: false
   })
 
   const reportBatchForm = reactive({
-    tenantId: 'tenant-a',
+    tenantId: initialTenantId,
     batchName: 'report-batch-alpha',
     reportCodeField: 'report_code',
-    datasourceCode: 'hetu_main',
+    datasourceCode: initialDatasourceCode,
     parserMode: 'JSQLPARSER',
     stage: 'PROD',
     priority: 'high',
@@ -916,7 +922,7 @@ export function useParseBatchCenter() {
           return "SELECT * FROM orders WHERE dt = '2026-04-01'"
         }
         if (item.columnKey === 'datasource') {
-          return 'hetu_main'
+          return parseBatchForm.datasourceCode || reportBatchForm.datasourceCode || ''
         }
         if (item.columnKey === 'report_code') {
           return 'RPT_SAMPLE'
@@ -952,6 +958,9 @@ export function useParseBatchCenter() {
   }
 
   const createParseBatchFlow = async () => {
+    if (!hasDisplayValue(parseBatchForm.datasourceCode)) {
+      return
+    }
     loading.createParseBatch = true
     clearError()
     try {
@@ -1081,6 +1090,9 @@ export function useParseBatchCenter() {
       errorMessage.value = t('inline.viewsParseBatchUseParseBatchCenter.text056')
       return
     }
+    if (!hasDisplayValue(retryForm.datasourceCode)) {
+      return
+    }
     loading.retryParseBatch = true
     clearError()
     try {
@@ -1112,6 +1124,9 @@ export function useParseBatchCenter() {
   }
 
   const importReportBatchFlow = async () => {
+    if (!hasDisplayValue(reportBatchForm.datasourceCode)) {
+      return
+    }
     loading.importReportBatch = true
     clearError()
     try {

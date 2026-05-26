@@ -3,7 +3,11 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
-import { SAMPLE_DATASOURCE_CODE, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import {
+  buildReportImportRows,
+  resolveRuntimeDatasourceCode,
+  resolveRuntimeTenantId
+} from '../../config/tenantDefaults.mjs'
 import {
   createParseBatch,
   createRewriteTrial,
@@ -37,10 +41,12 @@ const { t, locale } = useI18n()
 
 const combinedTerminalStatuses = new Set(['ACCESS_SUCCEEDED', 'PARTIAL_SUCCEEDED', 'FAILED'])
 const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
+const initialTenantId = resolveRuntimeTenantId()
+const initialDatasourceCode = resolveRuntimeDatasourceCode()
 
 const form = reactive({
-  tenantId: SAMPLE_TENANT_ID,
-  datasourceCode: SAMPLE_DATASOURCE_CODE,
+  tenantId: initialTenantId,
+  datasourceCode: initialDatasourceCode,
   bindingMode: 'POSITIONAL',
   parserMode: 'JSQLPARSER',
   connectionRequired: true,
@@ -51,12 +57,12 @@ const form = reactive({
 })
 
 const parseBatchForm = reactive({
-  tenantId: SAMPLE_TENANT_ID,
+  tenantId: initialTenantId,
   batchName: 'batch-alpha',
   importMode: 'TABULAR_FILE',
   fileType: 'CSV',
   templateVersion: 'v1',
-  datasourceCode: SAMPLE_DATASOURCE_CODE,
+  datasourceCode: initialDatasourceCode,
   parserMode: 'JSQLPARSER',
   structureParseOnly: false,
   directInputMode: 'SQL_LINES',
@@ -66,20 +72,20 @@ const parseBatchForm = reactive({
 
 const retryForm = reactive({
   failureFilter: 'UNAVAILABLE',
-  datasourceCode: SAMPLE_DATASOURCE_CODE,
+  datasourceCode: initialDatasourceCode,
   forceRecheckAvailability: false
 })
 
 const reportBatchForm = reactive({
-  tenantId: SAMPLE_TENANT_ID,
+  tenantId: initialTenantId,
   batchName: 'report-batch-alpha',
   fileType: 'TXT',
   reportCodeField: 'report_code',
-  datasourceCode: SAMPLE_DATASOURCE_CODE,
+  datasourceCode: initialDatasourceCode,
   parserMode: 'JSQLPARSER',
   stage: 'PROD',
   priority: 'high',
-  rawContent: 'RPT_A|Revenue Report|hetu_main|PROD|high\nRPT_B|Ops Report|hetu_main|PROD|medium\n'
+  rawContent: buildReportImportRows({ datasourceCode: initialDatasourceCode })
 })
 
 const running = ref(false)
@@ -789,6 +795,9 @@ async function runStructurePreview() {
 }
 
 async function runCombinedParseFlow() {
+  if (form.connectionRequired && !hasDisplayValue(form.datasourceCode)) {
+    return
+  }
   running.value = true
   lastRunMode.value = 'combined'
   errorMessage.value = ''
@@ -926,7 +935,7 @@ function buildTemplatePreview(columns) {
         return "SELECT * FROM orders WHERE dt = '2026-04-01'"
       }
       if (item.columnKey === 'datasource') {
-        return 'hetu_main'
+        return parseBatchForm.datasourceCode || reportBatchForm.datasourceCode || ''
       }
       if (item.columnKey === 'report_code') {
         return 'RPT_SAMPLE'
@@ -954,6 +963,9 @@ function handleReportFileChange(event) {
 }
 
 async function createParseBatchFlow() {
+  if (!hasDisplayValue(parseBatchForm.datasourceCode)) {
+    return
+  }
   loading.createParseBatch = true
   clearBatchError()
   try {
@@ -1034,6 +1046,9 @@ async function retryAccessFlow() {
     errorMessage.value = t('inline.viewsOptimizationAccelerationView.text111')
     return
   }
+  if (!hasDisplayValue(retryForm.datasourceCode)) {
+    return
+  }
   loading.retryParseBatch = true
   clearBatchError()
   try {
@@ -1052,6 +1067,9 @@ async function retryAccessFlow() {
 }
 
 async function importReportBatchFlow() {
+  if (!hasDisplayValue(reportBatchForm.datasourceCode)) {
+    return
+  }
   loading.importReportBatch = true
   clearBatchError()
   try {
@@ -1393,6 +1411,7 @@ watch(
         <div class="action-row action-row-wrap">
           <el-button
             type="primary"
+            :disabled="form.connectionRequired && !form.datasourceCode"
             :loading="running && lastRunMode === 'combined'"
             data-testid="parse-workbench-submit"
             @click="runCombinedParseFlow"
@@ -1949,7 +1968,11 @@ watch(
                     <h3 class="detail-title">{{ t('inline.viewsOptimizationAccelerationView.text186') }}</h3>
                   </div>
                   <div class="toolbar-actions">
-                    <el-button :disabled="!parseBatchDetail?.batchId" data-testid="batch-import-retry-access" @click="retryAccessFlow">
+                    <el-button
+                      :disabled="!parseBatchDetail?.batchId || !retryForm.datasourceCode"
+                      data-testid="batch-import-retry-access"
+                      @click="retryAccessFlow"
+                    >
                       {{ t('inline.viewsOptimizationAccelerationView.text187') }}
                     </el-button>
                     <el-button :disabled="!parseBatchDetail?.batchId" @click="parseDetailDrawerVisible = true">
@@ -2176,7 +2199,12 @@ watch(
       </div>
       <template #footer>
         <el-button @click="parseCreateDialogVisible = false">{{ t('inline.viewsOptimizationAccelerationView.text217') }}</el-button>
-        <el-button type="primary" :loading="loading.createParseBatch" @click="createParseBatchFlow">
+        <el-button
+          type="primary"
+          :disabled="!parseBatchForm.datasourceCode"
+          :loading="loading.createParseBatch"
+          @click="createParseBatchFlow"
+        >
           {{ t('inline.viewsOptimizationAccelerationView.text218') }}
         </el-button>
       </template>
@@ -2291,7 +2319,12 @@ watch(
       </div>
       <template #footer>
         <el-button @click="reportImportDialogVisible = false">{{ t('inline.viewsOptimizationAccelerationView.text241') }}</el-button>
-        <el-button type="primary" :loading="loading.importReportBatch" @click="importReportBatchFlow">
+        <el-button
+          type="primary"
+          :disabled="!reportBatchForm.datasourceCode"
+          :loading="loading.importReportBatch"
+          @click="importReportBatchFlow"
+        >
           {{ t('inline.viewsOptimizationAccelerationView.text242') }}
         </el-button>
       </template>

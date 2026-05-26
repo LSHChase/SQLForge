@@ -226,7 +226,7 @@ const {
               </div>
               <div class="toolbar-actions">
                 <el-button
-                  :disabled="!parseBatchDetail?.batchId"
+                  :disabled="!parseBatchDetail?.batchId || !retryForm.datasourceCode"
                   data-testid="batch-import-retry-access"
                   @click="retryAccessFlow"
                 >
@@ -426,7 +426,12 @@ const {
       </div>
       <template #footer>
         <el-button @click="parseCreateDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text044') }}</el-button>
-        <el-button type="primary" :loading="loading.createParseBatch" @click="createParseBatchFlow">
+        <el-button
+          type="primary"
+          :disabled="!parseBatchForm.datasourceCode"
+          :loading="loading.createParseBatch"
+          @click="createParseBatchFlow"
+        >
           {{ t('inline.viewsParseBatchParseBatchCenterView.text045') }}
         </el-button>
       </template>
@@ -967,7 +972,12 @@ const {
       </div>
       <template #footer>
         <el-button @click="reportImportDialogVisible = false">{{ t('inline.viewsParseBatchParseBatchCenterView.text110') }}</el-button>
-        <el-button type="primary" :loading="loading.importReportBatch" @click="importReportBatchFlow">
+        <el-button
+          type="primary"
+          :disabled="!reportBatchForm.datasourceCode"
+          :loading="loading.importReportBatch"
+          @click="importReportBatchFlow"
+        >
           {{ t('inline.viewsParseBatchParseBatchCenterView.text111') }}
         </el-button>
       </template>

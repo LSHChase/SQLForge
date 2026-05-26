@@ -1,9 +1,11 @@
-import { DEFAULT_TENANT_ID, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import {
+  DEFAULT_TENANT_ID,
+  buildSampleTenantOptions
+} from '../../config/tenantDefaults.mjs'
 
 export const knownTenantOptions = [
   { label: DEFAULT_TENANT_ID, value: DEFAULT_TENANT_ID },
-  { label: SAMPLE_TENANT_ID, value: SAMPLE_TENANT_ID },
-  { label: 'tenant-b', value: 'tenant-b' }
+  ...buildSampleTenantOptions()
 ]
 
 export const stageOptions = [

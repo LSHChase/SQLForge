@@ -936,7 +936,13 @@ const runBrowserSmoke = async baseUrl => {
     }
 
     if (pathname === '/api/governance/datasources') {
-      assertDevHeaders(request, 'tenant-a', [
+      const protectedHeaders = request.headers()
+      const requestPrefix = protectedHeaders['x-sqlforge-dev-request-prefix']
+      const systemContextPrefixes = [
+        'frontend-parse-record-datasource-options',
+        'frontend-sql-history-datasource-options'
+      ]
+      assertDevHeaders(request, systemContextPrefixes.includes(requestPrefix) ? 'system' : 'tenant-a', [
         'frontend-rewrite-validation-governance-datasources',
         'frontend-query-datasource-inventory',
         'frontend-parse-workbench-governance-datasources',

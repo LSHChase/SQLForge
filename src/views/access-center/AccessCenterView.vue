@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.vue'
 import SectionHeader from '../common/SectionHeader.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
+import { resolveRuntimeTenantId } from '../../config/tenantDefaults.mjs'
+import { resolveCapabilityPlaceholder } from '../common/capabilityPlaceholderRegistry.mjs'
 import {
   formatRuntimeError,
   getGovernanceQueryHistoryDetail,
@@ -13,7 +15,7 @@ import {
 const { t } = useI18n()
 
 const form = reactive({
-  tenantId: 'tenant-a',
+  tenantId: resolveRuntimeTenantId(),
   accessChannel: 'ALL'
 })
 
@@ -94,20 +96,12 @@ const classificationSummary = computed(() => accessAuditPage.value?.classificati
 // Static contract tokens: GET /api/governance/access-audit, query-history, JDBC_AGENT, SDK_QUERY_EXECUTE, OBSERVE, GOVERNED_EXECUTE, LOCAL_REWRITE_DIRECT_JDBC.
 
 const openPlaceholderAction = actionType => {
-  const config = actionType === 'create'
-    ? {
-        title: t('inline.viewsAccessCenterAccessCenterView.text016'),
-        capability: t('inline.viewsAccessCenterAccessCenterView.text017'),
-        reason: t('inline.viewsAccessCenterAccessCenterView.text018'),
-        nextStep: t('inline.viewsAccessCenterAccessCenterView.text019')
-      }
-    : {
-        title: t('inline.viewsAccessCenterAccessCenterView.text020'),
-        capability: t('inline.viewsAccessCenterAccessCenterView.text021'),
-        reason: t('inline.viewsAccessCenterAccessCenterView.text022'),
-        nextStep: t('inline.viewsAccessCenterAccessCenterView.text023')
-      }
-  placeholderPayload.value = config
+  placeholderPayload.value = resolveCapabilityPlaceholder(
+    actionType === 'create'
+      ? 'ACCESS_STRATEGY_CREATE'
+      : 'ACCESS_STRATEGY_EDIT',
+    t
+  )
   placeholderDialogVisible.value = true
 }
 

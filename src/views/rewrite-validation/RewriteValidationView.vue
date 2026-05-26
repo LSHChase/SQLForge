@@ -3,7 +3,10 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
-import { SAMPLE_DATASOURCE_CODE, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import {
+  resolveRuntimeDatasourceCode,
+  resolveRuntimeTenantId
+} from '../../config/tenantDefaults.mjs'
 import {
   createRewriteValidationRun,
   createSqlRewriteRecord,
@@ -28,11 +31,13 @@ const { t } = useI18n()
 const router = useRouter()
 
 const defaultSqlText = "SELECT * FROM orders WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id, id"
+const initialTenantId = resolveRuntimeTenantId()
+const initialDatasourceCode = resolveRuntimeDatasourceCode()
 
 const form = reactive({
-  tenantId: SAMPLE_TENANT_ID,
+  tenantId: initialTenantId,
   datasourceType: 'AUTO',
-  datasourceCode: SAMPLE_DATASOURCE_CODE,
+  datasourceCode: initialDatasourceCode,
   sourceKind: 'MANUAL',
   sourceId: 'manual-rewrite-validation',
   parseHistoryId: '',
@@ -455,6 +460,9 @@ async function loadRelatedRecommendations() {
 }
 
 async function runRewriteValidation() {
+  if (!hasValue(form.datasourceCode)) {
+    return
+  }
   loading.rewriteTask = true
   errorMessage.value = ''
   successMessage.value = ''
@@ -749,6 +757,7 @@ onMounted(loadGovernanceDatasources)
         <div class="action-row">
           <el-button
             type="primary"
+            :disabled="!form.datasourceCode"
             :loading="loading.rewriteTask"
             data-testid="rewrite-validation-submit"
             @click="runRewriteValidation"

@@ -17,6 +17,7 @@ import {
   stageOptions,
   withCurrentOption,
 } from '../common/formComponentGovernance'
+import { resolveCapabilityPlaceholder } from '../common/capabilityPlaceholderRegistry.mjs'
 import {
   createGovernanceDatasource,
   createGovernanceDispatchPolicy,
@@ -82,6 +83,12 @@ export function useSystemManagement() {
     engineType: '',
     connectionMode: '',
   })
+  const firstVisibleDatasource = () =>
+    datasources.value.find(item => item.enabled !== false && item.datasourceCode)
+    || datasources.value.find(item => item.datasourceCode)
+    || null
+  const firstVisibleDatasourceCode = () =>
+    firstVisibleDatasource()?.datasourceCode || ''
 
   const datasourceDialogVisible = ref(false)
   const driverDialogVisible = ref(false)
@@ -144,7 +151,7 @@ export function useSystemManagement() {
     return {
       configId: '',
       tenantId: form.tenantId,
-      datasourceCode: 'hetu_main',
+      datasourceCode: firstVisibleDatasourceCode(),
       stage: 'PROD',
       sourceType: 'REST',
       endpointCode: '',
@@ -186,13 +193,14 @@ export function useSystemManagement() {
   }
 
   function buildDispatchForm() {
+    const visibleDatasource = firstVisibleDatasource()
     return {
       policyId: '',
       tenantId: form.tenantId,
       policyName: '',
       dispatchType: 'PULL',
-      targetEngine: 'HETU',
-      targetDatasource: 'hetu_main',
+      targetEngine: visibleDatasource?.engineType || 'HETU',
+      targetDatasource: visibleDatasource?.datasourceCode || '',
       ackMode: 'MANUAL',
       pullWindowSeconds: 60,
       maxBatchSize: 50,
@@ -814,11 +822,6 @@ export function useSystemManagement() {
       HIVE: 'org.apache.hive.jdbc.HiveDriver',
       TRINO: 'io.trino.jdbc.TrinoDriver',
     }
-    const datasourceCodes = {
-      HETU: 'hetu_main',
-      HIVE: 'hive_lakehouse',
-      TRINO: 'trino_main',
-    }
     const datasourceNames = {
       HETU: 'Hetu JDBC',
       HIVE: 'Hive JDBC',
@@ -827,7 +830,7 @@ export function useSystemManagement() {
     Object.assign(datasourceForm, {
       engineType: normalizedEngineType,
       connectionMode: 'JDBC',
-      datasourceCode: datasourceCodes[normalizedEngineType] || 'jdbc_main',
+      datasourceCode: '',
       datasourceName:
         datasourceNames[normalizedEngineType] || 'JDBC datasource',
       jdbcDriverClassName: driverClassNames[normalizedEngineType] || '',
@@ -1038,7 +1041,7 @@ export function useSystemManagement() {
     Object.assign(reportForm, {
       configId: row.configId,
       tenantId: row.tenantId || form.tenantId,
-      datasourceCode: row.datasourceCode || 'hetu_main',
+      datasourceCode: row.datasourceCode || firstVisibleDatasourceCode(),
       stage: row.stage || 'PROD',
       sourceType: row.sourceType || 'REST',
       endpointCode: row.endpointCode || '',
@@ -1163,15 +1166,11 @@ export function useSystemManagement() {
     clearManagedFormValidation(dispatchFormRef)
   }
 
-  const openDispatchEditPlaceholder = (row) => {
-    placeholderPayload.value = {
-      title: t('inline.viewsSystemUseSystemManagement.text015'),
-      capability: isChinese.value
-        ? `修改策略 ${row.policyId}`
-        : `Edit policy ${row.policyId}`,
-      reason: t('inline.viewsSystemUseSystemManagement.text016'),
-      nextStep: t('inline.viewsSystemUseSystemManagement.text017'),
-    }
+  const openDispatchEditPlaceholder = () => {
+    placeholderPayload.value = resolveCapabilityPlaceholder(
+      'DISPATCH_POLICY_EDIT',
+      t
+    )
     placeholderDialogVisible.value = true
   }
 

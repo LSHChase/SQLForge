@@ -3,7 +3,11 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
-import { SAMPLE_DATASOURCE_CODE, SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import {
+  buildDefaultQuerySql,
+  resolveRuntimeDatasourceCode,
+  resolveRuntimeTenantId
+} from '../../config/tenantDefaults.mjs'
 import {
   executeQuery,
   formatRuntimeError,
@@ -21,7 +25,7 @@ import {
   flattenDatasourceGroups,
   groupGovernanceDatasources
 } from '../common/governanceDatasourceOptions.mjs'
-import { sqlTemplates, sqlLibrary } from './sqlTemplates'
+import { buildSqlTemplates, sqlLibrary } from './sqlTemplates'
 import {
   DEFAULT_QUERY_RESULT_PAGE_SIZE,
   isExplainSql,
@@ -334,11 +338,13 @@ const loadTreeNode = async (node, resolve) => {
 }
 
 const form = reactive({
-  tenantId: SAMPLE_TENANT_ID,
-  sqlText:
-    '--report_code=RPT_SALES_DAILY\n--stage=PROD\n--biz_date=2026-04-27\n--tenant_id=tenant-a\n--datasource=hetu_main\nSELECT * FROM orders WHERE query_date = :query_date LIMIT :limit',
+  tenantId: resolveRuntimeTenantId(),
+  sqlText: buildDefaultQuerySql({
+    tenantId: resolveRuntimeTenantId(),
+    datasourceCode: resolveRuntimeDatasourceCode()
+  }),
   datasourceType: 'AUTO',
-  datasourceCode: SAMPLE_DATASOURCE_CODE,
+  datasourceCode: resolveRuntimeDatasourceCode(),
   accelerationPreference: 'PREFER_ACCELERATED',
   faultToleranceStrategy: 'FAIL_FAST'
 })
@@ -356,7 +362,7 @@ const {
 } = useQueryHistory()
 
 const isSidebarCollapsed = ref(false)
-const selectedDatasourceId = ref('hetu-main')
+const selectedDatasourceId = ref('')
 const activeExplorerTab = ref('objects')
 const activeResultTab = ref('rows')
 const running = ref(false)
@@ -442,6 +448,12 @@ const toleranceOptions = computed(() => [
 ])
 const recentLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'recent'))
 const favoriteLibraryEntries = computed(() => sqlLibrary.filter(item => item.type === 'favorite'))
+const sqlTemplates = computed(() =>
+  buildSqlTemplates({
+    tenantId: form.tenantId,
+    datasourceCode: form.datasourceCode
+  })
+)
 const validationTips = computed(() => {
   const tips = []
   if (!String(form.sqlText || '').includes('--report_code=')) {

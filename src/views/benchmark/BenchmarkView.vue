@@ -10,6 +10,7 @@ import {
   submitBenchmarkTask,
   waitForBenchmarkTask
 } from '../../services/runtimeGateApi'
+import { resolveRuntimeTenantId } from '../../config/tenantDefaults.mjs'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
@@ -17,7 +18,7 @@ import ToolbarShell from '../common/ToolbarShell.vue'
 const { t } = useI18n()
 
 const form = reactive({
-  tenantId: 'tenant-a',
+  tenantId: resolveRuntimeTenantId(),
   taskType: 'COMPARISON',
   sqlText: 'SELECT * FROM orders'
 })

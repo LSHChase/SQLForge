@@ -4,14 +4,14 @@ import {
   getGovernanceDatasources,
   getGovernanceQueryHistoryPage
 } from '../../services/runtimeGateApi'
-import { SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import { resolveProtectedTenantId } from '../../config/tenantDefaults.mjs'
 import {
   buildDatasourceOptions,
   buildTenantOptions,
   withCurrentOption
 } from '../common/formComponentGovernance'
 
-const DEFAULT_HISTORY_CONTEXT_TENANT_ID = SAMPLE_TENANT_ID
+const DEFAULT_HISTORY_CONTEXT_TENANT_ID = resolveProtectedTenantId()
 const DEFAULT_PAGE_SIZE = 10
 
 const DEFAULT_SEARCH_FORM = Object.freeze({

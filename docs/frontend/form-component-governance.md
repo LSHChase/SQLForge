@@ -21,6 +21,8 @@
 - 搜索表单、编辑弹窗和表格列应优先通过字段 / 列定义数组驱动，页面层只保留状态编排、接口调用和事件处理。
 - 搜索项超过 3 个时，必须通过 `SearchForm.vue`、`ToolbarShell.vue`、响应式 grid 或 flex wrapping 保持筛选区密度；实现后必须用页面截图确认筛选区没有把表格 / 结果区完全挤出首屏。
 - 表单字段候选值必须来自后端接口、当前页面已授权加载数据或仓库已验证静态枚举；不得用前端临时枚举绕过权限可见性、候选值过滤或后端契约。
+- 租户和数据源默认值必须经过 `src/config/tenantDefaults.mjs` 的 runtime/profile helper。`system` 是非样例受保护请求上下文默认租户；`tenant-a`、`tenant-b` 和 `hetu_main` 只允许由明确 sample profile、dev/portable mock、smoke fixture 或文档说明提供。
+- 生产默认禁用样例数据源默认值。业务页面在后端没有返回可见 datasource 时必须保留空值，并依赖表单校验或按钮禁用阻断提交，不得在页面内伪造 `hetu_main` 或其他样例 datasource。
 - 权限可见性只允许作为体验层控制。按钮展示、禁用和隐藏不得替代后端身份鉴别、权限判断、业务校验和审计。
 - 提交格式必须继续遵守后端 API contract；日期、时间、区间、数值、布尔、字典 code 和敏感字段不得因组件替换改变 payload 语义。
 - 新增或重构页面必须同步 i18n key，并在触发表单治理时运行 `npm run test:form-governance` 或对应静态契约检查。
@@ -30,7 +32,7 @@
 | Page | Field category | Component | Source / format |
 |:---|:---|:---|:---|
 | `SystemView` | 顶部租户、弹窗租户 | `el-select filterable allow-create` | 当前租户、tenant-config、页面已加载资源中的 `tenantId` |
-| `SystemView` | 报表接口数据源、Dispatch 目标数据源 | `el-select filterable allow-create` | `getGovernanceDatasources(tenantId)` 已加载结果 |
+| `SystemView` | 报表接口数据源、Dispatch 目标数据源 | `el-select filterable allow-create` | `getGovernanceDatasources(tenantId)` 已加载结果；表单初始化默认取当前租户已加载的第一个可见 datasource，无候选时保持空值 |
 | `SystemView` | 连接模式、stage、authMode、sourceType、HTTP method、dispatchType、targetEngine、ackMode、retryStrategy | `el-select` | `src/views/common/formComponentGovernance.js` 的受控枚举，保留当前未知值 |
 | `SystemView` | timeout、pullWindowSeconds、maxBatchSize | `el-input-number` | 现有提交字段，提交前保持 `Number(...)` |
 | `SystemView` | enabled、readonly、tlsEnabled、verifyPeer、bypassOnUnavailable | `el-switch` | 现有布尔字段 |
@@ -96,3 +98,11 @@ JSON 证据、SQL 指纹、报表编码、统计数字和非 SQL 的原始证据
 批量解析结果、失败记录、报表分组、报表 SQL 明细和报表统计标签页不得对接口返回数组做无界 `v-for` 渲染。页面明细默认预览 25 条，统计列表默认预览 50 条；当后端返回 `omittedItemCount`、`omittedFailureCount` 或 `omittedSqlStatisticCount` 时，页面必须显示剩余省略数量，并说明统计卡片仍基于完整批次。
 
 SQL 明细、失败 SQL 和报表 SQL 详情继续使用 `SqlCodeBlock` 进行只读格式化、高亮、复制、滚动和长 SQL 换行。格式化只发生在展示边界，不回写 API 响应、历史记录、导入载荷或后端持久化内容。
+
+## TEMP-AUDIT-006 Sample Defaults And Placeholder Boundary
+
+`TEMP-AUDIT-006` 已收口为 runtime/profile 默认值边界：查询、解析/加速、改写验证、Benchmark、Access、Asset、Parse Statistics、SQL/Parse History、Parse Batch 和 System 管理页不得直接声明 `tenant-a`、`tenant-b`、`hetu_main` 等样例事实。业务页只消费 `tenantDefaults.mjs` helper、当前 workspace/route 上下文和后端 datasource 候选。
+
+SQL 模板中的 `tenant_id` / `datasource` 注释由当前 workspace 和已选 datasource 渲染；没有 datasource 时不渲染 datasource 注释。解析历史和 SQL 历史的可见查询条件继续默认空值，只用 `system` 或当前 route/workspace 租户承载受保护请求头上下文。
+
+Access create/edit、Dispatch policy edit 等缺少后端写契约的动作必须登记到 `src/views/common/capabilityPlaceholderRegistry.mjs`，按钮只能打开 `CapabilityPlaceholderDialog`，不得触发 API、修改列表状态或写入浏览器本地事实。已有后端契约的 datasource/report/redis/dispatch create、tenant engine update 继续走真实 API 流程。

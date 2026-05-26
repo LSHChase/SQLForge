@@ -16,6 +16,7 @@ import {
   getMetadataTableDetail,
   getMetadataTables
 } from '../../services/runtimeGateApi'
+import { resolveRuntimeTenantId } from '../../config/tenantDefaults.mjs'
 import SectionHeader from '../common/SectionHeader.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 
@@ -24,7 +25,7 @@ import ToolbarShell from '../common/ToolbarShell.vue'
 const { t } = useI18n()
 
 const filterForm = reactive({
-  tenantId: 'tenant-a',
+  tenantId: resolveRuntimeTenantId(),
   datasourceCode: '',
   schemaName: ''
 })

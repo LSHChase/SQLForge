@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { resolveRuntimeTenantId } from '../../config/tenantDefaults.mjs'
 import {
   formatRuntimeError,
   getParseStatisticsByIssueScene,
@@ -19,7 +20,7 @@ const { t } = useI18n()
 const statisticsTabs = new Set(['issue', 'important', 'report', 'sql', 'rewrite-trial', 'severity', 'priority', 'logical-object', 'parse-status'])
 
 const form = reactive({
-  tenantId: 'tenant-a'
+  tenantId: resolveRuntimeTenantId()
 })
 const pageInfo = reactive({
   currentPage: 1,

@@ -11,6 +11,9 @@ const vuePathPattern = /^(src\/views\/.*\.vue|src\/components\/.*\.vue)$/
 const managementVuePathPattern = /^src\/views\/(?!common\/|dashboard\/|delivery\/).+\.vue$|^src\/components\/.+\.vue$/
 const managementViewPagePattern = /^src\/views\/(?!common\/|dashboard\/|delivery\/).+\.vue$/
 const localePathPattern = /^src\/locales\//
+const sampleDefaultScanPattern = /^(src\/views\/.+|src\/components\/.+|src\/locales\/.+)$/
+const sampleDefaultLiteralPattern =
+  /(^|[^A-Za-z0-9_-])(tenant-a|tenant-b|hetu_main|hive_lakehouse|trino_main|jdbc_main)(?=$|[^A-Za-z0-9_-])/
 const filterControlPattern = /<(?:el-input|el-select|el-date-picker|el-autocomplete|el-cascader|el-radio-group|el-checkbox-group|el-form-item)\b/g
 const responsiveFilterPattern =
   /(?:SearchForm|ToolbarShell|filter-grid|search-grid|filters-grid|toolbar-grid|control-grid|filter-row|display:\s*(?:grid|flex)|grid-template-columns|repeat\(|minmax\(|flex-wrap\s*:\s*wrap|\binline\b|:inline=)/
@@ -38,6 +41,13 @@ function read(relativePath) {
 
 function exists(relativePath) {
   return fs.existsSync(path.join(root, relativePath))
+}
+
+function listTrackedFiles() {
+  return unique([
+    ...runGit(['ls-files']),
+    ...runGit(['ls-files', '--others', '--exclude-standard'])
+  ])
 }
 
 function unique(items) {
@@ -301,6 +311,51 @@ function checkFilterDensity(relativePath, content, addedLines, errors) {
   }
 }
 
+function checkSampleDefaultLiterals(errors) {
+  for (const relativePath of listTrackedFiles().filter(file => sampleDefaultScanPattern.test(file) && exists(file))) {
+    const lines = read(relativePath).split(/\r?\n/)
+    lines.forEach((line, index) => {
+      if (sampleDefaultLiteralPattern.test(line)) {
+        errors.push(
+          `${relativePath}:${index + 1} uses a sample tenant/datasource literal; route sample defaults through src/config/tenantDefaults.mjs.`
+        )
+      }
+    })
+  }
+}
+
+function checkPlaceholderRegistry(errors) {
+  const registryPath = 'src/views/common/capabilityPlaceholderRegistry.mjs'
+  if (!exists(registryPath)) {
+    errors.push(`${registryPath} must define shared blocked placeholder capabilities.`)
+    return
+  }
+
+  const registrySource = read(registryPath)
+  ;['ACCESS_STRATEGY_CREATE', 'ACCESS_STRATEGY_EDIT', 'DISPATCH_POLICY_EDIT'].forEach(key => {
+    if (!registrySource.includes(key)) {
+      errors.push(`${registryPath} is missing ${key}.`)
+    }
+  })
+
+  const placeholderConsumers = [
+    'src/views/access-center/AccessCenterView.vue',
+    'src/views/system/useSystemManagement.js'
+  ]
+  placeholderConsumers.forEach(relativePath => {
+    if (!exists(relativePath)) {
+      return
+    }
+    const source = read(relativePath)
+    if (!source.includes('resolveCapabilityPlaceholder')) {
+      errors.push(`${relativePath} must resolve blocked write actions through the shared placeholder registry.`)
+    }
+    if (/placeholderPayload\.value\s*=\s*\{/.test(source)) {
+      errors.push(`${relativePath} builds placeholder payloads inline; use capabilityPlaceholderRegistry.mjs.`)
+    }
+  })
+}
+
 function checkManagementPatterns(relativePath, content, addedLines, errors) {
   const addedText = addedLines.map(item => item.line).join('\n')
   const addedTable = /<el-table\b/.test(addedText)
@@ -445,6 +500,8 @@ function runSelfTest() {
     filterDensityErrors
   )
   assertSelfTest('low density filter is rejected', filterDensityErrors.length === 1)
+  assertSelfTest('tenant-bound is not a sample tenant literal', !sampleDefaultLiteralPattern.test('tenant-bound'))
+  assertSelfTest('tenant-a sample literal is rejected', sampleDefaultLiteralPattern.test("'tenant-a'"))
 
   console.log('Frontend page governance self-test passed.')
 }
@@ -467,6 +524,9 @@ movedLineKeys = new Set(
 if (files.some(file => localePathPattern.test(file))) {
   checkLocaleKeys(errors)
 }
+
+checkSampleDefaultLiterals(errors)
+checkPlaceholderRegistry(errors)
 
 for (const relativePath of files.filter(file => !localePathPattern.test(file))) {
   checkObsoleteCopy(relativePath, addedLinesByFile.get(relativePath) || [], errors)

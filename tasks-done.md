@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-FRONTEND-SAMPLE-DEFAULTS-PROFILE-GATE-20260526: Frontend sample defaults profile gate
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `fix(frontend): gate sample defaults and placeholders`
+- Priority: 1
+- Depends on: N/A
+- Scope: Move frontend sample tenant/datasource defaults into runtime profile helpers, keep missing backend-contract writes blocked by shared placeholders, extend governance checks and docs for TEMP-AUDIT-006.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FRONTEND-SAMPLE-DEFAULTS-PROFILE-GATE-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Centralized frontend sample tenant/datasource defaults behind runtime profile helpers, updated affected pages to use helper/default datasource candidates, and routed missing-write-contract actions through a shared placeholder registry.
+  - Validation evidence: npm run lint; npm run build; npm run test:form-governance; npm run test:sql-ui-contract; npm run test:frontend-page-governance; npm run smoke:frontend-dev; npm run build:portable; npm run smoke:portable-frontend; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/foreman.py validate USER-CN-FRONTEND-SAMPLE-DEFAULTS-PROFILE-GATE-20260526 --include-task-audit.
+  - Residual risk: Sample values remain only in the central profile config, dev/portable mock servers, smoke/contract fixtures, shell runbooks, and documentation references; no new backend write APIs were added for placeholder-only actions.
+  - Next step: Implement backend write contracts separately before converting Access strategy edit/create or Dispatch policy edit placeholders into real submit flows.
+
 ### USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526: sql-optimization 报表批次持久化模型扩展
 
 - Status: done

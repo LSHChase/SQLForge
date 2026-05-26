@@ -2,7 +2,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
-import { SAMPLE_TENANT_ID } from '../../config/tenantDefaults.mjs'
+import { resolveProtectedTenantId } from '../../config/tenantDefaults.mjs'
 import {
   exportSqlParseHistory,
   formatRuntimeError,
@@ -23,7 +23,7 @@ const { locale, t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const DEFAULT_HISTORY_CONTEXT_TENANT_ID = SAMPLE_TENANT_ID
+const DEFAULT_HISTORY_CONTEXT_TENANT_ID = resolveProtectedTenantId()
 const normalizeQueryValue = value => String(value || '').trim()
 const HISTORY_WORKBENCH_TABS = new Set(['sqlHistory', 'batchHistory'])
 const BATCH_HISTORY_TABS = new Set(['parse', 'report'])

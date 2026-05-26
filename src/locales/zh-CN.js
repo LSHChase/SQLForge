@@ -588,7 +588,7 @@ export default {
     },
     filters: {
       tenant: '租户',
-      tenantPlaceholder: '默认使用路由租户或 tenant-a',
+      tenantPlaceholder: '默认使用路由租户或 system',
       reportKey: 'SQL/报表标识',
       reportKeyPlaceholder: '输入 reportCode 或 SQL 指纹',
       datasource: '数据源',
@@ -1834,7 +1834,7 @@ export default {
       text115: '单条解析主工作区',
       text116: '租户',
       text117: '数据源编码',
-      text118: 'hetu_main / 留空触发 partial-success',
+      text118: '选择或输入数据源编码',
       text119: '绑定模式',
       text120: '执行 Access 解析',
       text121: '复制',

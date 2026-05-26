@@ -1,5 +1,6 @@
 const rawDeliveryProgressFlag = import.meta.env.VITE_ENABLE_DELIVERY_PROGRESS
 const rawReferencePagesFlag = import.meta.env.VITE_ENABLE_REFERENCE_PAGES
+const rawSampleProfileFlag = import.meta.env.VITE_SQLFORGE_SAMPLE_PROFILE
 
 export const runtimeMode = import.meta.env.MODE
 export const isProductionRuntime = runtimeMode === 'production'
@@ -22,6 +23,20 @@ export const referencePagesFlagState =
 
 export const referencePagesEnabled =
   !isProductionRuntime && referencePagesFlagState !== 'disabled'
+
+export const sampleProfileFlagState =
+  rawSampleProfileFlag === 'true'
+    ? 'enabled'
+    : rawSampleProfileFlag === 'false'
+      ? 'disabled'
+      : 'default'
+
+export const sampleProfileDefaultEnabled =
+  runtimeMode === 'development' || runtimeMode === 'portable'
+
+export const sampleProfileEnabled =
+  sampleProfileFlagState === 'enabled'
+  || (sampleProfileDefaultEnabled && sampleProfileFlagState !== 'disabled')
 
 export const deliveryProgressAvailability = {
   enabled: deliveryProgressEnabled,
