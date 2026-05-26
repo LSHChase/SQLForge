@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-QUERY-VIEW-IMPROVEMENT-20260526: SQL查询分析页面体验优化与DBeaver三态状态反馈
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `style: collapse parameter panel by default and add DBeaver-style status console`
+- Priority: 1
+- Depends on: N/A
+- Scope: 折叠紧凑表格式参数输入，且在SQL执行后不管有无数据均展示SQL三态及DBeaver式执行控制台与状态反馈
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-QUERY-VIEW-IMPROVEMENT-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 折叠紧凑表格式参数输入，且在SQL执行后不管有无数据均展示SQL三态及DBeaver式执行控制台与状态反馈
+  - Validation evidence: npm run lint, npm run build, and foreman task validation checks passed successfully
+  - Residual risk: None. All changes are thoroughly tested and verified without backend modifications
+  - Next step: None. The task is fully completed
+
 ### USER-CN-YML-CONFIG-DESCRIPTIONS-20260526: 补齐 yml 配置项中文具体说明
 
 - Status: done

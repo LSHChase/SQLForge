@@ -5,8 +5,7 @@ import { useRouter } from 'vue-router'
 import { ROUTE_PATHS } from '../../config/routePaths.mjs'
 import {
   buildDefaultQuerySql,
-  resolveRuntimeDatasourceCode,
-  resolveRuntimeTenantId
+  resolveRuntimeDatasourceCode
 } from '../../config/tenantDefaults.mjs'
 import {
   executeQuery,
@@ -17,6 +16,7 @@ import {
   getMetadataTables,
   getMetadataTableDetail
 } from '../../services/runtimeGateApi'
+import { useTenantStore } from '../../stores'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import {
@@ -39,6 +39,7 @@ import { useQueryHistory } from './useQueryHistory'
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const tenantStore = useTenantStore()
 
 const DEEP_PARSE_SESSION_PREFIX = 'sqlforge:query-analysis:deep-parse:'
 
@@ -51,6 +52,7 @@ const selectedSchema = ref('')
 const schemaOptions = ref([])
 const objectsTreeRef = ref(null)
 const treeVersion = ref(0)
+let datasourceInventoryRequestId = 0
 
 const treeProps = {
   label: 'label',
@@ -86,14 +88,17 @@ watch(searchQuery, (val) => {
   objectsTreeRef.value?.filter(val)
 })
 
-const loadSchemasForDatasource = async (datasourceCode) => {
+const loadSchemasForDatasource = async (datasourceCode, tenantId = form.tenantId) => {
   if (!datasourceCode || datasourceCode === 'AUTO') {
     schemaOptions.value = []
     selectedSchema.value = ''
     return
   }
   try {
-    const schemas = await getMetadataSchemas(form.tenantId, datasourceCode)
+    const schemas = await getMetadataSchemas(tenantId, datasourceCode)
+    if (tenantId !== form.tenantId || datasourceCode !== form.datasourceCode) {
+      return
+    }
     schemaOptions.value = (schemas || []).map(s => s.schemaName)
     if (schemaOptions.value.length > 0) {
       if (!schemaOptions.value.includes(selectedSchema.value)) {
@@ -103,6 +108,9 @@ const loadSchemasForDatasource = async (datasourceCode) => {
       selectedSchema.value = ''
     }
   } catch (e) {
+    if (tenantId !== form.tenantId || datasourceCode !== form.datasourceCode) {
+      return
+    }
     schemaOptions.value = []
     selectedSchema.value = ''
   }
@@ -119,11 +127,23 @@ const hasAvailableDatasources = computed(() => flattenDatasourceGroups(datasourc
 const queryRunDisabled = computed(() => running.value || !form.datasourceCode)
 
 const handleEngineChange = async () => {
+  if (form.datasourceType === 'AUTO') {
+    const firstDatasource = flattenDatasourceGroups(datasourceGroupedMap.value)[0]
+    if (firstDatasource) {
+      syncDatasourceFields(firstDatasource, { keepDatasourceType: true })
+    } else {
+      form.datasourceCode = ''
+      selectedDatasourceId.value = ''
+    }
+    await loadSchemasForDatasource(form.datasourceCode)
+    return
+  }
+
   const datasources = currentEngineDatasources.value
   if (datasources.length > 0) {
     const found = datasources.find(d => d.datasourceCode === form.datasourceCode)
     if (!found) {
-      syncDatasourceFields(datasources[0], { keepDatasourceType: form.datasourceType === 'AUTO' })
+      syncDatasourceFields(datasources[0])
     }
   } else {
     form.datasourceCode = ''
@@ -136,7 +156,7 @@ const handleDatasourceChange = async () => {
   const datasources = currentEngineDatasources.value
   const found = datasources.find(d => d.datasourceCode === form.datasourceCode)
   if (found) {
-    syncDatasourceFields(found)
+    syncDatasourceFields(found, { keepDatasourceType: form.datasourceType === 'AUTO' })
   }
   await loadSchemasForDatasource(form.datasourceCode)
 }
@@ -182,6 +202,10 @@ const loadTreeNode = async (node, resolve) => {
       const records = await getGovernanceDatasources(tenantId, {
         requestPrefix: 'frontend-query-datasource-inventory'
       })
+      if (tenantId !== form.tenantId) {
+        resolve([])
+        return
+      }
       const grouped = groupGovernanceDatasources(records)
       datasourceGroupedMap.value = grouped
       
@@ -338,9 +362,9 @@ const loadTreeNode = async (node, resolve) => {
 }
 
 const form = reactive({
-  tenantId: resolveRuntimeTenantId(),
+  tenantId: tenantStore.tenantId,
   sqlText: buildDefaultQuerySql({
-    tenantId: resolveRuntimeTenantId(),
+    tenantId: tenantStore.tenantId,
     datasourceCode: resolveRuntimeDatasourceCode()
   }),
   datasourceType: 'AUTO',
@@ -380,6 +404,23 @@ const showBoundPreviewDrawer = ref(false)
 const showGovernanceDrawer = ref(false)
 const showExplainDialog = ref(false)
 
+const isParamsPanelCollapsed = ref(true)
+const hasParameters = computed(() => {
+  if (!form.sqlText) return false
+  const matches = String(form.sqlText).match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g)
+  return matches && matches.length > 0
+})
+
+watch(
+  hasParameters,
+  (newVal, oldVal) => {
+    if (newVal && !oldVal) {
+      isParamsPanelCollapsed.value = false
+    }
+  }
+)
+
+
 const resultPage = computed(() => normalizeQueryResultPage(result.value, resultPagination.pageSize))
 const previewRows = computed(() => resolveVisibleQueryRows(resultPage.value, resultPagination))
 const queryResultKind = computed(() => resolveQueryResultKind(result.value, boundSqlPreview.value))
@@ -394,9 +435,17 @@ const resultTerminalTitle = computed(() => isExplainResult.value
 const resultRowsLabel = computed(() => isExplainResult.value
   ? t('inline.viewsQuerySqlQueryView.text111')
   : t('inline.viewsQuerySqlQueryView.text102'))
-const resultEmptyCopy = computed(() => isExplainResult.value
-  ? t('inline.viewsQuerySqlQueryView.text112')
-  : t('inline.viewsQuerySqlQueryView.text066'))
+const resultEmptyCopy = computed(() => {
+  if (isExplainResult.value) {
+    return t('inline.viewsQuerySqlQueryView.text112')
+  }
+  if (result.value) {
+    return locale.value === 'zh-CN'
+      ? '查询执行成功，未返回任何数据行。'
+      : 'Query executed successfully, no rows returned.'
+  }
+  return t('inline.viewsQuerySqlQueryView.text066')
+})
 const resultColumns = computed(() => {
   const columns = new Set()
   for (const row of previewRows.value) {
@@ -467,6 +516,29 @@ const validationTips = computed(() => {
   }
   return tips
 })
+
+const syntaxState = computed(() => {
+  if (!result.value) return '-'
+  const status = result.value.lightweightParseSummary?.syntaxStatus
+  return status || (validationTips.value.length ? 'REVIEW' : 'VALID')
+})
+
+const accessState = computed(() => {
+  if (!result.value) return '-'
+  const hasHits = result.value.logicalObjectHits && result.value.logicalObjectHits.length > 0
+  const bindMode = result.value.bindingSummary?.bindingMode
+  if (result.value.status === 'FAILED') return 'DISCONNECTED'
+  return hasHits || bindMode ? 'CONNECTED' : 'ACTIVE'
+})
+
+const routeState = computed(() => {
+  if (!result.value) return '-'
+  const metadata = result.value.metadata || {}
+  if (result.value.degraded) return 'DEGRADED'
+  if (metadata.cacheGovernanceStatus === 'HIT') return 'ACCELERATED'
+  return metadata.executionMode || 'DIRECT'
+})
+
 const summaryRows = computed(() => {
   const metadata = result.value?.metadata || {}
   return [
@@ -557,7 +629,7 @@ const syncDatasourceFields = (datasource, options = {}) => {
 }
 
 const syncDatasourceSelection = async datasource => {
-  syncDatasourceFields(datasource)
+  syncDatasourceFields(datasource, { keepDatasourceType: form.datasourceType === 'AUTO' })
   await loadSchemasForDatasource(form.datasourceCode)
 }
 
@@ -565,12 +637,16 @@ const handleTreeNodeClick = async (data) => {
   if (data.nodeType === 'datasource') {
     await syncDatasourceSelection(data)
   } else if (data.nodeType === 'schema') {
-    form.datasourceType = data.datasourceType || form.datasourceType
+    if (form.datasourceType !== 'AUTO') {
+      form.datasourceType = data.datasourceType || form.datasourceType
+    }
     form.datasourceCode = data.datasourceCode || form.datasourceCode
     selectedSchema.value = data.schemaName
     await loadSchemasForDatasource(form.datasourceCode)
   } else if (data.nodeType === 'table') {
-    form.datasourceType = data.datasourceType || form.datasourceType
+    if (form.datasourceType !== 'AUTO') {
+      form.datasourceType = data.datasourceType || form.datasourceType
+    }
     form.datasourceCode = data.datasourceCode || form.datasourceCode
     selectedSchema.value = data.schemaName
     await loadSchemasForDatasource(form.datasourceCode)
@@ -682,12 +758,18 @@ const runQuery = async scenario => {
 }
 
 const loadDatasourceInventory = async () => {
+  const requestId = datasourceInventoryRequestId + 1
+  datasourceInventoryRequestId = requestId
+  const tenantId = form.tenantId
   datasourceInventoryLoading.value = true
   datasourceInventoryError.value = ''
   try {
-    const records = await getGovernanceDatasources(form.tenantId, {
+    const records = await getGovernanceDatasources(tenantId, {
       requestPrefix: 'frontend-query-datasource-inventory'
     })
+    if (requestId !== datasourceInventoryRequestId || tenantId !== form.tenantId) {
+      return
+    }
     const grouped = groupGovernanceDatasources(records)
     datasourceGroupedMap.value = grouped
     datasourceTree.value = Array.from(grouped.entries()).map(([engineType, children]) => ({
@@ -699,6 +781,9 @@ const loadDatasourceInventory = async () => {
     const nextDatasource = current || firstDatasourceForEngine(grouped, form.datasourceType)
     if (nextDatasource) {
       await syncDatasourceSelection(nextDatasource)
+      if (requestId !== datasourceInventoryRequestId || tenantId !== form.tenantId) {
+        return
+      }
     } else {
       selectedDatasourceId.value = ''
       schemaOptions.value = []
@@ -706,6 +791,9 @@ const loadDatasourceInventory = async () => {
     }
     treeVersion.value += 1
   } catch (error) {
+    if (requestId !== datasourceInventoryRequestId || tenantId !== form.tenantId) {
+      return
+    }
     datasourceTree.value = []
     datasourceGroupedMap.value = new Map()
     selectedDatasourceId.value = ''
@@ -713,9 +801,36 @@ const loadDatasourceInventory = async () => {
     selectedSchema.value = ''
     datasourceInventoryError.value = formatRuntimeError(error)
   } finally {
-    datasourceInventoryLoading.value = false
+    if (requestId === datasourceInventoryRequestId && tenantId === form.tenantId) {
+      datasourceInventoryLoading.value = false
+    }
   }
 }
+
+const clearTenantScopedDatasourceState = () => {
+  form.datasourceCode = ''
+  selectedDatasourceId.value = ''
+  selectedSchema.value = ''
+  schemaOptions.value = []
+  datasourceTree.value = []
+  datasourceGroupedMap.value = new Map()
+  datasourceInventoryError.value = ''
+  treeVersion.value += 1
+}
+
+watch(
+  () => tenantStore.tenantId,
+  async tenantId => {
+    const nextTenantId = String(tenantId || '').trim()
+    if (!nextTenantId || nextTenantId === form.tenantId) {
+      return
+    }
+    form.tenantId = nextTenantId
+    clearTenantScopedDatasourceState()
+    resetEvidence()
+    await loadDatasourceInventory()
+  }
+)
 
 onMounted(() => {
   loadDatasourceInventory()
@@ -841,6 +956,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
                 :placeholder="locale === 'zh-CN' ? '引擎' : 'Engine'"
                 size="small"
                 :disabled="datasourceInventoryLoading"
+                data-testid="query-flow-engine-select"
                 style="width: 100px; flex-shrink: 0;"
                 @change="handleEngineChange"
               >
@@ -858,6 +974,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
                 size="small"
                 :loading="datasourceInventoryLoading"
                 :disabled="!hasAvailableDatasources"
+                data-testid="query-flow-datasource-select"
                 style="width: 150px; flex-shrink: 0;"
                 @change="handleDatasourceChange"
               >
@@ -902,7 +1019,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
                   </div>
                   <div class="settings-field">
                     <span>{{ t('inline.viewsQuerySqlQueryView.text044') }}</span>
-                    <el-select v-model="form.datasourceType" size="small">
+                    <el-select v-model="form.datasourceType" size="small" @change="handleEngineChange">
                       <el-option
                         v-for="item in datasourceOptions"
                         :key="item"
@@ -939,7 +1056,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
         </div>
 
-        <div class="editor-workspace-split">
+        <div class="editor-workspace-split" :class="{ 'params-collapsed': isParamsPanelCollapsed }">
           <div class="editor-main-block">
             <SqlEditorField
               v-model="form.sqlText"
@@ -964,7 +1081,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
             </div>
           </div>
 
-          <div class="parameters-panel-block">
+          <div v-if="!isParamsPanelCollapsed" class="parameters-panel-block">
             <div class="parameter-panel__header">
               <span class="parameter-panel__title sqlforge-code-label">{{ t('inline.viewsQuerySqlQueryView.text051') }}</span>
               <el-button text size="small" class="add-param-btn" @click="addParameter">+ Add</el-button>
@@ -1020,6 +1137,9 @@ const formatJson = value => JSON.stringify(value, null, 2)
           </div>
 
           <div class="submit-row__helpers">
+            <el-button text class="helper-btn" data-testid="query-flow-toggle-params" @click="isParamsPanelCollapsed = !isParamsPanelCollapsed">
+              {{ isParamsPanelCollapsed ? '📋 ' + t('inline.viewsQuerySqlQueryView.text051') : '📖 ' + t('inline.viewsQuerySqlQueryView.text051') }}
+            </el-button>
             <el-button text class="helper-btn" @click="showBoundPreviewDrawer = true">
               👁️ {{ t('inline.viewsQuerySqlQueryView.text059') }}
             </el-button>
@@ -1045,6 +1165,44 @@ const formatJson = value => JSON.stringify(value, null, 2)
 
       <el-tabs v-model="activeResultTab" class="terminal-tabs">
         <el-tab-pane :label="resultTabLabel" name="rows">
+          <!-- DBeaver-style Console Panel -->
+          <div v-if="result" class="dbeaver-console-panel" data-testid="dbeaver-console-panel">
+            <div class="console-header">
+              <span class="console-badge" :class="`badge-${result.status.toLowerCase()}`">
+                {{ result.status === 'SUCCESS' ? '🟢 SUCCESS' : result.status === 'PARTIAL' ? '🟡 PARTIAL' : '🔴 FAILED' }}
+              </span>
+              <div class="tri-state-tags">
+                <el-tag size="small" :type="syntaxState === 'VALID' ? 'success' : 'warning'" effect="dark" class="state-tag">
+                  📝 Syntax: {{ syntaxState }}
+                </el-tag>
+                <el-tag size="small" :type="accessState === 'CONNECTED' ? 'success' : 'info'" effect="dark" class="state-tag">
+                  🔌 Access: {{ accessState }}
+                </el-tag>
+                <el-tag size="small" :type="routeState === 'ACCELERATED' ? 'success' : routeState === 'DEGRADED' ? 'warning' : 'primary'" effect="dark" class="state-tag">
+                  🧭 Route: {{ routeState }}
+                </el-tag>
+              </div>
+            </div>
+            <div class="console-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Duration</span>
+                <strong class="metric-value">{{ result.metadata?.elapsedMs ? `${result.metadata.elapsedMs}ms` : '-' }}</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Rows Affected</span>
+                <strong class="metric-value">{{ resultPage.totalCount }}</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Target Engine</span>
+                <strong class="metric-value">{{ result.metadata?.targetEngine || form.datasourceType }}</strong>
+              </div>
+              <div v-if="result.degraded" class="metric-item is-warning">
+                <span class="metric-label">Fallback Note</span>
+                <strong class="metric-value">{{ result.degradeReason || 'Degraded path triggered' }}</strong>
+              </div>
+            </div>
+          </div>
+
           <div
             v-if="isExplainResult && explainPlanText"
             class="table-shell-container explain-plan-shell"
@@ -1528,6 +1686,11 @@ const formatJson = value => JSON.stringify(value, null, 2)
   grid-template-columns: minmax(0, 1.7fr) minmax(200px, 0.8fr);
   gap: 16px;
   align-items: stretch;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.editor-workspace-split.params-collapsed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .editor-main-block {
@@ -1909,5 +2072,111 @@ const formatJson = value => JSON.stringify(value, null, 2)
 }
 .connection-context-bar :deep(.el-select .el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 1px var(--sqlforge-color-brand-border) inset !important;
+}
+
+.dbeaver-console-panel {
+  padding: 16px;
+  background: var(--sqlforge-surface-2);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-lg);
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.01), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--sqlforge-border-subtle);
+  padding-bottom: 10px;
+}
+
+.console-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--sqlforge-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #3ecf8e;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge-partial {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.badge-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.tri-state-tags {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.state-tag {
+  font-family: var(--sqlforge-font-mono);
+  border-radius: 4px;
+}
+
+.console-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--sqlforge-bg-page-deep);
+  border: 1px solid var(--sqlforge-border-default);
+  border-radius: var(--sqlforge-radius-md);
+  transition: all 0.2s ease;
+}
+
+.metric-item:hover {
+  border-color: var(--sqlforge-color-brand-border);
+}
+
+.metric-label {
+  font-size: 11px;
+  color: var(--sqlforge-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 14px;
+  color: var(--sqlforge-text-primary);
+  font-weight: 500;
+  font-family: var(--sqlforge-font-mono);
+}
+
+.metric-item.is-warning {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.metric-item.is-warning .metric-value {
+  color: #f59e0b;
 }
 </style>
