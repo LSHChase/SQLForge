@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526: sql-optimization 报表批次持久化模型扩展
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `feat(sql-optimization): persist report batch statistics`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复报表批次仓储选择默认链路，新增报表批次统计规范化持久化模型，并保持现有 REST 契约兼容
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 报表批次仓储默认链路切换到显式 report-batch.repository 配置，新增统计快照规范化表、Mapper 与仓储，并为列表、详情和统计读取提供快照优先、明细回退的兼容路径。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 --include-task-audit；Maven 目标测试 ReportBatchApplicationServiceTest、ParseBatchPersistenceSchemaMappingTest、ReportBatchRepositorySelectionTest；batch/history contract checks。
+  - Residual risk: 未连接真实 MySQL 执行迁移；仓库内以 schema/mapper 对齐、仓储选择和应用服务回归测试覆盖。
+  - Next step: 无。
+
 ### USER-CN-SQL-TOKEN-NORMALIZER-20260525: 实现轻量 SQL token 归一化
 
 - Status: done

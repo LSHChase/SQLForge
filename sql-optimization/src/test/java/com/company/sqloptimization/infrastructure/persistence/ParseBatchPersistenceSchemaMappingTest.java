@@ -81,6 +81,9 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "plan_analysis_status VARCHAR(32)");
         assertContains(schema, "combined_analysis_status VARCHAR(32)");
         assertContains(schema, "plan_analysis_json JSON");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_stat_summary");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_issue_scene_stat");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_sql_stat");
         String migration = readRepositoryFile("sql/migrations/V20260426_006__report_batch_catalog.sql");
         assertContains(migration, "CREATE TABLE IF NOT EXISTS report_batch");
         assertContains(migration, "report_batch_item");
@@ -104,6 +107,36 @@ class ParseBatchPersistenceSchemaMappingTest {
         String parserModeMigration = readRepositoryFile("sql/migrations/V20260507_003__parser_mode_contract.sql");
         assertContains(parserModeMigration, "ADD COLUMN parser_mode");
         assertContains(parserModeMigration, "APACHE_CALCITE");
+    }
+
+    @Test
+    void shouldKeepReportBatchStatisticsSchemaAndMapperAligned() throws IOException {
+        String schema = readRepositoryFile("sql/init-schema.sql");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_stat_summary");
+        assertContains(schema, "resolved_sql_count INT NOT NULL DEFAULT 0");
+        assertContains(schema, "partial_resolved_sql_count INT NOT NULL DEFAULT 0");
+        assertContains(schema, "plan_analysis_success_count INT NOT NULL DEFAULT 0");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_sql_issue_scene_stat");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_sql_logical_object_stat");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_priority_stat");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_importance_stat");
+        assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_logical_object_stat");
+        assertContains(schema, "idx_report_batch_sql_batch_report");
+
+        String migration = readRepositoryFile("sql/migrations/V20260526_001__report_batch_statistics_persistence.sql");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS report_batch_stat_summary");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS report_batch_report_stat");
+        assertContains(migration, "CREATE TABLE IF NOT EXISTS report_batch_sql_stat");
+        assertContains(migration, "PRIMARY KEY (batch_id, item_id)");
+        assertContains(migration, "idx_report_batch_logical_object_batch");
+
+        String mapper = readMapper("mapper/ReportBatchStatisticsMapper.xml");
+        assertContains(mapper, "report_batch_stat_summary");
+        assertContains(mapper, "insertSummary");
+        assertContains(mapper, "insertSqlStats");
+        assertContains(mapper, "selectSummaryByBatchId");
+        assertContains(mapper, "selectSqlIssueScenesByBatchId");
+        assertContains(mapper, "selectSqlLogicalObjectsByBatchId");
     }
 
     @Test
@@ -179,12 +212,14 @@ class ParseBatchPersistenceSchemaMappingTest {
     void shouldDefaultRuntimeRepositoriesToDatabaseAndKeepTestsOnFixtures() throws IOException {
         String runtimeConfig = readRepositoryFile("sql-optimization/src/main/resources/application.yml");
         assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_PARSE_BATCH_REPOSITORY:database}");
+        assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_REPORT_BATCH_REPOSITORY:database}");
         assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_RECOMMENDATION_REPOSITORY:database}");
         assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_DISPATCH_EVENT_REPOSITORY:database}");
         assertContains(runtimeConfig, "repository: ${SQL_OPTIMIZATION_REWRITE_TRIAL_REPOSITORY:database}");
 
         String testConfig = readRepositoryFile("sql-optimization/src/test/resources/application-test.yml");
         assertContains(testConfig, "parse-batch:");
+        assertContains(testConfig, "report-batch:");
         assertContains(testConfig, "recommendation:");
         assertContains(testConfig, "dispatch-event:");
         assertContains(testConfig, "rewrite-trial:");
@@ -200,6 +235,11 @@ class ParseBatchPersistenceSchemaMappingTest {
         String itemMapper = readMapper("mapper/ReportBatchItemMapper.xml");
         assertContains(itemMapper, "FROM report_batch_item");
         assertContains(itemMapper, "selectAll");
+        assertContains(itemMapper, "selectPageByBatchId");
+        assertContains(itemMapper, "countByBatchId");
+        String statisticsMapper = readMapper("mapper/ReportBatchStatisticsMapper.xml");
+        assertContains(statisticsMapper, "FROM report_batch_sql_stat");
+        assertContains(statisticsMapper, "deleteSqlStatsByBatchId");
     }
 
     private static String readMapper(String resourcePath) throws IOException {

@@ -5956,3 +5956,44 @@
 2026-05-25T23:33:45-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-25T23:33:45-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 closeout commit | `R-168` | projected | `git commit -m 'fix(sql): normalize Yonghong derived join wrappers' (projected-precommit)`
 2026-05-25T23:33:45-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-26T02:51:43-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T02:51:43-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T02:51:45-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-26T02:51:49-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-26T02:51:49-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-26T02:51:49-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-26T02:51:49-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-26T02:51:49-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T03:03:50-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T03:03:51-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T03:03:52-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-26T03:03:56-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-26T03:03:56-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-26T03:03:56-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-26T03:03:57-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-26T03:03:57-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T03:03:57-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T03:04:03-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `mvn -Djava.io.tmpdir=/models/project/codex/SQLForge/sql-optimization/target/tmp -pl sql-optimization -am -Dtest=ReportBatchApplicationServiceTest,ParseBatchPersistenceSchemaMappingTest,ReportBatchRepositorySelectionTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-26T03:04:03-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-26T03:04:03-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-26T03:04:03-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-26T03:06:16-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T03:06:16-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T03:06:16-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T03:06:16-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T03:06:23-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `mvn -Djava.io.tmpdir=/models/project/codex/SQLForge/sql-optimization/target/tmp -pl sql-optimization -am -Dtest=ReportBatchApplicationServiceTest,ParseBatchPersistenceSchemaMappingTest,ReportBatchRepositorySelectionTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-26T03:06:23-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | failed | `node scripts/check-batch-import-contract.mjs`
+2026-05-26T03:06:23-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-26T03:06:23-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-26T03:07:27-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T03:07:27-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T03:07:27-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T03:07:27-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T03:07:34-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `mvn -Djava.io.tmpdir=/models/project/codex/SQLForge/sql-optimization/target/tmp -pl sql-optimization -am -Dtest=ReportBatchApplicationServiceTest,ParseBatchPersistenceSchemaMappingTest,ReportBatchRepositorySelectionTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-26T03:07:34-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-batch-import-contract.mjs`
+2026-05-26T03:07:34-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-history-page-contract.mjs`
+2026-05-26T03:07:34-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 validate | `R-133`, `R-168` | passed | `node scripts/check-history-detail-contract.mjs`
+2026-05-26T03:08:17-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T03:08:17-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): persist report batch statistics' (projected-precommit)`
+2026-05-26T03:08:17-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-26T03:08:17-05:00 | USER-CN-SQL-OPT-REPORT-BATCH-PERSISTENCE-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD~1' HEAD (projected-precommit)`

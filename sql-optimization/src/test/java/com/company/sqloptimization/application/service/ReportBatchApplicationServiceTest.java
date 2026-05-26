@@ -7,22 +7,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqloptimization.application.controller.dto.ReportBatchImportRequest;
+import com.company.sqloptimization.application.controller.vo.BatchPageResponse;
 import com.company.sqloptimization.application.controller.vo.ReportBatchIssueSceneDetailVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchParseStatisticsVO;
 import com.company.sqloptimization.application.controller.vo.ReportBatchStatusResponse;
 import com.company.sqloptimization.application.service.report.MockReportSqlFactory;
 import com.company.sqloptimization.application.service.report.ReportSqlResolver;
 import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
+import com.company.sqloptimization.domain.reportbatch.ReportBatch;
+import com.company.sqloptimization.domain.reportbatch.ReportBatchStatisticsSummary;
+import com.company.sqloptimization.domain.reportbatch.repository.ReportBatchStatisticsRepository;
 import com.company.sqloptimization.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqloptimization.infrastructure.plananalysis.HetuPlanAnalysisClient;
 import com.company.sqloptimization.infrastructure.repository.InMemorySqlParseHistoryRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchItemRepository;
 import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchRepository;
+import com.company.sqloptimization.infrastructure.repository.InMemoryReportBatchStatisticsRepository;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -186,6 +194,148 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(2), statistics.getSqlStatisticPageNumber());
         assertEquals(Integer.valueOf(25), Integer.valueOf(statistics.getSqlStatistics().size()));
         assertEquals("RPT_BIG", statistics.getSqlStatisticReportCodeFilter());
+    }
+
+    @Test
+    void shouldPersistInitialAndResolvedReportBatchStatistics() {
+        InMemoryReportBatchStatisticsRepository statisticsRepository = new InMemoryReportBatchStatisticsRepository();
+        ReportBatchApplicationService service = buildService(
+            request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE"),
+            HetuPlanAnalysisClient.unavailable(),
+            new InMemoryReportBatchRepository(),
+            new InMemoryReportBatchItemRepository(),
+            statisticsRepository
+        );
+        RequestContext.set("tenant-a", "user-001", "request-017", "trace-017", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "persisted-stat-csv",
+            "CSV",
+            "report_code,sql_1,sql_2\nRPT_PERSIST,\"SELECT * FROM orders\",\"SELECT * FROM customers\""
+        ));
+
+        ReportBatchStatisticsSummary initialSummary =
+            statisticsRepository.findSummaryByBatchId(imported.getBatchId());
+        assertNotNull(initialSummary);
+        assertEquals(2, initialSummary.getTotalSqlCount());
+        assertEquals(0, initialSummary.getResolvedSqlCount());
+        assertEquals(0, initialSummary.getFailedSqlCount());
+
+        ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
+        ReportBatchStatisticsSummary resolvedSummary =
+            statisticsRepository.findSummaryByBatchId(imported.getBatchId());
+
+        assertEquals("COMPLETED", resolved.getStatus());
+        assertEquals(2, resolvedSummary.getTotalSqlCount());
+        assertEquals(2, resolvedSummary.getResolvedSqlCount());
+        assertEquals(0, resolvedSummary.getFailedSqlCount());
+        assertEquals(2, resolvedSummary.getIssueSqlCount());
+        ReportBatchParseStatisticsVO persistedPage =
+            statisticsRepository.findParseStatistics(imported.getBatchId(), 1, 1, "RPT_PERSIST");
+        assertEquals(Integer.valueOf(2), persistedPage.getOverview().getTotalSqlCount());
+        assertEquals(Integer.valueOf(1), persistedPage.getSqlStatisticPageSize());
+        assertEquals(Integer.valueOf(2), persistedPage.getSqlStatisticTotalCount());
+        assertEquals(1, persistedPage.getSqlStatistics().size());
+
+        ReportBatchStatusResponse resolvedAgain = resolveAndAwait(service, imported.getBatchId());
+        ReportBatchStatisticsSummary replacedSummary =
+            statisticsRepository.findSummaryByBatchId(imported.getBatchId());
+        assertEquals("COMPLETED", resolvedAgain.getStatus());
+        assertEquals(2, replacedSummary.getResolvedSqlCount());
+        assertEquals(2, replacedSummary.getIssueSqlCount());
+    }
+
+    @Test
+    void shouldFallbackToItemsWhenReportBatchStatisticsRowsAreMissing() {
+        ReportBatchApplicationService service = buildService(
+            request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE"),
+            HetuPlanAnalysisClient.unavailable(),
+            new InMemoryReportBatchRepository(),
+            new InMemoryReportBatchItemRepository(),
+            new NoopReportBatchStatisticsRepository()
+        );
+        RequestContext.set("tenant-a", "user-001", "request-018", "trace-018", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "legacy-no-stat-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_LEGACY,\"SELECT * FROM orders\""
+        ));
+        resolveAndAwait(service, imported.getBatchId());
+
+        ReportBatchParseStatisticsVO statistics = service.getBatchParseStatistics(imported.getBatchId());
+        assertEquals(Integer.valueOf(1), statistics.getOverview().getTotalSqlCount());
+        assertEquals(Integer.valueOf(1), statistics.getOverview().getIssueSqlCount());
+        assertEquals("RPT_LEGACY", statistics.getSqlStatistics().get(0).getReportCode());
+
+        ReportBatchIssueSceneDetailVO detail = service.getBatchIssueSceneDetail(
+            imported.getBatchId(),
+            "SELECT_STAR",
+            1,
+            10,
+            1,
+            10,
+            1,
+            10,
+            null,
+            "TABLE:orders"
+        );
+        assertEquals(Integer.valueOf(1), detail.getAffectedSqlCount());
+        assertEquals("TABLE:orders", detail.getLogicalObjectDetails().get(0).getObjectKey());
+    }
+
+    @Test
+    void shouldListLegacyReportBatchesFromItemsWhenStatisticsRowsAreMissing() {
+        ReportBatchApplicationService service = buildService(
+            request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE"),
+            HetuPlanAnalysisClient.unavailable(),
+            new InMemoryReportBatchRepository(),
+            new InMemoryReportBatchItemRepository(),
+            new NoopReportBatchStatisticsRepository()
+        );
+        RequestContext.set("tenant-a", "user-001", "request-020", "trace-020", "header", 1L, 2L);
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest(
+            "legacy-list-no-stat-csv",
+            "CSV",
+            "report_code,sql_1,sql_2\nRPT_LEGACY_LIST,\"SELECT * FROM orders\",\"SELECT * FROM customers\""
+        ));
+        resolveAndAwait(service, imported.getBatchId());
+
+        BatchPageResponse<ReportBatchStatusResponse> page = service.listBatches(1, 10);
+
+        assertEquals(Integer.valueOf(1), page.getTotalCount());
+        assertEquals(Integer.valueOf(2), page.getItems().get(0).getTotalSqls());
+        assertEquals(Integer.valueOf(2), page.getItems().get(0).getResolvedSqls());
+        assertEquals(Integer.valueOf(0), page.getItems().get(0).getFailedSqls());
+        assertTrue(page.getItems().get(0).getReportItems().isEmpty());
+    }
+
+    @Test
+    void shouldListReportBatchesWithoutLoadingAllItemsWhenStatisticsExist() {
+        InMemoryReportBatchStatisticsRepository statisticsRepository = new InMemoryReportBatchStatisticsRepository();
+        FailingFindReportBatchItemRepository itemRepository = new FailingFindReportBatchItemRepository();
+        ReportBatchApplicationService service = buildService(
+            request -> MockReportSqlFactory.resolve(request, "UNIT_TEST_MOCK_SOURCE"),
+            HetuPlanAnalysisClient.unavailable(),
+            new InMemoryReportBatchRepository(),
+            itemRepository,
+            statisticsRepository
+        );
+        RequestContext.set("tenant-a", "user-001", "request-019", "trace-019", "header", 1L, 2L);
+
+        service.importBatch(baseRequest(
+            "list-with-stat-csv",
+            "CSV",
+            "report_code,sql_1\nRPT_LIST,\"SELECT id FROM orders\""
+        ));
+        itemRepository.failOnFindByBatchId();
+
+        BatchPageResponse<ReportBatchStatusResponse> page = service.listBatches(1, 10);
+
+        assertEquals(Integer.valueOf(1), page.getTotalCount());
+        assertEquals(Integer.valueOf(1), page.getItems().get(0).getTotalSqls());
+        assertTrue(page.getItems().get(0).getReportItems().isEmpty());
     }
 
     @Test
@@ -616,6 +766,20 @@ class ReportBatchApplicationServiceTest {
 
     private ReportBatchApplicationService buildService(ReportSqlResolver reportSqlResolver,
                                                        HetuPlanAnalysisClient hetuPlanAnalysisClient) {
+        return buildService(
+            reportSqlResolver,
+            hetuPlanAnalysisClient,
+            new InMemoryReportBatchRepository(),
+            new InMemoryReportBatchItemRepository(),
+            new InMemoryReportBatchStatisticsRepository()
+        );
+    }
+
+    private ReportBatchApplicationService buildService(ReportSqlResolver reportSqlResolver,
+                                                       HetuPlanAnalysisClient hetuPlanAnalysisClient,
+                                                       InMemoryReportBatchRepository reportBatchRepository,
+                                                       InMemoryReportBatchItemRepository reportBatchItemRepository,
+                                                       ReportBatchStatisticsRepository reportBatchStatisticsRepository) {
         GovernanceCapabilityClient governanceCapabilityClient = Mockito.mock(GovernanceCapabilityClient.class);
         SqlParseHistoryApplicationService sqlParseHistoryApplicationService =
             new SqlParseHistoryApplicationService(new InMemorySqlParseHistoryRepository());
@@ -628,11 +792,69 @@ class ReportBatchApplicationServiceTest {
         );
         AccessParseApplicationService accessService = new AccessParseApplicationService();
         return new ReportBatchApplicationService(
-            new InMemoryReportBatchRepository(),
-            new InMemoryReportBatchItemRepository(),
+            reportBatchRepository,
+            reportBatchItemRepository,
+            reportBatchStatisticsRepository,
             structureService,
             accessService,
             reportSqlResolver
         );
+    }
+
+    private static final class FailingFindReportBatchItemRepository extends InMemoryReportBatchItemRepository {
+        private boolean failOnFindByBatchId;
+
+        private void failOnFindByBatchId() {
+            this.failOnFindByBatchId = true;
+        }
+
+        @Override
+        public java.util.List<com.company.sqloptimization.domain.reportbatch.ReportBatchItem> findByBatchId(String batchId) {
+            if (failOnFindByBatchId) {
+                throw new AssertionError("listBatches must not load full report batch items");
+            }
+            return super.findByBatchId(batchId);
+        }
+    }
+
+    private static final class NoopReportBatchStatisticsRepository implements ReportBatchStatisticsRepository {
+        @Override
+        public void replaceStatistics(ReportBatch batch,
+                                      ReportBatchParseStatisticsVO statistics,
+                                      com.company.sqloptimization.application.controller.vo.ParseBatchStageStatisticsVO planAnalysisStatistics,
+                                      Instant occurredAt) {
+        }
+
+        @Override
+        public ReportBatchStatisticsSummary findSummaryByBatchId(String batchId) {
+            return null;
+        }
+
+        @Override
+        public Map<String, ReportBatchStatisticsSummary> findSummariesByBatchIds(List<String> batchIds) {
+            return Collections.emptyMap();
+        }
+
+        @Override
+        public ReportBatchParseStatisticsVO findParseStatistics(String batchId,
+                                                               Integer pageNumber,
+                                                               Integer pageSize,
+                                                               String reportCode) {
+            return null;
+        }
+
+        @Override
+        public ReportBatchIssueSceneDetailVO findIssueSceneDetail(String batchId,
+                                                                  String issueScene,
+                                                                  Integer pageNumber,
+                                                                  Integer pageSize,
+                                                                  Integer reportDetailPageNumber,
+                                                                  Integer reportDetailPageSize,
+                                                                  Integer logicalObjectDetailPageNumber,
+                                                                  Integer logicalObjectDetailPageSize,
+                                                                  String reportCode,
+                                                                  String logicalObjectKey) {
+            return null;
+        }
     }
 }

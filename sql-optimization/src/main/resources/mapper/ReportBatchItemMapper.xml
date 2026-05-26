@@ -97,6 +97,28 @@
         ORDER BY batch_id ASC, sequence_number ASC
     </select>
 
+    <!-- 配置项 select id=selectPageByBatchId：按批次分页读取明细，支持 report_code 过滤。 -->
+    <select id="selectPageByBatchId" resultMap="ReportBatchItemRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM report_batch_item
+        WHERE batch_id = #{batchId}
+        <if test="reportCode != null and reportCode != ''">
+            AND report_code = #{reportCode}
+        </if>
+        ORDER BY sequence_number ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 配置项 select id=countByBatchId：统计批次明细数，支持 report_code 过滤。 -->
+    <select id="countByBatchId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM report_batch_item
+        WHERE batch_id = #{batchId}
+        <if test="reportCode != null and reportCode != ''">
+            AND report_code = #{reportCode}
+        </if>
+    </select>
+
     <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchItemRecord">
         INSERT INTO report_batch_item (

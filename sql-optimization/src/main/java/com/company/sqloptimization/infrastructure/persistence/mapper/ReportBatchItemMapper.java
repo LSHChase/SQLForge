@@ -19,4 +19,11 @@ public interface ReportBatchItemMapper {
     List<ReportBatchItemRecord> selectByBatchId(@Param("batchId") String batchId);
 
     List<ReportBatchItemRecord> selectAll();
+
+    List<ReportBatchItemRecord> selectPageByBatchId(@Param("batchId") String batchId,
+                                                    @Param("reportCode") String reportCode,
+                                                    @Param("offset") Integer offset,
+                                                    @Param("limit") Integer limit);
+
+    Integer countByBatchId(@Param("batchId") String batchId, @Param("reportCode") String reportCode);
 }

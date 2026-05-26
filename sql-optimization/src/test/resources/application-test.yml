@@ -41,6 +41,10 @@ sql-optimization:
   parse-batch:
     # 配置项 repository：说明该配置的用途、默认值或运行影响。
     repository: test
+  # 配置项 report-batch：说明该配置的用途、默认值或运行影响。
+  report-batch:
+    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    repository: test
   # 配置项 recommendation：说明该配置的用途、默认值或运行影响。
   recommendation:
     # 配置项 repository：说明该配置的用途、默认值或运行影响。

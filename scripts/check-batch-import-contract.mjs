@@ -9,6 +9,8 @@ const contractFiles = [
   'src/views/parse-batch/BatchSummaryCards.vue',
   'src/views/parse-batch/BatchDetailFields.vue',
   'src/views/common/issueSceneHelp.mjs',
+  'src/locales/zh-CN.js',
+  'src/locales/en-US.js',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ParseBatchApplicationService.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchApplicationService.java',
   'sql-optimization/src/main/java/com/company/sqloptimization/application/service/ReportBatchParseStatisticsAssembler.java',

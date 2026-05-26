@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 配置项 mapper：报表批次统计规范化持久化映射。 -->
+<mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ReportBatchStatisticsMapper">
+
+    <resultMap id="SummaryRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SummaryRecord">
+        <id property="batchId" column="batch_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="totalSqlCount" column="total_sql_count"/>
+        <result property="resolvedSqlCount" column="resolved_sql_count"/>
+        <result property="partialResolvedSqlCount" column="partial_resolved_sql_count"/>
+        <result property="failedSqlCount" column="failed_sql_count"/>
+        <result property="issueSqlCount" column="issue_sql_count"/>
+        <result property="totalIssueCount" column="total_issue_count"/>
+        <result property="issueSceneCount" column="issue_scene_count"/>
+        <result property="importantSqlCount" column="important_sql_count"/>
+        <result property="urgentSqlCount" column="urgent_sql_count"/>
+        <result property="mergeCandidateReportCount" column="merge_candidate_report_count"/>
+        <result property="planAnalysisSuccessCount" column="plan_analysis_success_count"/>
+        <result property="planAnalysisPartialCount" column="plan_analysis_partial_count"/>
+        <result property="planAnalysisFailedCount" column="plan_analysis_failed_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="IssueSceneRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$IssueSceneRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="issueScene" column="issue_scene"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="issueDomain" column="issue_domain"/>
+        <result property="severity" column="severity"/>
+        <result property="priorityLevel" column="priority_level"/>
+        <result property="priorityScore" column="priority_score"/>
+        <result property="affectedSqlCount" column="affected_sql_count"/>
+        <result property="affectedIssueCount" column="affected_issue_count"/>
+        <result property="sqlRatio" column="sql_ratio"/>
+        <result property="important" column="important"/>
+        <result property="urgent" column="urgent"/>
+        <result property="reportCount" column="report_count"/>
+        <result property="logicalObjectCount" column="logical_object_count"/>
+        <result property="sampleReportCodesJson" column="sample_report_codes_json"/>
+        <result property="sampleLogicalObjectKeysJson" column="sample_logical_object_keys_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="SeverityRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SeverityRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="severity" column="severity"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="issueCount" column="issue_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="ReportRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$ReportRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="reportCode" column="report_code"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sqlCount" column="sql_count"/>
+        <result property="issueSqlCount" column="issue_sql_count"/>
+        <result property="issueCount" column="issue_count"/>
+        <result property="issueSqlRatio" column="issue_sql_ratio"/>
+        <result property="highestPriorityLevel" column="highest_priority_level"/>
+        <result property="highestPriorityScore" column="highest_priority_score"/>
+        <result property="important" column="important"/>
+        <result property="urgent" column="urgent"/>
+        <result property="issueScenesJson" column="issue_scenes_json"/>
+        <result property="mergeCandidate" column="merge_candidate"/>
+        <result property="mergeCandidateSqlCount" column="merge_candidate_sql_count"/>
+        <result property="mergeCandidateReason" column="merge_candidate_reason"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="SqlRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SqlRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="itemId" column="item_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="parseTaskId" column="parse_task_id"/>
+        <result property="reportCode" column="report_code"/>
+        <result property="reportName" column="report_name"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="stage" column="stage"/>
+        <result property="sqlColumnName" column="sql_column_name"/>
+        <result property="sqlOrdinalInReport" column="sql_ordinal_in_report"/>
+        <result property="status" column="status"/>
+        <result property="sqlDigest" column="sql_digest"/>
+        <result property="issueCount" column="issue_count"/>
+        <result property="highestPriorityLevel" column="highest_priority_level"/>
+        <result property="highestPriorityScore" column="highest_priority_score"/>
+        <result property="important" column="important"/>
+        <result property="urgent" column="urgent"/>
+        <result property="issueLocationsJson" column="issue_locations_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="SqlIssueSceneRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SqlIssueSceneRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="itemId" column="item_id"/>
+        <id property="issueScene" column="issue_scene"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="SqlLogicalObjectRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SqlLogicalObjectRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="itemId" column="item_id"/>
+        <id property="logicalObjectKey" column="logical_object_key"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="PriorityRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$PriorityRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="priorityLevel" column="priority_level"/>
+        <id property="urgencyBucket" column="urgency_bucket"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sqlCount" column="sql_count"/>
+        <result property="issueCount" column="issue_count"/>
+        <result property="reportCount" column="report_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="ImportanceRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$ImportanceRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="importanceBucket" column="importance_bucket"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sqlCount" column="sql_count"/>
+        <result property="issueCount" column="issue_count"/>
+        <result property="reportCount" column="report_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="LogicalObjectRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$LogicalObjectRecord">
+        <id property="batchId" column="batch_id"/>
+        <id property="logicalObjectKey" column="logical_object_key"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="sqlCount" column="sql_count"/>
+        <result property="issueCount" column="issue_count"/>
+        <result property="reportCount" column="report_count"/>
+        <result property="reportCodesJson" column="report_codes_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <delete id="deleteSummaryByBatchId">DELETE FROM report_batch_stat_summary WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteIssueScenesByBatchId">DELETE FROM report_batch_issue_scene_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteSeveritiesByBatchId">DELETE FROM report_batch_severity_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteReportsByBatchId">DELETE FROM report_batch_report_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteSqlStatsByBatchId">DELETE FROM report_batch_sql_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteSqlIssueScenesByBatchId">DELETE FROM report_batch_sql_issue_scene_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteSqlLogicalObjectsByBatchId">DELETE FROM report_batch_sql_logical_object_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deletePrioritiesByBatchId">DELETE FROM report_batch_priority_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteImportancesByBatchId">DELETE FROM report_batch_importance_stat WHERE batch_id = #{batchId}</delete>
+    <delete id="deleteLogicalObjectsByBatchId">DELETE FROM report_batch_logical_object_stat WHERE batch_id = #{batchId}</delete>
+
+    <insert id="insertSummary" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SummaryRecord">
+        INSERT INTO report_batch_stat_summary (
+            batch_id, tenant_id, total_sql_count, resolved_sql_count, partial_resolved_sql_count, failed_sql_count,
+            issue_sql_count, total_issue_count, issue_scene_count, important_sql_count, urgent_sql_count,
+            merge_candidate_report_count, plan_analysis_success_count, plan_analysis_partial_count,
+            plan_analysis_failed_count, created_at, updated_at
+        ) VALUES (
+            #{batchId}, #{tenantId}, #{totalSqlCount}, #{resolvedSqlCount}, #{partialResolvedSqlCount}, #{failedSqlCount},
+            #{issueSqlCount}, #{totalIssueCount}, #{issueSceneCount}, #{importantSqlCount}, #{urgentSqlCount},
+            #{mergeCandidateReportCount}, #{planAnalysisSuccessCount}, #{planAnalysisPartialCount},
+            #{planAnalysisFailedCount}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <insert id="insertIssueScenes">
+        INSERT INTO report_batch_issue_scene_stat (
+            batch_id, tenant_id, issue_scene, issue_domain, severity, priority_level, priority_score,
+            affected_sql_count, affected_issue_count, sql_ratio, important, urgent, report_count,
+            logical_object_count, sample_report_codes_json, sample_logical_object_keys_json, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.issueScene}, #{record.issueDomain}, #{record.severity},
+             #{record.priorityLevel}, #{record.priorityScore}, #{record.affectedSqlCount}, #{record.affectedIssueCount},
+             #{record.sqlRatio}, #{record.important}, #{record.urgent}, #{record.reportCount},
+             #{record.logicalObjectCount}, #{record.sampleReportCodesJson}, #{record.sampleLogicalObjectKeysJson},
+             #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertSeverities">
+        INSERT INTO report_batch_severity_stat (
+            batch_id, tenant_id, severity, issue_count, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.severity}, #{record.issueCount},
+             #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertReports">
+        INSERT INTO report_batch_report_stat (
+            batch_id, tenant_id, report_code, sql_count, issue_sql_count, issue_count, issue_sql_ratio,
+            highest_priority_level, highest_priority_score, important, urgent, issue_scenes_json,
+            merge_candidate, merge_candidate_sql_count, merge_candidate_reason, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.reportCode}, #{record.sqlCount},
+             #{record.issueSqlCount}, #{record.issueCount}, #{record.issueSqlRatio}, #{record.highestPriorityLevel},
+             #{record.highestPriorityScore}, #{record.important}, #{record.urgent}, #{record.issueScenesJson},
+             #{record.mergeCandidate}, #{record.mergeCandidateSqlCount}, #{record.mergeCandidateReason},
+             #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertSqlStats">
+        INSERT INTO report_batch_sql_stat (
+            batch_id, tenant_id, item_id, parse_task_id, report_code, report_name, datasource_code, stage,
+            sql_column_name, sql_ordinal_in_report, status, sql_digest, issue_count, highest_priority_level,
+            highest_priority_score, important, urgent, issue_locations_json, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.itemId}, #{record.parseTaskId}, #{record.reportCode},
+             #{record.reportName}, #{record.datasourceCode}, #{record.stage}, #{record.sqlColumnName},
+             #{record.sqlOrdinalInReport}, #{record.status}, #{record.sqlDigest}, #{record.issueCount},
+             #{record.highestPriorityLevel}, #{record.highestPriorityScore}, #{record.important}, #{record.urgent},
+             #{record.issueLocationsJson}, #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertSqlIssueScenes">
+        INSERT INTO report_batch_sql_issue_scene_stat (
+            batch_id, tenant_id, item_id, issue_scene, created_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.itemId}, #{record.issueScene}, #{record.createdAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertSqlLogicalObjects">
+        INSERT INTO report_batch_sql_logical_object_stat (
+            batch_id, tenant_id, item_id, logical_object_key, created_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.itemId}, #{record.logicalObjectKey}, #{record.createdAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertPriorities">
+        INSERT INTO report_batch_priority_stat (
+            batch_id, tenant_id, priority_level, urgency_bucket, sql_count, issue_count, report_count, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.priorityLevel}, #{record.urgencyBucket},
+             #{record.sqlCount}, #{record.issueCount}, #{record.reportCount}, #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertImportances">
+        INSERT INTO report_batch_importance_stat (
+            batch_id, tenant_id, importance_bucket, sql_count, issue_count, report_count, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.importanceBucket}, #{record.sqlCount},
+             #{record.issueCount}, #{record.reportCount}, #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <insert id="insertLogicalObjects">
+        INSERT INTO report_batch_logical_object_stat (
+            batch_id, tenant_id, logical_object_key, sql_count, issue_count, report_count, report_codes_json,
+            created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (#{record.batchId}, #{record.tenantId}, #{record.logicalObjectKey}, #{record.sqlCount},
+             #{record.issueCount}, #{record.reportCount}, #{record.reportCodesJson}, #{record.createdAt}, #{record.updatedAt})
+        </foreach>
+    </insert>
+
+    <select id="selectSummaryByBatchId" resultMap="SummaryRecordMap">
+        SELECT *
+        FROM report_batch_stat_summary
+        WHERE batch_id = #{batchId}
+    </select>
+
+    <select id="selectSummariesByBatchIds" resultMap="SummaryRecordMap">
+        SELECT *
+        FROM report_batch_stat_summary
+        WHERE batch_id IN
+        <foreach collection="batchIds" item="batchId" open="(" separator="," close=")">
+            #{batchId}
+        </foreach>
+    </select>
+
+    <select id="selectIssueScenesByBatchId" resultMap="IssueSceneRecordMap">
+        SELECT *
+        FROM report_batch_issue_scene_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY affected_sql_count DESC, priority_score DESC, issue_scene ASC
+    </select>
+
+    <select id="selectSeveritiesByBatchId" resultMap="SeverityRecordMap">
+        SELECT *
+        FROM report_batch_severity_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY severity ASC
+    </select>
+
+    <select id="selectReportsByBatchId" resultMap="ReportRecordMap">
+        SELECT *
+        FROM report_batch_report_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY issue_sql_count DESC, highest_priority_score DESC, report_code ASC
+    </select>
+
+    <select id="selectSqlStatsByBatchId" resultMap="SqlRecordMap">
+        SELECT *
+        FROM report_batch_sql_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY highest_priority_score DESC, issue_count DESC, item_id ASC
+    </select>
+
+    <select id="selectSqlIssueScenesByBatchId" resultMap="SqlIssueSceneRecordMap">
+        SELECT *
+        FROM report_batch_sql_issue_scene_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY item_id ASC, issue_scene ASC
+    </select>
+
+    <select id="selectSqlLogicalObjectsByBatchId" resultMap="SqlLogicalObjectRecordMap">
+        SELECT *
+        FROM report_batch_sql_logical_object_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY item_id ASC, logical_object_key ASC
+    </select>
+
+    <select id="selectPrioritiesByBatchId" resultMap="PriorityRecordMap">
+        SELECT *
+        FROM report_batch_priority_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY priority_level ASC, urgency_bucket ASC
+    </select>
+
+    <select id="selectImportancesByBatchId" resultMap="ImportanceRecordMap">
+        SELECT *
+        FROM report_batch_importance_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY sql_count DESC, importance_bucket ASC
+    </select>
+
+    <select id="selectLogicalObjectsByBatchId" resultMap="LogicalObjectRecordMap">
+        SELECT *
+        FROM report_batch_logical_object_stat
+        WHERE batch_id = #{batchId}
+        ORDER BY sql_count DESC, issue_count DESC, logical_object_key ASC
+    </select>
+</mapper>

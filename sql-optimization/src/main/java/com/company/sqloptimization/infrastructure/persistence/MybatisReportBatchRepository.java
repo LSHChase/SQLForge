@@ -21,7 +21,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "database-worker")
+@ConditionalOnProperty(prefix = "sql-optimization.report-batch", name = "repository", havingValue = "database")
 public class MybatisReportBatchRepository implements ReportBatchRepository {
 
     private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
@@ -60,6 +60,26 @@ public class MybatisReportBatchRepository implements ReportBatchRepository {
         }
         result.sort(Comparator.comparing(ReportBatch::getCreatedAt).reversed().thenComparing(ReportBatch::getBatchId));
         return result;
+    }
+
+    @Override
+    public List<ReportBatch> findPageByTenantId(String tenantId, int offset, int limit) {
+        List<ReportBatchRecord> records = reportBatchMapper.selectPageByTenantId(
+            tenantId,
+            Integer.valueOf(Math.max(0, offset)),
+            Integer.valueOf(Math.max(0, limit))
+        );
+        List<ReportBatch> result = new ArrayList<ReportBatch>(records.size());
+        for (ReportBatchRecord record : records) {
+            result.add(toDomain(record));
+        }
+        return result;
+    }
+
+    @Override
+    public int countByTenantId(String tenantId) {
+        Integer count = reportBatchMapper.countByTenantId(tenantId);
+        return count == null ? 0 : count.intValue();
     }
 
     private ReportBatchRecord toRecord(ReportBatch batch) {

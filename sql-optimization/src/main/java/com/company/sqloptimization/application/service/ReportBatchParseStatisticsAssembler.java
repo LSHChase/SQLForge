@@ -39,10 +39,23 @@ class ReportBatchParseStatisticsAssembler {
         return build(sourceItems, null, null, null);
     }
 
+    ReportBatchParseStatisticsVO buildComplete(List<ReportBatchItem> sourceItems) {
+        int totalCount = sourceItems == null ? 0 : sourceItems.size();
+        return build(sourceItems, Integer.valueOf(1), Integer.valueOf(Math.max(1, totalCount)), null, Math.max(1, totalCount));
+    }
+
     ReportBatchParseStatisticsVO build(List<ReportBatchItem> sourceItems,
                                        Integer pageNumber,
                                        Integer pageSize,
                                        String reportCode) {
+        return build(sourceItems, pageNumber, pageSize, reportCode, SqlStatisticPage.MAX_PAGE_SIZE);
+    }
+
+    private ReportBatchParseStatisticsVO build(List<ReportBatchItem> sourceItems,
+                                               Integer pageNumber,
+                                               Integer pageSize,
+                                               String reportCode,
+                                               int maxPageSize) {
         List<ReportBatchItem> items = sourceItems == null
             ? Collections.<ReportBatchItem>emptyList()
             : sourceItems;
@@ -50,7 +63,8 @@ class ReportBatchParseStatisticsAssembler {
             pageNumber,
             pageSize,
             reportCode,
-            SQL_STATISTIC_PREVIEW_LIMIT
+            SQL_STATISTIC_PREVIEW_LIMIT,
+            maxPageSize
         );
         MergeCandidateIndex mergeCandidateIndex = buildMergeCandidateIndex(items);
         List<ReportBatchSqlStatisticVO> sqlStatistics = new ArrayList<ReportBatchSqlStatisticVO>(items.size());
@@ -1066,6 +1080,18 @@ class ReportBatchParseStatisticsAssembler {
             int normalizedPageNumber = pageNumber == null ? 1 : Math.max(1, pageNumber.intValue());
             int normalizedPageSize = pageSize == null ? defaultPageSize : pageSize.intValue();
             normalizedPageSize = Math.max(1, Math.min(MAX_PAGE_SIZE, normalizedPageSize));
+            String normalizedReportCode = StringUtils.hasText(reportCode) ? reportCode.trim() : null;
+            return new SqlStatisticPage(normalizedPageNumber, normalizedPageSize, normalizedReportCode);
+        }
+
+        private static SqlStatisticPage from(Integer pageNumber,
+                                             Integer pageSize,
+                                             String reportCode,
+                                             int defaultPageSize,
+                                             int maxPageSize) {
+            int normalizedPageNumber = pageNumber == null ? 1 : Math.max(1, pageNumber.intValue());
+            int normalizedPageSize = pageSize == null ? defaultPageSize : pageSize.intValue();
+            normalizedPageSize = Math.max(1, Math.min(Math.max(1, maxPageSize), normalizedPageSize));
             String normalizedReportCode = StringUtils.hasText(reportCode) ? reportCode.trim() : null;
             return new SqlStatisticPage(normalizedPageNumber, normalizedPageSize, normalizedReportCode);
         }

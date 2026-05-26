@@ -66,6 +66,22 @@
         ORDER BY created_at DESC, batch_id DESC
     </select>
 
+    <!-- 配置项 select id=selectPageByTenantId：按租户分页读取报表批次摘要，避免列表页加载明细。 -->
+    <select id="selectPageByTenantId" resultMap="ReportBatchRecordMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM report_batch
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, batch_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 配置项 select id=countByTenantId：统计租户报表批次数。 -->
+    <select id="countByTenantId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM report_batch
+        WHERE tenant_id = #{tenantId}
+    </select>
+
     <!-- 配置项 insert id=insert：说明该配置的用途、默认值或运行影响。 -->
     <insert id="insert" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord">
         INSERT INTO report_batch (

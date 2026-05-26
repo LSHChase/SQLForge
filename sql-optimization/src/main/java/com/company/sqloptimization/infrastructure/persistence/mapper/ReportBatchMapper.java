@@ -15,4 +15,10 @@ public interface ReportBatchMapper {
     ReportBatchRecord selectByBatchId(@Param("batchId") String batchId);
 
     List<ReportBatchRecord> selectAll();
+
+    List<ReportBatchRecord> selectPageByTenantId(@Param("tenantId") String tenantId,
+                                                 @Param("offset") Integer offset,
+                                                 @Param("limit") Integer limit);
+
+    Integer countByTenantId(@Param("tenantId") String tenantId);
 }

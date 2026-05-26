@@ -17,7 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "database-worker")
+@ConditionalOnProperty(prefix = "sql-optimization.report-batch", name = "repository", havingValue = "database")
 public class MybatisReportBatchItemRepository implements ReportBatchItemRepository {
 
     private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
@@ -68,6 +68,27 @@ public class MybatisReportBatchItemRepository implements ReportBatchItemReposito
     public ReportBatchItem findByItemId(String itemId) {
         ReportBatchItemRecord record = reportBatchItemMapper.selectByItemId(itemId);
         return record == null ? null : toDomain(record);
+    }
+
+    @Override
+    public List<ReportBatchItem> findPageByBatchId(String batchId, int offset, int limit, String reportCode) {
+        List<ReportBatchItemRecord> records = reportBatchItemMapper.selectPageByBatchId(
+            batchId,
+            reportCode,
+            Integer.valueOf(Math.max(0, offset)),
+            Integer.valueOf(Math.max(0, limit))
+        );
+        List<ReportBatchItem> items = new ArrayList<ReportBatchItem>(records.size());
+        for (ReportBatchItemRecord record : records) {
+            items.add(toDomain(record));
+        }
+        return items;
+    }
+
+    @Override
+    public int countByBatchId(String batchId, String reportCode) {
+        Integer count = reportBatchItemMapper.countByBatchId(batchId, reportCode);
+        return count == null ? 0 : count.intValue();
     }
 
     private ReportBatchItemRecord toRecord(ReportBatchItem item) {
