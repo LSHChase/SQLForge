@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260526: 全量更新 dist-portable 便携前端产物
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `build(portable): refresh dist-portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: Rebuild the portable frontend package from current source, remove stale hashed dist-portable assets, run portable build and browser smoke validation, then close out through the standard audit chain.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Cleared stale dist-portable hashed assets and regenerated the portable frontend package from current source; the rebuilt tracked dist-portable files are byte-identical to the current repository package.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260526 --include-task-audit --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'git diff --check'; npm run build:portable; npm run smoke:portable-frontend; git diff --check
+  - Residual risk: No known repository-side residual risk; runtime backend availability still depends on the target host portable-config.json service URLs.
+  - Next step: Use dist-portable/start-portable.sh or start-portable.cmd with configured backend services when distributing the verified portable package.
+
 ### USER-CN-FRONTEND-SAMPLE-DEFAULTS-PROFILE-GATE-20260526: Frontend sample defaults profile gate
 
 - Status: done
