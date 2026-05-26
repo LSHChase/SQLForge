@@ -1,32 +1,32 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
+  # 配置项 datasource：用途：配置服务数据库连接；默认值：见其子项；运行影响：影响持久化、查询和任务状态读写。
   datasource:
-    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
+    # 配置项 driver-class-name：用途：指定 JDBC 驱动类；默认值：com.mysql.cj.jdbc.Driver；运行影响：驱动不匹配会导致数据库连接初始化失败。
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 配置项 url：说明该配置的用途、默认值或运行影响。
+    # 配置项 url：用途：指定数据库或服务访问地址；默认值：环境变量 SQLFORGE_DEV_DB_URL，未设置时为 jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true；运行影响：地址错误会导致运行时连接失败。
     url: ${SQLFORGE_DEV_DB_URL:jdbc:mysql://localhost:3306/sqlforge?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
-    # 配置项 username：说明该配置的用途、默认值或运行影响。
+    # 配置项 username：用途：指定连接账号；默认值：环境变量 SQLFORGE_DEV_DB_USER，未设置时为 sqlforge；运行影响：账号错误会导致认证失败。
     username: ${SQLFORGE_DEV_DB_USER:sqlforge}
-    # 配置项 password：说明该配置的用途、默认值或运行影响。
+    # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 SQLFORGE_DEV_DB_PASSWORD，未设置时为 sqlforge；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
     password: ${SQLFORGE_DEV_DB_PASSWORD:sqlforge}
-  # 配置项 redis：说明该配置的用途、默认值或运行影响。
+  # 配置项 redis：用途：配置 Redis 连接或 Redis 支撑能力；默认值：见其子项；运行影响：影响缓存、队列或临时状态能力是否可用。
   redis:
-    # 配置项 host：说明该配置的用途、默认值或运行影响。
+    # 配置项 host：用途：指定依赖服务主机名；默认值：环境变量 SQLFORGE_DEV_REDIS_HOST，未设置时为 localhost；运行影响：主机不可达会导致依赖连接失败。
     host: ${SQLFORGE_DEV_REDIS_HOST:localhost}
-    # 配置项 port：说明该配置的用途、默认值或运行影响。
+    # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：环境变量 SQLFORGE_DEV_REDIS_PORT，未设置时为 6379；运行影响：端口变化会影响访问地址和端口冲突风险。
     port: ${SQLFORGE_DEV_REDIS_PORT:6379}
-    # 配置项 password：说明该配置的用途、默认值或运行影响。
+    # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 SQLFORGE_DEV_REDIS_PASSWORD，未设置时为 空值；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
     password: ${SQLFORGE_DEV_REDIS_PASSWORD:}
 
 # 生产环境要求：useSSL=true，auth.enabled=true（R-115/R-111）
 # 生产环境切换为messaging.mode=KAFKA（R-144）。
-# 配置项 messaging：说明该配置的用途、默认值或运行影响。
+# 配置项 messaging：用途：定义顶层配置段 messaging；默认值：见其子项；运行影响：该段缺失会导致对应服务配置无法绑定。
 messaging:
-  mode: DATABASE # 配置项 mode：说明该配置的用途、默认值或运行影响。
-  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
+  mode: DATABASE # 配置项 mode：用途：选择治理消息模块运行模式；默认值：DATABASE；运行影响：开发环境使用数据库消息兜底，改为 KAFKA 会要求可用 Kafka 连接。
+  # 配置项 kafka：用途：配置 Kafka 消息通道；默认值：见其子项；运行影响：影响消息发布、消费和生产模式接入。
   kafka:
-    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
     enabled: false
     # bootstrap-servers: ${SQLFORGE_DEV_KAFKA_BOOTSTRAP:localhost:9092}
     # security-protocol: ${SQLFORGE_DEV_KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
@@ -34,67 +34,67 @@ messaging:
     # sasl-jaas-config: ${SQLFORGE_DEV_KAFKA_SASL_JAAS_CONFIG:}
     # ssl-truststore-location: ${SQLFORGE_DEV_KAFKA_SSL_TRUSTSTORE_LOCATION:}
     # ssl-truststore-password: ${SQLFORGE_DEV_KAFKA_SSL_TRUSTSTORE_PASSWORD:}
-  # 配置项 database：说明该配置的用途、默认值或运行影响。
+  # 配置项 database：用途：配置数据库模式或数据库索引；默认值：见其子项；运行影响：影响数据库连接、消息兜底或缓存分区。
   database:
-    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 enabled：用途：控制上级功能是否启用；默认值：true；运行影响：关闭后上级功能不会进入运行路径。
     enabled: true
-    # 配置项 poll-interval：说明该配置的用途、默认值或运行影响。
+    # 配置项 poll-interval：用途：设置数据库消息轮询间隔；默认值：5000；运行影响：间隔越短消息发现越快但数据库访问更频繁。
     poll-interval: 5000
-    # 配置项 max-retry：说明该配置的用途、默认值或运行影响。
+    # 配置项 max-retry：用途：设置消息或任务最大重试次数；默认值：3；运行影响：次数过低会更快失败，次数过高会延迟失败暴露。
     max-retry: 3
 
-# 配置项 logging：说明该配置的用途、默认值或运行影响。
+# 配置项 logging：用途：配置日志输出和级别；默认值：见其子项；运行影响：影响排障信息量、日志体积和生产可观测性。
 logging:
-  # 配置项 level：说明该配置的用途、默认值或运行影响。
+  # 配置项 level：用途：配置日志级别集合；默认值：见其子项；运行影响：影响各包日志输出粒度。
   level:
-    # 配置项 root：说明该配置的用途、默认值或运行影响。
+    # 配置项 root：用途：配置根日志级别；默认值：INFO；运行影响：影响未单独指定包名的日志输出。
     root: INFO
-    # 配置项 com.company.governance：说明该配置的用途、默认值或运行影响。
+    # 配置项 com.company.governance：用途：设置 com.company.governance 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     com.company.governance: INFO
-    # 配置项 org.mybatis：说明该配置的用途、默认值或运行影响。
+    # 配置项 org.mybatis：用途：设置 org.mybatis 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     org.mybatis: INFO
 
-# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
+# 配置项 sqlforge：用途：承载 SQLForge 公共配置；默认值：见其子项；运行影响：影响安全、存储和治理公共能力。
 sqlforge:
-  # 配置项 optional：说明该配置的用途、默认值或运行影响。
+  # 配置项 optional：用途：承载本地可选能力开关；默认值：见其子项；运行影响：开启会改变本地开发依赖和运行路径。
   optional:
-    # 配置项 h2-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 h2-enabled：用途：控制本地 H2 可选能力是否启用；默认值：false；运行影响：开启会改变本地测试数据库路径。
     h2-enabled: false
-  # 配置项 security：说明该配置的用途、默认值或运行影响。
+  # 配置项 security：用途：承载安全相关配置；默认值：见其子项；运行影响：影响敏感字段加密和认证安全边界。
   security:
-    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
+    # 配置项 crypto：用途：配置敏感字段加密组件；默认值：见其子项；运行影响：配置错误会导致密文无法解密或写入失败。
     crypto:
-      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
+      # 配置项 algorithm：用途：指定加密算法标识；默认值：AES256_GCM；运行影响：算法不匹配会导致加解密不兼容。
       algorithm: AES256_GCM
-      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-id：用途：指定当前密钥标识；默认值：环境变量 SQLFORGE_DEV_CRYPTO_KEY_ID，未设置时为 governance-dev-key；运行影响：影响密文元数据和密钥轮换追溯。
       key-id: ${SQLFORGE_DEV_CRYPTO_KEY_ID:governance-dev-key}
-      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
+      # 配置项 base64-key：用途：提供 Base64 编码的加密密钥；默认值：环境变量 SQLFORGE_DEV_CRYPTO_KEY_BASE64，未设置时为 空值；运行影响：为空会使加密组件无法进行真实加解密。
       base64-key: ${SQLFORGE_DEV_CRYPTO_KEY_BASE64:}
-  # 配置项 obs：说明该配置的用途、默认值或运行影响。
+  # 配置项 obs：用途：配置对象存储兼容端点；默认值：见其子项；运行影响：影响开发环境产物或导出文件访问。
   obs:
-    # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+    # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：环境变量 SQLFORGE_DEV_OBS_ENDPOINT，未设置时为 http://localhost:9000；运行影响：端点错误会导致客户端连接失败。
     endpoint: ${SQLFORGE_DEV_OBS_ENDPOINT:http://localhost:9000}
-    # 配置项 access-key：说明该配置的用途、默认值或运行影响。
+    # 配置项 access-key：用途：指定对象存储访问 key；默认值：环境变量 SQLFORGE_DEV_OBS_ACCESS_KEY，未设置时为 minioadmin；运行影响：错误会导致对象存储认证失败。
     access-key: ${SQLFORGE_DEV_OBS_ACCESS_KEY:minioadmin}
-    # 配置项 secret-key：说明该配置的用途、默认值或运行影响。
+    # 配置项 secret-key：用途：指定对象存储 secret key；默认值：环境变量 SQLFORGE_DEV_OBS_SECRET_KEY，未设置时为 minioadmin；运行影响：错误会导致对象存储认证失败，生产不得硬编码。
     secret-key: ${SQLFORGE_DEV_OBS_SECRET_KEY:minioadmin}
-    # 配置项 bucket：说明该配置的用途、默认值或运行影响。
+    # 配置项 bucket：用途：指定对象存储 bucket；默认值：环境变量 SQLFORGE_DEV_OBS_BUCKET，未设置时为 sqlforge-dev；运行影响：bucket 不存在会导致读写失败。
     bucket: ${SQLFORGE_DEV_OBS_BUCKET:sqlforge-dev}
 
-# 配置项 governance：说明该配置的用途、默认值或运行影响。
+# 配置项 governance：用途：配置治理服务或治理客户端能力；默认值：见其子项；运行影响：影响租户校验、审计写入和跨服务治理调用。
 governance:
-  # 配置项 audit：说明该配置的用途、默认值或运行影响。
+  # 配置项 audit：用途：配置治理审计专项开关；默认值：见其子项；运行影响：影响 smoke 和审计写入故障演练行为。
   audit:
-    # 配置项 smoke-force-primary-delivery-failure-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 smoke-force-primary-delivery-failure-enabled：用途：控制审计 smoke 是否强制主路由失败；默认值：环境变量 SQLFORGE_GOVERNANCE_SMOKE_FORCE_AUDIT_DELIVERY_FAILURE，未设置时为 false；运行影响：开启后会验证审计 fallback 路径。
     smoke-force-primary-delivery-failure-enabled: ${SQLFORGE_GOVERNANCE_SMOKE_FORCE_AUDIT_DELIVERY_FAILURE:false}
-    # 配置项 smoke-force-trace-prefix：说明该配置的用途、默认值或运行影响。
+    # 配置项 smoke-force-trace-prefix：用途：指定强制审计 fallback 的 trace 前缀；默认值：环境变量 SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX，未设置时为 SMOKE-FORCE-AUDIT-FALLBACK；运行影响：前缀匹配会触发 smoke 故障注入。
     smoke-force-trace-prefix: ${SQLFORGE_GOVERNANCE_SMOKE_FORCE_TRACE_PREFIX:SMOKE-FORCE-AUDIT-FALLBACK}
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
   enabled: false
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 header；默认值：当前列表项为 header；运行影响：请求来源不在列表中会被鉴权拦截。
     - header

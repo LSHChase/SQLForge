@@ -6021,3 +6021,38 @@
 2026-05-26T03:54:47-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260526 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-26T03:54:47-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
 2026-05-26T03:54:47-05:00 | USER-CN-DIST-PORTABLE-UPDATE-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 scripts/check-config-item-comments.py`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/check-config-item-comments.py`
+2026-05-26T04:33:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-26T04:34:03-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T04:34:04-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T04:34:04-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T04:34:04-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T04:34:04-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 scripts/check-config-item-comments.py`
+2026-05-26T04:34:04-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/check-config-item-comments.py`
+2026-05-26T04:34:04-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-26T04:35:25-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-26T04:35:25-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T04:35:25-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-26T04:35:25-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T04:35:25-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 scripts/check-config-item-comments.py`
+2026-05-26T04:35:25-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/check-config-item-comments.py`
+2026-05-26T04:35:26-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-26T04:35:26-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `docker-compose config`
+2026-05-26T04:35:26-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `docker-compose -f docker-compose-cn.yml config`
+2026-05-26T04:35:26-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `docker-compose -f docker-compose-simple.yml config`
+2026-05-26T04:35:26-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 closeout commit | `R-168` | projected | `git commit -m 'USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 detail YAML config comments in Chinese' (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/check-config-item-comments.py (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 -m py_compile scripts/check-config-item-comments.py (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `docker-compose config (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `docker-compose -f docker-compose-cn.yml config (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `docker-compose -f docker-compose-simple.yml config (projected-precommit)`
+2026-05-26T04:36:02-05:00 | USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

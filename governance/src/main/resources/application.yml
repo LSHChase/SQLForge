@@ -1,198 +1,198 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 application：说明该配置的用途、默认值或运行影响。
+  # 配置项 application：用途：定义 Spring 应用元信息；默认值：见其子项；运行影响：影响服务标识、日志上下文和运行状态识别。
   application:
-    # 配置项 name：说明该配置的用途、默认值或运行影响。
+    # 配置项 name：用途：定义治理服务应用名；默认值：governance；运行影响：影响日志标识、Actuator 信息和服务上下文识别。
     name: governance
-  # 配置项 profiles：说明该配置的用途、默认值或运行影响。
+  # 配置项 profiles：用途：定义环境 profile 配置；默认值：见其子项；运行影响：影响加载 dev、test、prod 或 compose profile 的配置分支。
   profiles:
-    # 配置项 active：说明该配置的用途、默认值或运行影响。
+    # 配置项 active：用途：选择默认激活的 Spring profile；默认值：环境变量 SPRING_PROFILES_ACTIVE，未设置时为 dev；运行影响：决定未显式指定环境时加载哪套配置。
     active: ${SPRING_PROFILES_ACTIVE:dev}
-  # 配置项 servlet：说明该配置的用途、默认值或运行影响。
+  # 配置项 servlet：用途：配置 Spring Web servlet 行为；默认值：见其子项；运行影响：影响上传、请求解析和 Web 容器限制。
   servlet:
-    # 配置项 multipart：说明该配置的用途、默认值或运行影响。
+    # 配置项 multipart：用途：配置文件上传 multipart 限制；默认值：见其子项；运行影响：影响数据源驱动等上传接口可接收的文件大小。
     multipart:
-      # 配置项 max-file-size：说明该配置的用途、默认值或运行影响。
+      # 配置项 max-file-size：用途：限制单个上传文件大小；默认值：环境变量 GOVERNANCE_DATASOURCE_DRIVER_MAX_FILE_SIZE，未设置时为 50MB；运行影响：超过该值的上传会被拒绝。
       max-file-size: ${GOVERNANCE_DATASOURCE_DRIVER_MAX_FILE_SIZE:50MB}
-      # 配置项 max-request-size：说明该配置的用途、默认值或运行影响。
+      # 配置项 max-request-size：用途：限制单次 multipart 请求总大小；默认值：环境变量 GOVERNANCE_DATASOURCE_DRIVER_MAX_REQUEST_SIZE，未设置时为 52MB；运行影响：超过该值的请求会被容器拒绝。
       max-request-size: ${GOVERNANCE_DATASOURCE_DRIVER_MAX_REQUEST_SIZE:52MB}
 
-# 配置项 server：说明该配置的用途、默认值或运行影响。
+# 配置项 server：用途：配置服务 HTTP 容器；默认值：见其子项；运行影响：影响接口监听端口和内嵌容器行为。
 server:
-  # 配置项 port：说明该配置的用途、默认值或运行影响。
+  # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：8080；运行影响：端口变化会影响访问地址和端口冲突风险。
   port: 8080
-  # 配置项 tomcat：说明该配置的用途、默认值或运行影响。
+  # 配置项 tomcat：用途：配置内嵌 Tomcat 参数；默认值：见其子项；运行影响：影响请求体处理和异常吞吐策略。
   tomcat:
-    # 配置项 max-swallow-size：说明该配置的用途、默认值或运行影响。
+    # 配置项 max-swallow-size：用途：配置 Tomcat 丢弃请求体的最大大小；默认值：环境变量 GOVERNANCE_TOMCAT_MAX_SWALLOW_SIZE，未设置时为 -1；运行影响：设为 -1 可避免大文件上传失败后被截断。
     max-swallow-size: ${GOVERNANCE_TOMCAT_MAX_SWALLOW_SIZE:-1}
 
-# 配置项 management：说明该配置的用途、默认值或运行影响。
+# 配置项 management：用途：配置 Actuator 管理端点；默认值：见其子项；运行影响：影响健康检查、指标和 Prometheus 暴露。
 management:
-  # 配置项 endpoints：说明该配置的用途、默认值或运行影响。
+  # 配置项 endpoints：用途：配置管理端点集合；默认值：见其子项；运行影响：影响可通过 HTTP 暴露的运维入口。
   endpoints:
-    # 配置项 web：说明该配置的用途、默认值或运行影响。
+    # 配置项 web：用途：配置管理端点的 Web 暴露方式；默认值：见其子项；运行影响：影响管理端点能否通过 HTTP 访问。
     web:
-      # 配置项 exposure：说明该配置的用途、默认值或运行影响。
+      # 配置项 exposure：用途：配置端点暴露范围；默认值：见其子项；运行影响：暴露过多会扩大运维接口可见面。
       exposure:
-        # 配置项 include：说明该配置的用途、默认值或运行影响。
+        # 配置项 include：用途：列出允许暴露或加载的条目；默认值：health,info,metrics,prometheus；运行影响：决定对应端点或配置是否生效。
         include: health,info,metrics,prometheus
-  # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+  # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：见其子项；运行影响：端点错误会导致客户端连接失败。
   endpoint:
-    # 配置项 health：说明该配置的用途、默认值或运行影响。
+    # 配置项 health：用途：配置健康检查端点；默认值：见其子项；运行影响：影响服务健康信息展示深度。
     health:
-      # 配置项 show-details：说明该配置的用途、默认值或运行影响。
+      # 配置项 show-details：用途：控制健康详情展示策略；默认值：always；运行影响：展示过多会增加环境信息暴露面。
       show-details: always
 
-# 配置项 logging：说明该配置的用途、默认值或运行影响。
+# 配置项 logging：用途：配置日志输出和级别；默认值：见其子项；运行影响：影响排障信息量、日志体积和生产可观测性。
 logging:
-  # 配置项 level：说明该配置的用途、默认值或运行影响。
+  # 配置项 level：用途：配置日志级别集合；默认值：见其子项；运行影响：影响各包日志输出粒度。
   level:
-    # 配置项 root：说明该配置的用途、默认值或运行影响。
+    # 配置项 root：用途：配置根日志级别；默认值：INFO；运行影响：影响未单独指定包名的日志输出。
     root: INFO
-    # 配置项 com.company.governance：说明该配置的用途、默认值或运行影响。
+    # 配置项 com.company.governance：用途：设置 com.company.governance 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     com.company.governance: INFO
 
-# 配置项 mybatis：说明该配置的用途、默认值或运行影响。
+# 配置项 mybatis：用途：配置 MyBatis 运行参数；默认值：见其子项；运行影响：影响 mapper XML 加载和字段映射。
 mybatis:
-  # 配置项 config-location：说明该配置的用途、默认值或运行影响。
+  # 配置项 config-location：用途：指定 MyBatis 全局配置文件；默认值：classpath:mybatis-config.xml；运行影响：路径错误会导致 MyBatis 初始化失败。
   config-location: classpath:mybatis-config.xml
-  # 配置项 mapper-locations：说明该配置的用途、默认值或运行影响。
+  # 配置项 mapper-locations：用途：指定 MyBatis mapper XML 扫描路径；默认值：classpath*:mapper/*.xml；运行影响：路径错误会导致 SQL mapper 不可用。
   mapper-locations: classpath*:mapper/*.xml
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
   enabled: false
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 header；默认值：当前列表项为 header；运行影响：请求来源不在列表中会被鉴权拦截。
     - header
 
-# 配置项 governance：说明该配置的用途、默认值或运行影响。
+# 配置项 governance：用途：配置治理服务或治理客户端能力；默认值：见其子项；运行影响：影响租户校验、审计写入和跨服务治理调用。
 governance:
-  # 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
+  # 配置项 benchmark-engine：用途：配置压测引擎服务或压测客户端；默认值：见其子项；运行影响：影响压测任务、报告和证据产物处理。
   benchmark-engine:
-    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-url：用途：指定内部服务调用基地址；默认值：环境变量 GOVERNANCE_BENCHMARK_ENGINE_BASE_URL，未设置时为 http://localhost:8083/api/benchmark-engine/internal；运行影响：地址错误会导致跨服务调用失败。
     base-url: ${GOVERNANCE_BENCHMARK_ENGINE_BASE_URL:http://localhost:8083/api/benchmark-engine/internal}
-    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 GOVERNANCE_BENCHMARK_ENGINE_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
     connect-timeout-ms: ${GOVERNANCE_BENCHMARK_ENGINE_CONNECT_TIMEOUT_MS:3000}
-    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 GOVERNANCE_BENCHMARK_ENGINE_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
     read-timeout-ms: ${GOVERNANCE_BENCHMARK_ENGINE_READ_TIMEOUT_MS:5000}
-  # 配置项 sql-optimization：说明该配置的用途、默认值或运行影响。
+  # 配置项 sql-optimization：用途：配置 SQL 优化服务或优化客户端；默认值：见其子项；运行影响：影响解析、推荐、改写和计划分析。
   sql-optimization:
-    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-url：用途：指定内部服务调用基地址；默认值：环境变量 GOVERNANCE_SQL_OPTIMIZATION_BASE_URL，未设置时为 http://localhost:8082/api/sql-optimization；运行影响：地址错误会导致跨服务调用失败。
     base-url: ${GOVERNANCE_SQL_OPTIMIZATION_BASE_URL:http://localhost:8082/api/sql-optimization}
-    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 GOVERNANCE_SQL_OPTIMIZATION_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
     connect-timeout-ms: ${GOVERNANCE_SQL_OPTIMIZATION_CONNECT_TIMEOUT_MS:3000}
-    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 GOVERNANCE_SQL_OPTIMIZATION_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
     read-timeout-ms: ${GOVERNANCE_SQL_OPTIMIZATION_READ_TIMEOUT_MS:5000}
-  # 配置项 access-control：说明该配置的用途、默认值或运行影响。
+  # 配置项 access-control：用途：配置治理访问控制矩阵；默认值：见其子项；运行影响：影响租户和数据源授权判定。
   access-control:
-    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 enabled：用途：控制上级功能是否启用；默认值：true；运行影响：关闭后上级功能不会进入运行路径。
     enabled: true
-    # 配置项 deny-by-default：说明该配置的用途、默认值或运行影响。
+    # 配置项 deny-by-default：用途：控制未命中授权时是否默认拒绝；默认值：true；运行影响：关闭会扩大未显式授权的访问面。
     deny-by-default: true
-    # 配置项 audit-decisions：说明该配置的用途、默认值或运行影响。
+    # 配置项 audit-decisions：用途：控制授权判定是否写入审计；默认值：true；运行影响：关闭会降低访问决策可追溯性。
     audit-decisions: true
-    # 配置项 datasource-scopes：说明该配置的用途、默认值或运行影响。
+    # 配置项 datasource-scopes：用途：定义租户到数据源动作的授权范围；默认值：见其子项；运行影响：缺失会导致对应租户无法访问目标数据源。
     datasource-scopes:
-      # 配置项 tenant-a：说明该配置的用途、默认值或运行影响。
+      # 配置项 tenant-a：用途：定义租户 tenant-a 的数据源授权范围；默认值：见其子项；运行影响：该租户未列出的数据源会按默认拒绝处理。
       tenant-a:
-        # 配置项 query-trino：说明该配置的用途、默认值或运行影响。
+        # 配置项 query-trino：用途：定义数据源或治理资源 query-trino 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         query-trino:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-        # 配置项 query-hetu：说明该配置的用途、默认值或运行影响。
+        # 配置项 query-hetu：用途：定义数据源或治理资源 query-hetu 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         query-hetu:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-        # 配置项 query-hive：说明该配置的用途、默认值或运行影响。
+        # 配置项 query-hive：用途：定义数据源或治理资源 query-hive 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         query-hive:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-        # 配置项 optimization-hetu：说明该配置的用途、默认值或运行影响。
+        # 配置项 optimization-hetu：用途：定义数据源或治理资源 optimization-hetu 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         optimization-hetu:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-        # 配置项 optimization-hive：说明该配置的用途、默认值或运行影响。
+        # 配置项 optimization-hive：用途：定义数据源或治理资源 optimization-hive 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         optimization-hive:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-        # 配置项 benchmark-hetu：说明该配置的用途、默认值或运行影响。
+        # 配置项 benchmark-hetu：用途：定义数据源或治理资源 benchmark-hetu 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         benchmark-hetu:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 EXPORT；默认值：当前列表项为 EXPORT；运行影响：缺少该动作时对应资源操作会被拒绝。
             - EXPORT
-        # 配置项 benchmark-hive：说明该配置的用途、默认值或运行影响。
+        # 配置项 benchmark-hive：用途：定义数据源或治理资源 benchmark-hive 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         benchmark-hive:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 USE；默认值：当前列表项为 USE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - USE
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 EXPORT；默认值：当前列表项为 EXPORT；运行影响：缺少该动作时对应资源操作会被拒绝。
             - EXPORT
-        # 配置项 governance-tenant-config：说明该配置的用途、默认值或运行影响。
+        # 配置项 governance-tenant-config：用途：定义数据源或治理资源 governance-tenant-config 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         governance-tenant-config:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 READ；默认值：当前列表项为 READ；运行影响：缺少该动作时对应资源操作会被拒绝。
             - READ
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 MANAGE；默认值：当前列表项为 MANAGE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - MANAGE
-      # 配置项 system：说明该配置的用途、默认值或运行影响。
+      # 配置项 system：用途：定义租户 system 的数据源授权范围；默认值：见其子项；运行影响：该租户未列出的数据源会按默认拒绝处理。
       system:
-        # 配置项 governance-tenant-config：说明该配置的用途、默认值或运行影响。
+        # 配置项 governance-tenant-config：用途：定义数据源或治理资源 governance-tenant-config 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         governance-tenant-config:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 READ；默认值：当前列表项为 READ；运行影响：缺少该动作时对应资源操作会被拒绝。
             - READ
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 MANAGE；默认值：当前列表项为 MANAGE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - MANAGE
-      # 配置项 tenant-b：说明该配置的用途、默认值或运行影响。
+      # 配置项 tenant-b：用途：定义租户 tenant-b 的数据源授权范围；默认值：见其子项；运行影响：该租户未列出的数据源会按默认拒绝处理。
       tenant-b:
-        # 配置项 governance-tenant-config：说明该配置的用途、默认值或运行影响。
+        # 配置项 governance-tenant-config：用途：定义数据源或治理资源 governance-tenant-config 的授权条目；默认值：见其子项；运行影响：状态或动作配置错误会导致对应操作被拒绝。
         governance-tenant-config:
-          # 配置项 state：说明该配置的用途、默认值或运行影响。
+          # 配置项 state：用途：标记授权或资源状态；默认值：ACTIVE；运行影响：非 ACTIVE 会使对应能力不参与可用路径。
           state: ACTIVE
-          # 配置项 actions：说明该配置的用途、默认值或运行影响。
+          # 配置项 actions：用途：列出允许执行的动作集合；默认值：见其子项；运行影响：动作缺失会导致对应操作被拒绝。
           actions:
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 READ；默认值：当前列表项为 READ；运行影响：缺少该动作时对应资源操作会被拒绝。
             - READ
-            # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+            # 配置列表项 列表值：用途：允许执行动作 MANAGE；默认值：当前列表项为 MANAGE；运行影响：缺少该动作时对应资源操作会被拒绝。
             - MANAGE
-  # 配置项 datasource-driver：说明该配置的用途、默认值或运行影响。
+  # 配置项 datasource-driver：用途：配置数据源驱动上传限制；默认值：见其子项；运行影响：影响驱动文件上传入口可接收的大小。
   datasource-driver:
-    # 配置项 max-file-size：说明该配置的用途、默认值或运行影响。
+    # 配置项 max-file-size：用途：限制单个上传文件大小；默认值：环境变量 GOVERNANCE_DATASOURCE_DRIVER_MAX_FILE_SIZE，未设置时为 50MB；运行影响：超过该值的上传会被拒绝。
     max-file-size: ${GOVERNANCE_DATASOURCE_DRIVER_MAX_FILE_SIZE:50MB}

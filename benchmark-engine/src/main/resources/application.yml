@@ -1,183 +1,183 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 application：说明该配置的用途、默认值或运行影响。
+  # 配置项 application：用途：定义 Spring 应用元信息；默认值：见其子项；运行影响：影响服务标识、日志上下文和运行状态识别。
   application:
-    # 配置项 name：说明该配置的用途、默认值或运行影响。
+    # 配置项 name：用途：定义压测引擎服务应用名；默认值：benchmark-engine；运行影响：影响日志标识、Actuator 信息和服务上下文识别。
     name: benchmark-engine
-  # 配置项 profiles：说明该配置的用途、默认值或运行影响。
+  # 配置项 profiles：用途：定义环境 profile 配置；默认值：见其子项；运行影响：影响加载 dev、test、prod 或 compose profile 的配置分支。
   profiles:
-    # 配置项 active：说明该配置的用途、默认值或运行影响。
+    # 配置项 active：用途：选择默认激活的 Spring profile；默认值：环境变量 SPRING_PROFILES_ACTIVE，未设置时为 dev；运行影响：决定未显式指定环境时加载哪套配置。
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
-# 配置项 server：说明该配置的用途、默认值或运行影响。
+# 配置项 server：用途：配置服务 HTTP 容器；默认值：见其子项；运行影响：影响接口监听端口和内嵌容器行为。
 server:
-  # 配置项 port：说明该配置的用途、默认值或运行影响。
+  # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：8083；运行影响：端口变化会影响访问地址和端口冲突风险。
   port: 8083
 
-# 配置项 management：说明该配置的用途、默认值或运行影响。
+# 配置项 management：用途：配置 Actuator 管理端点；默认值：见其子项；运行影响：影响健康检查、指标和 Prometheus 暴露。
 management:
-  # 配置项 endpoints：说明该配置的用途、默认值或运行影响。
+  # 配置项 endpoints：用途：配置管理端点集合；默认值：见其子项；运行影响：影响可通过 HTTP 暴露的运维入口。
   endpoints:
-    # 配置项 web：说明该配置的用途、默认值或运行影响。
+    # 配置项 web：用途：配置管理端点的 Web 暴露方式；默认值：见其子项；运行影响：影响管理端点能否通过 HTTP 访问。
     web:
-      # 配置项 exposure：说明该配置的用途、默认值或运行影响。
+      # 配置项 exposure：用途：配置端点暴露范围；默认值：见其子项；运行影响：暴露过多会扩大运维接口可见面。
       exposure:
-        # 配置项 include：说明该配置的用途、默认值或运行影响。
+        # 配置项 include：用途：列出允许暴露或加载的条目；默认值：health,info,metrics,prometheus；运行影响：决定对应端点或配置是否生效。
         include: health,info,metrics,prometheus
-  # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+  # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：见其子项；运行影响：端点错误会导致客户端连接失败。
   endpoint:
-    # 配置项 health：说明该配置的用途、默认值或运行影响。
+    # 配置项 health：用途：配置健康检查端点；默认值：见其子项；运行影响：影响服务健康信息展示深度。
     health:
-      # 配置项 show-details：说明该配置的用途、默认值或运行影响。
+      # 配置项 show-details：用途：控制健康详情展示策略；默认值：always；运行影响：展示过多会增加环境信息暴露面。
       show-details: always
 
-# 配置项 logging：说明该配置的用途、默认值或运行影响。
+# 配置项 logging：用途：配置日志输出和级别；默认值：见其子项；运行影响：影响排障信息量、日志体积和生产可观测性。
 logging:
-  # 配置项 level：说明该配置的用途、默认值或运行影响。
+  # 配置项 level：用途：配置日志级别集合；默认值：见其子项；运行影响：影响各包日志输出粒度。
   level:
-    # 配置项 root：说明该配置的用途、默认值或运行影响。
+    # 配置项 root：用途：配置根日志级别；默认值：INFO；运行影响：影响未单独指定包名的日志输出。
     root: INFO
-    # 配置项 com.company.benchmarkengine：说明该配置的用途、默认值或运行影响。
+    # 配置项 com.company.benchmarkengine：用途：设置 com.company.benchmarkengine 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     com.company.benchmarkengine: INFO
 
-# 配置项 mybatis：说明该配置的用途、默认值或运行影响。
+# 配置项 mybatis：用途：配置 MyBatis 运行参数；默认值：见其子项；运行影响：影响 mapper XML 加载和字段映射。
 mybatis:
-  # 配置项 config-location：说明该配置的用途、默认值或运行影响。
+  # 配置项 config-location：用途：指定 MyBatis 全局配置文件；默认值：classpath:mybatis-config.xml；运行影响：路径错误会导致 MyBatis 初始化失败。
   config-location: classpath:mybatis-config.xml
-  # 配置项 mapper-locations：说明该配置的用途、默认值或运行影响。
+  # 配置项 mapper-locations：用途：指定 MyBatis mapper XML 扫描路径；默认值：classpath*:mapper/*.xml；运行影响：路径错误会导致 SQL mapper 不可用。
   mapper-locations: classpath*:mapper/*.xml
 
-# 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
+# 配置项 benchmark-engine：用途：配置压测引擎服务或压测客户端；默认值：见其子项；运行影响：影响压测任务、报告和证据产物处理。
 benchmark-engine:
-  # 配置项 isolation：说明该配置的用途、默认值或运行影响。
+  # 配置项 isolation：用途：配置压测隔离要求；默认值：见其子项；运行影响：影响压测是否强制只读、影子环境和脱敏。
   isolation:
-    # 配置项 readonly-required：说明该配置的用途、默认值或运行影响。
+    # 配置项 readonly-required：用途：要求压测必须只读；默认值：true；运行影响：关闭会弱化压测安全边界。
     readonly-required: true
-    # 配置项 shadow-environment-default：说明该配置的用途、默认值或运行影响。
+    # 配置项 shadow-environment-default：用途：指定影子环境默认要求；默认值：REQUIRED；运行影响：影响压测任务未声明时的隔离策略。
     shadow-environment-default: REQUIRED
-    # 配置项 desensitization-default：说明该配置的用途、默认值或运行影响。
+    # 配置项 desensitization-default：用途：指定脱敏默认要求；默认值：REQUIRED；运行影响：影响压测任务未声明时的数据保护策略。
     desensitization-default: REQUIRED
-  # 配置项 task-model：说明该配置的用途、默认值或运行影响。
+  # 配置项 task-model：用途：配置任务模型元数据；默认值：见其子项；运行影响：影响任务隔离队列和阶段说明。
   task-model:
-    # 配置项 contract-stage：说明该配置的用途、默认值或运行影响。
+    # 配置项 contract-stage：用途：标记配置契约阶段；默认值：LONG_TERM_BASELINE；运行影响：用于运行证据和文档真值追溯。
     contract-stage: LONG_TERM_BASELINE
-    # 配置项 implementation-stage：说明该配置的用途、默认值或运行影响。
+    # 配置项 implementation-stage：用途：标记当前实现阶段；默认值：EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE；运行影响：用于区分目标架构和已实现事实。
     implementation-stage: EXTERNALIZED_ARTIFACT_GOVERNANCE_TRACE_BASELINE
-  # 配置项 task-execution：说明该配置的用途、默认值或运行影响。
+  # 配置项 task-execution：用途：配置异步任务执行节奏；默认值：见其子项；运行影响：影响 worker 轮询、可见性延迟和阶段推进速度。
   task-execution:
-    # 配置项 poll-interval-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 poll-interval-ms：用途：设置任务轮询间隔毫秒数；默认值：25；运行影响：间隔越短处理越快但数据库访问更频繁。
     poll-interval-ms: 25
-    # 配置项 queue-visibility-delay-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 queue-visibility-delay-ms：用途：设置队列可见性延迟；默认值：100；运行影响：延迟越长并发重复获取概率越低但任务启动更慢。
     queue-visibility-delay-ms: 100
-    # 配置项 phase-delay-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 phase-delay-ms：用途：设置任务阶段推进延迟；默认值：40；运行影响：影响测试和本地 worker 的状态流转速度。
     phase-delay-ms: 40
-    # 配置项 isolation-sample-count：说明该配置的用途、默认值或运行影响。
+    # 配置项 isolation-sample-count：用途：设置隔离校验采样数量；默认值：8；运行影响：数值越大校验更充分但执行更慢。
     isolation-sample-count: 8
-    # 配置项 isolation-work-iterations：说明该配置的用途、默认值或运行影响。
+    # 配置项 isolation-work-iterations：用途：设置隔离校验工作迭代次数；默认值：96；运行影响：数值越大越能暴露隔离问题但耗时更长。
     isolation-work-iterations: 96
-  # 配置项 queues：说明该配置的用途、默认值或运行影响。
+  # 配置项 queues：用途：配置任务队列实现；默认值：见其子项；运行影响：影响任务获取、外部文件队列和 worker 模式。
   queues:
-    # 配置项 mode：说明该配置的用途、默认值或运行影响。
+    # 配置项 mode：用途：选择上级模块运行模式；默认值：database-worker；运行影响：模式变化会切换实现路径和外部依赖。
     mode: database-worker
-    # 配置项 external-file-queue-dir：说明该配置的用途、默认值或运行影响。
+    # 配置项 external-file-queue-dir：用途：指定外部文件队列目录；默认值：环境变量 BENCHMARK_ENGINE_EXTERNAL_QUEUE_DIR，未设置时为 target/benchmark-engine-queue/external-file-spool；运行影响：路径错误会导致文件队列无法读取任务。
     external-file-queue-dir: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_DIR:target/benchmark-engine-queue/external-file-spool}
-    # 配置项 cleanup-consumed-files：说明该配置的用途、默认值或运行影响。
+    # 配置项 cleanup-consumed-files：用途：控制消费后是否清理队列文件；默认值：环境变量 BENCHMARK_ENGINE_EXTERNAL_QUEUE_CLEANUP_CONSUMED_FILES，未设置时为 true；运行影响：关闭会保留文件用于排查但可能重复消费。
     cleanup-consumed-files: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_CLEANUP_CONSUMED_FILES:true}
-    # 配置项 acquire-batch-size：说明该配置的用途、默认值或运行影响。
+    # 配置项 acquire-batch-size：用途：设置单次获取外部队列文件数量；默认值：环境变量 BENCHMARK_ENGINE_EXTERNAL_QUEUE_ACQUIRE_BATCH_SIZE，未设置时为 32；运行影响：数值越大吞吐越高但单批处理压力更大。
     acquire-batch-size: ${BENCHMARK_ENGINE_EXTERNAL_QUEUE_ACQUIRE_BATCH_SIZE:32}
-  # 配置项 governance：说明该配置的用途、默认值或运行影响。
+  # 配置项 governance：用途：配置治理服务或治理客户端能力；默认值：见其子项；运行影响：影响租户校验、审计写入和跨服务治理调用。
   governance:
-    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-url：用途：指定内部服务调用基地址；默认值：环境变量 BENCHMARK_ENGINE_GOVERNANCE_BASE_URL，未设置时为 http://localhost:8080/api/governance/internal；运行影响：地址错误会导致跨服务调用失败。
     base-url: ${BENCHMARK_ENGINE_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
-    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 BENCHMARK_ENGINE_GOVERNANCE_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
     connect-timeout-ms: ${BENCHMARK_ENGINE_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
-    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 BENCHMARK_ENGINE_GOVERNANCE_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
     read-timeout-ms: ${BENCHMARK_ENGINE_GOVERNANCE_READ_TIMEOUT_MS:5000}
-    # 配置项 datasource-id-map：说明该配置的用途、默认值或运行影响。
+    # 配置项 datasource-id-map：用途：配置引擎类型到治理数据源 ID 的映射；默认值：见其子项；运行影响：映射错误会导致治理访问校验使用错误数据源。
     datasource-id-map:
-      # 配置项 AUTO：说明该配置的用途、默认值或运行影响。
+      # 配置项 AUTO：用途：将 AUTO 映射到治理数据源 ID；默认值：环境变量 BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_AUTO，未设置时为 benchmark-hetu；运行影响：映射错误会导致访问校验使用错误数据源。
       AUTO: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_AUTO:benchmark-hetu}
-      # 配置项 HETU：说明该配置的用途、默认值或运行影响。
+      # 配置项 HETU：用途：将 HETU 映射到治理数据源 ID；默认值：环境变量 BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HETU，未设置时为 benchmark-hetu；运行影响：映射错误会导致访问校验使用错误数据源。
       HETU: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HETU:benchmark-hetu}
-      # 配置项 HIVE：说明该配置的用途、默认值或运行影响。
+      # 配置项 HIVE：用途：将 HIVE 映射到治理数据源 ID；默认值：环境变量 BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HIVE，未设置时为 benchmark-hive；运行影响：映射错误会导致访问校验使用错误数据源。
       HIVE: ${BENCHMARK_ENGINE_GOVERNANCE_DATASOURCE_HIVE:benchmark-hive}
-  # 配置项 query-execution：说明该配置的用途、默认值或运行影响。
+  # 配置项 query-execution：用途：配置查询执行服务或查询执行客户端；默认值：见其子项；运行影响：影响查询路由、Hetu 接入和加速命中。
   query-execution:
-    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-url：用途：指定内部服务调用基地址；默认值：环境变量 BENCHMARK_ENGINE_QUERY_EXECUTION_BASE_URL，未设置时为 http://localhost:8081/api/query-execution/internal/benchmark；运行影响：地址错误会导致跨服务调用失败。
     base-url: ${BENCHMARK_ENGINE_QUERY_EXECUTION_BASE_URL:http://localhost:8081/api/query-execution/internal/benchmark}
-    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 BENCHMARK_ENGINE_QUERY_EXECUTION_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
     connect-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_CONNECT_TIMEOUT_MS:3000}
-    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 BENCHMARK_ENGINE_QUERY_EXECUTION_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
     read-timeout-ms: ${BENCHMARK_ENGINE_QUERY_EXECUTION_READ_TIMEOUT_MS:5000}
-  # 配置项 sql-optimization：说明该配置的用途、默认值或运行影响。
+  # 配置项 sql-optimization：用途：配置 SQL 优化服务或优化客户端；默认值：见其子项；运行影响：影响解析、推荐、改写和计划分析。
   sql-optimization:
-    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-url：用途：指定内部服务调用基地址；默认值：环境变量 BENCHMARK_ENGINE_SQL_OPTIMIZATION_BASE_URL，未设置时为 http://localhost:8082/api/sql-optimization；运行影响：地址错误会导致跨服务调用失败。
     base-url: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_BASE_URL:http://localhost:8082/api/sql-optimization}
-    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 BENCHMARK_ENGINE_SQL_OPTIMIZATION_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
     connect-timeout-ms: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_CONNECT_TIMEOUT_MS:3000}
-    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 BENCHMARK_ENGINE_SQL_OPTIMIZATION_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
     read-timeout-ms: ${BENCHMARK_ENGINE_SQL_OPTIMIZATION_READ_TIMEOUT_MS:5000}
-  # 配置项 artifact-storage：说明该配置的用途、默认值或运行影响。
+  # 配置项 artifact-storage：用途：配置压测报告产物存储；默认值：见其子项；运行影响：影响 JSON、PDF、HTML 和 raw-data 的写入与恢复。
   artifact-storage:
-    # 配置项 base-dir：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-dir：用途：指定本地产物根目录；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_BASE_DIR，未设置时为 target/benchmark-engine-artifacts；运行影响：路径变化会影响报告文件留存位置。
     base-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_BASE_DIR:target/benchmark-engine-artifacts}
-    # 配置项 storage-type：说明该配置的用途、默认值或运行影响。
+    # 配置项 storage-type：用途：选择产物存储类型；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_TYPE，未设置时为 LOCAL_FILE；运行影响：LOCAL_FILE 使用仓库本地路径，环境对象存储需要额外配置。
     storage-type: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TYPE:LOCAL_FILE}
-    # 配置项 recovery-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 recovery-enabled：用途：控制缺失产物是否允许恢复；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_RECOVERY_ENABLED，未设置时为 true；运行影响：关闭后缺失文件不会从快照或镜像恢复。
     recovery-enabled: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_RECOVERY_ENABLED:true}
-    # 配置项 cleanup-stale-files：说明该配置的用途、默认值或运行影响。
+    # 配置项 cleanup-stale-files：用途：控制是否清理陈旧产物文件；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_CLEANUP_STALE_FILES，未设置时为 true；运行影响：开启会删除同报告集旧 sibling 文件。
     cleanup-stale-files: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_CLEANUP_STALE_FILES:true}
-    # 配置项 default-retention-days：说明该配置的用途、默认值或运行影响。
+    # 配置项 default-retention-days：用途：指定默认产物保留天数；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_DEFAULT_RETENTION_DAYS，未设置时为 空值；运行影响：影响未命中租户策略时的删除时间计算。
     default-retention-days: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_DEFAULT_RETENTION_DAYS:}
-    # 配置项 tenant-policy-backfill-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 tenant-policy-backfill-enabled：用途：控制是否回填租户保留策略；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_TENANT_POLICY_BACKFILL_ENABLED，未设置时为 true；运行影响：开启会为缺少保留元数据的产物补齐策略。
     tenant-policy-backfill-enabled: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_TENANT_POLICY_BACKFILL_ENABLED:true}
-    # 配置项 environment-object-storage：说明该配置的用途、默认值或运行影响。
+    # 配置项 environment-object-storage：用途：配置环境对象存储适配；默认值：见其子项；运行影响：影响 provider 读写验证、镜像和恢复证据。
     environment-object-storage:
-      # 配置项 bucket：说明该配置的用途、默认值或运行影响。
+      # 配置项 bucket：用途：指定对象存储 bucket；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET，未设置时为 空值；运行影响：bucket 不存在会导致读写失败。
       bucket: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET:}
-      # 配置项 key-prefix：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-prefix：用途：指定对象存储 key 前缀；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_KEY_PREFIX，未设置时为 benchmark-engine-artifacts；运行影响：影响产物在 bucket 中的隔离路径。
       key-prefix: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_KEY_PREFIX:benchmark-engine-artifacts}
-      # 配置项 mirror-dir：说明该配置的用途、默认值或运行影响。
+      # 配置项 mirror-dir：用途：指定对象存储镜像目录；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_MIRROR_DIR，未设置时为 target/benchmark-engine-artifacts/object-storage-mirror；运行影响：影响 repo-local mirror 的写入和恢复位置。
       mirror-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_MIRROR_DIR:target/benchmark-engine-artifacts/object-storage-mirror}
-      # 配置项 live-evidence-dir：说明该配置的用途、默认值或运行影响。
+      # 配置项 live-evidence-dir：用途：指定 live evidence 目录；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_LIVE_EVIDENCE_DIR，未设置时为 target/benchmark-engine-artifacts/object-storage-live-evidence；运行影响：影响 provider 读写验证证据留存位置。
       live-evidence-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_LIVE_EVIDENCE_DIR:target/benchmark-engine-artifacts/object-storage-live-evidence}
-      # 配置项 external-write-dir：说明该配置的用途、默认值或运行影响。
+      # 配置项 external-write-dir：用途：指定外部写入目录；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR，未设置时为 空值；运行影响：影响外部目录恢复验证证据留存。
       external-write-dir: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR:}
-      # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+      # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT，未设置时为 空值；运行影响：端点错误会导致客户端连接失败。
       endpoint: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT:}
-      # 配置项 credentials：说明该配置的用途、默认值或运行影响。
+      # 配置项 credentials：用途：配置 environment-object-storage 下的 credentials；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS，未设置时为 空值；运行影响：credentials 变化会影响 environment-object-storage 的容量、路径、超时或执行策略。
       credentials: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS:}
-      # 配置项 provider-connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 provider-connect-timeout-ms：用途：设置 provider 连接超时；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_PROVIDER_CONNECT_TIMEOUT_MS，未设置时为 5000；运行影响：过短会误判对象存储不可用。
       provider-connect-timeout-ms: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_PROVIDER_CONNECT_TIMEOUT_MS:5000}
-      # 配置项 provider-read-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 provider-read-timeout-ms：用途：设置 provider 读取超时；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_PROVIDER_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢速对象存储读取。
       provider-read-timeout-ms: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_PROVIDER_READ_TIMEOUT_MS:5000}
-      # 配置项 endpoint-env-name：说明该配置的用途、默认值或运行影响。
+      # 配置项 endpoint-env-name：用途：指定读取对象存储 endpoint 的环境变量名；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT_ENV_NAME，未设置时为 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT；运行影响：环境变量缺失会使 provider 写读验证跳过。
       endpoint-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_ENDPOINT}
-      # 配置项 bucket-env-name：说明该配置的用途、默认值或运行影响。
+      # 配置项 bucket-env-name：用途：指定读取 bucket 的环境变量名；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET_ENV_NAME，未设置时为 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET；运行影响：环境变量缺失会使 provider 写读验证跳过。
       bucket-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_BUCKET}
-      # 配置项 credentials-env-name：说明该配置的用途、默认值或运行影响。
+      # 配置项 credentials-env-name：用途：指定读取凭据的环境变量名前缀；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS_ENV_NAME，未设置时为 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS；运行影响：凭据缺失会使 provider 鉴权写读不可用。
       credentials-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_CREDENTIALS}
-      # 配置项 external-write-dir-env-name：说明该配置的用途、默认值或运行影响。
+      # 配置项 external-write-dir-env-name：用途：指定读取外部写目录的环境变量名；默认值：环境变量 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR_ENV_NAME，未设置时为 BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR；运行影响：缺失时不会写入外部目录证据。
       external-write-dir-env-name: ${BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR_ENV_NAME:BENCHMARK_ENGINE_ARTIFACT_STORAGE_OBJECT_EXTERNAL_WRITE_DIR}
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
   enabled: false
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 header；默认值：当前列表项为 header；运行影响：请求来源不在列表中会被鉴权拦截。
     - header
 
-# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
+# 配置项 sqlforge：用途：承载 SQLForge 公共配置；默认值：见其子项；运行影响：影响安全、存储和治理公共能力。
 sqlforge:
-  # 配置项 security：说明该配置的用途、默认值或运行影响。
+  # 配置项 security：用途：承载安全相关配置；默认值：见其子项；运行影响：影响敏感字段加密和认证安全边界。
   security:
-    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
+    # 配置项 crypto：用途：配置敏感字段加密组件；默认值：见其子项；运行影响：配置错误会导致密文无法解密或写入失败。
     crypto:
-      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
+      # 配置项 algorithm：用途：指定加密算法标识；默认值：AES256_GCM；运行影响：算法不匹配会导致加解密不兼容。
       algorithm: AES256_GCM
-      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-id：用途：指定当前密钥标识；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_ID，未设置时为 benchmark-engine-dev-key；运行影响：影响密文元数据和密钥轮换追溯。
       key-id: ${SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_ID:benchmark-engine-dev-key}
-      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
+      # 配置项 base64-key：用途：提供 Base64 编码的加密密钥；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_BASE64，未设置时为 空值；运行影响：为空会使加密组件无法进行真实加解密。
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_CRYPTO_KEY_BASE64:}

@@ -1,73 +1,73 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 autoconfigure：说明该配置的用途、默认值或运行影响。
+  # 配置项 autoconfigure：用途：配置 Spring Boot 自动装配策略；默认值：见其子项；运行影响：排除项变化会影响测试上下文是否初始化外部依赖。
   autoconfigure:
-    # 配置项 exclude：说明该配置的用途、默认值或运行影响。
+    # 配置项 exclude：用途：列出需要排除的自动装配类；默认值：见其子项；运行影响：排除后测试上下文不会启动对应数据库或 MyBatis 自动配置。
     exclude:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：在测试中排除自动装配 org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration；默认值：当前列表项为 org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration；运行影响：排除后测试上下文不会初始化对应外部依赖。
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：在测试中排除自动装配 org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration；默认值：当前列表项为 org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration；运行影响：排除后测试上下文不会初始化对应外部依赖。
       - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
   enabled: false
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 header；默认值：当前列表项为 header；运行影响：请求来源不在列表中会被鉴权拦截。
     - header
 
-# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
+# 配置项 sqlforge：用途：承载 SQLForge 公共配置；默认值：见其子项；运行影响：影响安全、存储和治理公共能力。
 sqlforge:
-  # 配置项 security：说明该配置的用途、默认值或运行影响。
+  # 配置项 security：用途：承载安全相关配置；默认值：见其子项；运行影响：影响敏感字段加密和认证安全边界。
   security:
-    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
+    # 配置项 crypto：用途：配置敏感字段加密组件；默认值：见其子项；运行影响：配置错误会导致密文无法解密或写入失败。
     crypto:
-      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
+      # 配置项 algorithm：用途：指定加密算法标识；默认值：AES256_GCM；运行影响：算法不匹配会导致加解密不兼容。
       algorithm: AES256_GCM
-      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-id：用途：指定当前密钥标识；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_TEST_CRYPTO_KEY_ID，未设置时为 benchmark-engine-test-key；运行影响：影响密文元数据和密钥轮换追溯。
       key-id: ${SQLFORGE_BENCHMARK_ENGINE_TEST_CRYPTO_KEY_ID:benchmark-engine-test-key}
-      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
+      # 配置项 base64-key：用途：提供 Base64 编码的加密密钥；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_TEST_CRYPTO_KEY_BASE64，未设置时为 MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=；运行影响：为空会使加密组件无法进行真实加解密。
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
 
-# 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
+# 配置项 benchmark-engine：用途：配置压测引擎服务或压测客户端；默认值：见其子项；运行影响：影响压测任务、报告和证据产物处理。
 benchmark-engine:
-  # 配置项 queues：说明该配置的用途、默认值或运行影响。
+  # 配置项 queues：用途：配置任务队列实现；默认值：见其子项；运行影响：影响任务获取、外部文件队列和 worker 模式。
   queues:
-    # 配置项 mode：说明该配置的用途、默认值或运行影响。
+    # 配置项 mode：用途：选择上级模块运行模式；默认值：local-placeholder；运行影响：模式变化会切换实现路径和外部依赖。
     mode: local-placeholder
-  # 配置项 task-execution：说明该配置的用途、默认值或运行影响。
+  # 配置项 task-execution：用途：配置异步任务执行节奏；默认值：见其子项；运行影响：影响 worker 轮询、可见性延迟和阶段推进速度。
   task-execution:
-    # 配置项 isolation-sample-count：说明该配置的用途、默认值或运行影响。
+    # 配置项 isolation-sample-count：用途：设置隔离校验采样数量；默认值：6；运行影响：数值越大校验更充分但执行更慢。
     isolation-sample-count: 6
-    # 配置项 isolation-work-iterations：说明该配置的用途、默认值或运行影响。
+    # 配置项 isolation-work-iterations：用途：设置隔离校验工作迭代次数；默认值：48；运行影响：数值越大越能暴露隔离问题但耗时更长。
     isolation-work-iterations: 48
-  # 配置项 artifact-storage：说明该配置的用途、默认值或运行影响。
+  # 配置项 artifact-storage：用途：配置压测报告产物存储；默认值：见其子项；运行影响：影响 JSON、PDF、HTML 和 raw-data 的写入与恢复。
   artifact-storage:
-    # 配置项 base-dir：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-dir：用途：指定本地产物根目录；默认值：target/benchmark-engine-artifacts/test-runtime；运行影响：路径变化会影响报告文件留存位置。
     base-dir: target/benchmark-engine-artifacts/test-runtime
-    # 配置项 storage-type：说明该配置的用途、默认值或运行影响。
+    # 配置项 storage-type：用途：选择产物存储类型；默认值：LOCAL_FILE；运行影响：LOCAL_FILE 使用仓库本地路径，环境对象存储需要额外配置。
     storage-type: LOCAL_FILE
-    # 配置项 recovery-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 recovery-enabled：用途：控制缺失产物是否允许恢复；默认值：true；运行影响：关闭后缺失文件不会从快照或镜像恢复。
     recovery-enabled: true
-    # 配置项 cleanup-stale-files：说明该配置的用途、默认值或运行影响。
+    # 配置项 cleanup-stale-files：用途：控制是否清理陈旧产物文件；默认值：true；运行影响：开启会删除同报告集旧 sibling 文件。
     cleanup-stale-files: true
-    # 配置项 tenant-policy-backfill-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 tenant-policy-backfill-enabled：用途：控制是否回填租户保留策略；默认值：true；运行影响：开启会为缺少保留元数据的产物补齐策略。
     tenant-policy-backfill-enabled: true
-    # 配置项 environment-object-storage：说明该配置的用途、默认值或运行影响。
+    # 配置项 environment-object-storage：用途：配置环境对象存储适配；默认值：见其子项；运行影响：影响 provider 读写验证、镜像和恢复证据。
     environment-object-storage:
-      # 配置项 bucket：说明该配置的用途、默认值或运行影响。
+      # 配置项 bucket：用途：指定对象存储 bucket；默认值：test-bucket；运行影响：bucket 不存在会导致读写失败。
       bucket: test-bucket
-      # 配置项 key-prefix：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-prefix：用途：指定对象存储 key 前缀；默认值：benchmark-engine-test；运行影响：影响产物在 bucket 中的隔离路径。
       key-prefix: benchmark-engine-test
-      # 配置项 mirror-dir：说明该配置的用途、默认值或运行影响。
+      # 配置项 mirror-dir：用途：指定对象存储镜像目录；默认值：target/benchmark-engine-artifacts/test-runtime-object-storage；运行影响：影响 repo-local mirror 的写入和恢复位置。
       mirror-dir: target/benchmark-engine-artifacts/test-runtime-object-storage
-      # 配置项 live-evidence-dir：说明该配置的用途、默认值或运行影响。
+      # 配置项 live-evidence-dir：用途：指定 live evidence 目录；默认值：target/benchmark-engine-artifacts/test-runtime-object-storage-live-evidence；运行影响：影响 provider 读写验证证据留存位置。
       live-evidence-dir: target/benchmark-engine-artifacts/test-runtime-object-storage-live-evidence
-      # 配置项 external-write-dir：说明该配置的用途、默认值或运行影响。
+      # 配置项 external-write-dir：用途：指定外部写入目录；默认值：target/benchmark-engine-artifacts/test-runtime-object-storage-external；运行影响：影响外部目录恢复验证证据留存。
       external-write-dir: target/benchmark-engine-artifacts/test-runtime-object-storage-external
-      # 配置项 provider-connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 provider-connect-timeout-ms：用途：设置 provider 连接超时；默认值：2000；运行影响：过短会误判对象存储不可用。
       provider-connect-timeout-ms: 2000
-      # 配置项 provider-read-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 provider-read-timeout-ms：用途：设置 provider 读取超时；默认值：2000；运行影响：过短会中断慢速对象存储读取。
       provider-read-timeout-ms: 2000

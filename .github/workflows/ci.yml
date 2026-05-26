@@ -1,82 +1,82 @@
-# 配置项 name：说明该配置的用途、默认值或运行影响。
+# 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：CI；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
 name: CI
 
-# 配置项 on：说明该配置的用途、默认值或运行影响。
+# 配置项 on：用途：定义 GitHub Actions workflow 触发入口；默认值：见其子项；运行影响：触发条件变化会改变 CI 或门禁执行时机。
 on:
-  # 配置项 push：说明该配置的用途、默认值或运行影响。
+  # 配置项 push：用途：定义代码推送触发条件；默认值：见其子项；运行影响：分支或 tag 匹配变化会影响推送后是否运行 workflow。
   push:
-    # 配置项 branches：说明该配置的用途、默认值或运行影响。
+    # 配置项 branches：用途：列出允许触发 workflow 的分支；默认值：见其子项；运行影响：列表变化会改变哪些分支推送会运行 CI。
     branches:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：把分支 main 纳入 workflow 触发范围；默认值：当前列表项为 main；运行影响：该分支 push 会触发对应 workflow。
       - main
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：把分支 master 纳入 workflow 触发范围；默认值：当前列表项为 master；运行影响：该分支 push 会触发对应 workflow。
       - master
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：把分支 develop 纳入 workflow 触发范围；默认值：当前列表项为 develop；运行影响：该分支 push 会触发对应 workflow。
       - develop
-  # 配置项 pull_request：说明该配置的用途、默认值或运行影响。
+  # 配置项 pull_request：用途：定义拉取请求触发条件；默认值：见其子项；运行影响：配置存在时 PR 会触发对应 CI 检查。
   pull_request:
 
-# 配置项 jobs：说明该配置的用途、默认值或运行影响。
+# 配置项 jobs：用途：定义 workflow 内的作业集合；默认值：见其子项；运行影响：作业集合变化会改变 CI 或门禁实际执行内容。
 jobs:
-  # 配置项 build-and-test：说明该配置的用途、默认值或运行影响。
+  # 配置项 build-and-test：用途：定义 GitHub Actions 作业 build-and-test；默认值：见其子项；运行影响：该作业失败会导致对应 workflow 失败。
   build-and-test:
-    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
+    # 配置项 runs-on：用途：指定作业运行的 GitHub runner 镜像；默认值：ubuntu-latest；运行影响：runner 变化会影响系统依赖、工具版本和执行兼容性。
     runs-on: ubuntu-latest
-    # 配置项 env：说明该配置的用途、默认值或运行影响。
+    # 配置项 env：用途：定义作业或步骤环境变量；默认值：见其子项；运行影响：变量变化会影响脚本读取的外部配置和密钥注入。
     env:
-      # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_PROJECT_KEY：用途：向门禁脚本注入 SONAR_PROJECT_KEY；默认值：GitHub 表达式 ${{ vars.SONAR_PROJECT_KEY }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-      # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_PROJECT_NAME：用途：向门禁脚本注入 SONAR_PROJECT_NAME；默认值：GitHub 表达式 ${{ vars.SONAR_PROJECT_NAME }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
-      # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_QUALITY_GATE_WAIT：用途：向门禁脚本注入 SONAR_QUALITY_GATE_WAIT；默认值：GitHub 表达式 ${{ vars.SONAR_QUALITY_GATE_WAIT }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
-    # 配置项 steps：说明该配置的用途、默认值或运行影响。
+    # 配置项 steps：用途：定义作业内按顺序执行的步骤；默认值：见其子项；运行影响：步骤顺序或内容变化会影响门禁覆盖范围。
     steps:
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Checkout；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Checkout
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/checkout@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/checkout@v4
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Setup JDK 8u112；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Setup JDK 8u112
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/setup-java@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/setup-java@v4
-        # 配置项 with：说明该配置的用途、默认值或运行影响。
+        # 配置项 with：用途：向当前 Action 传入参数；默认值：见其子项；运行影响：参数变化会影响该 Action 的执行方式。
         with:
-          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
+          # 配置项 distribution：用途：指定 JDK 发行版；默认值：zulu；运行影响：发行版变化会影响 Java 工具链获取来源。
           distribution: zulu
-          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
+          # 配置项 java-version：用途：指定 CI 使用的 JDK 8u112 版本；默认值：'8.0.112'；运行影响：版本变化会破坏仓库固定 JDK 8u112 基线。
           java-version: '8.0.112'
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Verify JDK 8u112；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Verify JDK 8u112
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Setup Node.js 18.20.8；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Setup Node.js 18.20.8
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/setup-node@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/setup-node@v4
-        # 配置项 with：说明该配置的用途、默认值或运行影响。
+        # 配置项 with：用途：向当前 Action 传入参数；默认值：见其子项；运行影响：参数变化会影响该 Action 的执行方式。
         with:
-          # 配置项 node-version：说明该配置的用途、默认值或运行影响。
+          # 配置项 node-version：用途：指定 CI 使用的 Node.js 版本；默认值：'18.20.8'；运行影响：版本变化会影响前端依赖安装和构建一致性。
           node-version: '18.20.8'
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Task audit；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Task audit
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：python3 scripts/task_audit.py --check；运行影响：命令失败会导致对应 CI 步骤失败。
         run: python3 scripts/task_audit.py --check
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Governance compile drift check；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Governance compile drift check
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：python3 scripts/foreman.py compile-governance --check；运行影响：命令失败会导致对应 CI 步骤失败。
         run: python3 scripts/foreman.py compile-governance --check
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run Maven validate；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run Maven validate
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f pom.xml ]; then
             mvn -B validate -DskipTests
@@ -84,9 +84,9 @@ jobs:
             echo "pom.xml not present yet, skip Maven validate"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run PMD scan；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run PMD scan
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f pom.xml ]; then
             mvn -B pmd:pmd -DskipTests
@@ -94,9 +94,9 @@ jobs:
             echo "pom.xml not present yet, skip PMD scan"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Generate Checkstyle report；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Generate Checkstyle report
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f pom.xml ]; then
             mvn -B checkstyle:checkstyle -DskipTests
@@ -104,9 +104,9 @@ jobs:
             echo "pom.xml not present yet, skip Checkstyle report"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run Checkstyle gate；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run Checkstyle gate
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f pom.xml ]; then
             mvn -B checkstyle:check -DskipTests
@@ -114,9 +114,9 @@ jobs:
             echo "pom.xml not present yet, skip Checkstyle gate"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Verify Java quality reports；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Verify Java quality reports
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f pom.xml ]; then
             python3 scripts/verify_java_quality_reports.py
@@ -124,28 +124,28 @@ jobs:
             echo "pom.xml not present yet, skip Java quality report verification"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Upload Java quality reports；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Upload Java quality reports
-        # 配置项 if：说明该配置的用途、默认值或运行影响。
+        # 配置项 if：用途：定义步骤执行条件表达式；默认值：GitHub 表达式 ${{ always() && hashFiles('**/target/pmd.xml', '**/target/checkstyle-result.xml') != '' }}；运行影响：条件变化会影响步骤是否被跳过。
         if: ${{ always() && hashFiles('**/target/pmd.xml', '**/target/checkstyle-result.xml') != '' }}
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/upload-artifact@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/upload-artifact@v4
-        # 配置项 with：说明该配置的用途、默认值或运行影响。
+        # 配置项 with：用途：向当前 Action 传入参数；默认值：见其子项；运行影响：参数变化会影响该 Action 的执行方式。
         with:
-          # 配置项 name：说明该配置的用途、默认值或运行影响。
+          # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：java-quality-reports；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
           name: java-quality-reports
-          # 配置项 path：说明该配置的用途、默认值或运行影响。
+          # 配置项 path：用途：指定产物上传或文件匹配路径；默认值：多行脚本块；运行影响：路径错误会导致产物缺失或上传失败。
           path: |
             **/target/pmd.xml
             **/target/site/pmd.html
             **/target/checkstyle-result.xml
             **/target/site/checkstyle.html
-          # 配置项 if-no-files-found：说明该配置的用途、默认值或运行影响。
+          # 配置项 if-no-files-found：用途：指定上传路径为空时的处理策略；默认值：error；运行影响：设为 error 会让缺少产物直接失败。
           if-no-files-found: error
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run Maven tests when pom exists；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run Maven tests when pom exists
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f pom.xml ]; then
             mvn -B test
@@ -153,9 +153,9 @@ jobs:
             echo "pom.xml not present yet, skip Maven tests"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Validate compose syntax；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Validate compose syntax
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f docker-compose.yml ]; then
             bash scripts/run-runtime-smoke.sh --compose-check
@@ -163,9 +163,9 @@ jobs:
             echo "docker-compose.yml not present yet, skip compose validation"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Verify database script executability；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Verify database script executability
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f scripts/verify-db-scripts.sh ]; then
             bash scripts/verify-db-scripts.sh
@@ -173,9 +173,9 @@ jobs:
             echo "database script gate not present yet, skip DB script verification"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run multi-service runtime and business smoke checks；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run multi-service runtime and business smoke checks
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f docker-compose.yml ]; then
             bash scripts/run-runtime-smoke.sh --runtime-smoke
@@ -183,9 +183,9 @@ jobs:
             echo "docker-compose.yml not present yet, skip runtime smoke"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Generate backend coverage report；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Generate backend coverage report
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f scripts/run-coverage.sh ]; then
             bash scripts/run-coverage.sh --phase report-only
@@ -193,23 +193,23 @@ jobs:
             echo "coverage script not present yet, skip coverage report"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run SonarQube scan when explicitly enabled；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run SonarQube scan when explicitly enabled
-        # 配置项 if：说明该配置的用途、默认值或运行影响。
+        # 配置项 if：用途：定义步骤执行条件表达式；默认值：GitHub 表达式 ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}；运行影响：条件变化会影响步骤是否被跳过。
         if: ${{ vars.SONAR_ENABLE_DEFAULT == 'true' && secrets.SONAR_HOST_URL != '' && secrets.SONAR_TOKEN != '' }}
-        # 配置项 env：说明该配置的用途、默认值或运行影响。
+        # 配置项 env：用途：定义作业或步骤环境变量；默认值：见其子项；运行影响：变量变化会影响脚本读取的外部配置和密钥注入。
         env:
-          # 配置项 SONAR_HOST_URL：说明该配置的用途、默认值或运行影响。
+          # 配置项 SONAR_HOST_URL：用途：向门禁脚本注入 SONAR_HOST_URL；默认值：GitHub 表达式 ${{ secrets.SONAR_HOST_URL }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          # 配置项 SONAR_TOKEN：说明该配置的用途、默认值或运行影响。
+          # 配置项 SONAR_TOKEN：用途：向门禁脚本注入 SONAR_TOKEN；默认值：GitHub 表达式 ${{ secrets.SONAR_TOKEN }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
+          # 配置项 SONAR_PROJECT_KEY：用途：向门禁脚本注入 SONAR_PROJECT_KEY；默认值：GitHub 表达式 ${{ vars.SONAR_PROJECT_KEY }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-          # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
+          # 配置项 SONAR_PROJECT_NAME：用途：向门禁脚本注入 SONAR_PROJECT_NAME；默认值：GitHub 表达式 ${{ vars.SONAR_PROJECT_NAME }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
           SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
-          # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
+          # 配置项 SONAR_QUALITY_GATE_WAIT：用途：向门禁脚本注入 SONAR_QUALITY_GATE_WAIT；默认值：GitHub 表达式 ${{ vars.SONAR_QUALITY_GATE_WAIT }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
           SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f scripts/run-sonar.sh ]; then
             bash scripts/run-sonar.sh --require-config
@@ -217,9 +217,9 @@ jobs:
             echo "sonar script not present yet, skip sonar scan"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Check frontend-backend separation；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Check frontend-backend separation
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f scripts/check-frontend-backend-separation.js ]; then
             node scripts/check-frontend-backend-separation.js
@@ -227,9 +227,9 @@ jobs:
             echo "separation script not present yet, skip separation check"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run frontend build when package exists；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run frontend build when package exists
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           if [ -f package.json ]; then
             if [ ! -d node_modules ]; then
@@ -241,9 +241,9 @@ jobs:
             echo "package.json not present yet, skip frontend build"
           fi
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Repository sanity check；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Repository sanity check
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           node scripts/lint-repository-knowledge.js
           test -f README.md

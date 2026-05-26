@@ -5,161 +5,296 @@
 <!-- 配置项 mapper：报表批次统计规范化持久化映射。 -->
 <mapper namespace="com.company.sqloptimization.infrastructure.persistence.mapper.ReportBatchStatisticsMapper">
 
+    <!-- 配置项 resultMap id=SummaryRecordMap：用途：定义 resultMap id=SummaryRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=SummaryRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="SummaryRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SummaryRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="totalSqlCount" column="total_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="resolvedSqlCount" column="resolved_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="partialResolvedSqlCount" column="partial_resolved_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="failedSqlCount" column="failed_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueSqlCount" column="issue_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="totalIssueCount" column="total_issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueSceneCount" column="issue_scene_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="importantSqlCount" column="important_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="urgentSqlCount" column="urgent_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="mergeCandidateReportCount" column="merge_candidate_report_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="planAnalysisSuccessCount" column="plan_analysis_success_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="planAnalysisPartialCount" column="plan_analysis_partial_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="planAnalysisFailedCount" column="plan_analysis_failed_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=IssueSceneRecordMap：用途：定义 resultMap id=IssueSceneRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=IssueSceneRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="IssueSceneRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$IssueSceneRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="issueScene" column="issue_scene"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueDomain" column="issue_domain"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="severity" column="severity"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="priorityLevel" column="priority_level"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="priorityScore" column="priority_score"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="affectedSqlCount" column="affected_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="affectedIssueCount" column="affected_issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlRatio" column="sql_ratio"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="important" column="important"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="urgent" column="urgent"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportCount" column="report_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="logicalObjectCount" column="logical_object_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sampleReportCodesJson" column="sample_report_codes_json"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sampleLogicalObjectKeysJson" column="sample_logical_object_keys_json"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=SeverityRecordMap：用途：定义 resultMap id=SeverityRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=SeverityRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="SeverityRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SeverityRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="severity" column="severity"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueCount" column="issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=ReportRecordMap：用途：定义 resultMap id=ReportRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=ReportRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="ReportRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$ReportRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="reportCode" column="report_code"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlCount" column="sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueSqlCount" column="issue_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueCount" column="issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueSqlRatio" column="issue_sql_ratio"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="highestPriorityLevel" column="highest_priority_level"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="highestPriorityScore" column="highest_priority_score"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="important" column="important"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="urgent" column="urgent"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueScenesJson" column="issue_scenes_json"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="mergeCandidate" column="merge_candidate"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="mergeCandidateSqlCount" column="merge_candidate_sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="mergeCandidateReason" column="merge_candidate_reason"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=SqlRecordMap：用途：定义 resultMap id=SqlRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=SqlRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="SqlRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SqlRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="itemId" column="item_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="parseTaskId" column="parse_task_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportCode" column="report_code"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportName" column="report_name"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="datasourceCode" column="datasource_code"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="stage" column="stage"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlColumnName" column="sql_column_name"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlOrdinalInReport" column="sql_ordinal_in_report"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="status" column="status"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlDigest" column="sql_digest"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueCount" column="issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="highestPriorityLevel" column="highest_priority_level"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="highestPriorityScore" column="highest_priority_score"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="important" column="important"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="urgent" column="urgent"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueLocationsJson" column="issue_locations_json"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=SqlIssueSceneRecordMap：用途：定义 resultMap id=SqlIssueSceneRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=SqlIssueSceneRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="SqlIssueSceneRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SqlIssueSceneRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="itemId" column="item_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="issueScene" column="issue_scene"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=SqlLogicalObjectRecordMap：用途：定义 resultMap id=SqlLogicalObjectRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=SqlLogicalObjectRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="SqlLogicalObjectRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SqlLogicalObjectRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="itemId" column="item_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="logicalObjectKey" column="logical_object_key"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=PriorityRecordMap：用途：定义 resultMap id=PriorityRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=PriorityRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="PriorityRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$PriorityRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="priorityLevel" column="priority_level"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="urgencyBucket" column="urgency_bucket"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlCount" column="sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueCount" column="issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportCount" column="report_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=ImportanceRecordMap：用途：定义 resultMap id=ImportanceRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=ImportanceRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="ImportanceRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$ImportanceRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="importanceBucket" column="importance_bucket"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlCount" column="sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueCount" column="issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportCount" column="report_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 resultMap id=LogicalObjectRecordMap：用途：定义 resultMap id=LogicalObjectRecordMap 配置项；默认值：见节点内容或属性；运行影响：resultMap id=LogicalObjectRecordMap 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <resultMap id="LogicalObjectRecordMap" type="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$LogicalObjectRecord">
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="batchId" column="batch_id"/>
+        <!-- 配置项 id：用途：定义 id 配置项；默认值：见节点内容或属性；运行影响：id 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <id property="logicalObjectKey" column="logical_object_key"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="tenantId" column="tenant_id"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="sqlCount" column="sql_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="issueCount" column="issue_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportCount" column="report_count"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="reportCodesJson" column="report_codes_json"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="createdAt" column="created_at"/>
+        <!-- 配置项 result：用途：定义 result 配置项；默认值：见节点内容或属性；运行影响：result 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
+    <!-- 配置项 delete id=deleteSummaryByBatchId：用途：定义 delete id=deleteSummaryByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteSummaryByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteSummaryByBatchId">DELETE FROM report_batch_stat_summary WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteIssueScenesByBatchId：用途：定义 delete id=deleteIssueScenesByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteIssueScenesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteIssueScenesByBatchId">DELETE FROM report_batch_issue_scene_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteSeveritiesByBatchId：用途：定义 delete id=deleteSeveritiesByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteSeveritiesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteSeveritiesByBatchId">DELETE FROM report_batch_severity_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteReportsByBatchId：用途：定义 delete id=deleteReportsByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteReportsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteReportsByBatchId">DELETE FROM report_batch_report_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteSqlStatsByBatchId：用途：定义 delete id=deleteSqlStatsByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteSqlStatsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteSqlStatsByBatchId">DELETE FROM report_batch_sql_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteSqlIssueScenesByBatchId：用途：定义 delete id=deleteSqlIssueScenesByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteSqlIssueScenesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteSqlIssueScenesByBatchId">DELETE FROM report_batch_sql_issue_scene_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteSqlLogicalObjectsByBatchId：用途：定义 delete id=deleteSqlLogicalObjectsByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteSqlLogicalObjectsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteSqlLogicalObjectsByBatchId">DELETE FROM report_batch_sql_logical_object_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deletePrioritiesByBatchId：用途：定义 delete id=deletePrioritiesByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deletePrioritiesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deletePrioritiesByBatchId">DELETE FROM report_batch_priority_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteImportancesByBatchId：用途：定义 delete id=deleteImportancesByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteImportancesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteImportancesByBatchId">DELETE FROM report_batch_importance_stat WHERE batch_id = #{batchId}</delete>
+    <!-- 配置项 delete id=deleteLogicalObjectsByBatchId：用途：定义 delete id=deleteLogicalObjectsByBatchId 配置项；默认值：见节点内容或属性；运行影响：delete id=deleteLogicalObjectsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <delete id="deleteLogicalObjectsByBatchId">DELETE FROM report_batch_logical_object_stat WHERE batch_id = #{batchId}</delete>
 
+    <!-- 配置项 insert id=insertSummary：用途：定义 insert id=insertSummary 配置项；默认值：见节点内容或属性；运行影响：insert id=insertSummary 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertSummary" parameterType="com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords$SummaryRecord">
         INSERT INTO report_batch_stat_summary (
             batch_id, tenant_id, total_sql_count, resolved_sql_count, partial_resolved_sql_count, failed_sql_count,
@@ -174,12 +309,14 @@
         )
     </insert>
 
+    <!-- 配置项 insert id=insertIssueScenes：用途：定义 insert id=insertIssueScenes 配置项；默认值：见节点内容或属性；运行影响：insert id=insertIssueScenes 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertIssueScenes">
         INSERT INTO report_batch_issue_scene_stat (
             batch_id, tenant_id, issue_scene, issue_domain, severity, priority_level, priority_score,
             affected_sql_count, affected_issue_count, sql_ratio, important, urgent, report_count,
             logical_object_count, sample_report_codes_json, sample_logical_object_keys_json, created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.issueScene}, #{record.issueDomain}, #{record.severity},
              #{record.priorityLevel}, #{record.priorityScore}, #{record.affectedSqlCount}, #{record.affectedIssueCount},
@@ -189,22 +326,26 @@
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertSeverities：用途：定义 insert id=insertSeverities 配置项；默认值：见节点内容或属性；运行影响：insert id=insertSeverities 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertSeverities">
         INSERT INTO report_batch_severity_stat (
             batch_id, tenant_id, severity, issue_count, created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.severity}, #{record.issueCount},
              #{record.createdAt}, #{record.updatedAt})
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertReports：用途：定义 insert id=insertReports 配置项；默认值：见节点内容或属性；运行影响：insert id=insertReports 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertReports">
         INSERT INTO report_batch_report_stat (
             batch_id, tenant_id, report_code, sql_count, issue_sql_count, issue_count, issue_sql_ratio,
             highest_priority_level, highest_priority_score, important, urgent, issue_scenes_json,
             merge_candidate, merge_candidate_sql_count, merge_candidate_reason, created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.reportCode}, #{record.sqlCount},
              #{record.issueSqlCount}, #{record.issueCount}, #{record.issueSqlRatio}, #{record.highestPriorityLevel},
@@ -214,12 +355,14 @@
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertSqlStats：用途：定义 insert id=insertSqlStats 配置项；默认值：见节点内容或属性；运行影响：insert id=insertSqlStats 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertSqlStats">
         INSERT INTO report_batch_sql_stat (
             batch_id, tenant_id, item_id, parse_task_id, report_code, report_name, datasource_code, stage,
             sql_column_name, sql_ordinal_in_report, status, sql_digest, issue_count, highest_priority_level,
             highest_priority_score, important, urgent, issue_locations_json, created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.itemId}, #{record.parseTaskId}, #{record.reportCode},
              #{record.reportName}, #{record.datasourceCode}, #{record.stage}, #{record.sqlColumnName},
@@ -229,70 +372,84 @@
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertSqlIssueScenes：用途：定义 insert id=insertSqlIssueScenes 配置项；默认值：见节点内容或属性；运行影响：insert id=insertSqlIssueScenes 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertSqlIssueScenes">
         INSERT INTO report_batch_sql_issue_scene_stat (
             batch_id, tenant_id, item_id, issue_scene, created_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.itemId}, #{record.issueScene}, #{record.createdAt})
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertSqlLogicalObjects：用途：定义 insert id=insertSqlLogicalObjects 配置项；默认值：见节点内容或属性；运行影响：insert id=insertSqlLogicalObjects 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertSqlLogicalObjects">
         INSERT INTO report_batch_sql_logical_object_stat (
             batch_id, tenant_id, item_id, logical_object_key, created_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.itemId}, #{record.logicalObjectKey}, #{record.createdAt})
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertPriorities：用途：定义 insert id=insertPriorities 配置项；默认值：见节点内容或属性；运行影响：insert id=insertPriorities 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertPriorities">
         INSERT INTO report_batch_priority_stat (
             batch_id, tenant_id, priority_level, urgency_bucket, sql_count, issue_count, report_count, created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.priorityLevel}, #{record.urgencyBucket},
              #{record.sqlCount}, #{record.issueCount}, #{record.reportCount}, #{record.createdAt}, #{record.updatedAt})
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertImportances：用途：定义 insert id=insertImportances 配置项；默认值：见节点内容或属性；运行影响：insert id=insertImportances 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertImportances">
         INSERT INTO report_batch_importance_stat (
             batch_id, tenant_id, importance_bucket, sql_count, issue_count, report_count, created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.importanceBucket}, #{record.sqlCount},
              #{record.issueCount}, #{record.reportCount}, #{record.createdAt}, #{record.updatedAt})
         </foreach>
     </insert>
 
+    <!-- 配置项 insert id=insertLogicalObjects：用途：定义 insert id=insertLogicalObjects 配置项；默认值：见节点内容或属性；运行影响：insert id=insertLogicalObjects 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <insert id="insertLogicalObjects">
         INSERT INTO report_batch_logical_object_stat (
             batch_id, tenant_id, logical_object_key, sql_count, issue_count, report_count, report_codes_json,
             created_at, updated_at
         ) VALUES
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="records" item="record" separator=",">
             (#{record.batchId}, #{record.tenantId}, #{record.logicalObjectKey}, #{record.sqlCount},
              #{record.issueCount}, #{record.reportCount}, #{record.reportCodesJson}, #{record.createdAt}, #{record.updatedAt})
         </foreach>
     </insert>
 
+    <!-- 配置项 select id=selectSummaryByBatchId：用途：定义 select id=selectSummaryByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectSummaryByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectSummaryByBatchId" resultMap="SummaryRecordMap">
         SELECT *
         FROM report_batch_stat_summary
         WHERE batch_id = #{batchId}
     </select>
 
+    <!-- 配置项 select id=selectSummariesByBatchIds：用途：定义 select id=selectSummariesByBatchIds 配置项；默认值：见节点内容或属性；运行影响：select id=selectSummariesByBatchIds 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectSummariesByBatchIds" resultMap="SummaryRecordMap">
         SELECT *
         FROM report_batch_stat_summary
         WHERE batch_id IN
+        <!-- 配置项 foreach：用途：定义 foreach 配置项；默认值：见节点内容或属性；运行影响：foreach 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <foreach collection="batchIds" item="batchId" open="(" separator="," close=")">
             #{batchId}
         </foreach>
     </select>
 
+    <!-- 配置项 select id=selectIssueScenesByBatchId：用途：定义 select id=selectIssueScenesByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectIssueScenesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectIssueScenesByBatchId" resultMap="IssueSceneRecordMap">
         SELECT *
         FROM report_batch_issue_scene_stat
@@ -300,6 +457,7 @@
         ORDER BY affected_sql_count DESC, priority_score DESC, issue_scene ASC
     </select>
 
+    <!-- 配置项 select id=selectSeveritiesByBatchId：用途：定义 select id=selectSeveritiesByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectSeveritiesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectSeveritiesByBatchId" resultMap="SeverityRecordMap">
         SELECT *
         FROM report_batch_severity_stat
@@ -307,6 +465,7 @@
         ORDER BY severity ASC
     </select>
 
+    <!-- 配置项 select id=selectReportsByBatchId：用途：定义 select id=selectReportsByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectReportsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectReportsByBatchId" resultMap="ReportRecordMap">
         SELECT *
         FROM report_batch_report_stat
@@ -314,6 +473,7 @@
         ORDER BY issue_sql_count DESC, highest_priority_score DESC, report_code ASC
     </select>
 
+    <!-- 配置项 select id=selectSqlStatsByBatchId：用途：定义 select id=selectSqlStatsByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectSqlStatsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectSqlStatsByBatchId" resultMap="SqlRecordMap">
         SELECT *
         FROM report_batch_sql_stat
@@ -321,6 +481,7 @@
         ORDER BY highest_priority_score DESC, issue_count DESC, item_id ASC
     </select>
 
+    <!-- 配置项 select id=selectSqlIssueScenesByBatchId：用途：定义 select id=selectSqlIssueScenesByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectSqlIssueScenesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectSqlIssueScenesByBatchId" resultMap="SqlIssueSceneRecordMap">
         SELECT *
         FROM report_batch_sql_issue_scene_stat
@@ -328,6 +489,7 @@
         ORDER BY item_id ASC, issue_scene ASC
     </select>
 
+    <!-- 配置项 select id=selectSqlLogicalObjectsByBatchId：用途：定义 select id=selectSqlLogicalObjectsByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectSqlLogicalObjectsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectSqlLogicalObjectsByBatchId" resultMap="SqlLogicalObjectRecordMap">
         SELECT *
         FROM report_batch_sql_logical_object_stat
@@ -335,6 +497,7 @@
         ORDER BY item_id ASC, logical_object_key ASC
     </select>
 
+    <!-- 配置项 select id=selectPrioritiesByBatchId：用途：定义 select id=selectPrioritiesByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectPrioritiesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectPrioritiesByBatchId" resultMap="PriorityRecordMap">
         SELECT *
         FROM report_batch_priority_stat
@@ -342,6 +505,7 @@
         ORDER BY priority_level ASC, urgency_bucket ASC
     </select>
 
+    <!-- 配置项 select id=selectImportancesByBatchId：用途：定义 select id=selectImportancesByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectImportancesByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectImportancesByBatchId" resultMap="ImportanceRecordMap">
         SELECT *
         FROM report_batch_importance_stat
@@ -349,6 +513,7 @@
         ORDER BY sql_count DESC, importance_bucket ASC
     </select>
 
+    <!-- 配置项 select id=selectLogicalObjectsByBatchId：用途：定义 select id=selectLogicalObjectsByBatchId 配置项；默认值：见节点内容或属性；运行影响：select id=selectLogicalObjectsByBatchId 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
     <select id="selectLogicalObjectsByBatchId" resultMap="LogicalObjectRecordMap">
         SELECT *
         FROM report_batch_logical_object_stat

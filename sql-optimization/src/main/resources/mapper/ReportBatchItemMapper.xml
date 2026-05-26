@@ -102,6 +102,7 @@
         SELECT <include refid="BaseColumns"/>
         FROM report_batch_item
         WHERE batch_id = #{batchId}
+        <!-- 配置项 if：用途：定义 if 配置项；默认值：见节点内容或属性；运行影响：if 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <if test="reportCode != null and reportCode != ''">
             AND report_code = #{reportCode}
         </if>
@@ -114,6 +115,7 @@
         SELECT COUNT(1)
         FROM report_batch_item
         WHERE batch_id = #{batchId}
+        <!-- 配置项 if：用途：定义 if 配置项；默认值：见节点内容或属性；运行影响：if 的取值变化会影响对应工具、运行时或构建流程的配置加载结果。 -->
         <if test="reportCode != null and reportCode != ''">
             AND report_code = #{reportCode}
         </if>

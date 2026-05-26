@@ -1,52 +1,52 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
+  # 配置项 datasource：用途：配置服务数据库连接；默认值：见其子项；运行影响：影响持久化、查询和任务状态读写。
   datasource:
-    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
+    # 配置项 driver-class-name：用途：指定 JDBC 驱动类；默认值：com.mysql.cj.jdbc.Driver；运行影响：驱动不匹配会导致数据库连接初始化失败。
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 配置项 url：说明该配置的用途、默认值或运行影响。
+    # 配置项 url：用途：指定数据库或服务访问地址；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_DB_URL，未设置时为 jdbc:mysql://sqlforge-mysql:3306/sqlforge?useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=false；运行影响：地址错误会导致运行时连接失败。
     url: ${SQLFORGE_BENCHMARK_ENGINE_DB_URL:jdbc:mysql://sqlforge-mysql:3306/sqlforge?useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=false}
-    # 配置项 username：说明该配置的用途、默认值或运行影响。
+    # 配置项 username：用途：指定连接账号；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_DB_USER，未设置时为 sqlforge；运行影响：账号错误会导致认证失败。
     username: ${SQLFORGE_BENCHMARK_ENGINE_DB_USER:sqlforge}
-    # 配置项 password：说明该配置的用途、默认值或运行影响。
+    # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_DB_PASSWORD，未设置时为 空值；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
     password: ${SQLFORGE_BENCHMARK_ENGINE_DB_PASSWORD:}
 
-# 配置项 logging：说明该配置的用途、默认值或运行影响。
+# 配置项 logging：用途：配置日志输出和级别；默认值：见其子项；运行影响：影响排障信息量、日志体积和生产可观测性。
 logging:
-  # 配置项 level：说明该配置的用途、默认值或运行影响。
+  # 配置项 level：用途：配置日志级别集合；默认值：见其子项；运行影响：影响各包日志输出粒度。
   level:
-    # 配置项 root：说明该配置的用途、默认值或运行影响。
+    # 配置项 root：用途：配置根日志级别；默认值：INFO；运行影响：影响未单独指定包名的日志输出。
     root: INFO
-    # 配置项 com.company.benchmarkengine：说明该配置的用途、默认值或运行影响。
+    # 配置项 com.company.benchmarkengine：用途：设置 com.company.benchmarkengine 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     com.company.benchmarkengine: INFO
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：true；运行影响：关闭后上级功能不会进入运行路径。
   enabled: true
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 gateway；默认值：当前列表项为 gateway；运行影响：请求来源不在列表中会被鉴权拦截。
     - gateway
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 token；默认值：当前列表项为 token；运行影响：请求来源不在列表中会被鉴权拦截。
     - token
 
-# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
+# 配置项 sqlforge：用途：承载 SQLForge 公共配置；默认值：见其子项；运行影响：影响安全、存储和治理公共能力。
 sqlforge:
-  # 配置项 security：说明该配置的用途、默认值或运行影响。
+  # 配置项 security：用途：承载安全相关配置；默认值：见其子项；运行影响：影响敏感字段加密和认证安全边界。
   security:
-    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
+    # 配置项 crypto：用途：配置敏感字段加密组件；默认值：见其子项；运行影响：配置错误会导致密文无法解密或写入失败。
     crypto:
-      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
+      # 配置项 algorithm：用途：指定加密算法标识；默认值：AES256_GCM；运行影响：算法不匹配会导致加解密不兼容。
       algorithm: AES256_GCM
-      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-id：用途：指定当前密钥标识；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_PROD_CRYPTO_KEY_ID，未设置时为 benchmark-engine-prod-key；运行影响：影响密文元数据和密钥轮换追溯。
       key-id: ${SQLFORGE_BENCHMARK_ENGINE_PROD_CRYPTO_KEY_ID:benchmark-engine-prod-key}
-      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
+      # 配置项 base64-key：用途：提供 Base64 编码的加密密钥；默认值：环境变量 SQLFORGE_BENCHMARK_ENGINE_PROD_CRYPTO_KEY_BASE64，未设置时为 空值；运行影响：为空会使加密组件无法进行真实加解密。
       base64-key: ${SQLFORGE_BENCHMARK_ENGINE_PROD_CRYPTO_KEY_BASE64:}
 
-# 配置项 benchmark-engine：说明该配置的用途、默认值或运行影响。
+# 配置项 benchmark-engine：用途：配置压测引擎服务或压测客户端；默认值：见其子项；运行影响：影响压测任务、报告和证据产物处理。
 benchmark-engine:
-  # 配置项 queues：说明该配置的用途、默认值或运行影响。
+  # 配置项 queues：用途：配置任务队列实现；默认值：见其子项；运行影响：影响任务获取、外部文件队列和 worker 模式。
   queues:
-    # 配置项 mode：说明该配置的用途、默认值或运行影响。
+    # 配置项 mode：用途：选择上级模块运行模式；默认值：database-worker；运行影响：模式变化会切换实现路径和外部依赖。
     mode: database-worker

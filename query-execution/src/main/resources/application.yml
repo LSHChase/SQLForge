@@ -1,217 +1,217 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 application：说明该配置的用途、默认值或运行影响。
+  # 配置项 application：用途：定义 Spring 应用元信息；默认值：见其子项；运行影响：影响服务标识、日志上下文和运行状态识别。
   application:
-    # 配置项 name：说明该配置的用途、默认值或运行影响。
+    # 配置项 name：用途：定义查询执行服务应用名；默认值：query-execution；运行影响：影响日志标识、Actuator 信息和服务上下文识别。
     name: query-execution
-  # 配置项 profiles：说明该配置的用途、默认值或运行影响。
+  # 配置项 profiles：用途：定义环境 profile 配置；默认值：见其子项；运行影响：影响加载 dev、test、prod 或 compose profile 的配置分支。
   profiles:
-    # 配置项 active：说明该配置的用途、默认值或运行影响。
+    # 配置项 active：用途：选择默认激活的 Spring profile；默认值：环境变量 SPRING_PROFILES_ACTIVE，未设置时为 dev；运行影响：决定未显式指定环境时加载哪套配置。
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
-# 配置项 server：说明该配置的用途、默认值或运行影响。
+# 配置项 server：用途：配置服务 HTTP 容器；默认值：见其子项；运行影响：影响接口监听端口和内嵌容器行为。
 server:
-  # 配置项 port：说明该配置的用途、默认值或运行影响。
+  # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：8081；运行影响：端口变化会影响访问地址和端口冲突风险。
   port: 8081
 
-# 配置项 management：说明该配置的用途、默认值或运行影响。
+# 配置项 management：用途：配置 Actuator 管理端点；默认值：见其子项；运行影响：影响健康检查、指标和 Prometheus 暴露。
 management:
-  # 配置项 endpoints：说明该配置的用途、默认值或运行影响。
+  # 配置项 endpoints：用途：配置管理端点集合；默认值：见其子项；运行影响：影响可通过 HTTP 暴露的运维入口。
   endpoints:
-    # 配置项 web：说明该配置的用途、默认值或运行影响。
+    # 配置项 web：用途：配置管理端点的 Web 暴露方式；默认值：见其子项；运行影响：影响管理端点能否通过 HTTP 访问。
     web:
-      # 配置项 exposure：说明该配置的用途、默认值或运行影响。
+      # 配置项 exposure：用途：配置端点暴露范围；默认值：见其子项；运行影响：暴露过多会扩大运维接口可见面。
       exposure:
-        # 配置项 include：说明该配置的用途、默认值或运行影响。
+        # 配置项 include：用途：列出允许暴露或加载的条目；默认值：health,info,metrics,prometheus；运行影响：决定对应端点或配置是否生效。
         include: health,info,metrics,prometheus
-  # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+  # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：见其子项；运行影响：端点错误会导致客户端连接失败。
   endpoint:
-    # 配置项 health：说明该配置的用途、默认值或运行影响。
+    # 配置项 health：用途：配置健康检查端点；默认值：见其子项；运行影响：影响服务健康信息展示深度。
     health:
-      # 配置项 show-details：说明该配置的用途、默认值或运行影响。
+      # 配置项 show-details：用途：控制健康详情展示策略；默认值：always；运行影响：展示过多会增加环境信息暴露面。
       show-details: always
 
-# 配置项 logging：说明该配置的用途、默认值或运行影响。
+# 配置项 logging：用途：配置日志输出和级别；默认值：见其子项；运行影响：影响排障信息量、日志体积和生产可观测性。
 logging:
-  # 配置项 level：说明该配置的用途、默认值或运行影响。
+  # 配置项 level：用途：配置日志级别集合；默认值：见其子项；运行影响：影响各包日志输出粒度。
   level:
-    # 配置项 root：说明该配置的用途、默认值或运行影响。
+    # 配置项 root：用途：配置根日志级别；默认值：INFO；运行影响：影响未单独指定包名的日志输出。
     root: INFO
-    # 配置项 com.company.queryexecution：说明该配置的用途、默认值或运行影响。
+    # 配置项 com.company.queryexecution：用途：设置 com.company.queryexecution 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     com.company.queryexecution: INFO
 
-# 配置项 mybatis：说明该配置的用途、默认值或运行影响。
+# 配置项 mybatis：用途：配置 MyBatis 运行参数；默认值：见其子项；运行影响：影响 mapper XML 加载和字段映射。
 mybatis:
-  # 配置项 config-location：说明该配置的用途、默认值或运行影响。
+  # 配置项 config-location：用途：指定 MyBatis 全局配置文件；默认值：classpath:mybatis-config.xml；运行影响：路径错误会导致 MyBatis 初始化失败。
   config-location: classpath:mybatis-config.xml
-  # 配置项 mapper-locations：说明该配置的用途、默认值或运行影响。
+  # 配置项 mapper-locations：用途：指定 MyBatis mapper XML 扫描路径；默认值：classpath*:mapper/*.xml；运行影响：路径错误会导致 SQL mapper 不可用。
   mapper-locations: classpath*:mapper/*.xml
 
-# 配置项 query-execution：说明该配置的用途、默认值或运行影响。
+# 配置项 query-execution：用途：配置查询执行服务或查询执行客户端；默认值：见其子项；运行影响：影响查询路由、Hetu 接入和加速命中。
 query-execution:
-  # 配置项 safety：说明该配置的用途、默认值或运行影响。
+  # 配置项 safety：用途：配置查询执行安全边界；默认值：见其子项；运行影响：影响只读优先和执行安全策略。
   safety:
-    # 配置项 readonly-first：说明该配置的用途、默认值或运行影响。
+    # 配置项 readonly-first：用途：要求查询执行优先遵守只读边界；默认值：true；运行影响：关闭会弱化默认只读保护。
     readonly-first: true
-  # 配置项 parser：说明该配置的用途、默认值或运行影响。
+  # 配置项 parser：用途：配置 SQL 解析策略；默认值：见其子项；运行影响：影响轻量解析、任务解析和改写入口。
   parser:
-    # 配置项 strategy：说明该配置的用途、默认值或运行影响。
+    # 配置项 strategy：用途：指定解析或处理策略；默认值：OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH；运行影响：策略变化会切换底层解析实现。
     strategy: OPEN_SOURCE_ABSTRACTION_FOR_LIGHTWEIGHT_PATH
-  # 配置项 rewrite：说明该配置的用途、默认值或运行影响。
+  # 配置项 rewrite：用途：配置查询改写行为；默认值：见其子项；运行影响：影响开发直通成功和生产改写命中。
   rewrite:
-    # 配置项 development-direct-success-enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 development-direct-success-enabled：用途：控制开发环境改写直通成功开关；默认值：环境变量 QUERY_EXECUTION_REWRITE_DEV_DIRECT_SUCCESS_ENABLED，未设置时为 false；运行影响：开启会绕过真实改写成功条件，仅用于开发验证。
     development-direct-success-enabled: ${QUERY_EXECUTION_REWRITE_DEV_DIRECT_SUCCESS_ENABLED:false}
-  # 配置项 hetu：说明该配置的用途、默认值或运行影响。
+  # 配置项 hetu：用途：配置 Hetu 引擎接入；默认值：见其子项；运行影响：影响 JDBC、REST、CLIENT 模式是否可参与执行。
   hetu:
-    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 QUERY_EXECUTION_HETU_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。
     enabled: ${QUERY_EXECUTION_HETU_ENABLED:false}
-    # 配置项 calibration：说明该配置的用途、默认值或运行影响。
+    # 配置项 calibration：用途：配置 Hetu 路由校准信息；默认值：见其子项；运行影响：影响不同接入模式的优先级和跳过策略。
     calibration:
-      # 配置项 profile：说明该配置的用途、默认值或运行影响。
+      # 配置项 profile：用途：指定校准或运行 profile；默认值：环境变量 QUERY_EXECUTION_HETU_CALIBRATION_PROFILE，未设置时为 REPO_CLOSED_BASELINE；运行影响：profile 变化会影响运行证据口径和路由策略。
       profile: ${QUERY_EXECUTION_HETU_CALIBRATION_PROFILE:REPO_CLOSED_BASELINE}
-      # 配置项 skip-unready-modes：说明该配置的用途、默认值或运行影响。
+      # 配置项 skip-unready-modes：用途：控制是否跳过未就绪 Hetu 模式；默认值：环境变量 QUERY_EXECUTION_HETU_SKIP_UNREADY_MODES，未设置时为 true；运行影响：开启后未配置模式不会导致整体路由失败。
       skip-unready-modes: ${QUERY_EXECUTION_HETU_SKIP_UNREADY_MODES:true}
-    # 配置项 cluster-evidence：说明该配置的用途、默认值或运行影响。
+    # 配置项 cluster-evidence：用途：记录 Hetu 集群证据元数据；默认值：见其子项；运行影响：影响运行结果中环境证据和待验证状态表达。
     cluster-evidence:
-      # 配置项 evidence-source：说明该配置的用途、默认值或运行影响。
+      # 配置项 evidence-source：用途：声明 Hetu 证据来源；默认值：环境变量 QUERY_EXECUTION_HETU_EVIDENCE_SOURCE，未设置时为 REPO_CLOSED_CONFIGURATION；运行影响：影响是否把当前配置视为仓库闭环或外部环境证据。
       evidence-source: ${QUERY_EXECUTION_HETU_EVIDENCE_SOURCE:REPO_CLOSED_CONFIGURATION}
-      # 配置项 environment-label：说明该配置的用途、默认值或运行影响。
+      # 配置项 environment-label：用途：标记 Hetu 环境名称；默认值：环境变量 QUERY_EXECUTION_HETU_ENVIRONMENT_LABEL，未设置时为 repo-default；运行影响：影响日志和证据中环境区分。
       environment-label: ${QUERY_EXECUTION_HETU_ENVIRONMENT_LABEL:repo-default}
-      # 配置项 cluster-name：说明该配置的用途、默认值或运行影响。
+      # 配置项 cluster-name：用途：标记 Hetu 集群名称；默认值：环境变量 QUERY_EXECUTION_HETU_CLUSTER_NAME，未设置时为 UNSPECIFIED；运行影响：影响证据展示和环境追溯。
       cluster-name: ${QUERY_EXECUTION_HETU_CLUSTER_NAME:UNSPECIFIED}
-      # 配置项 coordinator-endpoint：说明该配置的用途、默认值或运行影响。
+      # 配置项 coordinator-endpoint：用途：记录 Hetu coordinator 地址；默认值：环境变量 QUERY_EXECUTION_HETU_COORDINATOR_ENDPOINT，未设置时为 空值；运行影响：为空表示尚未绑定真实外部集群。
       coordinator-endpoint: ${QUERY_EXECUTION_HETU_COORDINATOR_ENDPOINT:}
-      # 配置项 runbook-ref：说明该配置的用途、默认值或运行影响。
+      # 配置项 runbook-ref：用途：指向 Hetu 环境验证 runbook；默认值：环境变量 QUERY_EXECUTION_HETU_RUNBOOK_REF，未设置时为 docs/deployments/hetu-test-environment-deployment-runbook.md；运行影响：影响操作者查找外部验证步骤。
       runbook-ref: ${QUERY_EXECUTION_HETU_RUNBOOK_REF:docs/deployments/hetu-test-environment-deployment-runbook.md}
-      # 配置项 evidence-ref：说明该配置的用途、默认值或运行影响。
+      # 配置项 evidence-ref：用途：指向 Hetu 外部证据跟踪项；默认值：环境变量 QUERY_EXECUTION_HETU_EVIDENCE_REF，未设置时为 HARN-016/INBOX-002；运行影响：影响未完成验证的追溯位置。
       evidence-ref: ${QUERY_EXECUTION_HETU_EVIDENCE_REF:HARN-016/INBOX-002}
-      # 配置项 readonly-boundary：说明该配置的用途、默认值或运行影响。
+      # 配置项 readonly-boundary：用途：声明 Hetu 执行只读边界；默认值：环境变量 QUERY_EXECUTION_HETU_READONLY_BOUNDARY，未设置时为 REPO_CLOSED_DEFAULT；运行影响：影响运行证据中的安全边界表达。
       readonly-boundary: ${QUERY_EXECUTION_HETU_READONLY_BOUNDARY:REPO_CLOSED_DEFAULT}
-      # 配置项 live-verification-status：说明该配置的用途、默认值或运行影响。
+      # 配置项 live-verification-status：用途：记录 Hetu live 验证状态；默认值：环境变量 QUERY_EXECUTION_HETU_LIVE_VERIFICATION_STATUS，未设置时为 PENDING_ENV_WINDOW；运行影响：PENDING 表示不能宣称真实环境已闭环。
       live-verification-status: ${QUERY_EXECUTION_HETU_LIVE_VERIFICATION_STATUS:PENDING_ENV_WINDOW}
-      # 配置项 evidence-notes：说明该配置的用途、默认值或运行影响。
+      # 配置项 evidence-notes：用途：补充 Hetu 证据说明；默认值：环境变量 QUERY_EXECUTION_HETU_EVIDENCE_NOTES，未设置时为 空值；运行影响：用于运行证据展示，不参与真实连接。
       evidence-notes: ${QUERY_EXECUTION_HETU_EVIDENCE_NOTES:}
-    # 配置项 jdbc：说明该配置的用途、默认值或运行影响。
+    # 配置项 jdbc：用途：配置 Hetu JDBC 接入；默认值：见其子项；运行影响：影响 JDBC 模式是否可建立真实查询连接。
     jdbc:
-      # 配置项 governance-resolution-enabled：说明该配置的用途、默认值或运行影响。
+      # 配置项 governance-resolution-enabled：用途：控制 JDBC datasource 是否通过治理解析；默认值：环境变量 QUERY_EXECUTION_HETU_JDBC_GOVERNANCE_RESOLUTION_ENABLED，未设置时为 true；运行影响：关闭会跳过治理数据源解析路径。
       governance-resolution-enabled: ${QUERY_EXECUTION_HETU_JDBC_GOVERNANCE_RESOLUTION_ENABLED:true}
-      # 配置项 url：说明该配置的用途、默认值或运行影响。
+      # 配置项 url：用途：指定数据库或服务访问地址；默认值：环境变量 QUERY_EXECUTION_HETU_JDBC_URL，未设置时为 空值；运行影响：地址错误会导致运行时连接失败。
       url: ${QUERY_EXECUTION_HETU_JDBC_URL:}
-      # 配置项 username：说明该配置的用途、默认值或运行影响。
+      # 配置项 username：用途：指定连接账号；默认值：环境变量 QUERY_EXECUTION_HETU_JDBC_USERNAME，未设置时为 空值；运行影响：账号错误会导致认证失败。
       username: ${QUERY_EXECUTION_HETU_JDBC_USERNAME:}
-      # 配置项 password：说明该配置的用途、默认值或运行影响。
+      # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 QUERY_EXECUTION_HETU_JDBC_PASSWORD，未设置时为 空值；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
       password: ${QUERY_EXECUTION_HETU_JDBC_PASSWORD:}
-      # 配置项 query-timeout-seconds：说明该配置的用途、默认值或运行影响。
+      # 配置项 query-timeout-seconds：用途：设置查询或计划分析超时秒数；默认值：环境变量 QUERY_EXECUTION_HETU_JDBC_QUERY_TIMEOUT_SECONDS，未设置时为 30；运行影响：过短会中断慢查询，过长会拖慢失败返回。
       query-timeout-seconds: ${QUERY_EXECUTION_HETU_JDBC_QUERY_TIMEOUT_SECONDS:30}
-      # 配置项 max-rows：说明该配置的用途、默认值或运行影响。
+      # 配置项 max-rows：用途：限制查询返回最大行数；默认值：环境变量 QUERY_EXECUTION_HETU_JDBC_MAX_ROWS，未设置时为 200；运行影响：数值过大可能增加内存和响应体压力。
       max-rows: ${QUERY_EXECUTION_HETU_JDBC_MAX_ROWS:200}
-    # 配置项 rest：说明该配置的用途、默认值或运行影响。
+    # 配置项 rest：用途：配置 Hetu REST 接入；默认值：见其子项；运行影响：影响 REST 模式是否可调用外部引擎接口。
     rest:
-      # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+      # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：环境变量 QUERY_EXECUTION_HETU_REST_ENDPOINT，未设置时为 空值；运行影响：端点错误会导致客户端连接失败。
       endpoint: ${QUERY_EXECUTION_HETU_REST_ENDPOINT:}
-      # 配置项 auth-token：说明该配置的用途、默认值或运行影响。
+      # 配置项 auth-token：用途：指定 REST 调用认证 token；默认值：环境变量 QUERY_EXECUTION_HETU_REST_AUTH_TOKEN，未设置时为 空值；运行影响：为空会导致需要认证的 REST 接口失败。
       auth-token: ${QUERY_EXECUTION_HETU_REST_AUTH_TOKEN:}
-      # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 QUERY_EXECUTION_HETU_REST_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
       connect-timeout-ms: ${QUERY_EXECUTION_HETU_REST_CONNECT_TIMEOUT_MS:3000}
-      # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 QUERY_EXECUTION_HETU_REST_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
       read-timeout-ms: ${QUERY_EXECUTION_HETU_REST_READ_TIMEOUT_MS:5000}
-      # 配置项 max-rows：说明该配置的用途、默认值或运行影响。
+      # 配置项 max-rows：用途：限制查询返回最大行数；默认值：环境变量 QUERY_EXECUTION_HETU_REST_MAX_ROWS，未设置时为 200；运行影响：数值过大可能增加内存和响应体压力。
       max-rows: ${QUERY_EXECUTION_HETU_REST_MAX_ROWS:200}
-    # 配置项 client：说明该配置的用途、默认值或运行影响。
+    # 配置项 client：用途：配置 Hetu client 模式；默认值：见其子项；运行影响：影响 client 协议执行路径是否可用。
     client:
-      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+      # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。
       enabled: ${QUERY_EXECUTION_HETU_CLIENT_ENABLED:false}
-      # 配置项 endpoint：说明该配置的用途、默认值或运行影响。
+      # 配置项 endpoint：用途：指定外部服务或对象存储端点；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_ENDPOINT，未设置时为 空值；运行影响：端点错误会导致客户端连接失败。
       endpoint: ${QUERY_EXECUTION_HETU_CLIENT_ENDPOINT:}
-      # 配置项 user：说明该配置的用途、默认值或运行影响。
+      # 配置项 user：用途：指定连接用户；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_USER，未设置时为 空值；运行影响：用户错误会导致认证失败。
       user: ${QUERY_EXECUTION_HETU_CLIENT_USER:}
-      # 配置项 source：说明该配置的用途、默认值或运行影响。
+      # 配置项 source：用途：指定 Hetu client 查询来源标识；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_SOURCE，未设置时为 sqlforge-query-execution；运行影响：会进入引擎会话来源，便于排查 SQLForge 请求。
       source: ${QUERY_EXECUTION_HETU_CLIENT_SOURCE:sqlforge-query-execution}
-      # 配置项 catalog：说明该配置的用途、默认值或运行影响。
+      # 配置项 catalog：用途：指定默认 catalog；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_CATALOG，未设置时为 空值；运行影响：影响 SQL 路由到哪个数据目录。
       catalog: ${QUERY_EXECUTION_HETU_CLIENT_CATALOG:}
-      # 配置项 schema：说明该配置的用途、默认值或运行影响。
+      # 配置项 schema：用途：指定默认 schema；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_SCHEMA，未设置时为 空值；运行影响：影响 SQL 未显式限定时的命名空间。
       schema: ${QUERY_EXECUTION_HETU_CLIENT_SCHEMA:}
-      # 配置项 auth-token：说明该配置的用途、默认值或运行影响。
+      # 配置项 auth-token：用途：指定 REST 调用认证 token；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_AUTH_TOKEN，未设置时为 空值；运行影响：为空会导致需要认证的 REST 接口失败。
       auth-token: ${QUERY_EXECUTION_HETU_CLIENT_AUTH_TOKEN:}
-      # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
       connect-timeout-ms: ${QUERY_EXECUTION_HETU_CLIENT_CONNECT_TIMEOUT_MS:3000}
-      # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
       read-timeout-ms: ${QUERY_EXECUTION_HETU_CLIENT_READ_TIMEOUT_MS:5000}
-      # 配置项 max-rows：说明该配置的用途、默认值或运行影响。
+      # 配置项 max-rows：用途：限制查询返回最大行数；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_MAX_ROWS，未设置时为 200；运行影响：数值过大可能增加内存和响应体压力。
       max-rows: ${QUERY_EXECUTION_HETU_CLIENT_MAX_ROWS:200}
-      # 配置项 max-pages：说明该配置的用途、默认值或运行影响。
+      # 配置项 max-pages：用途：限制 Hetu client 拉取结果页数；默认值：环境变量 QUERY_EXECUTION_HETU_CLIENT_MAX_PAGES，未设置时为 10；运行影响：数值越大可读取更多结果但内存和响应时间更高。
       max-pages: ${QUERY_EXECUTION_HETU_CLIENT_MAX_PAGES:10}
-  # 配置项 acceleration：说明该配置的用途、默认值或运行影响。
+  # 配置项 acceleration：用途：配置加速命中策略；默认值：见其子项；运行影响：影响缓存策略和加速计划绑定的运行行为。
   acceleration:
-    # 配置项 ownership-mode：说明该配置的用途、默认值或运行影响。
+    # 配置项 ownership-mode：用途：配置缓存归属模式；默认值：APPLY_ACTIVE_RUNTIME_CONFIG_ONLY；运行影响：影响多租户缓存隔离与淘汰口径。
     ownership-mode: APPLY_ACTIVE_RUNTIME_CONFIG_ONLY
-  # 配置项 cache：说明该配置的用途、默认值或运行影响。
+  # 配置项 cache：用途：配置查询结果缓存能力；默认值：见其子项；运行影响：影响命中、回填、失效和缓存治理证据。
   cache:
-    # 配置项 backend：说明该配置的用途、默认值或运行影响。
+    # 配置项 backend：用途：配置缓存后端类型；默认值：见其子项；运行影响：影响缓存数据存储位置和可用性。
     backend:
-      # 配置项 type：说明该配置的用途、默认值或运行影响。
+      # 配置项 type：用途：选择查询结果缓存后端类型；默认值：环境变量 QUERY_EXECUTION_CACHE_BACKEND_TYPE，未设置时为 IN_MEMORY；运行影响：切换为 Redis 时会依赖外部 Redis，失败时缓存路径按 fail-closed 旁路。
       type: ${QUERY_EXECUTION_CACHE_BACKEND_TYPE:IN_MEMORY}
-      # 配置项 provider-name：说明该配置的用途、默认值或运行影响。
+      # 配置项 provider-name：用途：标记对象存储 provider 名称；默认值：环境变量 QUERY_EXECUTION_CACHE_BACKEND_PROVIDER，未设置时为 REPO_CLOSED_IN_MEMORY；运行影响：影响证据中 provider 合同和恢复来源展示。
       provider-name: ${QUERY_EXECUTION_CACHE_BACKEND_PROVIDER:REPO_CLOSED_IN_MEMORY}
-      # 配置项 environment-label：说明该配置的用途、默认值或运行影响。
+      # 配置项 environment-label：用途：标记 Hetu 环境名称；默认值：环境变量 QUERY_EXECUTION_CACHE_BACKEND_ENVIRONMENT，未设置时为 repo-default；运行影响：影响日志和证据中环境区分。
       environment-label: ${QUERY_EXECUTION_CACHE_BACKEND_ENVIRONMENT:repo-default}
-      # 配置项 default-max-entries-per-tenant：说明该配置的用途、默认值或运行影响。
+      # 配置项 default-max-entries-per-tenant：用途：限制单租户缓存条目数；默认值：环境变量 QUERY_EXECUTION_CACHE_DEFAULT_MAX_ENTRIES_PER_TENANT，未设置时为 1024；运行影响：数值过小会影响多策略缓存命中。
       default-max-entries-per-tenant: ${QUERY_EXECUTION_CACHE_DEFAULT_MAX_ENTRIES_PER_TENANT:1024}
-      # 配置项 default-max-entries-per-policy：说明该配置的用途、默认值或运行影响。
+      # 配置项 default-max-entries-per-policy：用途：限制单策略缓存条目数；默认值：环境变量 QUERY_EXECUTION_CACHE_DEFAULT_MAX_ENTRIES_PER_POLICY，未设置时为 128；运行影响：数值过小会频繁容量淘汰。
       default-max-entries-per-policy: ${QUERY_EXECUTION_CACHE_DEFAULT_MAX_ENTRIES_PER_POLICY:128}
-      # 配置项 default-ttl-seconds：说明该配置的用途、默认值或运行影响。
+      # 配置项 default-ttl-seconds：用途：设置默认缓存 TTL；默认值：环境变量 QUERY_EXECUTION_CACHE_DEFAULT_TTL_SECONDS，未设置时为 0；运行影响：过短会降低命中率，过长会增加陈旧数据风险。
       default-ttl-seconds: ${QUERY_EXECUTION_CACHE_DEFAULT_TTL_SECONDS:0}
-      # 配置项 redis：说明该配置的用途、默认值或运行影响。
+      # 配置项 redis：用途：配置 Redis 连接或 Redis 支撑能力；默认值：见其子项；运行影响：影响缓存、队列或临时状态能力是否可用。
       redis:
-        # 配置项 host：说明该配置的用途、默认值或运行影响。
+        # 配置项 host：用途：指定依赖服务主机名；默认值：环境变量 QUERY_EXECUTION_CACHE_REDIS_HOST，未设置时为 空值；运行影响：主机不可达会导致依赖连接失败。
         host: ${QUERY_EXECUTION_CACHE_REDIS_HOST:}
-        # 配置项 port：说明该配置的用途、默认值或运行影响。
+        # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：环境变量 QUERY_EXECUTION_CACHE_REDIS_PORT，未设置时为 6379；运行影响：端口变化会影响访问地址和端口冲突风险。
         port: ${QUERY_EXECUTION_CACHE_REDIS_PORT:6379}
-        # 配置项 password：说明该配置的用途、默认值或运行影响。
+        # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 QUERY_EXECUTION_CACHE_REDIS_PASSWORD，未设置时为 空值；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
         password: ${QUERY_EXECUTION_CACHE_REDIS_PASSWORD:}
-        # 配置项 database：说明该配置的用途、默认值或运行影响。
+        # 配置项 database：用途：配置数据库模式或数据库索引；默认值：环境变量 QUERY_EXECUTION_CACHE_REDIS_DATABASE，未设置时为 0；运行影响：影响数据库连接、消息兜底或缓存分区。
         database: ${QUERY_EXECUTION_CACHE_REDIS_DATABASE:0}
-        # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+        # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 QUERY_EXECUTION_CACHE_REDIS_CONNECT_TIMEOUT_MS，未设置时为 1000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
         connect-timeout-ms: ${QUERY_EXECUTION_CACHE_REDIS_CONNECT_TIMEOUT_MS:1000}
-        # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+        # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 QUERY_EXECUTION_CACHE_REDIS_READ_TIMEOUT_MS，未设置时为 1000；运行影响：过短会中断慢请求，过长会占用调用线程。
         read-timeout-ms: ${QUERY_EXECUTION_CACHE_REDIS_READ_TIMEOUT_MS:1000}
-  # 配置项 jdbc-agent：说明该配置的用途、默认值或运行影响。
+  # 配置项 jdbc-agent：用途：配置 JDBC Agent 协同能力；默认值：见其子项；运行影响：影响 agent 侧状态是否写入 Redis。
   jdbc-agent:
-    # 配置项 redis：说明该配置的用途、默认值或运行影响。
+    # 配置项 redis：用途：配置 Redis 连接或 Redis 支撑能力；默认值：见其子项；运行影响：影响缓存、队列或临时状态能力是否可用。
     redis:
-      # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+      # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。
       enabled: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_ENABLED:false}
-      # 配置项 namespace：说明该配置的用途、默认值或运行影响。
+      # 配置项 namespace：用途：指定 Redis key 命名空间；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_NAMESPACE，未设置时为 sqlforge:jdbc-agent；运行影响：影响不同功能缓存 key 的隔离。
       namespace: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_NAMESPACE:sqlforge:jdbc-agent}
-      # 配置项 host：说明该配置的用途、默认值或运行影响。
+      # 配置项 host：用途：指定依赖服务主机名；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_HOST，未设置时为 空值；运行影响：主机不可达会导致依赖连接失败。
       host: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_HOST:}
-      # 配置项 port：说明该配置的用途、默认值或运行影响。
+      # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_PORT，未设置时为 6379；运行影响：端口变化会影响访问地址和端口冲突风险。
       port: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_PORT:6379}
-      # 配置项 password：说明该配置的用途、默认值或运行影响。
+      # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_PASSWORD，未设置时为 空值；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
       password: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_PASSWORD:}
-      # 配置项 database：说明该配置的用途、默认值或运行影响。
+      # 配置项 database：用途：配置数据库模式或数据库索引；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_DATABASE，未设置时为 0；运行影响：影响数据库连接、消息兜底或缓存分区。
       database: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_DATABASE:0}
-      # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_CONNECT_TIMEOUT_MS，未设置时为 1000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
       connect-timeout-ms: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_CONNECT_TIMEOUT_MS:1000}
-      # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+      # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_READ_TIMEOUT_MS，未设置时为 1000；运行影响：过短会中断慢请求，过长会占用调用线程。
       read-timeout-ms: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_READ_TIMEOUT_MS:1000}
-      # 配置项 ttl-seconds：说明该配置的用途、默认值或运行影响。
+      # 配置项 ttl-seconds：用途：设置 Redis key 过期秒数；默认值：环境变量 QUERY_EXECUTION_JDBC_AGENT_REDIS_TTL_SECONDS，未设置时为 0；运行影响：0 表示不设置额外过期时间。
       ttl-seconds: ${QUERY_EXECUTION_JDBC_AGENT_REDIS_TTL_SECONDS:0}
-  # 配置项 governance：说明该配置的用途、默认值或运行影响。
+  # 配置项 governance：用途：配置治理服务或治理客户端能力；默认值：见其子项；运行影响：影响租户校验、审计写入和跨服务治理调用。
   governance:
-    # 配置项 base-url：说明该配置的用途、默认值或运行影响。
+    # 配置项 base-url：用途：指定内部服务调用基地址；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_BASE_URL，未设置时为 http://localhost:8080/api/governance/internal；运行影响：地址错误会导致跨服务调用失败。
     base-url: ${QUERY_EXECUTION_GOVERNANCE_BASE_URL:http://localhost:8080/api/governance/internal}
-    # 配置项 connect-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 connect-timeout-ms：用途：设置建立连接超时时间；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_CONNECT_TIMEOUT_MS，未设置时为 3000；运行影响：过短会误判网络抖动，过长会拖慢失败返回。
     connect-timeout-ms: ${QUERY_EXECUTION_GOVERNANCE_CONNECT_TIMEOUT_MS:3000}
-    # 配置项 read-timeout-ms：说明该配置的用途、默认值或运行影响。
+    # 配置项 read-timeout-ms：用途：设置读取响应超时时间；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_READ_TIMEOUT_MS，未设置时为 5000；运行影响：过短会中断慢请求，过长会占用调用线程。
     read-timeout-ms: ${QUERY_EXECUTION_GOVERNANCE_READ_TIMEOUT_MS:5000}
-    # 配置项 datasource-id-map：说明该配置的用途、默认值或运行影响。
+    # 配置项 datasource-id-map：用途：配置引擎类型到治理数据源 ID 的映射；默认值：见其子项；运行影响：映射错误会导致治理访问校验使用错误数据源。
     datasource-id-map:
-      # 配置项 AUTO：说明该配置的用途、默认值或运行影响。
+      # 配置项 AUTO：用途：将 AUTO 映射到治理数据源 ID；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_DATASOURCE_AUTO，未设置时为 query-hetu；运行影响：映射错误会导致访问校验使用错误数据源。
       AUTO: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_AUTO:query-hetu}
-      # 配置项 TRINO：说明该配置的用途、默认值或运行影响。
+      # 配置项 TRINO：用途：将 TRINO 映射到治理数据源 ID；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_DATASOURCE_TRINO，未设置时为 query-trino；运行影响：映射错误会导致访问校验使用错误数据源。
       TRINO: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_TRINO:query-trino}
-      # 配置项 HETU：说明该配置的用途、默认值或运行影响。
+      # 配置项 HETU：用途：将 HETU 映射到治理数据源 ID；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_DATASOURCE_HETU，未设置时为 query-hetu；运行影响：映射错误会导致访问校验使用错误数据源。
       HETU: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_HETU:query-hetu}
-      # 配置项 HIVE：说明该配置的用途、默认值或运行影响。
+      # 配置项 HIVE：用途：将 HIVE 映射到治理数据源 ID；默认值：环境变量 QUERY_EXECUTION_GOVERNANCE_DATASOURCE_HIVE，未设置时为 query-hive；运行影响：映射错误会导致访问校验使用错误数据源。
       HIVE: ${QUERY_EXECUTION_GOVERNANCE_DATASOURCE_HIVE:query-hive}

@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-YML-CONFIG-DESCRIPTIONS-20260526: 补齐 yml 配置项中文具体说明
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 detail YAML config comments in Chinese`
+- Priority: 1
+- Depends on: N/A
+- Scope: 按用户要求修复所有 yml/yaml 配置项中文说明，移除模板句，写出具体用途、默认值和运行影响；同时修正自动补注释脚本，避免后续重新写入模板。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-YML-CONFIG-DESCRIPTIONS-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 已将 27 个 yml/yaml 配置文件中的模板式配置说明替换为包含用途、默认值和运行影响的中文说明，覆盖 GitHub Actions、compose、四个后端服务主/环境/test 配置；修正 check-config-item-comments.py，使后续 YAML 自动补注释不再生成模板句，并为其它配置类型提供非模板兜底；补齐检查器发现的两个 mapper XML 注释缺口。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-YML-CONFIG-DESCRIPTIONS-20260526 --include-task-audit --extra-command 'python3 scripts/check-config-item-comments.py' --extra-command 'python3 -m py_compile scripts/check-config-item-comments.py' --extra-command 'node scripts/lint-repository-knowledge.js' --extra-command 'docker-compose config' --extra-command 'docker-compose -f docker-compose-cn.yml config' --extra-command 'docker-compose -f docker-compose-simple.yml config' --extra-command 'git diff --check' passed；YAML semantic equality checked: 27 files；python3 scripts/task_audit.py --check --phase pre-closeout passed。
+  - Residual risk: 本任务按 yml/yaml 边界具体化配置说明；XML/POM 等非 YAML 文件中的既有模板注释未做全量重写，除两个会阻断检查器的 mapper XML 缺口外不扩大范围。配置解析结果与 HEAD 一致，未改变运行配置值。
+  - Next step: 若后续要求 XML、POM、TOML、JS 等非 YAML 配置的既有模板句也全部具体化，应按新的配置说明任务拆分执行并复用本轮脚本兜底能力。
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260526: 全量更新 dist-portable 便携前端产物
 
 - Status: done

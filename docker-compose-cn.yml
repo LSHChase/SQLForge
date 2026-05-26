@@ -1,180 +1,180 @@
-# 配置项 services：说明该配置的用途、默认值或运行影响。
+# 配置项 services：用途：声明当前 compose 文件管理的服务集合；默认值：见其子项；运行影响：决定本地基础设施会创建哪些服务容器。
 services:
-  # 配置项 mysql：说明该配置的用途、默认值或运行影响。
+  # 配置项 mysql：用途：定义 SQLForge 本地 MySQL 服务；默认值：见其子项；运行影响：提供主持久化数据库，停止会导致后端持久化功能不可用。
   mysql:
-    # 配置项 image：说明该配置的用途、默认值或运行影响。
+    # 配置项 image：用途：指定容器启动使用的镜像版本；默认值：docker.mirrors.sjtug.sjtu.edu.cn/library/mysql:8.0；运行影响：镜像变化会改变组件版本、启动脚本和兼容性。
     image: docker.mirrors.sjtug.sjtu.edu.cn/library/mysql:8.0
-    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
+    # 配置项 container_name：用途：固定容器名称，便于脚本和人工排查定位；默认值：sqlforge-mysql；运行影响：名称冲突会导致容器无法创建。
     container_name: sqlforge-mysql
-    # 配置项 restart：说明该配置的用途、默认值或运行影响。
+    # 配置项 restart：用途：设置容器异常退出后的重启策略；默认值：unless-stopped；运行影响：影响本地依赖服务的自动恢复行为。
     restart: unless-stopped
-    # 配置项 environment：说明该配置的用途、默认值或运行影响。
+    # 配置项 environment：用途：向容器进程注入运行环境变量；默认值：见其子项；运行影响：变量变化会改变账号、监听地址、安全协议或组件行为。
     environment:
-      # 配置项 MYSQL_ROOT_PASSWORD：说明该配置的用途、默认值或运行影响。
+      # 配置项 MYSQL_ROOT_PASSWORD：用途：设置 MySQL root 用户密码；默认值：sqlforge；运行影响：影响 root 健康检查和管理员登录。
       MYSQL_ROOT_PASSWORD: sqlforge
-      # 配置项 MYSQL_DATABASE：说明该配置的用途、默认值或运行影响。
+      # 配置项 MYSQL_DATABASE：用途：设置容器首次启动创建的默认数据库；默认值：sqlforge；运行影响：应用默认连接该库保存 SQLForge 数据。
       MYSQL_DATABASE: sqlforge
-      # 配置项 MYSQL_USER：说明该配置的用途、默认值或运行影响。
+      # 配置项 MYSQL_USER：用途：设置容器首次启动创建的业务用户；默认值：sqlforge；运行影响：应用使用该用户连接 MySQL。
       MYSQL_USER: sqlforge
-      # 配置项 MYSQL_PASSWORD：说明该配置的用途、默认值或运行影响。
+      # 配置项 MYSQL_PASSWORD：用途：设置 MySQL 业务用户密码；默认值：sqlforge；运行影响：密码错误会导致应用数据库连接失败。
       MYSQL_PASSWORD: sqlforge
-    # 配置项 ports：说明该配置的用途、默认值或运行影响。
+    # 配置项 ports：用途：声明宿主机到容器的端口映射；默认值：见其子项；运行影响：端口变化会影响本机访问地址以及端口冲突风险。
     ports:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：映射宿主机和容器端口 "3306:3306"；默认值：当前列表项为 "3306:3306"；运行影响：该端口用于本机访问对应容器服务。
       - "3306:3306"
-    # 配置项 command：说明该配置的用途、默认值或运行影响。
+    # 配置项 command：用途：覆盖或追加服务启动命令；默认值：见其子项；运行影响：命令变化会直接改变组件启动参数和运行特性。
     command:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：向容器启动命令追加参数 --character-set-server=utf8mb4；默认值：当前列表项为 --character-set-server=utf8mb4；运行影响：该参数会改变容器内组件启动行为。
       - --character-set-server=utf8mb4
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：向容器启动命令追加参数 --collation-server=utf8mb4_unicode_ci；默认值：当前列表项为 --collation-server=utf8mb4_unicode_ci；运行影响：该参数会改变容器内组件启动行为。
       - --collation-server=utf8mb4_unicode_ci
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：向容器启动命令追加参数 --default-authentication-plugin=mysql_native_password；默认值：当前列表项为 --default-authentication-plugin=mysql_native_password；运行影响：该参数会改变容器内组件启动行为。
       - --default-authentication-plugin=mysql_native_password
-    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
+    # 配置项 volumes：用途：声明持久化卷或目录挂载；默认值：见其子项；运行影响：挂载变化会影响数据保留、恢复和本地文件写入位置。
     volumes:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：挂载卷或目录 mysql-data:/var/lib/mysql；默认值：当前列表项为 mysql-data:/var/lib/mysql；运行影响：该挂载决定容器数据持久化位置。
       - mysql-data:/var/lib/mysql
-    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
+    # 配置项 healthcheck：用途：定义容器健康探针；默认值：见其子项；运行影响：探针失败会让 compose 标记服务不健康。
     healthcheck:
-      # 配置项 test：说明该配置的用途、默认值或运行影响。
+      # 配置项 test：用途：定义健康检查实际执行的命令；默认值：["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -psqlforge --silent"]；运行影响：命令返回非零会触发健康检查失败。
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -psqlforge --silent"]
-      # 配置项 interval：说明该配置的用途、默认值或运行影响。
+      # 配置项 interval：用途：设置健康检查执行间隔；默认值：10s；运行影响：间隔越短发现故障越快但检查开销越高。
       interval: 10s
-      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
+      # 配置项 timeout：用途：设置单次健康检查超时时间；默认值：5s；运行影响：超时过短会造成慢启动服务被误判失败。
       timeout: 5s
-      # 配置项 retries：说明该配置的用途、默认值或运行影响。
+      # 配置项 retries：用途：设置健康检查失败重试次数；默认值：10；运行影响：次数越多越能容忍启动抖动但故障发现更慢。
       retries: 10
-      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
+      # 配置项 start_period：用途：设置容器启动宽限时间；默认值：20s；运行影响：宽限期内失败不会立即计入重试次数。
       start_period: 20s
 
-  # 配置项 redis：说明该配置的用途、默认值或运行影响。
+  # 配置项 redis：用途：定义 SQLForge 本地 Redis 服务；默认值：见其子项；运行影响：提供缓存或队列辅助能力，停止会影响相关 runtime 能力。
   redis:
-    # 配置项 image：说明该配置的用途、默认值或运行影响。
+    # 配置项 image：用途：指定容器启动使用的镜像版本；默认值：docker.mirrors.sjtug.sjtu.edu.cn/library/redis:7；运行影响：镜像变化会改变组件版本、启动脚本和兼容性。
     image: docker.mirrors.sjtug.sjtu.edu.cn/library/redis:7
-    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
+    # 配置项 container_name：用途：固定容器名称，便于脚本和人工排查定位；默认值：sqlforge-redis；运行影响：名称冲突会导致容器无法创建。
     container_name: sqlforge-redis
-    # 配置项 restart：说明该配置的用途、默认值或运行影响。
+    # 配置项 restart：用途：设置容器异常退出后的重启策略；默认值：unless-stopped；运行影响：影响本地依赖服务的自动恢复行为。
     restart: unless-stopped
-    # 配置项 command：说明该配置的用途、默认值或运行影响。
+    # 配置项 command：用途：覆盖或追加服务启动命令；默认值：redis-server --appendonly yes；运行影响：命令变化会直接改变组件启动参数和运行特性。
     command: redis-server --appendonly yes
-    # 配置项 ports：说明该配置的用途、默认值或运行影响。
+    # 配置项 ports：用途：声明宿主机到容器的端口映射；默认值：见其子项；运行影响：端口变化会影响本机访问地址以及端口冲突风险。
     ports:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：映射宿主机和容器端口 "6379:6379"；默认值：当前列表项为 "6379:6379"；运行影响：该端口用于本机访问对应容器服务。
       - "6379:6379"
-    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
+    # 配置项 volumes：用途：声明持久化卷或目录挂载；默认值：见其子项；运行影响：挂载变化会影响数据保留、恢复和本地文件写入位置。
     volumes:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：挂载卷或目录 redis-data:/data；默认值：当前列表项为 redis-data:/data；运行影响：该挂载决定容器数据持久化位置。
       - redis-data:/data
-    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
+    # 配置项 healthcheck：用途：定义容器健康探针；默认值：见其子项；运行影响：探针失败会让 compose 标记服务不健康。
     healthcheck:
-      # 配置项 test：说明该配置的用途、默认值或运行影响。
+      # 配置项 test：用途：定义健康检查实际执行的命令；默认值：["CMD", "redis-cli", "ping"]；运行影响：命令返回非零会触发健康检查失败。
       test: ["CMD", "redis-cli", "ping"]
-      # 配置项 interval：说明该配置的用途、默认值或运行影响。
+      # 配置项 interval：用途：设置健康检查执行间隔；默认值：10s；运行影响：间隔越短发现故障越快但检查开销越高。
       interval: 10s
-      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
+      # 配置项 timeout：用途：设置单次健康检查超时时间；默认值：5s；运行影响：超时过短会造成慢启动服务被误判失败。
       timeout: 5s
-      # 配置项 retries：说明该配置的用途、默认值或运行影响。
+      # 配置项 retries：用途：设置健康检查失败重试次数；默认值：10；运行影响：次数越多越能容忍启动抖动但故障发现更慢。
       retries: 10
 
-  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
+  # 配置项 kafka：用途：定义可选 Kafka 服务；默认值：见其子项；运行影响：启用 optional profile 后可验证真实 Kafka 消息路径。
   kafka:
-    # 配置项 image：说明该配置的用途、默认值或运行影响。
+    # 配置项 image：用途：指定容器启动使用的镜像版本；默认值：docker.mirrors.sjtug.sjtu.edu.cn/bitnami/kafka:3.6.2；运行影响：镜像变化会改变组件版本、启动脚本和兼容性。
     image: docker.mirrors.sjtug.sjtu.edu.cn/bitnami/kafka:3.6.2
-    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
+    # 配置项 container_name：用途：固定容器名称，便于脚本和人工排查定位；默认值：sqlforge-kafka；运行影响：名称冲突会导致容器无法创建。
     container_name: sqlforge-kafka
-    # 配置项 restart：说明该配置的用途、默认值或运行影响。
+    # 配置项 restart：用途：设置容器异常退出后的重启策略；默认值：unless-stopped；运行影响：影响本地依赖服务的自动恢复行为。
     restart: unless-stopped
-    # 配置项 environment：说明该配置的用途、默认值或运行影响。
+    # 配置项 environment：用途：向容器进程注入运行环境变量；默认值：见其子项；运行影响：变量变化会改变账号、监听地址、安全协议或组件行为。
     environment:
-      # 配置项 KAFKA_CFG_NODE_ID：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_NODE_ID：用途：设置 Bitnami Kafka KRaft 节点 ID；默认值：1；运行影响：节点 ID 参与 controller quorum 标识。
       KAFKA_CFG_NODE_ID: 1
-      # 配置项 KAFKA_CFG_PROCESS_ROLES：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_PROCESS_ROLES：用途：设置 Bitnami Kafka 进程角色；默认值：broker,controller；运行影响：决定当前节点同时承担 broker 和 controller。
       KAFKA_CFG_PROCESS_ROLES: broker,controller
-      # 配置项 KAFKA_CFG_LISTENERS：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_LISTENERS：用途：设置 Bitnami Kafka 监听地址；默认值：PLAINTEXT://:9092,CONTROLLER://:9093；运行影响：影响 broker 与 controller 端口绑定。
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      # 配置项 KAFKA_CFG_ADVERTISED_LISTENERS：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_ADVERTISED_LISTENERS：用途：设置 Bitnami Kafka 对客户端公布的地址；默认值：PLAINTEXT://localhost:9092；运行影响：地址错误会导致宿主机客户端无法连接。
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      # 配置项 KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP：用途：设置 Bitnami Kafka listener 到安全协议映射；默认值：PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT；运行影响：映射错误会导致 broker listener 无法启动。
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      # 配置项 KAFKA_CFG_CONTROLLER_LISTENER_NAMES：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_CONTROLLER_LISTENER_NAMES：用途：设置 Bitnami controller listener 名称；默认值：CONTROLLER；运行影响：名称不匹配会导致 controller 通信失败。
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      # 配置项 KAFKA_CFG_INTER_BROKER_LISTENER_NAME：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_INTER_BROKER_LISTENER_NAME：用途：设置 Bitnami broker 间通信 listener；默认值：PLAINTEXT；运行影响：名称错误会导致 broker 间通信失败。
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      # 配置项 KAFKA_CFG_CONTROLLER_QUORUM_VOTERS：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_CONTROLLER_QUORUM_VOTERS：用途：设置 Bitnami KRaft controller quorum 成员；默认值：1@kafka:9093；运行影响：地址错误会导致单节点 Kafka 无法选主。
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      # 配置项 KAFKA_KRAFT_CLUSTER_ID：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_KRAFT_CLUSTER_ID：用途：设置 Bitnami Kafka KRaft cluster ID；默认值：MkU3OEVBNTcwNTJENDM2Qk；运行影响：变化会影响数据目录格式化和集群身份。
       KAFKA_KRAFT_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
-      # 配置项 KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE：说明该配置的用途、默认值或运行影响。
+      # 配置项 KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE：用途：控制 Bitnami Kafka 是否自动创建 topic；默认值："true"；运行影响：开启后本地开发无需预创建 topic。
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      # 配置项 ALLOW_PLAINTEXT_LISTENER：说明该配置的用途、默认值或运行影响。
+      # 配置项 ALLOW_PLAINTEXT_LISTENER：用途：允许 Bitnami Kafka 使用明文 listener；默认值："yes"；运行影响：本地开发无需 TLS，生产不得沿用。
       ALLOW_PLAINTEXT_LISTENER: "yes"
-    # 配置项 ports：说明该配置的用途、默认值或运行影响。
+    # 配置项 ports：用途：声明宿主机到容器的端口映射；默认值：见其子项；运行影响：端口变化会影响本机访问地址以及端口冲突风险。
     ports:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：映射宿主机和容器端口 "9092:9092"；默认值：当前列表项为 "9092:9092"；运行影响：该端口用于本机访问对应容器服务。
       - "9092:9092"
-    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
+    # 配置项 volumes：用途：声明持久化卷或目录挂载；默认值：见其子项；运行影响：挂载变化会影响数据保留、恢复和本地文件写入位置。
     volumes:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：挂载卷或目录 kafka-data:/bitnami/kafka；默认值：当前列表项为 kafka-data:/bitnami/kafka；运行影响：该挂载决定容器数据持久化位置。
       - kafka-data:/bitnami/kafka
-    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
+    # 配置项 healthcheck：用途：定义容器健康探针；默认值：见其子项；运行影响：探针失败会让 compose 标记服务不健康。
     healthcheck:
-      # 配置项 test：说明该配置的用途、默认值或运行影响。
+      # 配置项 test：用途：定义健康检查实际执行的命令；默认值：["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]；运行影响：命令返回非零会触发健康检查失败。
       test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
-      # 配置项 interval：说明该配置的用途、默认值或运行影响。
+      # 配置项 interval：用途：设置健康检查执行间隔；默认值：15s；运行影响：间隔越短发现故障越快但检查开销越高。
       interval: 15s
-      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
+      # 配置项 timeout：用途：设置单次健康检查超时时间；默认值：10s；运行影响：超时过短会造成慢启动服务被误判失败。
       timeout: 10s
-      # 配置项 retries：说明该配置的用途、默认值或运行影响。
+      # 配置项 retries：用途：设置健康检查失败重试次数；默认值：10；运行影响：次数越多越能容忍启动抖动但故障发现更慢。
       retries: 10
-      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
+      # 配置项 start_period：用途：设置容器启动宽限时间；默认值：20s；运行影响：宽限期内失败不会立即计入重试次数。
       start_period: 20s
 
-  # 配置项 minio：说明该配置的用途、默认值或运行影响。
+  # 配置项 minio：用途：定义 MinIO 对象存储服务；默认值：见其子项；运行影响：提供本地对象存储兼容端点和控制台。
   minio:
-    # 配置项 image：说明该配置的用途、默认值或运行影响。
+    # 配置项 image：用途：指定容器启动使用的镜像版本；默认值：docker.mirrors.sjtug.sjtu.edu.cn/minio/minio:latest；运行影响：镜像变化会改变组件版本、启动脚本和兼容性。
     image: docker.mirrors.sjtug.sjtu.edu.cn/minio/minio:latest
-    # 配置项 container_name：说明该配置的用途、默认值或运行影响。
+    # 配置项 container_name：用途：固定容器名称，便于脚本和人工排查定位；默认值：sqlforge-minio；运行影响：名称冲突会导致容器无法创建。
     container_name: sqlforge-minio
-    # 配置项 restart：说明该配置的用途、默认值或运行影响。
+    # 配置项 restart：用途：设置容器异常退出后的重启策略；默认值：unless-stopped；运行影响：影响本地依赖服务的自动恢复行为。
     restart: unless-stopped
-    # 配置项 environment：说明该配置的用途、默认值或运行影响。
+    # 配置项 environment：用途：向容器进程注入运行环境变量；默认值：见其子项；运行影响：变量变化会改变账号、监听地址、安全协议或组件行为。
     environment:
-      # 配置项 MINIO_ROOT_USER：说明该配置的用途、默认值或运行影响。
+      # 配置项 MINIO_ROOT_USER：用途：设置 MinIO 管理员账号；默认值：minioadmin；运行影响：影响对象存储控制台和 API 登录。
       MINIO_ROOT_USER: minioadmin
-      # 配置项 MINIO_ROOT_PASSWORD：说明该配置的用途、默认值或运行影响。
+      # 配置项 MINIO_ROOT_PASSWORD：用途：设置 MinIO 管理员密码；默认值：minioadmin；运行影响：密码错误会导致对象存储访问失败。
       MINIO_ROOT_PASSWORD: minioadmin
-    # 配置项 command：说明该配置的用途、默认值或运行影响。
+    # 配置项 command：用途：覆盖或追加服务启动命令；默认值：server /data --console-address ":9001"；运行影响：命令变化会直接改变组件启动参数和运行特性。
     command: server /data --console-address ":9001"
-    # 配置项 ports：说明该配置的用途、默认值或运行影响。
+    # 配置项 ports：用途：声明宿主机到容器的端口映射；默认值：见其子项；运行影响：端口变化会影响本机访问地址以及端口冲突风险。
     ports:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：映射宿主机和容器端口 "9000:9000"；默认值：当前列表项为 "9000:9000"；运行影响：该端口用于本机访问对应容器服务。
       - "9000:9000"
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：映射宿主机和容器端口 "9001:9001"；默认值：当前列表项为 "9001:9001"；运行影响：该端口用于本机访问对应容器服务。
       - "9001:9001"
-    # 配置项 volumes：说明该配置的用途、默认值或运行影响。
+    # 配置项 volumes：用途：声明持久化卷或目录挂载；默认值：见其子项；运行影响：挂载变化会影响数据保留、恢复和本地文件写入位置。
     volumes:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：挂载卷或目录 minio-data:/data；默认值：当前列表项为 minio-data:/data；运行影响：该挂载决定容器数据持久化位置。
       - minio-data:/data
-    # 配置项 healthcheck：说明该配置的用途、默认值或运行影响。
+    # 配置项 healthcheck：用途：定义容器健康探针；默认值：见其子项；运行影响：探针失败会让 compose 标记服务不健康。
     healthcheck:
-      # 配置项 test：说明该配置的用途、默认值或运行影响。
+      # 配置项 test：用途：定义健康检查实际执行的命令；默认值：["CMD-SHELL", "mc ready local >/dev/null 2>&1 || exit 1"]；运行影响：命令返回非零会触发健康检查失败。
       test: ["CMD-SHELL", "mc ready local >/dev/null 2>&1 || exit 1"]
-      # 配置项 interval：说明该配置的用途、默认值或运行影响。
+      # 配置项 interval：用途：设置健康检查执行间隔；默认值：15s；运行影响：间隔越短发现故障越快但检查开销越高。
       interval: 15s
-      # 配置项 timeout：说明该配置的用途、默认值或运行影响。
+      # 配置项 timeout：用途：设置单次健康检查超时时间；默认值：5s；运行影响：超时过短会造成慢启动服务被误判失败。
       timeout: 5s
-      # 配置项 retries：说明该配置的用途、默认值或运行影响。
+      # 配置项 retries：用途：设置健康检查失败重试次数；默认值：10；运行影响：次数越多越能容忍启动抖动但故障发现更慢。
       retries: 10
-      # 配置项 start_period：说明该配置的用途、默认值或运行影响。
+      # 配置项 start_period：用途：设置容器启动宽限时间；默认值：15s；运行影响：宽限期内失败不会立即计入重试次数。
       start_period: 15s
 
-# 配置项 volumes：说明该配置的用途、默认值或运行影响。
+# 配置项 volumes：用途：声明持久化卷或目录挂载；默认值：见其子项；运行影响：挂载变化会影响数据保留、恢复和本地文件写入位置。
 volumes:
-  # 配置项 mysql-data：说明该配置的用途、默认值或运行影响。
+  # 配置项 mysql-data：用途：声明命名卷 mysql-data；默认值：见其子项；运行影响：该卷保存容器数据，删除会丢失本地状态。
   mysql-data:
-  # 配置项 redis-data：说明该配置的用途、默认值或运行影响。
+  # 配置项 redis-data：用途：声明命名卷 redis-data；默认值：见其子项；运行影响：该卷保存容器数据，删除会丢失本地状态。
   redis-data:
-  # 配置项 kafka-data：说明该配置的用途、默认值或运行影响。
+  # 配置项 kafka-data：用途：声明命名卷 kafka-data；默认值：见其子项；运行影响：该卷保存容器数据，删除会丢失本地状态。
   kafka-data:
-  # 配置项 minio-data：说明该配置的用途、默认值或运行影响。
+  # 配置项 minio-data：用途：声明命名卷 minio-data；默认值：见其子项；运行影响：该卷保存容器数据，删除会丢失本地状态。
   minio-data:

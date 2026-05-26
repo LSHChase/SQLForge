@@ -1,43 +1,43 @@
-# 配置项 name：说明该配置的用途、默认值或运行影响。
+# 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Kafka Runtime Gate；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
 name: Kafka Runtime Gate
 
-# 配置项 on：说明该配置的用途、默认值或运行影响。
+# 配置项 on：用途：定义 GitHub Actions workflow 触发入口；默认值：见其子项；运行影响：触发条件变化会改变 CI 或门禁执行时机。
 on:
-  # 配置项 workflow_dispatch：说明该配置的用途、默认值或运行影响。
+  # 配置项 workflow_dispatch：用途：启用人工手动触发入口；默认值：见其子项；运行影响：缺失时无法在 GitHub 页面手动运行该 workflow。
   workflow_dispatch:
 
-# 配置项 jobs：说明该配置的用途、默认值或运行影响。
+# 配置项 jobs：用途：定义 workflow 内的作业集合；默认值：见其子项；运行影响：作业集合变化会改变 CI 或门禁实际执行内容。
 jobs:
-  # 配置项 kafka-runtime-gate：说明该配置的用途、默认值或运行影响。
+  # 配置项 kafka-runtime-gate：用途：定义 GitHub Actions 作业 kafka-runtime-gate；默认值：见其子项；运行影响：该作业失败会导致对应 workflow 失败。
   kafka-runtime-gate:
-    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
+    # 配置项 runs-on：用途：指定作业运行的 GitHub runner 镜像；默认值：ubuntu-latest；运行影响：runner 变化会影响系统依赖、工具版本和执行兼容性。
     runs-on: ubuntu-latest
-    # 配置项 steps：说明该配置的用途、默认值或运行影响。
+    # 配置项 steps：用途：定义作业内按顺序执行的步骤；默认值：见其子项；运行影响：步骤顺序或内容变化会影响门禁覆盖范围。
     steps:
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Checkout；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Checkout
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/checkout@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/checkout@v4
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Setup JDK 8u112；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Setup JDK 8u112
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/setup-java@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/setup-java@v4
-        # 配置项 with：说明该配置的用途、默认值或运行影响。
+        # 配置项 with：用途：向当前 Action 传入参数；默认值：见其子项；运行影响：参数变化会影响该 Action 的执行方式。
         with:
-          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
+          # 配置项 distribution：用途：指定 JDK 发行版；默认值：zulu；运行影响：发行版变化会影响 Java 工具链获取来源。
           distribution: zulu
-          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
+          # 配置项 java-version：用途：指定 CI 使用的 JDK 8u112 版本；默认值：'8.0.112'；运行影响：版本变化会破坏仓库固定 JDK 8u112 基线。
           java-version: '8.0.112'
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Verify JDK 8u112；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Verify JDK 8u112
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run real Kafka runtime gate；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run real Kafka runtime gate
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：bash scripts/run-kafka-runtime-gate.sh；运行影响：命令失败会导致对应 CI 步骤失败。
         run: bash scripts/run-kafka-runtime-gate.sh

@@ -1,131 +1,131 @@
-# 配置项 name：说明该配置的用途、默认值或运行影响。
+# 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Phase Gate；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
 name: Phase Gate
 
-# 配置项 on：说明该配置的用途、默认值或运行影响。
+# 配置项 on：用途：定义 GitHub Actions workflow 触发入口；默认值：见其子项；运行影响：触发条件变化会改变 CI 或门禁执行时机。
 on:
-  # 配置项 workflow_dispatch：说明该配置的用途、默认值或运行影响。
+  # 配置项 workflow_dispatch：用途：启用人工手动触发入口；默认值：见其子项；运行影响：缺失时无法在 GitHub 页面手动运行该 workflow。
   workflow_dispatch:
-    # 配置项 inputs：说明该配置的用途、默认值或运行影响。
+    # 配置项 inputs：用途：定义手动触发 workflow 时的人机输入项；默认值：见其子项；运行影响：输入项变化会影响门禁参数选择。
     inputs:
-      # 配置项 gate：说明该配置的用途、默认值或运行影响。
+      # 配置项 gate：用途：定义阶段门禁范围输入；默认值：见其子项；运行影响：默认或选项变化会影响执行 entry、delivery、compliance 或 full 门禁。
       gate:
-        # 配置项 description：说明该配置的用途、默认值或运行影响。
+        # 配置项 description：用途：定义输入项在人机界面的说明；默认值：Gate scope；运行影响：说明不准确会导致操作者选择错误参数。
         description: Gate scope
-        # 配置项 required：说明该配置的用途、默认值或运行影响。
+        # 配置项 required：用途：控制输入项是否必填；默认值：true；运行影响：必填项缺失会阻止 workflow 启动。
         required: true
-        # 配置项 default：说明该配置的用途、默认值或运行影响。
+        # 配置项 default：用途：定义输入项默认值；默认值：full；运行影响：默认值变化会影响人工未改参数时的门禁路径。
         default: full
-        # 配置项 type：说明该配置的用途、默认值或运行影响。
+        # 配置项 type：用途：定义输入项类型；默认值：choice；运行影响：类型变化会影响 GitHub 表单校验和可选值展示。
         type: choice
-        # 配置项 options：说明该配置的用途、默认值或运行影响。
+        # 配置项 options：用途：列出 choice 输入项的可选值；默认值：见其子项；运行影响：列表变化会改变操作者可选门禁范围。
         options:
-          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+          # 配置列表项 列表值：用途：把 entry 作为人工输入可选值；默认值：当前列表项为 entry；运行影响：操作者选择该值会改变门禁脚本参数。
           - entry
-          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+          # 配置列表项 列表值：用途：把 delivery 作为人工输入可选值；默认值：当前列表项为 delivery；运行影响：操作者选择该值会改变门禁脚本参数。
           - delivery
-          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+          # 配置列表项 列表值：用途：把 compliance 作为人工输入可选值；默认值：当前列表项为 compliance；运行影响：操作者选择该值会改变门禁脚本参数。
           - compliance
-          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+          # 配置列表项 列表值：用途：把 full 作为人工输入可选值；默认值：当前列表项为 full；运行影响：操作者选择该值会改变门禁脚本参数。
           - full
-      # 配置项 coverage_phase：说明该配置的用途、默认值或运行影响。
+      # 配置项 coverage_phase：用途：定义覆盖率门禁阶段输入；默认值：见其子项；运行影响：阶段变化会影响使用 phase0 还是 phase1plus 覆盖率阈值。
       coverage_phase:
-        # 配置项 description：说明该配置的用途、默认值或运行影响。
+        # 配置项 description：用途：定义输入项在人机界面的说明；默认值：Coverage phase for delivery/full；运行影响：说明不准确会导致操作者选择错误参数。
         description: Coverage phase for delivery/full
-        # 配置项 required：说明该配置的用途、默认值或运行影响。
+        # 配置项 required：用途：控制输入项是否必填；默认值：true；运行影响：必填项缺失会阻止 workflow 启动。
         required: true
-        # 配置项 default：说明该配置的用途、默认值或运行影响。
+        # 配置项 default：用途：定义输入项默认值；默认值：phase1plus；运行影响：默认值变化会影响人工未改参数时的门禁路径。
         default: phase1plus
-        # 配置项 type：说明该配置的用途、默认值或运行影响。
+        # 配置项 type：用途：定义输入项类型；默认值：choice；运行影响：类型变化会影响 GitHub 表单校验和可选值展示。
         type: choice
-        # 配置项 options：说明该配置的用途、默认值或运行影响。
+        # 配置项 options：用途：列出 choice 输入项的可选值；默认值：见其子项；运行影响：列表变化会改变操作者可选门禁范围。
         options:
-          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+          # 配置列表项 列表值：用途：把 phase0 作为人工输入可选值；默认值：当前列表项为 phase0；运行影响：操作者选择该值会改变门禁脚本参数。
           - phase0
-          # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+          # 配置列表项 列表值：用途：把 phase1plus 作为人工输入可选值；默认值：当前列表项为 phase1plus；运行影响：操作者选择该值会改变门禁脚本参数。
           - phase1plus
-      # 配置项 require_sonar：说明该配置的用途、默认值或运行影响。
+      # 配置项 require_sonar：用途：控制是否强制执行 Sonar fallback；默认值：见其子项；运行影响：开启后 Sonar 配置缺失会阻断门禁。
       require_sonar:
-        # 配置项 description：说明该配置的用途、默认值或运行影响。
+        # 配置项 description：用途：定义输入项在人机界面的说明；默认值：Require Sonar fallback during delivery/full；运行影响：说明不准确会导致操作者选择错误参数。
         description: Require Sonar fallback during delivery/full
-        # 配置项 required：说明该配置的用途、默认值或运行影响。
+        # 配置项 required：用途：控制输入项是否必填；默认值：true；运行影响：必填项缺失会阻止 workflow 启动。
         required: true
-        # 配置项 default：说明该配置的用途、默认值或运行影响。
+        # 配置项 default：用途：定义输入项默认值；默认值：false；运行影响：默认值变化会影响人工未改参数时的门禁路径。
         default: false
-        # 配置项 type：说明该配置的用途、默认值或运行影响。
+        # 配置项 type：用途：定义输入项类型；默认值：boolean；运行影响：类型变化会影响 GitHub 表单校验和可选值展示。
         type: boolean
-      # 配置项 run_real_kafka_gate：说明该配置的用途、默认值或运行影响。
+      # 配置项 run_real_kafka_gate：用途：控制是否执行真实 Kafka runtime gate；默认值：见其子项；运行影响：开启后需要可用 Kafka 环境才能通过对应门禁。
       run_real_kafka_gate:
-        # 配置项 description：说明该配置的用途、默认值或运行影响。
+        # 配置项 description：用途：定义输入项在人机界面的说明；默认值：Run real Kafka runtime gate during compliance/full；运行影响：说明不准确会导致操作者选择错误参数。
         description: Run real Kafka runtime gate during compliance/full
-        # 配置项 required：说明该配置的用途、默认值或运行影响。
+        # 配置项 required：用途：控制输入项是否必填；默认值：true；运行影响：必填项缺失会阻止 workflow 启动。
         required: true
-        # 配置项 default：说明该配置的用途、默认值或运行影响。
+        # 配置项 default：用途：定义输入项默认值；默认值：false；运行影响：默认值变化会影响人工未改参数时的门禁路径。
         default: false
-        # 配置项 type：说明该配置的用途、默认值或运行影响。
+        # 配置项 type：用途：定义输入项类型；默认值：boolean；运行影响：类型变化会影响 GitHub 表单校验和可选值展示。
         type: boolean
 
-# 配置项 jobs：说明该配置的用途、默认值或运行影响。
+# 配置项 jobs：用途：定义 workflow 内的作业集合；默认值：见其子项；运行影响：作业集合变化会改变 CI 或门禁实际执行内容。
 jobs:
-  # 配置项 phase-gate：说明该配置的用途、默认值或运行影响。
+  # 配置项 phase-gate：用途：定义 GitHub Actions 作业 phase-gate；默认值：见其子项；运行影响：该作业失败会导致对应 workflow 失败。
   phase-gate:
-    # 配置项 runs-on：说明该配置的用途、默认值或运行影响。
+    # 配置项 runs-on：用途：指定作业运行的 GitHub runner 镜像；默认值：ubuntu-latest；运行影响：runner 变化会影响系统依赖、工具版本和执行兼容性。
     runs-on: ubuntu-latest
-    # 配置项 env：说明该配置的用途、默认值或运行影响。
+    # 配置项 env：用途：定义作业或步骤环境变量；默认值：见其子项；运行影响：变量变化会影响脚本读取的外部配置和密钥注入。
     env:
-      # 配置项 SONAR_HOST_URL：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_HOST_URL：用途：向门禁脚本注入 SONAR_HOST_URL；默认值：GitHub 表达式 ${{ secrets.SONAR_HOST_URL }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      # 配置项 SONAR_TOKEN：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_TOKEN：用途：向门禁脚本注入 SONAR_TOKEN；默认值：GitHub 表达式 ${{ secrets.SONAR_TOKEN }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      # 配置项 SONAR_PROJECT_KEY：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_PROJECT_KEY：用途：向门禁脚本注入 SONAR_PROJECT_KEY；默认值：GitHub 表达式 ${{ vars.SONAR_PROJECT_KEY }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-      # 配置项 SONAR_PROJECT_NAME：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_PROJECT_NAME：用途：向门禁脚本注入 SONAR_PROJECT_NAME；默认值：GitHub 表达式 ${{ vars.SONAR_PROJECT_NAME }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME }}
-      # 配置项 SONAR_QUALITY_GATE_WAIT：说明该配置的用途、默认值或运行影响。
+      # 配置项 SONAR_QUALITY_GATE_WAIT：用途：向门禁脚本注入 SONAR_QUALITY_GATE_WAIT；默认值：GitHub 表达式 ${{ vars.SONAR_QUALITY_GATE_WAIT }}；运行影响：值为空时 Sonar fallback 会跳过或在强制模式下失败。
       SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT }}
-    # 配置项 steps：说明该配置的用途、默认值或运行影响。
+    # 配置项 steps：用途：定义作业内按顺序执行的步骤；默认值：见其子项；运行影响：步骤顺序或内容变化会影响门禁覆盖范围。
     steps:
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Checkout；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Checkout
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/checkout@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/checkout@v4
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Setup JDK 8u112；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Setup JDK 8u112
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/setup-java@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/setup-java@v4
-        # 配置项 with：说明该配置的用途、默认值或运行影响。
+        # 配置项 with：用途：向当前 Action 传入参数；默认值：见其子项；运行影响：参数变化会影响该 Action 的执行方式。
         with:
-          # 配置项 distribution：说明该配置的用途、默认值或运行影响。
+          # 配置项 distribution：用途：指定 JDK 发行版；默认值：zulu；运行影响：发行版变化会影响 Java 工具链获取来源。
           distribution: zulu
-          # 配置项 java-version：说明该配置的用途、默认值或运行影响。
+          # 配置项 java-version：用途：指定 CI 使用的 JDK 8u112 版本；默认值：'8.0.112'；运行影响：版本变化会破坏仓库固定 JDK 8u112 基线。
           java-version: '8.0.112'
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Verify JDK 8u112；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Verify JDK 8u112
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           java -version 2>&1 | tee /tmp/sqlforge-java-version.txt
           grep '1.8.0_112' /tmp/sqlforge-java-version.txt
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Setup Node.js 18.20.8；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Setup Node.js 18.20.8
-        # 配置项 uses：说明该配置的用途、默认值或运行影响。
+        # 配置项 uses：用途：引用复用的 GitHub Action；默认值：actions/setup-node@v4；运行影响：版本变化会影响检出、环境安装或产物上传行为。
         uses: actions/setup-node@v4
-        # 配置项 with：说明该配置的用途、默认值或运行影响。
+        # 配置项 with：用途：向当前 Action 传入参数；默认值：见其子项；运行影响：参数变化会影响该 Action 的执行方式。
         with:
-          # 配置项 node-version：说明该配置的用途、默认值或运行影响。
+          # 配置项 node-version：用途：指定 CI 使用的 Node.js 版本；默认值：'18.20.8'；运行影响：版本变化会影响前端依赖安装和构建一致性。
           node-version: '18.20.8'
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Install frontend dependencies；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Install frontend dependencies
-        # 配置项 if：说明该配置的用途、默认值或运行影响。
+        # 配置项 if：用途：定义步骤执行条件表达式；默认值：GitHub 表达式 ${{ inputs.gate == 'delivery' || inputs.gate == 'full' }}；运行影响：条件变化会影响步骤是否被跳过。
         if: ${{ inputs.gate == 'delivery' || inputs.gate == 'full' }}
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：npm install；运行影响：命令失败会导致对应 CI 步骤失败。
         run: npm install
 
-      # 配置项 name：说明该配置的用途、默认值或运行影响。
+      # 配置项 name：用途：定义 workflow、job、步骤或上传产物的显示名称；默认值：Run phase gate；运行影响：名称会出现在 GitHub Actions 页面和产物列表中。
       - name: Run phase gate
-        # 配置项 run：说明该配置的用途、默认值或运行影响。
+        # 配置项 run：用途：定义当前步骤执行的 shell 命令；默认值：多行脚本块；运行影响：命令失败会导致对应 CI 步骤失败。
         run: |
           ARGS=(--gate "${{ inputs.gate }}" --coverage-phase "${{ inputs.coverage_phase }}")
           if [ "${{ inputs.require_sonar }}" = "true" ] && ([ "${{ inputs.gate }}" = "delivery" ] || [ "${{ inputs.gate }}" = "full" ]); then

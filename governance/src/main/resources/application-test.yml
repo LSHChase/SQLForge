@@ -1,66 +1,66 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 datasource：说明该配置的用途、默认值或运行影响。
+  # 配置项 datasource：用途：配置服务数据库连接；默认值：见其子项；运行影响：影响持久化、查询和任务状态读写。
   datasource:
-    # 配置项 driver-class-name：说明该配置的用途、默认值或运行影响。
+    # 配置项 driver-class-name：用途：指定 JDBC 驱动类；默认值：com.mysql.cj.jdbc.Driver；运行影响：驱动不匹配会导致数据库连接初始化失败。
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 配置项 url：说明该配置的用途、默认值或运行影响。
+    # 配置项 url：用途：指定数据库或服务访问地址；默认值：环境变量 SQLFORGE_TEST_DB_URL，未设置时为 jdbc:mysql://mysql-test:3306/sqlforge_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai；运行影响：地址错误会导致运行时连接失败。
     url: ${SQLFORGE_TEST_DB_URL:jdbc:mysql://mysql-test:3306/sqlforge_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
-    # 配置项 username：说明该配置的用途、默认值或运行影响。
+    # 配置项 username：用途：指定连接账号；默认值：环境变量 SQLFORGE_TEST_DB_USER，未设置时为 sqlforge；运行影响：账号错误会导致认证失败。
     username: ${SQLFORGE_TEST_DB_USER:sqlforge}
-    # 配置项 password：说明该配置的用途、默认值或运行影响。
+    # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 SQLFORGE_TEST_DB_PASSWORD，未设置时为 sqlforge；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。
     password: ${SQLFORGE_TEST_DB_PASSWORD:sqlforge}
-  # 配置项 redis：说明该配置的用途、默认值或运行影响。
+  # 配置项 redis：用途：配置 Redis 连接或 Redis 支撑能力；默认值：见其子项；运行影响：影响缓存、队列或临时状态能力是否可用。
   redis:
-    # 配置项 host：说明该配置的用途、默认值或运行影响。
+    # 配置项 host：用途：指定依赖服务主机名；默认值：环境变量 SQLFORGE_TEST_REDIS_HOST，未设置时为 redis-test；运行影响：主机不可达会导致依赖连接失败。
     host: ${SQLFORGE_TEST_REDIS_HOST:redis-test}
-    # 配置项 port：说明该配置的用途、默认值或运行影响。
+    # 配置项 port：用途：指定服务监听或依赖连接端口；默认值：环境变量 SQLFORGE_TEST_REDIS_PORT，未设置时为 6379；运行影响：端口变化会影响访问地址和端口冲突风险。
     port: ${SQLFORGE_TEST_REDIS_PORT:6379}
 
 # 集成测试默认使用DATABASE模式；单元测试使用src/test/resources中的MOCK配置。
-# 配置项 messaging：说明该配置的用途、默认值或运行影响。
+# 配置项 messaging：用途：定义顶层配置段 messaging；默认值：见其子项；运行影响：该段缺失会导致对应服务配置无法绑定。
 messaging:
-  mode: DATABASE # 配置项 mode：说明该配置的用途、默认值或运行影响。
-  # 配置项 kafka：说明该配置的用途、默认值或运行影响。
+  mode: DATABASE # 配置项 mode：用途：选择治理消息模块运行模式；默认值：DATABASE；运行影响：集成测试使用数据库消息兜底，避免依赖真实 Kafka。
+  # 配置项 kafka：用途：配置 Kafka 消息通道；默认值：见其子项；运行影响：影响消息发布、消费和生产模式接入。
   kafka:
-    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
     enabled: false
-  # 配置项 database：说明该配置的用途、默认值或运行影响。
+  # 配置项 database：用途：配置数据库模式或数据库索引；默认值：见其子项；运行影响：影响数据库连接、消息兜底或缓存分区。
   database:
-    # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+    # 配置项 enabled：用途：控制上级功能是否启用；默认值：true；运行影响：关闭后上级功能不会进入运行路径。
     enabled: true
-    # 配置项 poll-interval：说明该配置的用途、默认值或运行影响。
+    # 配置项 poll-interval：用途：设置数据库消息轮询间隔；默认值：5000；运行影响：间隔越短消息发现越快但数据库访问更频繁。
     poll-interval: 5000
-    # 配置项 max-retry：说明该配置的用途、默认值或运行影响。
+    # 配置项 max-retry：用途：设置消息或任务最大重试次数；默认值：3；运行影响：次数过低会更快失败，次数过高会延迟失败暴露。
     max-retry: 3
 
-# 配置项 logging：说明该配置的用途、默认值或运行影响。
+# 配置项 logging：用途：配置日志输出和级别；默认值：见其子项；运行影响：影响排障信息量、日志体积和生产可观测性。
 logging:
-  # 配置项 level：说明该配置的用途、默认值或运行影响。
+  # 配置项 level：用途：配置日志级别集合；默认值：见其子项；运行影响：影响各包日志输出粒度。
   level:
-    # 配置项 com.company.governance：说明该配置的用途、默认值或运行影响。
+    # 配置项 com.company.governance：用途：设置 com.company.governance 包日志级别；默认值：INFO；运行影响：级别越低该包日志越详细且日志量越大。
     com.company.governance: INFO
 
-# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
+# 配置项 sqlforge：用途：承载 SQLForge 公共配置；默认值：见其子项；运行影响：影响安全、存储和治理公共能力。
 sqlforge:
-  # 配置项 security：说明该配置的用途、默认值或运行影响。
+  # 配置项 security：用途：承载安全相关配置；默认值：见其子项；运行影响：影响敏感字段加密和认证安全边界。
   security:
-    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
+    # 配置项 crypto：用途：配置敏感字段加密组件；默认值：见其子项；运行影响：配置错误会导致密文无法解密或写入失败。
     crypto:
-      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
+      # 配置项 algorithm：用途：指定加密算法标识；默认值：AES256_GCM；运行影响：算法不匹配会导致加解密不兼容。
       algorithm: AES256_GCM
-      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-id：用途：指定当前密钥标识；默认值：环境变量 SQLFORGE_TEST_CRYPTO_KEY_ID，未设置时为 governance-test-key；运行影响：影响密文元数据和密钥轮换追溯。
       key-id: ${SQLFORGE_TEST_CRYPTO_KEY_ID:governance-test-key}
-      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
+      # 配置项 base64-key：用途：提供 Base64 编码的加密密钥；默认值：环境变量 SQLFORGE_TEST_CRYPTO_KEY_BASE64，未设置时为 MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=；运行影响：为空会使加密组件无法进行真实加解密。
       base64-key: ${SQLFORGE_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：true；运行影响：关闭后上级功能不会进入运行路径。
   enabled: true
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 header；默认值：当前列表项为 header；运行影响：请求来源不在列表中会被鉴权拦截。
     - header
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 gateway；默认值：当前列表项为 gateway；运行影响：请求来源不在列表中会被鉴权拦截。
     - gateway

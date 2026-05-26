@@ -1,63 +1,63 @@
-# 配置项 spring：说明该配置的用途、默认值或运行影响。
+# 配置项 spring：用途：承载 Spring 应用基础配置；默认值：见其子项；运行影响：影响应用名称、激活环境、数据源和自动装配。
 spring:
-  # 配置项 autoconfigure：说明该配置的用途、默认值或运行影响。
+  # 配置项 autoconfigure：用途：配置 Spring Boot 自动装配策略；默认值：见其子项；运行影响：排除项变化会影响测试上下文是否初始化外部依赖。
   autoconfigure:
-    # 配置项 exclude：说明该配置的用途、默认值或运行影响。
+    # 配置项 exclude：用途：列出需要排除的自动装配类；默认值：见其子项；运行影响：排除后测试上下文不会启动对应数据库或 MyBatis 自动配置。
     exclude:
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：在测试中排除自动装配 org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration；默认值：当前列表项为 org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration；运行影响：排除后测试上下文不会初始化对应外部依赖。
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+      # 配置列表项 列表值：用途：在测试中排除自动装配 org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration；默认值：当前列表项为 org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration；运行影响：排除后测试上下文不会初始化对应外部依赖。
       - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
 
-# 配置项 auth：说明该配置的用途、默认值或运行影响。
+# 配置项 auth：用途：配置请求鉴权开关和可信来源；默认值：见其子项；运行影响：影响受保护接口是否校验身份上下文。
 auth:
-  # 配置项 enabled：说明该配置的用途、默认值或运行影响。
+  # 配置项 enabled：用途：控制上级功能是否启用；默认值：false；运行影响：关闭后上级功能不会进入运行路径。
   enabled: false
-  # 配置项 trusted-auth-sources：说明该配置的用途、默认值或运行影响。
+  # 配置项 trusted-auth-sources：用途：列出允许透传身份的来源；默认值：见其子项；运行影响：来源不匹配会导致请求被拒绝或测试假设失效。
   trusted-auth-sources:
-    # 配置列表项 列表值：说明该配置的用途、默认值或运行影响。
+    # 配置列表项 列表值：用途：允许身份来源 header；默认值：当前列表项为 header；运行影响：请求来源不在列表中会被鉴权拦截。
     - header
 
-# 配置项 sqlforge：说明该配置的用途、默认值或运行影响。
+# 配置项 sqlforge：用途：承载 SQLForge 公共配置；默认值：见其子项；运行影响：影响安全、存储和治理公共能力。
 sqlforge:
-  # 配置项 security：说明该配置的用途、默认值或运行影响。
+  # 配置项 security：用途：承载安全相关配置；默认值：见其子项；运行影响：影响敏感字段加密和认证安全边界。
   security:
-    # 配置项 crypto：说明该配置的用途、默认值或运行影响。
+    # 配置项 crypto：用途：配置敏感字段加密组件；默认值：见其子项；运行影响：配置错误会导致密文无法解密或写入失败。
     crypto:
-      # 配置项 algorithm：说明该配置的用途、默认值或运行影响。
+      # 配置项 algorithm：用途：指定加密算法标识；默认值：AES256_GCM；运行影响：算法不匹配会导致加解密不兼容。
       algorithm: AES256_GCM
-      # 配置项 key-id：说明该配置的用途、默认值或运行影响。
+      # 配置项 key-id：用途：指定当前密钥标识；默认值：环境变量 SQLFORGE_SQL_OPTIMIZATION_TEST_CRYPTO_KEY_ID，未设置时为 sql-optimization-test-key；运行影响：影响密文元数据和密钥轮换追溯。
       key-id: ${SQLFORGE_SQL_OPTIMIZATION_TEST_CRYPTO_KEY_ID:sql-optimization-test-key}
-      # 配置项 base64-key：说明该配置的用途、默认值或运行影响。
+      # 配置项 base64-key：用途：提供 Base64 编码的加密密钥；默认值：环境变量 SQLFORGE_SQL_OPTIMIZATION_TEST_CRYPTO_KEY_BASE64，未设置时为 MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=；运行影响：为空会使加密组件无法进行真实加解密。
       base64-key: ${SQLFORGE_SQL_OPTIMIZATION_TEST_CRYPTO_KEY_BASE64:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
 
-# 配置项 sql-optimization：说明该配置的用途、默认值或运行影响。
+# 配置项 sql-optimization：用途：配置 SQL 优化服务或优化客户端；默认值：见其子项；运行影响：影响解析、推荐、改写和计划分析。
 sql-optimization:
-  # 配置项 parse-history：说明该配置的用途、默认值或运行影响。
+  # 配置项 parse-history：用途：配置解析历史存储；默认值：见其子项；运行影响：影响解析结果是否写入长期历史。
   parse-history:
-    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：test；运行影响：database 会落库，test/local 会使用测试或占位实现。
     repository: test
-  # 配置项 parse-batch：说明该配置的用途、默认值或运行影响。
+  # 配置项 parse-batch：用途：配置批量解析存储；默认值：见其子项；运行影响：影响批量解析任务和明细持久化。
   parse-batch:
-    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：test；运行影响：database 会落库，test/local 会使用测试或占位实现。
     repository: test
-  # 配置项 report-batch：说明该配置的用途、默认值或运行影响。
+  # 配置项 report-batch：用途：配置报表批量解析存储；默认值：见其子项；运行影响：影响报表导入解析任务和统计持久化。
   report-batch:
-    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：test；运行影响：database 会落库，test/local 会使用测试或占位实现。
     repository: test
-  # 配置项 recommendation：说明该配置的用途、默认值或运行影响。
+  # 配置项 recommendation：用途：配置推荐结果存储；默认值：见其子项；运行影响：影响优化推荐查询和历史追溯。
   recommendation:
-    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：test；运行影响：database 会落库，test/local 会使用测试或占位实现。
     repository: test
-  # 配置项 dispatch-event：说明该配置的用途、默认值或运行影响。
+  # 配置项 dispatch-event：用途：配置调度事件存储；默认值：见其子项；运行影响：影响异步事件追踪和回放。
   dispatch-event:
-    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：test；运行影响：database 会落库，test/local 会使用测试或占位实现。
     repository: test
-  # 配置项 rewrite-trial：说明该配置的用途、默认值或运行影响。
+  # 配置项 rewrite-trial：用途：配置改写试算存储；默认值：见其子项；运行影响：影响试算结果和验证历史保存。
   rewrite-trial:
-    # 配置项 repository：说明该配置的用途、默认值或运行影响。
+    # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：test；运行影响：database 会落库，test/local 会使用测试或占位实现。
     repository: test
-  # 配置项 queues：说明该配置的用途、默认值或运行影响。
+  # 配置项 queues：用途：配置任务队列实现；默认值：见其子项；运行影响：影响任务获取、外部文件队列和 worker 模式。
   queues:
-    # 配置项 mode：说明该配置的用途、默认值或运行影响。
+    # 配置项 mode：用途：选择上级模块运行模式；默认值：local-placeholder；运行影响：模式变化会切换实现路径和外部依赖。
     mode: local-placeholder
