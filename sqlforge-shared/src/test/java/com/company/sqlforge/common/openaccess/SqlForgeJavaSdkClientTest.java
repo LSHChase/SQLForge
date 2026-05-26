@@ -10,7 +10,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.company.sqlforge.common.access.AccessChannel;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
-import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpMethod;

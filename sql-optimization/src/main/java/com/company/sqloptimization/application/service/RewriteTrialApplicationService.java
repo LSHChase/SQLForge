@@ -210,7 +210,6 @@ public class RewriteTrialApplicationService {
 
     private static Set<String> candidateRewriteProblems() {
         LinkedHashSet<String> values = new LinkedHashSet<String>(SAFE_REWRITE_PROBLEMS);
-        values.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
         return Collections.unmodifiableSet(values);
     }
 
@@ -1281,9 +1280,6 @@ public class RewriteTrialApplicationService {
         if ("OR_PREDICATE_INDEX_RISK".equals(scene) || "NESTED_SUBQUERY_RISK".equals(scene)) {
             return "HIGH";
         }
-        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
-            return "MEDIUM";
-        }
         if ("SELECT_STAR".equals(scene) || "LEADING_WILDCARD_LIKE_RISK".equals(scene)) {
             return "MEDIUM";
         }
@@ -1304,14 +1300,11 @@ public class RewriteTrialApplicationService {
         if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
             return safeRuleSummary(scene);
         }
-        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
-            return "复杂报表重复扫描可生成客户时点聚合快照改写候选";
-        }
         return manualProblemSummary(scene);
     }
 
     private String candidateRuleLevel(String scene) {
-        return L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene) ? "L2" : "L0";
+        return "L0";
     }
 
     private String safeRuleSummary(String rule) {

@@ -308,7 +308,9 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getRuleChain(), "BUCKET_JOIN"));
         assertEquals("物化视图预计算", rule(model.getRuleChain(), "PRECOMPUTE_MV").get("titleZh"));
         assertEquals("仅候选，需外部协同，不自动执行", rule(model.getRuleChain(), "PRECOMPUTE_MV").get("statusZh"));
-        assertTrue(containsPrecondition(model.getPreconditions(), "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED"));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+            rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"));
+        assertTrue(containsPrecondition(model.getPreconditions(), "MV_COVERAGE_PROOF_AND_REFRESH_POLICY_REQUIRED"));
         assertTrue(containsPrecondition(model.getPreconditions(), "JOIN_KEY_DISTRIBUTION_REQUIRED"));
         assertFalse(model.isAutoApplyAllowed());
     }
@@ -342,6 +344,107 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(suggestion.getArtifacts().get(3).getContent().contains("SUM(sum_amount) AS sum_amount"));
         assertFalse(suggestion.getArtifacts().get(3).getContent().contains("SELECT * FROM mv_report_sales"));
         assertTrue(suggestion.getSummary().contains("加速推荐"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldPreserveCountWrapperWhenComposingMaterializedViewRewrite() {
+        String innerSql = "SELECT customer_id, SUM(amount) AS total_amount "
+            + "FROM orders WHERE dt = DATE '2026-05-01' GROUP BY customer_id";
+        String sql = "SELECT COUNT(*) FROM (" + innerSql + ") t";
+
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+            new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                sql,
+                "HETU",
+                "datasource-wrapper",
+                "fingerprint-wrapper-count",
+                "WRAPPER_COUNT",
+                "wrapper-count",
+                null
+            ),
+            profile
+        );
+
+        assertNotNull(accelerationArtifact);
+        assertEquals(Boolean.TRUE, accelerationArtifact.get("outerQueryPreserved"));
+        assertEquals("GENERATED", accelerationArtifact.get("artifactStatus"), String.valueOf(accelerationArtifact));
+        String rewriteSql = String.valueOf(accelerationArtifact.get("rewriteSql"));
+        assertTrue(rewriteSql.trim().toUpperCase().startsWith("SELECT COUNT(*) FROM ("), rewriteSql);
+        assertTrue(rewriteSql.contains("FROM " + accelerationArtifact.get("mvName")), rewriteSql);
+        assertFalse(rewriteSql.contains("FROM orders"), rewriteSql);
+        Map<String, Object> composition = (Map<String, Object>) accelerationArtifact.get("rewriteComposition");
+        assertEquals("OUTER_QUERY_OVER_MV_SUBGRAPH", composition.get("compositionType"));
+        assertEquals(Boolean.TRUE, composition.get("outerQueryPreserved"));
+        assertTrue(String.valueOf(composition.get("candidateSubgraphRewriteSql"))
+            .contains("FROM " + accelerationArtifact.get("mvName")));
+        Map<String, Object> proof = (Map<String, Object>) accelerationArtifact.get("coverageProof");
+        assertEquals("PROVED", proof.get("proofStatus"), String.valueOf(proof));
+        assertEquals(Boolean.TRUE, proof.get("outerProjectionPreserved"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldPreserveOrderByAndLimitWrapperWhenComposingMaterializedViewRewrite() {
+        String innerSql = "SELECT customer_id, SUM(amount) AS total_amount "
+            + "FROM orders WHERE dt = DATE '2026-05-01' GROUP BY customer_id";
+        String sql = "SELECT customer_id, total_amount FROM (" + innerSql + ") t "
+            + "ORDER BY total_amount DESC LIMIT 10";
+
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+            new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                sql,
+                "HETU",
+                "datasource-wrapper",
+                "fingerprint-wrapper-order-limit",
+                "WRAPPER_ORDER_LIMIT",
+                "wrapper-order-limit",
+                null
+            ),
+            profile
+        );
+
+        assertNotNull(accelerationArtifact);
+        assertEquals(Boolean.TRUE, accelerationArtifact.get("outerQueryPreserved"));
+        assertEquals("GENERATED", accelerationArtifact.get("artifactStatus"), String.valueOf(accelerationArtifact));
+        String rewriteSql = String.valueOf(accelerationArtifact.get("rewriteSql"));
+        assertTrue(rewriteSql.contains("ORDER BY total_amount DESC"), rewriteSql);
+        assertTrue(rewriteSql.contains("LIMIT 10"), rewriteSql);
+        assertTrue(rewriteSql.contains("FROM " + accelerationArtifact.get("mvName")), rewriteSql);
+        assertFalse(rewriteSql.contains("FROM orders"), rewriteSql);
+        Map<String, Object> composition = (Map<String, Object>) accelerationArtifact.get("rewriteComposition");
+        assertEquals(Boolean.TRUE, composition.get("orderLimitPreserved"));
+        Map<String, Object> proof = (Map<String, Object>) accelerationArtifact.get("coverageProof");
+        assertEquals("PROVED", proof.get("proofStatus"), String.valueOf(proof));
+        assertEquals(Boolean.TRUE, proof.get("orderLimitSemanticsPreserved"));
+    }
+
+    @Test
+    void shouldBlockUnsupportedPercentileMvWithStructuredReasons() {
+        String sql = "SELECT customer_id, APPROX_PERCENTILE(amount, 0.95) AS p95_amount "
+            + "FROM orders WHERE dt = DATE '2026-05-01' GROUP BY customer_id";
+
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+            new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                sql,
+                "HETU",
+                "datasource-percentile",
+                "fingerprint-percentile",
+                "PERCENTILE_BLOCK",
+                "percentile-block",
+                null
+            ),
+            profile
+        );
+
+        assertNotNull(accelerationArtifact);
+        assertEquals("BLOCKED", accelerationArtifact.get("artifactStatus"), String.valueOf(accelerationArtifact));
+        assertFalse(maps(accelerationArtifact.get("blockingReasons")).isEmpty(), String.valueOf(accelerationArtifact));
+        assertTrue(String.valueOf(accelerationArtifact.get("coverageProof")).contains("MV_COVERAGE_PROOF_ENGINE_V1"));
+        assertTrue(accelerationArtifact.get("rewriteSql") == null, String.valueOf(accelerationArtifact));
     }
 
     @Test
@@ -1267,7 +1370,9 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"));
-        assertTrue(containsRule(model.getRuleChain(), L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
+        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+            rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"));
         assertFalse(model.isAutoApplyAllowed());
 
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
@@ -1286,20 +1391,9 @@ class SqlOptimizationPipelineServiceTest {
             "REWRITE_ALGORITHM_CONFORMANCE",
             "conformanceReport"
         );
-        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("metric_by_org"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("growth_by_org"), rewriteCandidateSql);
-        assertFalse(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("UNION ALL"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("'深圳市分行' AS report_org_label"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("branch_org_name AS report_org_label"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("深圳市分行营业部"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("snapshot_aum"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("base_aum < 1000000 AND current_aum >= 1000000"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("a.report_org_name AS \"机构编码__第二层机构简称\""), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("\"Sum_增量100\""), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
         assertTrue(recommendationReportJson.contains("\"generationStatus\":\"RECOMMENDATION_GENERATED\""),
             recommendationReportJson);
         assertTrue(selectedRecommendationJson.contains("\"confidence\""), selectedRecommendationJson);
@@ -1310,39 +1404,24 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(conformanceReportJson.contains("SELECT_COST_PARETO"), conformanceReportJson);
 
         assertNotNull(accelerationArtifact);
-        assertEquals("PARAMETERIZED_AGG_MV", accelerationArtifact.get("mvType"));
-        assertEquals("REVIEW_REQUIRED", accelerationArtifact.get("artifactStatus"));
         assertFalse("EXACT_QUERY_MV".equals(accelerationArtifact.get("mvType")));
         assertEquals("PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE", accelerationArtifact.get("governanceBoundary"));
-        assertTrue(maps(accelerationArtifact.get("blockingReasons")).isEmpty());
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"));
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("snapshot_aum"));
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("report_org_name"));
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("report_org_label"));
-        assertFalse(String.valueOf(accelerationArtifact.get("ddlSql")).contains("GROUPING SETS"));
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("UNION ALL"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
-            + accelerationArtifact.get("mvName")));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("base_100_anchor"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("metric_by_org"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("growth_by_org"));
-        assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
-            .contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
-        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("RESULT_SET_EXCEPT_DIFF"));
-        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("METRIC_SUM_DIFF"));
-        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("KEY_CARDINALITY_DIFF"));
-        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("ANCHOR_KEY_SET_DIFF"));
-        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("ORG_LABEL_SET_DIFF"));
-        assertTrue(String.valueOf(accelerationArtifact.get("validationSql")).contains("METRIC_BY_KEY_DIFF"));
-        List<Map<String, Object>> validationMethods = maps(accelerationArtifact.get("validationMethods"));
-        assertTrue(validationMethods.size() >= 6, validationMethods.toString());
-        assertTrue(hasCode(validationMethods, "RESULT_SET_EXCEPT_DIFF"));
-        assertTrue(hasCode(validationMethods, "METRIC_SUM_DIFF"));
-        assertTrue(hasCode(validationMethods, "ORG_LABEL_SET_DIFF"));
-        assertTrue(hasCode(validationMethods, "METRIC_BY_KEY_DIFF"));
-        assertTrue(hasCode(validationMethods, "PLAN_SHAPE_SCAN_REDUCTION"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("BASE_100_SUB34_EQUIVALENT"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("orgLabelLineage"));
+        assertTrue(String.valueOf(accelerationArtifact.get("candidateId")).startsWith("mv_candidate_"));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR, accelerationArtifact.get("generationSource"));
+        assertTrue(String.valueOf(accelerationArtifact.get("coverageProof")).contains("MV_COVERAGE_PROOF_ENGINE_V1"));
+        assertTrue(String.valueOf(accelerationArtifact.get("explainEvidence")).contains("EXPLAIN_UNAVAILABLE"));
+        assertTrue(String.valueOf(accelerationArtifact.get("metadataEvidence")).contains("METADATA_PARTIAL"));
+        String status = String.valueOf(accelerationArtifact.get("artifactStatus"));
+        if ("BLOCKED".equals(status)) {
+            assertFalse(maps(accelerationArtifact.get("blockingReasons")).isEmpty(), String.valueOf(accelerationArtifact));
+            assertTrue(accelerationArtifact.get("rewriteSql") == null, String.valueOf(accelerationArtifact));
+        } else {
+            assertTrue("GENERATED".equals(status) || "REVIEW_REQUIRED".equals(status), String.valueOf(accelerationArtifact));
+            assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
+                + accelerationArtifact.get("mvName")), String.valueOf(accelerationArtifact));
+            assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
+                .contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
+        }
     }
 
     @Test
@@ -1381,23 +1460,24 @@ class SqlOptimizationPipelineServiceTest {
         );
 
         assertTrue(profile.getRepeatedTableScanCount() >= 4, "repeatedTableScanCount=" + profile.getRepeatedTableScanCount());
-        assertTrue(containsRule(model.getRuleChain(), L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
+        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+            rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"));
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
-        assertTrue(rewriteCandidateSql.contains("rpt_customer_asset_snapshot"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_level2_no"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__ORG_SHORT_NAME_L3 AS branch_org_name"),
-            rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("'深圳分行' AS report_org_label"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("FACT_CUSTOMER_ASSET__BIZ_DATE AS snapshot_date"), rewriteCandidateSql);
-        assertFalse(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
 
         assertNotNull(accelerationArtifact);
-        assertEquals("PARAMETERIZED_AGG_MV", accelerationArtifact.get("mvType"));
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql"))
-            .contains("FACT_CUSTOMER_ASSET__ORG_CODE_L2 AS org_no_2"));
-        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("UNION ALL"));
-        assertFalse(String.valueOf(accelerationArtifact.get("ddlSql")).contains("GROUPING SETS"));
-        assertTrue(String.valueOf(accelerationArtifact.get("rewriteEvidence")).contains("SZ001"));
+        assertFalse("EXACT_QUERY_MV".equals(accelerationArtifact.get("mvType")));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR, accelerationArtifact.get("generationSource"));
+        assertTrue(String.valueOf(accelerationArtifact.get("coverageProof")).contains("MV_COVERAGE_PROOF_ENGINE_V1"));
+        if ("BLOCKED".equals(accelerationArtifact.get("artifactStatus"))) {
+            assertFalse(maps(accelerationArtifact.get("blockingReasons")).isEmpty(), String.valueOf(accelerationArtifact));
+            assertTrue(accelerationArtifact.get("rewriteSql") == null, String.valueOf(accelerationArtifact));
+        } else {
+            assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
+                + accelerationArtifact.get("mvName")), String.valueOf(accelerationArtifact));
+        }
     }
 
     private String complexAntiPatternSql() {
@@ -1559,12 +1639,12 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(profile.getSubqueryCount() >= 20, caseName + " subqueryCount=" + profile.getSubqueryCount());
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"), caseName);
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"), caseName);
-        assertTrue(containsRule(model.getRuleChain(), L2DynamicSnapshotAggregateMvCandidateGenerator.RULE), caseName);
-        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), caseName);
-        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), caseName);
-        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), caseName);
-        assertTrue(rewriteCandidateSql.contains("metric_by_org"), caseName);
-        assertTrue(rewriteCandidateSql.contains("growth_by_org"), caseName);
+        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"), caseName);
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+            rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"), caseName);
+        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), caseName);
+        assertFalse(rewriteCandidateSql.contains("report_customer_snapshot"), caseName);
+        assertFalse(rewriteCandidateSql.contains("base_100_anchor"), caseName);
     }
 
     private String frontendFormatSql(String sql) throws Exception {

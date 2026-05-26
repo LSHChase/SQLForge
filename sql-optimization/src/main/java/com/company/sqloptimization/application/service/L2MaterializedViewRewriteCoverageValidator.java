@@ -81,6 +81,10 @@ final class L2MaterializedViewRewriteCoverageValidator {
             safeInput.measures,
             coverageFields
         );
+        if (rootCountProjectionPreservedByMvRewrite(safeInput.advancedStructureProfile, normalizedRewrite)) {
+            coversProjection = true;
+            coversMeasures = true;
+        }
         boolean coversSecurity = coversPredicates(
             safeInput.predicateClassification == null
                 ? Collections.<Map<String, Object>>emptyList()
@@ -313,6 +317,36 @@ final class L2MaterializedViewRewriteCoverageValidator {
             }
         }
         return true;
+    }
+
+    private static boolean rootCountProjectionPreservedByMvRewrite(Map<String, Object> advancedStructureProfile,
+                                                                   String rewriteSql) {
+        if (!StringUtils.hasText(rewriteSql)) {
+            return false;
+        }
+        if (advancedStructureProfile == null || advancedStructureProfile.isEmpty()) {
+            return false;
+        }
+        List<Map<String, Object>> projections = mapList(advancedStructureProfile.get("projections"));
+        if (projections.size() != 1) {
+            return false;
+        }
+        String expression = stripAlias(
+            text(projections.get(0).get("expression")),
+            text(projections.get(0).get("alias"))
+        );
+        if (!isCountAny(expression)) {
+            return false;
+        }
+        String normalizedRewrite = normalizeExpression(selectList(rewriteSql));
+        return normalizedRewrite.startsWith("COUNT(*)")
+            || normalizedRewrite.startsWith("COUNT(1)");
+    }
+
+    private static boolean isCountAny(String expression) {
+        String normalized = normalizeExpression(expression);
+        return normalized.startsWith("COUNT(*)")
+            || normalized.startsWith("COUNT(1)");
     }
 
     private static boolean allFieldsCovered(List<String> fields, Set<String> coverageFields) {
@@ -869,9 +903,9 @@ final class L2MaterializedViewRewriteCoverageValidator {
         private final Map<String, Object> coverage;
         private final List<Map<String, Object>> blockingReasons;
 
-        private ValidationResult(String rewriteSql,
-                                 Map<String, Object> coverage,
-                                 List<Map<String, Object>> blockingReasons) {
+        ValidationResult(String rewriteSql,
+                         Map<String, Object> coverage,
+                         List<Map<String, Object>> blockingReasons) {
             this.rewriteSql = rewriteSql;
             this.coverage = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(coverage));
             this.blockingReasons = immutableMapList(blockingReasons);

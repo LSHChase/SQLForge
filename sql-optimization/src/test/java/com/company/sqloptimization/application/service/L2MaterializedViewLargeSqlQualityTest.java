@@ -7,15 +7,72 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class L2MaterializedViewLargeSqlQualityTest {
 
     private final SqlOptimizationPipelineService service = new SqlOptimizationPipelineService();
+
+    @Test
+    void shouldShipOneHundredComplexMvSqlFixturesWithRepresentativePlannerRuns() throws Exception {
+        Path corpusDir = repositoryRoot().resolve("sql-optimization/src/test/resources/complex-mv-sql");
+        List<Path> fixtures;
+        try (Stream<Path> stream = Files.list(corpusDir)) {
+            fixtures = stream
+                .filter(path -> path.getFileName().toString().endsWith(".sql"))
+                .sorted()
+                .collect(Collectors.toList());
+        }
+
+        assertEquals(100, fixtures.size(), fixtures.toString());
+        int largeFixtureCount = 0;
+        for (Path fixture : fixtures) {
+            String sql = new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+            int lineCount = sql.split("\n", -1).length - 1;
+            int byteCount = sql.getBytes(StandardCharsets.UTF_8).length;
+            assertTrue(lineCount >= 1316, fixture + " lineCount=" + lineCount);
+            assertTrue(byteCount >= 79467, fixture + " byteCount=" + byteCount);
+            assertTrue(sql.contains("-- nested_layers=10"), fixture.toString());
+            if (lineCount >= 10000 || byteCount >= 100000) {
+                largeFixtureCount++;
+            }
+        }
+        assertTrue(largeFixtureCount >= 20, "largeFixtureCount=" + largeFixtureCount);
+
+        for (Path fixture : representativeFixtures(fixtures)) {
+            String sql = new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+            SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+            Map<String, Object> artifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
+                new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
+                    sql,
+                    "HETU",
+                    "datasource-corpus",
+                    "fingerprint-" + fixture.getFileName().toString(),
+                    "CORPUS",
+                    "complex-mv-corpus",
+                    null
+                ),
+                profile
+            );
+            assertNotNull(artifact, fixture.toString());
+            assertTrue(String.valueOf(artifact.get("candidateId")).startsWith("mv_candidate_"), fixture.toString());
+            assertTrue(String.valueOf(artifact.get("coverageProof")).contains("MV_COVERAGE_PROOF_ENGINE_V1"),
+                fixture.toString());
+            assertTrue(String.valueOf(artifact.get("metadataEvidence")).contains("METADATA_PARTIAL"),
+                fixture.toString());
+            assertFalse("EXACT_QUERY_MV".equals(artifact.get("mvType")), fixture.toString());
+        }
+    }
 
     @Test
     void shouldCoverFiftyMaterializedViewSqlShapesWithVaryingSize() {
@@ -233,6 +290,34 @@ class L2MaterializedViewLargeSqlQualityTest {
             assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("HAVING SUM(total_amount) > 1000"),
                 String.valueOf(artifact.get("rewriteSql")));
         }
+    }
+
+    private List<Path> representativeFixtures(List<Path> fixtures) {
+        return Arrays.asList(
+            findFixture(fixtures, "_star_agg_"),
+            findFixture(fixtures, "_prejoin_"),
+            findFixture(fixtures, "_rollup_"),
+            findFixture(fixtures, "_common_subgraph_"),
+            findFixture(fixtures, "_blocked_complex_"),
+            findFixture(fixtures, "_mixed_extreme_")
+        );
+    }
+
+    private Path findFixture(List<Path> fixtures, String token) {
+        for (Path fixture : fixtures) {
+            if (fixture.getFileName().toString().contains(token)) {
+                return fixture;
+            }
+        }
+        throw new AssertionError("Missing fixture token " + token);
+    }
+
+    private Path repositoryRoot() {
+        Path root = Paths.get("").toAbsolutePath();
+        if (!Files.exists(root.resolve("docs/test01.sql"))) {
+            root = root.resolve("..").normalize();
+        }
+        return root;
     }
 
     private Map<String, Object> artifact(String sql) {

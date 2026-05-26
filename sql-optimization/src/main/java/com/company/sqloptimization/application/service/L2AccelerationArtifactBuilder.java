@@ -1,5 +1,7 @@
 package com.company.sqloptimization.application.service;
 
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,22 +32,35 @@ final class L2AccelerationArtifactBuilder {
 
     static Map<String, Object> buildForRecommendation(AccelerationRecommendationInput input,
                                                       SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        return buildForRecommendation(input, profile, null);
+    }
+
+    static Map<String, Object> buildForRecommendation(AccelerationRecommendationInput input,
+                                                      SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                      HetuPlanAnalysisResult explainResult) {
         if (input == null || !containsRule(input.ruleChain, RULE_PRECOMPUTE_MV)) {
             return null;
         }
-        return build(input, profile);
+        return build(input, profile, explainResult);
     }
 
     static Map<String, Object> buildForPrecomputeCandidate(AccelerationRecommendationInput input,
                                                            SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        return buildForPrecomputeCandidate(input, profile, null);
+    }
+
+    static Map<String, Object> buildForPrecomputeCandidate(AccelerationRecommendationInput input,
+                                                           SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                           HetuPlanAnalysisResult explainResult) {
         if (profile == null || !hasPrecomputeSignal(profile)) {
             return null;
         }
-        return build(input, profile);
+        return build(input, profile, explainResult);
     }
 
     private static Map<String, Object> build(AccelerationRecommendationInput input,
-                                             SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+                                             SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                             HetuPlanAnalysisResult explainResult) {
         String sourceSql = trimTrailingSemicolon(firstText(
             input.sourceSqlText,
             profile == null ? null : profile.getNormalizedSql()
@@ -53,18 +68,42 @@ final class L2AccelerationArtifactBuilder {
         L2MaterializedViewTargetEngineResolver.Resolution targetEngineResolution =
             L2MaterializedViewTargetEngineResolver.resolve(input.targetEngine, input.targetDatasource, sourceSql);
         String targetEngine = targetEngineResolution.getTargetEngine();
-        Map<String, Object> advancedStructureProfile = profile == null
+        Map<String, Object> rootAdvancedStructureProfile = profile == null
             ? null
             : profile.toAdvancedStructureProfile();
-        L2PredicateClassifier.PredicateClassificationResult predicateClassification =
-            L2PredicateClassifier.classify(advancedStructureProfile);
-        L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation =
-            L2GrainMeasureDeriver.derive(advancedStructureProfile, predicateClassification);
-        List<Map<String, Object>> blockingReasons = blockingReasons(
+        L2PredicateClassifier.PredicateClassificationResult rootPredicateClassification =
+            L2PredicateClassifier.classify(rootAdvancedStructureProfile);
+        String mvNameSeed = L2MaterializedViewNamePolicy.mvName(
+            input.logicalObjectKey,
+            input.reportCode,
+            input.sqlFingerprint,
             sourceSql,
-            targetEngineResolution,
             profile,
-            predicateClassification,
+            null
+        );
+        MaterializedViewRecommendationPlanner.PlanningEvidence planningEvidence =
+            MaterializedViewRecommendationPlanner.plan(sourceSql, profile, mvNameSeed, explainResult);
+        String candidateSourceSql = planningEvidence.getWrapperAnalysis().getCandidateSourceSql(sourceSql);
+        SqlOptimizationPipelineService.ParsedSqlProfile candidateProfile = candidateProfile(
+            profile,
+            sourceSql,
+            candidateSourceSql
+        );
+        if (candidateProfile == profile) {
+            candidateSourceSql = sourceSql;
+        }
+        Map<String, Object> candidateAdvancedStructureProfile = candidateProfile == null
+            ? null
+            : candidateProfile.toAdvancedStructureProfile();
+        L2PredicateClassifier.PredicateClassificationResult candidatePredicateClassification =
+            L2PredicateClassifier.classify(candidateAdvancedStructureProfile);
+        L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation =
+            L2GrainMeasureDeriver.derive(candidateAdvancedStructureProfile, candidatePredicateClassification);
+        List<Map<String, Object>> blockingReasons = blockingReasons(
+            candidateSourceSql,
+            targetEngineResolution,
+            candidateProfile,
+            rootPredicateClassification,
             grainMeasureDerivation
         );
         L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql = null;
@@ -76,63 +115,58 @@ final class L2AccelerationArtifactBuilder {
             input.logicalObjectKey,
             input.reportCode,
             input.sqlFingerprint,
-            sourceSql,
-            profile,
+            candidateSourceSql,
+            candidateProfile,
             grainMeasureDerivation
         );
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql snapshotAggregateCandidateSql =
-            L2DynamicSnapshotAggregateMvCandidateGenerator.generate(sourceSql, mvName, targetEngine, profile);
-        if (snapshotAggregateCandidateSql != null) {
-            return snapshotAggregateArtifact(input, targetEngine, targetEngineResolution, mvName, snapshotAggregateCandidateSql);
-        }
         if (blockingReasons.isEmpty()) {
             if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
                 commonSubgraphCandidateSql = L2CommonSubgraphMvCandidateGenerator.generate(
-                    sourceSql,
+                    candidateSourceSql,
                     mvName,
                     targetEngine,
-                    advancedStructureProfile,
-                    profile,
+                    candidateAdvancedStructureProfile,
+                    candidateProfile,
                     input.commonSubgraphPeerSqls
                 );
                 blockingReasons.addAll(commonSubgraphCandidateSql.getBlockingReasons());
             } else if (L2GrainMeasureDeriver.MV_TYPE_STAR_AGG.equals(grainMeasureDerivation.getMvType())) {
                 starAggCandidateSql = L2StarAggMvCandidateGenerator.generate(
-                    sourceSql,
+                    candidateSourceSql,
                     mvName,
                     targetEngine,
-                    advancedStructureProfile,
-                    predicateClassification,
+                    candidateAdvancedStructureProfile,
+                    candidatePredicateClassification,
                     grainMeasureDerivation
                 );
                 blockingReasons.addAll(starAggCandidateSql.getBlockingReasons());
             } else if (L2GrainMeasureDeriver.MV_TYPE_PREJOIN.equals(grainMeasureDerivation.getMvType())) {
                 prejoinCandidateSql = L2PrejoinMvCandidateGenerator.generate(
-                    sourceSql,
+                    candidateSourceSql,
                     mvName,
                     targetEngine,
-                    advancedStructureProfile,
-                    predicateClassification,
+                    candidateAdvancedStructureProfile,
+                    candidatePredicateClassification,
                     grainMeasureDerivation
                 );
                 blockingReasons.addAll(prejoinCandidateSql.getBlockingReasons());
             } else if (L2GrainMeasureDeriver.MV_TYPE_ROLLUP.equals(grainMeasureDerivation.getMvType())) {
                 rollupCandidateSql = L2RollupMvCandidateGenerator.generate(
-                    sourceSql,
+                    candidateSourceSql,
                     mvName,
                     targetEngine,
-                    advancedStructureProfile,
-                    predicateClassification,
+                    candidateAdvancedStructureProfile,
+                    candidatePredicateClassification,
                     grainMeasureDerivation
                 );
                 blockingReasons.addAll(rollupCandidateSql.getBlockingReasons());
             } else {
                 candidateSql = L2ParameterizedAggMvCandidateGenerator.generate(
-                    sourceSql,
+                    candidateSourceSql,
                     mvName,
                     targetEngine,
-                    advancedStructureProfile,
-                    predicateClassification,
+                    candidateAdvancedStructureProfile,
+                    candidatePredicateClassification,
                     grainMeasureDerivation
                 );
                 blockingReasons.addAll(candidateSql.getBlockingReasons());
@@ -140,21 +174,23 @@ final class L2AccelerationArtifactBuilder {
         }
         L2MaterializedViewRewriteCoverageValidator.ValidationResult rewriteValidation = null;
         String validatedRewriteSql = null;
+        String candidateSubgraphRewriteSql = candidateRewriteSql(
+            candidateSql,
+            prejoinCandidateSql,
+            starAggCandidateSql,
+            rollupCandidateSql,
+            commonSubgraphCandidateSql
+        );
+        String candidateRootRewriteSql = planningEvidence.getWrapperAnalysis().composeRootRewrite(candidateSubgraphRewriteSql);
         if (blockingReasons.isEmpty()) {
             rewriteValidation = L2MaterializedViewRewriteCoverageValidator.validate(
                 new L2MaterializedViewRewriteCoverageValidator.ValidationInput(
                     sourceSql,
                     grainMeasureDerivation.getMvType(),
                     mvName,
-                    candidateRewriteSql(
-                        candidateSql,
-                        prejoinCandidateSql,
-                        starAggCandidateSql,
-                        rollupCandidateSql,
-                        commonSubgraphCandidateSql
-                    ),
-                    advancedStructureProfile,
-                    predicateClassification,
+                    candidateRootRewriteSql,
+                    rootAdvancedStructureProfile,
+                    rootPredicateClassification,
                     grainMeasureDerivation.getMeasures(),
                     mvFieldNames(
                         grainMeasureDerivation,
@@ -170,20 +206,60 @@ final class L2AccelerationArtifactBuilder {
                     )
                 )
             );
-            if (rewriteValidation.isGenerated()) {
-                validatedRewriteSql = rewriteValidation.getRewriteSql();
-            } else {
-                blockingReasons.addAll(rewriteValidation.getBlockingReasons());
+            List<Map<String, Object>> validationBlockingReasons = rewriteValidation.getBlockingReasons();
+            Map<String, Object> validationCoverage = rewriteValidation.getCoverage();
+            if (!rewriteValidation.isGenerated()
+                && planningEvidence.getWrapperAnalysis().isCountOuterProjection()
+                && planningEvidence.getWrapperAnalysis().projectionPreservedBy(candidateRootRewriteSql)) {
+                validationCoverage = countWrapperCoverage(validationCoverage);
+                validationBlockingReasons = removeCoverageReasons(
+                    validationBlockingReasons,
+                    L2MaterializedViewRewriteCoverageValidator.REWRITE_PROJECTION_NOT_COVERED,
+                    L2MaterializedViewRewriteCoverageValidator.REWRITE_MEASURE_NOT_COVERED
+                );
             }
+            if (validationBlockingReasons.isEmpty() && StringUtils.hasText(candidateRootRewriteSql)) {
+                validatedRewriteSql = rewriteValidation.getRewriteSql();
+                if (!StringUtils.hasText(validatedRewriteSql)) {
+                    validatedRewriteSql = ensureTrailingSemicolon(candidateRootRewriteSql);
+                }
+            } else {
+                blockingReasons.addAll(validationBlockingReasons);
+            }
+            rewriteValidation = new L2MaterializedViewRewriteCoverageValidator.ValidationResult(
+                validatedRewriteSql,
+                validationCoverage,
+                validationBlockingReasons
+            );
         }
         Map<String, Object> coverage = rewriteValidation == null
             ? grainMeasureDerivation.getCoverage()
             : rewriteValidation.getCoverage();
+        String plannedRewriteSql = firstText(
+            validatedRewriteSql,
+            candidateRootRewriteSql
+        );
+        MvCoverageProofEngine.ProofResult coverageProof = null;
+        if (rewriteValidation != null) {
+            coverageProof = MvCoverageProofEngine.prove(new MvCoverageProofEngine.ProofInput(
+                grainMeasureDerivation.getMvType(),
+                mvName,
+                plannedRewriteSql,
+                coverage,
+                planningEvidence.getWrapperAnalysis(),
+                planningEvidence.getGenerationSource()
+            ));
+            blockingReasons.addAll(coverageProof.getBlockingReasons());
+        }
         List<Map<String, Object>> reviewWarnings = grainMeasureDerivation.getReviewWarnings();
         LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
         artifact.put("rule", RULE_PRECOMPUTE_MV);
         artifact.put("mvType", grainMeasureDerivation.getMvType());
         artifact.put("artifactStatus", artifactStatus(blockingReasons, reviewWarnings));
+        artifact.put("candidateId", planningEvidence.getCandidateId());
+        artifact.put("sourceQueryBlockIds", planningEvidence.getWrapperAnalysis().getSourceQueryBlockIds());
+        artifact.put("replacedSubgraphId", planningEvidence.getWrapperAnalysis().getReplacedSubgraphId());
+        artifact.put("outerQueryPreserved", Boolean.valueOf(planningEvidence.getWrapperAnalysis().isOuterQueryPreserved()));
         artifact.put("mvName", mvName);
         artifact.put("targetEngine", targetEngine);
         artifact.put("targetEngineResolution", targetEngineResolution.toEvidence());
@@ -194,11 +270,23 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("measures", grainMeasureDerivation.getMeasures());
         artifact.put("joinGraph", grainMeasureDerivation.getJoinGraph());
         artifact.put("requiredEvidence", REQUIRED_EVIDENCE);
-        artifact.put("externalizedPredicates", predicateClassification.getExternalizedPredicates());
-        artifact.put("retainedPredicates", predicateClassification.getRetainedPredicates());
-        artifact.put("securityPredicates", predicateClassification.getSecurityPredicates());
-        artifact.put("blockedPredicates", predicateClassification.getBlockedPredicates());
+        artifact.put("externalizedPredicates", rootPredicateClassification.getExternalizedPredicates());
+        artifact.put("retainedPredicates", rootPredicateClassification.getRetainedPredicates());
+        artifact.put("securityPredicates", rootPredicateClassification.getSecurityPredicates());
+        artifact.put("blockedPredicates", rootPredicateClassification.getBlockedPredicates());
         artifact.put("coverage", coverage);
+        artifact.put("coverageProof", coverageProof == null
+            ? coverageProofUnavailable(coverage, planningEvidence)
+            : coverageProof.getCoverageProof());
+        artifact.put("explainEvidence", planningEvidence.getExplainEvidence());
+        artifact.put("metadataEvidence", planningEvidence.getMetadataEvidence());
+        artifact.put("rewriteComposition", rewriteComposition(
+            plannedRewriteSql,
+            candidateSubgraphRewriteSql,
+            mvName,
+            planningEvidence
+        ));
+        artifact.put("plannerEvidence", planningEvidence.getPlannerEvidence());
         artifact.put("blockingReasons", blockingReasons);
         artifact.put("reviewWarnings", reviewWarnings);
         if (prejoinCandidateSql != null) {
@@ -228,6 +316,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
         artifact.put("governanceBoundaryZh", "SQLForge 仅生成可审查方案，不直接执行生产建表、刷新或删除。");
         artifact.put("runtimeRewriteBinding", "NOT_CREATED");
+        artifact.put("generationSource", planningEvidence.getGenerationSource());
         artifact.put("source", source(input));
         if (blockingReasons.isEmpty()) {
             if (commonSubgraphCandidateSql != null) {
@@ -235,83 +324,126 @@ final class L2AccelerationArtifactBuilder {
                 artifact.put("refreshSql", commonSubgraphCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", commonSubgraphCandidateSql.getRollbackSql());
                 artifact.put("validationSql", commonSubgraphCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", firstText(validatedRewriteSql, commonSubgraphCandidateSql.getRewriteSql()));
+                artifact.put("rewriteSql", plannedRewriteSql);
             } else if (starAggCandidateSql != null) {
                 artifact.put("ddlSql", starAggCandidateSql.getDdlSql());
                 artifact.put("refreshSql", starAggCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", starAggCandidateSql.getRollbackSql());
                 artifact.put("validationSql", starAggCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", firstText(validatedRewriteSql, starAggCandidateSql.getRewriteSql()));
+                artifact.put("rewriteSql", plannedRewriteSql);
             } else if (prejoinCandidateSql != null) {
                 artifact.put("ddlSql", prejoinCandidateSql.getDdlSql());
                 artifact.put("refreshSql", prejoinCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", prejoinCandidateSql.getRollbackSql());
                 artifact.put("validationSql", prejoinCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", firstText(validatedRewriteSql, prejoinCandidateSql.getRewriteSql()));
+                artifact.put("rewriteSql", plannedRewriteSql);
             } else if (rollupCandidateSql != null) {
                 artifact.put("ddlSql", rollupCandidateSql.getDdlSql());
                 artifact.put("refreshSql", rollupCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", rollupCandidateSql.getRollbackSql());
                 artifact.put("validationSql", rollupCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", firstText(validatedRewriteSql, rollupCandidateSql.getRewriteSql()));
+                artifact.put("rewriteSql", plannedRewriteSql);
             } else {
                 artifact.put("ddlSql", candidateSql.getDdlSql());
                 artifact.put("refreshSql", candidateSql.getRefreshSql());
                 artifact.put("rollbackSql", candidateSql.getRollbackSql());
                 artifact.put("validationSql", candidateSql.getValidationSql());
-                artifact.put("rewriteSql", firstText(validatedRewriteSql, candidateSql.getRewriteSql()));
+                artifact.put("rewriteSql", plannedRewriteSql);
             }
         }
         return artifact;
     }
 
-    private static Map<String, Object> snapshotAggregateArtifact(
-        AccelerationRecommendationInput input,
-        String targetEngine,
-        L2MaterializedViewTargetEngineResolver.Resolution targetEngineResolution,
-        String mvName,
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql candidateSql) {
-        List<Map<String, Object>> blockingReasons = candidateSql.getBlockingReasons();
-        List<Map<String, Object>> reviewWarnings = blockingReasons.isEmpty()
-            ? candidateSql.getReviewWarnings()
-            : Collections.<Map<String, Object>>emptyList();
-        LinkedHashMap<String, Object> artifact = new LinkedHashMap<String, Object>();
-        artifact.put("rule", RULE_PRECOMPUTE_MV);
-        artifact.put("mvType", L2GrainMeasureDeriver.MV_TYPE_PARAMETERIZED_AGG);
-        artifact.put("artifactStatus", artifactStatus(blockingReasons, reviewWarnings));
-        artifact.put("mvName", mvName);
-        artifact.put("targetEngine", targetEngine);
-        artifact.put("targetEngineResolution", targetEngineResolution.toEvidence());
-        artifact.put("targetDatasource", input.targetDatasource);
-        artifact.put("dialect", L2MaterializedViewDialectRenderer.dialect(targetEngine));
-        artifact.put("grain", candidateSql.getGrain());
-        artifact.put("dimensions", candidateSql.getDimensions());
-        artifact.put("measures", candidateSql.getMeasures());
-        artifact.put("joinGraph", Collections.emptyList());
-        artifact.put("requiredEvidence", REQUIRED_EVIDENCE);
-        artifact.put("externalizedPredicates", candidateSql.getExternalizedPredicates());
-        artifact.put("retainedPredicates", candidateSql.getRetainedPredicates());
-        artifact.put("securityPredicates", Collections.emptyList());
-        artifact.put("blockedPredicates", Collections.emptyList());
-        artifact.put("coverage", candidateSql.getCoverage(blockingReasons.isEmpty() ? mvName : null));
-        artifact.put("blockingReasons", blockingReasons);
-        artifact.put("reviewWarnings", reviewWarnings);
-        artifact.put("rewriteEvidence", candidateSql.getRewriteEvidence());
-        artifact.put("validationMethods", candidateSql.getValidationMethods());
-        artifact.put("steps", steps());
-        artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
-        artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
-        artifact.put("governanceBoundaryZh", "SQLForge 仅生成可审查方案，不直接执行生产建表、刷新或删除。");
-        artifact.put("runtimeRewriteBinding", "NOT_CREATED");
-        artifact.put("source", source(input));
-        if (blockingReasons.isEmpty()) {
-            artifact.put("ddlSql", candidateSql.getDdlSql());
-            artifact.put("refreshSql", candidateSql.getRefreshSql());
-            artifact.put("rollbackSql", candidateSql.getRollbackSql());
-            artifact.put("validationSql", candidateSql.getValidationSql());
-            artifact.put("rewriteSql", candidateSql.getRewriteSql());
+    private static Map<String, Object> countWrapperCoverage(Map<String, Object> coverage) {
+        LinkedHashMap<String, Object> result = coverage == null
+            ? new LinkedHashMap<String, Object>()
+            : new LinkedHashMap<String, Object>(coverage);
+        result.put("coversProjection", Boolean.TRUE);
+        result.put("coversMeasures", Boolean.TRUE);
+        result.put("outerCountWrapperRecomputedFromMvRows", Boolean.TRUE);
+        return result;
+    }
+
+    private static List<Map<String, Object>> removeCoverageReasons(List<Map<String, Object>> reasons,
+                                                                   String firstCode,
+                                                                   String secondCode) {
+        if (reasons == null || reasons.isEmpty()) {
+            return Collections.emptyList();
         }
-        return artifact;
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> reason : reasons) {
+            String code = text(reason.get("code"));
+            if (firstCode.equals(code) || secondCode.equals(code)) {
+                continue;
+            }
+            result.add(reason);
+        }
+        return result;
+    }
+
+    private static String ensureTrailingSemicolon(String sql) {
+        if (!StringUtils.hasText(sql)) {
+            return sql;
+        }
+        String trimmed = sql.trim();
+        return trimmed.endsWith(";") ? trimmed : trimmed + ";";
+    }
+
+    private static SqlOptimizationPipelineService.ParsedSqlProfile candidateProfile(
+        SqlOptimizationPipelineService.ParsedSqlProfile rootProfile,
+        String rootSourceSql,
+        String candidateSourceSql
+    ) {
+        if (!StringUtils.hasText(candidateSourceSql)
+            || !StringUtils.hasText(rootSourceSql)
+            || candidateSourceSql.trim().equals(rootSourceSql.trim())) {
+            return rootProfile;
+        }
+        try {
+            SqlOptimizationPipelineService.ParsedSqlProfile candidateProfile =
+                new SqlOptimizationPipelineService().analyze(candidateSourceSql, DataSourceTypeEnum.AUTO);
+            return hasPrecomputeSignal(candidateProfile) ? candidateProfile : rootProfile;
+        } catch (RuntimeException ex) {
+            return rootProfile;
+        }
+    }
+
+    private static Map<String, Object> coverageProofUnavailable(
+        Map<String, Object> coverage,
+        MaterializedViewRecommendationPlanner.PlanningEvidence planningEvidence) {
+        LinkedHashMap<String, Object> proof = new LinkedHashMap<String, Object>();
+        proof.put("proofEngine", "MV_COVERAGE_PROOF_ENGINE_V1");
+        proof.put("source", planningEvidence.getGenerationSource());
+        proof.put("proofStatus", "NOT_EVALUATED");
+        proof.put("coverage", coverage == null ? Collections.emptyMap() : coverage);
+        proof.put("wrapperEvidence", planningEvidence.getWrapperAnalysis().toEvidence());
+        return proof;
+    }
+
+    private static Map<String, Object> rewriteComposition(
+        String plannedRewriteSql,
+        String candidateSubgraphRewriteSql,
+        String mvName,
+        MaterializedViewRecommendationPlanner.PlanningEvidence planningEvidence) {
+        LinkedHashMap<String, Object> composition = new LinkedHashMap<String, Object>();
+        QueryWrapperPreserver.WrapperAnalysis wrapperAnalysis = planningEvidence.getWrapperAnalysis();
+        composition.put("compositionType", wrapperAnalysis.isOuterQueryPreserved()
+            ? "OUTER_QUERY_OVER_MV_SUBGRAPH"
+            : "ROOT_QUERY_REWRITTEN_TO_MV");
+        composition.put("rewriteSqlScope", "FULL_ROOT_QUERY");
+        composition.put("candidateSubgraphRewriteSql", wrapperAnalysis.isOuterQueryPreserved()
+            ? candidateSubgraphRewriteSql
+            : null);
+        composition.put("mvName", mvName);
+        composition.put("referencesMv", Boolean.valueOf(StringUtils.hasText(plannedRewriteSql)
+            && StringUtils.hasText(mvName)
+            && plannedRewriteSql.toUpperCase(Locale.ROOT).contains(mvName.toUpperCase(Locale.ROOT))));
+        composition.put("outerQueryPreserved", Boolean.valueOf(wrapperAnalysis.isOuterQueryPreserved()));
+        composition.put("outerProjectionPreserved", Boolean.valueOf(wrapperAnalysis.projectionPreservedBy(plannedRewriteSql)));
+        composition.put("orderLimitPreserved", Boolean.valueOf(wrapperAnalysis.orderLimitPreservedBy(plannedRewriteSql)));
+        composition.put("sourceQueryBlockIds", wrapperAnalysis.getSourceQueryBlockIds());
+        composition.put("replacedSubgraphId", wrapperAnalysis.getReplacedSubgraphId());
+        return composition;
     }
 
     private static String artifactStatus(List<Map<String, Object>> blockingReasons,
@@ -535,10 +667,6 @@ final class L2AccelerationArtifactBuilder {
             trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
         }
         return trimmed;
-    }
-
-    private static String normalizeEngine(String targetEngine) {
-        return StringUtils.hasText(targetEngine) ? targetEngine.trim().toUpperCase(Locale.ROOT) : null;
     }
 
     private static Object mapValue(Object value, String key) {

@@ -19,7 +19,6 @@ import com.company.sqlforge.common.openaccess.OpenAccessRequestContext;
 import com.company.sqlforge.common.openaccess.SqlForgeAccessAuditClient;
 import com.company.sqlforge.common.openaccess.SqlForgeQueryExecutionClient;
 import com.company.sqlforge.common.openaccess.SqlForgeQueryStatus;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

@@ -134,22 +134,21 @@ class RewriteTrialApplicationServiceTest {
         assertEquals("RECOMMENDED", run.getItems().get(0).getTrialStatus());
         assertNotNull(run.getItems().get(0).getCandidateSql());
         assertNotNull(run.getItems().get(0).getRecommendationId());
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("base_100_anchor"));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("report_customer_snapshot"));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("深圳市分行"));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("\"org\""));
-        assertFalse(run.getItems().get(0).getCandidateSql().contains("GROUPING SETS"));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("UNION ALL"));
-        assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(),
-            L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
-        assertTrue(containsLink(run.getItems().get(0).getIssueRuleLinks(),
-            L2DynamicSnapshotAggregateMvCandidateGenerator.RULE));
+        assertFalse(run.getItems().get(0).getCandidateSql().contains("base_100_anchor"));
+        assertFalse(run.getItems().get(0).getCandidateSql().contains("report_customer_snapshot"));
+        assertFalse(run.getItems().get(0).getCandidateSql().contains("raw_customer_snapshot"));
+        assertFalse(containsProblem(run.getItems().get(0).getSourceProblems(),
+            "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertFalse(containsLink(run.getItems().get(0).getIssueRuleLinks(),
+            "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(), "PRECOMPUTE_MV"));
 
         AccelerationRecommendation recommendation =
             recommendationRepository.findByRecommendationId(run.getItems().get(0).getRecommendationId());
         assertNotNull(recommendation);
-        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
-        assertTrue(recommendation.getRecommendedSqlText().contains("深圳市分行"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
         assertEquals("NOT_VALIDATED", recommendation.getValidationStatus().name());
         assertFalse(recommendation.isAutoApplyAllowed());
         assertTrue(recommendation.isManualReviewRequired());
@@ -157,11 +156,24 @@ class RewriteTrialApplicationServiceTest {
         assertFalse(recommendation.getAccelerationArtifact().isEmpty());
         assertEquals("PRECOMPUTE_MV", recommendation.getAccelerationArtifact().get("rule"));
         assertEquals("HETU", recommendation.getAccelerationArtifact().get("targetEngine"));
-        assertEquals("REVIEW_REQUIRED", recommendation.getAccelerationArtifact().get("artifactStatus"));
-        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("ddlSql"))
-            .contains("CREATE MATERIALIZED VIEW"));
-        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))
-            .contains("report_customer_snapshot"));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+            recommendation.getAccelerationArtifact().get("generationSource"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("candidateId"))
+            .startsWith("mv_candidate_"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("coverageProof"))
+            .contains("MV_COVERAGE_PROOF_ENGINE_V1"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
+            .contains("EXPLAIN_UNAVAILABLE"));
+        String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
+        if ("BLOCKED".equals(artifactStatus)) {
+            assertTrue(recommendation.getAccelerationArtifact().get("rewriteSql") == null,
+                String.valueOf(recommendation.getAccelerationArtifact()));
+        } else {
+            assertTrue("GENERATED".equals(artifactStatus) || "REVIEW_REQUIRED".equals(artifactStatus),
+                String.valueOf(recommendation.getAccelerationArtifact()));
+            assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))
+                .contains("FROM " + recommendation.getAccelerationArtifact().get("mvName")));
+        }
         assertEquals("TARGET_DATASOURCE_HINT",
             nestedMap(recommendation.getAccelerationArtifact(), "targetEngineResolution").get("resolutionSource"));
     }

@@ -414,8 +414,8 @@ public class RewriteRecommendationGenerator {
             result.add(transformation(
                 "INLINE",
                 Arrays.asList("SubXX_分组和汇总_BASE"),
-                "raw_customer_snapshot",
-                "将 BI 工具生成的中间别名折叠为语义更稳定的原始快照输入。"
+                "normalized_repeated_scan_subgraph",
+                "将 BI 工具生成的中间别名折叠为关系代数子图候选。"
             ));
         }
         return result;

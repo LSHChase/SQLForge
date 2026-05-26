@@ -1,6 +1,7 @@
 package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -253,7 +254,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
     }
 
     @Test
-    void shouldGenerateActivateAndApplyDocsTest01RuntimeRewriteVariantsWithTiming() throws Exception {
+    void shouldNotGenerateDocsTest01RuntimeSnapshotTemplateRewriteVariantsWithTiming() throws Exception {
         setRequestContext("user-001", "request-test01-runtime", "trace-test01-runtime");
         String originalSql = readRepositorySqlFixture("docs/test01.sql");
         InMemoryAccelerationRecommendationRepository recommendationRepository =
@@ -274,91 +275,33 @@ class ProductionRewriteClosedLoopEndToEndTest {
         AccelerationRecommendation recommendation = recommendationRepository.findByRecommendationId(recommendationId);
         assertEquals("RECOMMENDED", trialRun.getTrialStatus());
         assertNotNull(recommendation);
-        assertTrue(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
-        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+        assertFalse(String.valueOf(recommendation.getRuleChain()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertFalse(String.valueOf(recommendation.getIssueRuleLinks()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertFalse(recommendation.isAutoApplyAllowed());
+        assertTrue(recommendation.isManualReviewRequired());
+        assertNotNull(recommendation.getAccelerationArtifact());
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+            recommendation.getAccelerationArtifact().get("generationSource"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("coverageProof"))
+            .contains("MV_COVERAGE_PROOF_ENGINE_V1"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
+            .contains("EXPLAIN_UNAVAILABLE"));
+        assertFalse("EXACT_QUERY_MV".equals(recommendation.getAccelerationArtifact().get("mvType")));
 
-        InMemoryRuntimeRewriteBindingRepository runtimeRepository = new InMemoryRuntimeRewriteBindingRepository();
-        QueryExecutionRuntimeRewriteBindingService runtimeBindingService =
-            new QueryExecutionRuntimeRewriteBindingService(runtimeRepository);
-        RuntimeBindingClientBridge runtimeClient = new RuntimeBindingClientBridge(runtimeBindingService);
-        SequencedResultDigestClient digestClient = new SequencedResultDigestClient(
-            digest("schema-test01", Long.valueOf(8L), "checksum-test01", row("org", "深圳市分行"), 1200L, 1000000L),
-            digest("schema-test01", Long.valueOf(8L), "checksum-test01", row("org", "深圳市分行"), 120L, 10000L)
-        );
-        SqlRewriteRecordApplicationService rewriteRecordService =
-            new SqlRewriteRecordApplicationService(
-                new InMemorySqlRewriteRecordRepository(),
-                digestClient,
-                new ResultDigestComparisonEngine(),
-                new com.company.sqloptimization.domain.rewrite.policy.RewriteActivationEligibilityPolicy(),
-                runtimeClient,
-                null,
-                recommendationRepository
-            );
-        SqlRewriteRecordVO rewriteRecord =
-            rewriteRecordService.createRewriteRecord(test01RewriteRecordRequest(recommendation));
-        SqlRewriteRecordVO approved = rewriteRecordService.reviewRewriteRecord(
-            rewriteRecord.getRewriteRecordId(),
-            reviewRequest(RewriteReviewStatus.APPROVED, "docs/test01.sql runtime template replay approved")
-        );
-        RewriteValidationRunVO validationRun =
-            rewriteRecordService.createValidationRun(approved.getRewriteRecordId(), validationRequest());
-        long activationStart = System.nanoTime();
-        SqlRewriteRecordVO published = rewriteRecordService.activateRewriteRecord(
-            approved.getRewriteRecordId(),
-            publishRequest("activate docs/test01.sql runtime template replay")
-        );
-        long activationMicros = elapsedMicros(activationStart);
-        assertEquals("EQUIVALENT", validationRun.getComparisonStatus());
-        assertEquals("ACTIVE", published.getActivationStatus());
-
-        CapturingGovernanceCapabilityClient governanceClient = new CapturingGovernanceCapabilityClient(null);
-        RecordingQueryExecutionAdapter queryAdapter = new RecordingQueryExecutionAdapter();
-        QueryExecutionApplicationService queryExecutionService = new QueryExecutionApplicationService(
-            queryAdapter,
-            governanceClient,
-            new QueryExecutionMetricsRecorder(new SimpleMeterRegistry()),
-            new QueryExecutionAccelerationRuntimeService(),
-            new QueryExecutionCacheGovernanceRuntimeService(),
-            runtimeBindingService
-        );
-
-        String parameterSql = originalSql
-            .replace("'41H006'", "'41H007'")
-            .replace("'20260430'", "'20260501'")
-            .replace("'20260519'", "'20260521'");
-        String residualPredicate =
-            "BIO_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM__CUST_NO IS NOT NULL";
-        String conditionSql = addBaseScanCondition(originalSql, residualPredicate);
-
-        TimedResolve originalResolve = resolveTimed(runtimeBindingService, originalSql);
-        TimedExecution originalExecution = executeTimed(queryExecutionService, originalSql);
-        TimedResolve parameterResolve = resolveTimed(runtimeBindingService, parameterSql);
-        TimedExecution parameterExecution = executeTimed(queryExecutionService, parameterSql);
-        TimedResolve conditionResolve = resolveTimed(runtimeBindingService, conditionSql);
-        TimedExecution conditionExecution = executeTimed(queryExecutionService, conditionSql);
-
-        assertRuntimeRewriteApplied(originalResolve, originalExecution, "original");
-        assertRuntimeRewriteApplied(parameterResolve, parameterExecution, "parameter");
-        assertRuntimeRewriteApplied(conditionResolve, conditionExecution, "condition");
-        assertTrue(parameterExecution.getActualSql().contains("'41H007'"), parameterExecution.getActualSql());
-        assertTrue(parameterExecution.getActualSql().contains("'20260501'"), parameterExecution.getActualSql());
-        assertTrue(parameterExecution.getActualSql().contains("'20260521'"), parameterExecution.getActualSql());
-        assertTrue(conditionExecution.getActualSql().contains(residualPredicate), conditionExecution.getActualSql());
-        assertEquals(SqlFingerprintUtils.fingerprint(conditionSql), conditionResolve.getResponse().getSqlFingerprint());
-
-        assertTrue(originalResolve.getElapsedMicros() < 2000000L, "原始 SQL 解析耗时微秒=" + originalResolve.getElapsedMicros());
-        assertTrue(parameterResolve.getElapsedMicros() < 2000000L, "参数 SQL 解析耗时微秒=" + parameterResolve.getElapsedMicros());
-        assertTrue(conditionResolve.getElapsedMicros() < 2000000L, "条件 SQL 解析耗时微秒=" + conditionResolve.getElapsedMicros());
-        System.out.println("TEST01_RUNTIME_REWRITE_METRICS "
-            + "generation_us=" + generationMicros
-            + " activation_us=" + activationMicros
-            + " resolve_original_us=" + originalResolve.getElapsedMicros()
-            + " execute_original_us=" + originalExecution.getElapsedMicros()
-            + " resolve_parameter_us=" + parameterResolve.getElapsedMicros()
-            + " execute_parameter_us=" + parameterExecution.getElapsedMicros()
-            + " resolve_condition_us=" + conditionResolve.getElapsedMicros()
-            + " execute_condition_us=" + conditionExecution.getElapsedMicros());
+        String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
+        if ("BLOCKED".equals(artifactStatus)) {
+            assertTrue(recommendation.getAccelerationArtifact().get("rewriteSql") == null,
+                String.valueOf(recommendation.getAccelerationArtifact()));
+        } else {
+            String rewriteSql = String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"));
+            assertTrue(rewriteSql.contains("FROM " + recommendation.getAccelerationArtifact().get("mvName")), rewriteSql);
+            assertFalse(rewriteSql.contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
+        }
+        assertTrue(generationMicros < 2000000L, "docs/test01.sql 推荐生成耗时微秒=" + generationMicros);
+        System.out.println("TEST01_RUNTIME_TEMPLATE_REMOVED_METRICS generation_us=" + generationMicros);
     }
 
     private RewriteTrialRequest test01TrialRequest(String sqlText) {
@@ -435,8 +378,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertTrue(execution.getResponse().getMetadata().isRewriteApplied(), label + " rewriteApplied");
         assertEquals("ACTIVE", execution.getResponse().getMetadata().getRuntimeRewriteStatus(),
             label + " runtimeRewriteStatus");
-        assertTrue(execution.getActualSql().contains("base_100_anchor"), label + " actualSql");
-        assertTrue(execution.getActualSql().contains("report_customer_snapshot"), label + " actualSql");
+        assertNotNull(execution.getActualSql(), label + " actualSql");
     }
 
     private long elapsedMicros(long startNanos) {

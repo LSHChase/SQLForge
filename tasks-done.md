@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DYNAMIC-MV-REWRITE-QUALITY-20260526: 动态 MV 推荐与复杂 SQL 改写能力提升
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `USER-CN-DYNAMIC-MV-REWRITE-QUALITY-20260526 improve dynamic MV rewrite quality`
+- Priority: 1
+- Depends on: N/A
+- Scope: 废弃 test01 样例模板式 L2 MV 推荐路径，改为 AST/IR/QBDAG/关系代数驱动的 MV 候选、覆盖证明、外层查询保留、Explain/元数据证据与结构化阻断，并补充复杂 SQL 回归验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-REWRITE-QUALITY-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 废弃活跃的 test01 快照模板式 L2 MV 推荐路径，改为 AST/IR/QBDAG/关系代数驱动的 MV 候选规划；补齐外层查询保留、覆盖证明、Explain/元数据证据、结构化阻断和 100 条复杂 SQL 回归语料。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112；mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest,L2MaterializedViewLargeSqlQualityTest,RewriteTrialApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes=**/application/service/L2AccelerationArtifactBuilder.java,**/application/service/L2MaterializedViewRewriteCoverageValidator.java,**/application/service/MaterializedViewRecommendationPlanner.java,**/application/service/QueryWrapperPreserver.java,**/application/service/MvCoverageProofEngine.java,**/application/service/SqlOptimizationPipelineService.java,**/application/service/RewriteTrialApplicationService.java,**/domain/rewrite/recommendation/RewriteRecommendationGenerator.java；mvn -pl sql-optimization -am test；git diff --check；python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-REWRITE-QUALITY-20260526；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 仓库侧已证明静态解析、候选生成、覆盖证明与复杂 SQL 回归；真实 Hetu/MRS MV DDL 权限、刷新成本、生产统计元数据、EXPLAIN 计划和结果等价仍需外部环境证据。
+  - Next step: 在外部 Hetu/MRS 环境按生产治理流程执行真实 MV DDL/EXPLAIN/refresh/result-equivalence 验证后再进入生产投放。
+
 ### USER-CN-SQL-QUERY-TENANT-SYNC-20260526: SQL 查询页租户与 AUTO 数据源同步修复
 
 - Status: done

@@ -11,6 +11,7 @@ import com.company.sqloptimization.domain.task.OptimizationTaskCost;
 import com.company.sqloptimization.domain.task.OptimizationTaskPhase;
 import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.domain.task.OptimizationTaskSuggestion;
+import com.company.sqloptimization.domain.parse.HetuPlanAnalysisResult;
 import com.company.sqloptimization.domain.parse.SqlParserMode;
 import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceAnalyzer;
 import com.company.sqloptimization.domain.rewrite.conformance.RewriteAlgorithmConformanceReport;
@@ -498,17 +499,6 @@ public class SqlOptimizationPipelineService {
     public OptimizationTaskSuggestion buildRewriteSuggestion(ParsedSqlProfile profile) {
         RewriteOutcome outcome = profile == null ? RewriteOutcome.empty() : profile.getRewriteOutcome();
         RewriteCoreIrSnapshot coreIrSnapshot = profile == null ? null : buildRewriteCoreIr(profile);
-        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate snapshotRewrite =
-            profile == null
-                ? null
-                : L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
-        if (snapshotRewrite != null && StringUtils.hasText(snapshotRewrite.getRewriteSql())) {
-            List<String> appliedRules = new ArrayList<String>(outcome.appliedRules);
-            if (!appliedRules.contains(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE)) {
-                appliedRules.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
-            }
-            outcome = new RewriteOutcome(snapshotRewrite.getRewriteSql(), appliedRules);
-        }
         List<OptimizationTaskRisk> risks = new ArrayList<OptimizationTaskRisk>(buildShapeRisks(profile));
         if (outcome.appliedRules.isEmpty()) {
             risks.add(
@@ -557,18 +547,6 @@ public class SqlOptimizationPipelineService {
             "productionCapabilityReport",
             JsonUtils.toJson(assessRewriteProductionCapabilities(profile).toMap())
         ));
-        if (snapshotRewrite != null) {
-            artifacts.add(new OptimizationTaskArtifact(
-                "REWRITE_VALIDATION_METHODS",
-                "validationMethods",
-                JsonUtils.toJson(snapshotRewrite.getValidationMethods())
-            ));
-            artifacts.add(new OptimizationTaskArtifact(
-                "REWRITE_EVIDENCE",
-                "rewriteEvidence",
-                JsonUtils.toJson(snapshotRewrite.getEvidence())
-            ));
-        }
         List<OptimizationTaskBenefit> benefits = Arrays.asList(
             new OptimizationTaskBenefit(
                 "PLAN_SIMPLIFICATION",
@@ -634,6 +612,11 @@ public class SqlOptimizationPipelineService {
         artifacts.add(new OptimizationTaskArtifact("SIGNAL_PROFILE", "signalProfile", JsonUtils.toJson(profile.toAccelerationSignalProfile())));
         artifacts.add(new OptimizationTaskArtifact("TABLE_LINEAGE", "tables", JsonUtils.toJson(profile.tables)));
         if (filteredReasons.containsKey(AccelerationSuggestionType.PRECOMPUTE)) {
+            HetuPlanAnalysisResult explainResult = explainForAccelerationArtifact(
+                profile,
+                targetEngine,
+                targetDatasource
+            );
             Map<String, Object> accelerationArtifact = L2AccelerationArtifactBuilder.buildForPrecomputeCandidate(
                 new L2AccelerationArtifactBuilder.AccelerationRecommendationInput(
                     profile.getNormalizedSql(),
@@ -644,7 +627,8 @@ public class SqlOptimizationPipelineService {
                     null,
                     null
                 ),
-                profile
+                profile,
+                explainResult
             );
             if (accelerationArtifact != null) {
                 artifacts.add(new OptimizationTaskArtifact(
@@ -698,6 +682,40 @@ public class SqlOptimizationPipelineService {
             costs,
             risks
         );
+    }
+
+    private HetuPlanAnalysisResult explainForAccelerationArtifact(ParsedSqlProfile profile,
+                                                                  DataSourceTypeEnum targetEngine,
+                                                                  String targetDatasource) {
+        if (profile == null) {
+            return HetuPlanAnalysisResult.skipped(
+                targetDatasource,
+                "PARSE_PROFILE_REQUIRED",
+                Collections.singletonList("profile=missing")
+            );
+        }
+        if (targetEngine != null && targetEngine != DataSourceTypeEnum.HETU && targetEngine != DataSourceTypeEnum.AUTO) {
+            return HetuPlanAnalysisResult.skipped(
+                targetDatasource,
+                "EXPLAIN_SKIPPED_FOR_NON_HETU_TARGET",
+                Collections.singletonList("targetEngine=" + targetEngine.name())
+            );
+        }
+        try {
+            return hetuPlanAnalysisClient.explain(
+                profile.getNormalizedSql(),
+                null,
+                targetDatasource,
+                targetEngine == null ? DataSourceTypeEnum.HETU : targetEngine
+            );
+        } catch (RuntimeException ex) {
+            return HetuPlanAnalysisResult.failed(
+                targetDatasource,
+                ex.getMessage(),
+                0L,
+                Collections.singletonList("explain=failed")
+            );
+        }
     }
 
     public List<String> deriveRewriteCandidateRules(ParsedSqlProfile profile) {
@@ -918,33 +936,6 @@ public class SqlOptimizationPipelineService {
                 l0RuleDescription(appliedRule)
             ));
         }
-        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate snapshotRewrite =
-            L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
-        if (snapshotRewrite != null) {
-            Map<String, Object> snapshotRule = ruleEntry(
-                "L1",
-                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
-                "REWRITE_CANDIDATE_GENERATED",
-                "DYNAMIC_QUERY_BLOCK_TEMPLATE",
-                Boolean.FALSE,
-                "已将重复快照聚合报表改写为客户-日期粒度快照后再做条件聚合，需完成结果差异和计划形态验证。"
-            );
-            snapshotRule.put("validationMethods", snapshotRewrite.getValidationMethods());
-            snapshotRule.put("rewriteEvidence", snapshotRewrite.getEvidence());
-            ruleChain.add(snapshotRule);
-            preconditions.add(preconditionEntry(
-                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
-                "THREE_WAY_VALIDATION_REQUIRED",
-                "生产激活前必须至少完成结果集差异、核心指标差异和计划扫描形态三类验证。"
-            ));
-            semanticRisks.add(semanticRiskEntry(
-                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
-                "COUNT_DISTINCT_REWRITE",
-                "MEDIUM",
-                "COUNT DISTINCT 被重写为客户快照粒度条件聚合，日期、机构层级和阈值边界必须与原 SQL 对齐。"
-            ));
-        }
-
         if (profile.isSelectStar()) {
             addUnappliedRule(
                 unappliedRules,
@@ -1562,14 +1553,14 @@ public class SqlOptimizationPipelineService {
                 "L2",
                 "PRECOMPUTE_MV",
                 "PULL_ONLY_CANDIDATE",
-                "STATIC_PARSE",
+                MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
                 Boolean.FALSE,
-                "高复用聚合形态可转化为物化视图或预计算推荐。"
+                "高复用聚合形态进入 AST/IR/QBDAG/关系代数驱动的物化视图候选规划。"
             ));
             preconditions.add(preconditionEntry(
                 "PRECOMPUTE_MV",
-                "RUNTIME_REUSE_AND_REFRESH_POLICY_REQUIRED",
-                "分发前需要运行时频次、新鲜度目标和刷新责任归属。"
+                "MV_COVERAGE_PROOF_AND_REFRESH_POLICY_REQUIRED",
+                "分发前需要覆盖证明、运行时频次、新鲜度目标和刷新责任归属。"
             ));
         }
         if (!profile.getDatePredicateColumns().isEmpty()) {

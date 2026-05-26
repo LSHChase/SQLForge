@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
 
+@Deprecated
 final class L2DynamicSnapshotAggregateMvCandidateGenerator {
 
     static final String RULE = "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG";
@@ -523,7 +524,7 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
         evidence.put("rule", RULE);
         evidence.put("mode", "DYNAMIC_REPEATED_SNAPSHOT_AGGREGATE_REPORT");
-        evidence.put("generator", "DYNAMIC_QUERY_BLOCK_TEMPLATE");
+        evidence.put("generator", "MIGRATION_REFERENCE_ONLY");
         evidence.put("staticTest01TemplateUsed", Boolean.FALSE);
         evidence.put("factTable", shape.factTable);
         evidence.put("dateColumn", shape.dateColumn);
