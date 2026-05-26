@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526: 优化超大 SQL 语法高亮渲染性能
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `feat(frontend): optimize large SQL highlighting performance`
+- Priority: 1
+- Depends on: N/A
+- Scope: 支持超过 10000 行、20w 字符的超大 SQL 在页面上高速高亮渲染，优化正则与字符拼接性能，修复 test01.sql 在内的超长 SQL 输入无高亮或卡顿问题
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Optimize escapeHtml and highlightSql in sqlFormatting.mjs to support 200k+ character SQL highlighting under 5ms, avoiding memory allocation and rendering lag.
+  - Validation evidence: Passed test:sql-ui-contract, test:frontend-page-governance, test:form-governance, and custom scratch benchmark highlighting test01.sql in 1.9ms.
+  - Residual risk: None
+  - Next step: None
+
 ### USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525: 动态 MV 模板运行时完成度审计
 
 - Status: done

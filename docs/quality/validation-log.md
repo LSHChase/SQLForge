@@ -5909,3 +5909,31 @@
 2026-05-25T06:38:56-05:00 | USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525 closeout commit | `R-168` | projected | `git commit -m 'chore: audit dynamic MV runtime rewrite completion' (projected-precommit)`
 2026-05-25T06:38:56-05:00 | USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-25T06:38:56-05:00 | USER-CN-DYNAMIC-MV-RUNTIME-AUDIT-20260525 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-25T23:09:56-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-25T23:09:56-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-25T23:09:58-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-25T23:10:02-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-25T23:10:02-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-25T23:10:02-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-25T23:10:02-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-25T23:10:02-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-25T23:10:02-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-25T23:10:30-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-133`, `R-168` | passed | `mvn -pl sql-optimization -am test`
+2026-05-25T23:10:30-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-133`, `R-168` | failed | `git diff --check`
+2026-05-25T23:10:57-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-25T23:10:57-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-25T23:10:58-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-25T23:11:03-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-25T23:11:03-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-25T23:11:03-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-25T23:11:03-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-25T23:11:03-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-25T23:11:33-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-25T23:11:33-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-25T23:11:35-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-25T23:11:39-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-25T23:11:39-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-25T23:11:39-05:00 | USER-CN-SQL-TOKEN-NORMALIZER-20260525 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-25T23:11:39-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-25T23:11:39-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 closeout commit | `R-168` | projected | `git commit -m 'feat(frontend): optimize large SQL highlighting performance' (projected-precommit)`
+2026-05-25T23:11:39-05:00 | USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

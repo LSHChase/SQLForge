@@ -16,7 +16,16 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### USER-CN-SQL-TOKEN-NORMALIZER-20260525: 实现轻量 SQL token 归一化
+
+- Status: in_progress
+- Priority: 1
+- Depends on: N/A
+- Scope: 把 Yonghong/Hetu 派生表 join 包装归一化从按行判断改为轻量 token/括号栈重写；后端在 JSQLParser/Calcite 前统一方言归一化；前端 rewrite validation 保留自动格式化前的提交原文；补 docs/test01.sql raw、页面格式化、去注释格式化三类回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-TOKEN-NORMALIZER-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
 
 
 ## In Review
