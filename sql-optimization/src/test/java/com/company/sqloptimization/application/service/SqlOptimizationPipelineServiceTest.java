@@ -54,6 +54,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class SqlOptimizationPipelineServiceTest {
@@ -1345,6 +1346,20 @@ class SqlOptimizationPipelineServiceTest {
     }
 
     @Test
+    void shouldAnalyzeYonghongProductionReportSqlAfterFrontendFormatting() throws Exception {
+        String rawSql = readRepositorySqlFixture("docs/test01.sql");
+        String frontendFormattedSql = frontendFormatSql(rawSql);
+        String noCommentFrontendFormattedSql = frontendFormatSql(stripLineCommentsForRegression(rawSql));
+
+        assertTrue(containsJoinDoubleSelectWrapper(frontendFormattedSql), "需要覆盖页面格式化后的 JOIN ((SELECT) 形态");
+        assertTrue(containsJoinDoubleSelectWrapper(noCommentFrontendFormattedSql),
+            "需要覆盖去注释再页面格式化后的 JOIN ((SELECT) 形态");
+
+        assertYonghongRewriteRecommendationGenerated("frontend-formatted", frontendFormattedSql);
+        assertYonghongRewriteRecommendationGenerated("no-comment-frontend-formatted", noCommentFrontendFormattedSql);
+    }
+
+    @Test
     void shouldRecommendReportSnapshotRewriteForEquivalentNamingVariants() {
         String sql = reportSnapshotNamingVariantSql();
 
@@ -1532,14 +1547,117 @@ class SqlOptimizationPipelineServiceTest {
         return (List<Map<String, Object>>) value;
     }
 
-    private String readRepositorySqlFixture(String relativePath) throws Exception {
-        Path root = Paths.get("").toAbsolutePath();
-        Path fixture = root.resolve(relativePath);
-        if (!Files.exists(fixture)) {
-            fixture = root.resolve("..").resolve(relativePath).normalize();
+    private void assertYonghongRewriteRecommendationGenerated(String caseName, String sql) {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
+            service.buildRecommendationRuleOutputModel(profile);
+        OptimizationTaskSuggestion rewriteSuggestion = service.buildRewriteSuggestion(profile);
+        String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
+
+        assertEquals("JSQLPARSER", profile.getParserEngine(), caseName);
+        assertTrue(containsText(profile.getTables(), "BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), caseName);
+        assertTrue(profile.getSubqueryCount() >= 20, caseName + " subqueryCount=" + profile.getSubqueryCount());
+        assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"), caseName);
+        assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"), caseName);
+        assertTrue(containsRule(model.getRuleChain(), L2DynamicSnapshotAggregateMvCandidateGenerator.RULE), caseName);
+        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), caseName);
+        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), caseName);
+        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), caseName);
+        assertTrue(rewriteCandidateSql.contains("metric_by_org"), caseName);
+        assertTrue(rewriteCandidateSql.contains("growth_by_org"), caseName);
+    }
+
+    private String frontendFormatSql(String sql) throws Exception {
+        String formatted = runFrontendFormatter(sql);
+        if (formatted != null) {
+            return formatted;
         }
+        return formatYonghongLikeFrontendFallback(sql);
+    }
+
+    private String runFrontendFormatter(String sql) throws Exception {
+        Path root = repositoryRoot();
+        Path input = Files.createTempFile("sqlforge-test01-input", ".sql");
+        Path output = Files.createTempFile("sqlforge-test01-formatted", ".sql");
+        Path error = Files.createTempFile("sqlforge-test01-format-error", ".log");
+        try {
+            Files.write(input, sql.getBytes(StandardCharsets.UTF_8));
+            String script =
+                "import fs from 'node:fs';"
+                    + "import { pathToFileURL } from 'node:url';"
+                    + "const root = process.cwd();"
+                    + "const { formatSqlText } = await import(pathToFileURL(root + '/src/views/common/sqlFormatting.mjs').href);"
+                    + "const input = fs.readFileSync(process.argv[process.argv.length - 1], 'utf8');"
+                    + "process.stdout.write(formatSqlText(input));";
+            Process process = new ProcessBuilder(
+                "node",
+                "--input-type=module",
+                "-e",
+                script,
+                input.toString()
+            )
+                .directory(root.toFile())
+                .redirectOutput(output.toFile())
+                .redirectError(error.toFile())
+                .start();
+            if (!process.waitFor(30, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                return null;
+            }
+            if (process.exitValue() != 0) {
+                return null;
+            }
+            return new String(Files.readAllBytes(output), StandardCharsets.UTF_8);
+        } finally {
+            Files.deleteIfExists(input);
+            Files.deleteIfExists(output);
+            Files.deleteIfExists(error);
+        }
+    }
+
+    private String formatYonghongLikeFrontendFallback(String sql) {
+        return sql
+            .replace("FROM (\n(SELECT", "FROM (\n  (\n    SELECT")
+            .replace("LEFT JOIN (\n(SELECT", "LEFT JOIN (\n  (\n    SELECT")
+            .replace("RIGHT JOIN (\n(SELECT", "RIGHT JOIN (\n  (\n    SELECT")
+            .replace("FULL JOIN (\n(SELECT", "FULL JOIN (\n  (\n    SELECT")
+            .replace("INNER JOIN (\n(SELECT", "INNER JOIN (\n  (\n    SELECT");
+    }
+
+    private boolean containsJoinDoubleSelectWrapper(String sql) {
+        return java.util.regex.Pattern.compile("(?is)\\bJOIN\\s*\\(\\s*\\(\\s*SELECT\\b")
+            .matcher(sql)
+            .find();
+    }
+
+    private String stripLineCommentsForRegression(String sql) {
+        StringBuilder builder = new StringBuilder(sql.length());
+        String[] lines = sql.split("\\n", -1);
+        for (int index = 0; index < lines.length; index++) {
+            String line = lines[index];
+            if (!line.trim().startsWith("--")) {
+                builder.append(line);
+            }
+            if (index < lines.length - 1) {
+                builder.append('\n');
+            }
+        }
+        return builder.toString();
+    }
+
+    private String readRepositorySqlFixture(String relativePath) throws Exception {
+        Path root = repositoryRoot();
+        Path fixture = root.resolve(relativePath);
         assertTrue(Files.exists(fixture), "缺少 SQL fixture：" + fixture);
         return new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+    }
+
+    private Path repositoryRoot() {
+        Path root = Paths.get("").toAbsolutePath();
+        if (!Files.exists(root.resolve("docs/test01.sql"))) {
+            root = root.resolve("..").normalize();
+        }
+        return root;
     }
 
     private String artifact(OptimizationTaskSuggestion suggestion, String category, String name) {

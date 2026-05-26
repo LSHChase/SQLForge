@@ -197,7 +197,11 @@ const requiredFiles = {
     'SqlCompareBlock',
     'rewrite-validation-sql-input',
     'rewrite-validation-sql-compare',
-    'rewrite-validation-raw-evidence'
+    'rewrite-validation-raw-evidence',
+    'rawSqlText',
+    'submittedSqlText',
+    'updateSqlText',
+    'rememberSqlTextBeforeFormat'
   ],
   'src/views/common/SqlCompareBlock.vue': [
     'buildSqlCompareRows',
@@ -247,6 +251,9 @@ for (const [relativePath, needles] of Object.entries(requiredFiles)) {
 }
 
 const sqlEditorField = read('src/views/common/SqlEditorField.vue')
+if (!/const original = displayValue\.value[\s\S]{0,180}emit\('format', formatted, original\)/.test(sqlEditorField)) {
+  errors.push('SqlEditorField format event must expose the pre-format SQL so callers can preserve raw submission text.')
+}
 if (/<pre[^>]*sql-editor-field__highlight[^>]*>\s+<code/.test(sqlEditorField)) {
   errors.push('SqlEditorField highlight pre must not inject leading template whitespace before code.')
 }
@@ -327,6 +334,20 @@ if (!/const sqlCodeBlockProps = item => \(\{[\s\S]{0,220}autoFormat: item\.autoF
 }
 if (!/class="footer-status"[\s\S]{0,120}\{\{\s*paginationStateText\s*\}\}/.test(sqlHistoryView)) {
   errors.push('SqlHistoryView footer-status must contain only the latest query status text.')
+}
+
+const rewriteValidationView = read('src/views/rewrite-validation/RewriteValidationView.vue')
+if (/v-model="form\.sqlText"/.test(rewriteValidationView)) {
+  errors.push('RewriteValidationView must not let SqlEditorField v-model overwrite raw SQL during auto-format.')
+}
+if (!/sqlText:\s*submittedSqlText\(\)/.test(rewriteValidationView)) {
+  errors.push('RewriteValidationView optimization task payload must submit preserved raw SQL text.')
+}
+if (!/:model-value="form\.sqlText"[\s\S]{0,420}@update:model-value="updateSqlText"[\s\S]{0,220}@format="rememberSqlTextBeforeFormat"/.test(rewriteValidationView)) {
+  errors.push('RewriteValidationView SQL editor must separate manual edits from formatter-originated display updates.')
+}
+if (!/:original-sql="originalSqlText"/.test(rewriteValidationView)) {
+  errors.push('RewriteValidationView compare pane must use preserved original SQL as the original side.')
 }
 if (
   !/data-testid="sql-history-pagination"[\s\S]{0,220}layout="total, sizes, prev, pager, next, jumper"[\s\S]{0,220}:total="pageInfo\.total"/.test(

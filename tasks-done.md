@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-TOKEN-NORMALIZER-20260525: 实现轻量 SQL token 归一化
+
+- Status: done
+- Completed at: 2026-05-25
+- Commit subject: `fix(sql): normalize Yonghong derived join wrappers`
+- Priority: 1
+- Depends on: N/A
+- Scope: 把 Yonghong/Hetu 派生表 join 包装归一化从按行判断改为轻量 token/括号栈重写；后端在 JSQLParser/Calcite 前统一方言归一化；前端 rewrite validation 保留自动格式化前的提交原文；补 docs/test01.sql raw、页面格式化、去注释格式化三类回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-TOKEN-NORMALIZER-20260525`
+- Progress log:
+  - 2026-05-25: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 后端 SQL 方言归一化抽为 token/括号栈 normalizer，统一处理 Yonghong/Hetu 派生表 JOIN 双层括号、注释、尾部分号和 BI 视图库名前缀；rewrite validation 页面在格式化后保留提交原文；补充 docs/test01.sql raw、页面格式化、去注释格式化回归。
+  - Validation evidence: docs/quality/validation-log.md 中 2026-05-25T23:32:34-05:00 至 23:33:09-05:00 的 foreman validate 记录全部 passed；定向回归 mvn -pl sql-optimization -am -Dtest=SqlDialectNormalizerTest,SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test 通过。
+  - Residual risk: 未接入真实外部 Hetu/MRS planner 或生产数据执行，仅验证仓库内静态解析、改写推荐与前端合同。
+  - Next step: 继续保留外部生产规模验证任务的独立证据链。
+
 ### USER-CN-SQL-HIGHLIGHT-PERFORMANCE-20260526: 优化超大 SQL 语法高亮渲染性能
 
 - Status: done

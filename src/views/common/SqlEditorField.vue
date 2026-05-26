@@ -54,9 +54,10 @@ const updateValue = event => {
 }
 
 const formatValue = () => {
-  const formatted = formatSqlText(displayValue.value)
+  const original = displayValue.value
+  const formatted = formatSqlText(original)
   emit('update:modelValue', formatted)
-  emit('format', formatted)
+  emit('format', formatted, original)
 }
 
 const copySql = () => copyTextToClipboard(displayValue.value)

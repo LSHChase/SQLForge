@@ -27,6 +27,8 @@ import {
 const { t } = useI18n()
 const router = useRouter()
 
+const defaultSqlText = "SELECT * FROM orders WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id, id"
+
 const form = reactive({
   tenantId: SAMPLE_TENANT_ID,
   datasourceType: 'AUTO',
@@ -45,8 +47,8 @@ const form = reactive({
   issueScenes: ['SELECT_STAR'],
   validationRewriteRecordId: '',
   validationReason: t('rewriteValidation.defaults.validationReason'),
-  sqlText:
-    "SELECT * FROM orders WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id, id"
+  sqlText: defaultSqlText,
+  rawSqlText: defaultSqlText
 })
 
 const loading = reactive({
@@ -87,7 +89,8 @@ const artifacts = computed(() => normalizeArray(suggestion.value?.artifacts))
 const benefits = computed(() => normalizeArray(suggestion.value?.benefits))
 const costs = computed(() => normalizeArray(suggestion.value?.costs))
 const risks = computed(() => normalizeArray(suggestion.value?.risks))
-const recommendedSql = computed(() => artifactContent('REWRITTEN_SQL', 'candidateSql') || form.sqlText)
+const originalSqlText = computed(() => String(form.rawSqlText ?? form.sqlText ?? ''))
+const recommendedSql = computed(() => artifactContent('REWRITTEN_SQL', 'candidateSql') || originalSqlText.value)
 const appliedRules = computed(() => normalizeRuleTrace(artifactContent('REWRITE_RULE_TRACE', 'appliedRules')))
 const astProfile = computed(() => parseJsonObject(artifactContent('AST_PROFILE', 'astProfile')))
 const recommendationReport = computed(() =>
@@ -111,7 +114,7 @@ const sourceType = computed(() => (['QUERY_HISTORY', 'SLOW_SQL'].includes(form.s
 const taskContextSourceType = computed(() => (form.sourceKind === 'MANUAL' ? 'COMBINED_PARSE' : form.sourceKind))
 const recommendationSourceKind = computed(() => (form.sourceKind === 'MANUAL' ? 'COMBINED_PARSE' : form.sourceKind))
 const canCreateRewriteRecord = computed(
-  () => activeTask.value?.status === 'SUCCEEDED' && hasValue(form.sqlText) && hasValue(recommendedSql.value)
+  () => activeTask.value?.status === 'SUCCEEDED' && hasValue(originalSqlText.value) && hasValue(recommendedSql.value)
 )
 const canCreateValidationRun = computed(() => hasValue(activeRewriteRecordId.value))
 
@@ -210,6 +213,20 @@ function hasValue(value) {
   return value !== null && value !== undefined && String(value).trim() !== ''
 }
 
+function submittedSqlText() {
+  return String(form.rawSqlText ?? form.sqlText ?? '')
+}
+
+function updateSqlText(value) {
+  const nextValue = String(value ?? '')
+  form.sqlText = nextValue
+  form.rawSqlText = nextValue
+}
+
+function rememberSqlTextBeforeFormat(_formatted, original) {
+  form.rawSqlText = String(original ?? '')
+}
+
 function displayValue(value) {
   if (Array.isArray(value)) {
     return value.length ? value.join(', ') : '-'
@@ -282,7 +299,7 @@ function buildTaskPayload() {
   return {
     tenantId: form.tenantId,
     taskType: 'REWRITE',
-    sqlText: form.sqlText,
+    sqlText: submittedSqlText(),
     sqlFingerprint: form.sqlFingerprint,
     datasourceType: form.datasourceType,
     taskContext: compactObject({
@@ -336,7 +353,7 @@ function buildRewriteRecordPayload() {
     autoApplyAllowed: false,
     manualReviewRequired: true,
     alertStatus: 'NONE',
-    originalSqlText: form.sqlText,
+    originalSqlText: submittedSqlText(),
     recommendedSqlText: recommendedSql.value,
     ruleChain: ruleRows.value,
     diffSummary: {
@@ -383,7 +400,7 @@ function buildValidationRunPayload() {
     },
     originalResultDigest: {
       source: 'FRONTEND_STATIC_REWRITE_VALIDATION',
-      sqlLength: String(form.sqlText || '').length
+      sqlLength: submittedSqlText().length
     },
     recommendedResultDigest: {
       source: 'FRONTEND_STATIC_REWRITE_VALIDATION',
@@ -716,13 +733,15 @@ onMounted(loadGovernanceDatasources)
           </label>
           <div class="field-block field-block-wide">
             <SqlEditorField
-              v-model="form.sqlText"
+              :model-value="form.sqlText"
               :label="t('rewriteValidation.fields.originalSql')"
               :rows="24"
               max-height="840px"
               :copy-label="t('rewriteValidation.actions.copy')"
               :format-label="t('rewriteValidation.actions.format')"
               data-testid="rewrite-validation-sql-input"
+              @update:model-value="updateSqlText"
+              @format="rememberSqlTextBeforeFormat"
             />
           </div>
         </div>
@@ -822,7 +841,7 @@ onMounted(loadGovernanceDatasources)
           <section class="result-section" data-testid="rewrite-validation-sql-compare">
             <h3 class="detail-title">{{ t('rewriteValidation.sections.diffTitle') }}</h3>
             <SqlCompareBlock
-              :original-sql="form.sqlText"
+              :original-sql="originalSqlText"
               :recommended-sql="recommendedSql"
               :original-label="t('rewriteValidation.fields.originalSql')"
               :recommended-label="t('rewriteValidation.fields.recommendedSql')"

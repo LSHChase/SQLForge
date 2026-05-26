@@ -3,7 +3,6 @@ package com.company.sqloptimization.application.service;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.utils.JsonUtils;
-import com.company.sqlforge.common.utils.SqlCatalogQualifierRewriteUtils;
 import com.company.sqloptimization.config.RewriteProductionGateProperties;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.domain.task.OptimizationTaskArtifact;
@@ -266,13 +265,12 @@ public class SqlOptimizationPipelineService {
                 "请提交原始 SQL 文本，以便执行解析、改写和加速分析。"
             );
         }
-        String effectiveSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(normalizedSql);
         SqlParserMode resolvedMode = (parserMode == null ? resolveDefaultParserMode() : parserMode).structureMode();
         SqlStructureParserAdapter adapter = parserAdapters.get(resolvedMode);
         if (adapter == null) {
             adapter = parserAdapters.get(SqlParserMode.JSQLPARSER);
         }
-        return adapter.analyze(effectiveSql, datasourceType);
+        return adapter.analyze(normalizedSql, datasourceType);
     }
 
     private SqlParserMode resolveDefaultParserMode() {
@@ -328,6 +326,23 @@ public class SqlOptimizationPipelineService {
                     )
                 ),
                 ex,
+                normalizedSql
+            );
+        }
+        if (statement == null) {
+            throw parserFailure(
+                "SQL 解析器无法为提交语句构建 AST。",
+                "请提交单条受支持的 SELECT 语句，或扩展数据源 "
+                    + datasourceType.name() + " 的解析器支持。",
+                Collections.singletonList(
+                    new OptimizationTaskRisk(
+                        "HIGH",
+                        "UNSUPPORTED_DIALECT",
+                        "提交的 SQL 无法解析为受支持的 AST。",
+                        "请保持语句为单条 SELECT/WITH 查询，或扩展该数据源的解析器覆盖范围。"
+                    )
+                ),
+                new JSQLParserException("JSQLParser 未返回语句对象。"),
                 normalizedSql
             );
         }
@@ -3267,185 +3282,7 @@ public class SqlOptimizationPipelineService {
     }
 
     private String normalizeSql(String sqlText) {
-        if (sqlText == null) {
-            return "";
-        }
-        String normalized = stripLineComments(sqlText);
-        normalized = normalizeYonghongDerivedJoinSyntax(normalized);
-        normalized = removeTrailingSemicolons(normalized);
-        return normalized;
-    }
-
-    private String normalizeYonghongDerivedJoinSyntax(String sqlText) {
-        if (!looksLikeYonghongReportSql(sqlText)) {
-            return sqlText;
-        }
-        String[] lines = sqlText.split("\\n", -1);
-        StringBuilder builder = new StringBuilder(sqlText.length());
-        for (int index = 0; index < lines.length; index++) {
-            String line = lines[index];
-            String normalizedLine = normalizeNestedSelectLine(lines, index, line);
-            if (isRedundantYonghongJoinWrapperClose(lines, index)) {
-                continue;
-            }
-            builder.append(normalizedLine);
-            if (index < lines.length - 1) {
-                builder.append('\n');
-            }
-        }
-        return builder.toString();
-    }
-
-    private boolean looksLikeYonghongReportSql(String sqlText) {
-        if (!StringUtils.hasText(sqlText)) {
-            return false;
-        }
-        return sqlText.contains("YH_RPT")
-            || sqlText.contains("YH_QUERYID")
-            || sqlText.contains("分组和汇总");
-    }
-
-    private String normalizeNestedSelectLine(String[] lines, int index, String line) {
-        String trimmed = line == null ? "" : line.trim();
-        if (!trimmed.toUpperCase(Locale.ROOT).startsWith("(SELECT")) {
-            return line;
-        }
-        String previous = previousNonEmptyLine(lines, index);
-        if (!isFromOrJoinOpenLine(previous)) {
-            return line;
-        }
-        int offset = line.indexOf("(SELECT");
-        if (offset < 0) {
-            offset = line.toUpperCase(Locale.ROOT).indexOf("(SELECT");
-        }
-        return offset < 0 ? line : line.substring(0, offset) + line.substring(offset + 1);
-    }
-
-    private boolean isRedundantYonghongJoinWrapperClose(String[] lines, int index) {
-        String current = lines[index] == null ? "" : lines[index].trim();
-        if (!")".equals(current)) {
-            return false;
-        }
-        String next = nextNonEmptyLine(lines, index);
-        if (isJoinStartLine(next)) {
-            return true;
-        }
-        String previous = previousNonEmptyLine(lines, index);
-        return startsWithKeyword(previous, "ON")
-            && (startsWithKeyword(next, "GROUP BY")
-                || startsWithKeyword(next, "WHERE")
-                || startsWithKeyword(next, "HAVING")
-                || startsWithKeyword(next, "ORDER BY"));
-    }
-
-    private boolean isFromOrJoinOpenLine(String line) {
-        if (!StringUtils.hasText(line)) {
-            return false;
-        }
-        String normalized = line.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", " ");
-        return "FROM (".equals(normalized) || normalized.matches("^(LEFT|RIGHT|FULL|INNER|CROSS)?\\s*JOIN \\($");
-    }
-
-    private boolean isJoinStartLine(String line) {
-        if (!StringUtils.hasText(line)) {
-            return false;
-        }
-        String normalized = line.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", " ");
-        return normalized.startsWith("JOIN ")
-            || normalized.startsWith("LEFT JOIN ")
-            || normalized.startsWith("LEFT OUTER JOIN ")
-            || normalized.startsWith("RIGHT JOIN ")
-            || normalized.startsWith("RIGHT OUTER JOIN ")
-            || normalized.startsWith("FULL JOIN ")
-            || normalized.startsWith("FULL OUTER JOIN ")
-            || normalized.startsWith("INNER JOIN ");
-    }
-
-    private boolean startsWithKeyword(String line, String keyword) {
-        if (!StringUtils.hasText(line) || !StringUtils.hasText(keyword)) {
-            return false;
-        }
-        return line.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", " ")
-            .startsWith(keyword.toUpperCase(Locale.ROOT));
-    }
-
-    private String previousNonEmptyLine(String[] lines, int index) {
-        for (int cursor = index - 1; cursor >= 0; cursor--) {
-            String line = lines[cursor];
-            if (StringUtils.hasText(line)) {
-                return line;
-            }
-        }
-        return "";
-    }
-
-    private String nextNonEmptyLine(String[] lines, int index) {
-        for (int cursor = index + 1; cursor < lines.length; cursor++) {
-            String line = lines[cursor];
-            if (StringUtils.hasText(line)) {
-                return line;
-            }
-        }
-        return "";
-    }
-
-    private String stripLineComments(String sqlText) {
-        StringBuilder builder = new StringBuilder(sqlText.length());
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-        boolean inBacktick = false;
-        boolean inLineComment = false;
-        for (int index = 0; index < sqlText.length(); index++) {
-            char current = sqlText.charAt(index);
-            char next = index + 1 < sqlText.length() ? sqlText.charAt(index + 1) : '\0';
-            if (inLineComment) {
-                if (current == '\n' || current == '\r') {
-                    inLineComment = false;
-                    builder.append(current);
-                } else {
-                    builder.append(' ');
-                }
-                continue;
-            }
-            if (!inSingleQuote && !inDoubleQuote && !inBacktick && current == '-' && next == '-') {
-                inLineComment = true;
-                builder.append(' ');
-                builder.append(' ');
-                index++;
-                continue;
-            }
-            builder.append(current);
-            if (current == '\'' && !inDoubleQuote && !inBacktick) {
-                if (inSingleQuote && next == '\'') {
-                    builder.append(next);
-                    index++;
-                } else {
-                    inSingleQuote = !inSingleQuote;
-                }
-            } else if (current == '"' && !inSingleQuote && !inBacktick) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (current == '`' && !inSingleQuote && !inDoubleQuote) {
-                inBacktick = !inBacktick;
-            }
-        }
-        return builder.toString();
-    }
-
-    private String removeTrailingSemicolons(String sqlText) {
-        String normalized = sqlText == null ? "" : sqlText;
-        int end = normalized.length();
-        while (end > 0) {
-            while (end > 0 && Character.isWhitespace(normalized.charAt(end - 1))) {
-                end--;
-            }
-            if (end > 0 && normalized.charAt(end - 1) == ';') {
-                normalized = normalized.substring(0, end - 1);
-                end = normalized.length();
-            } else {
-                break;
-            }
-        }
-        return normalized;
+        return SqlDialectNormalizer.normalize(sqlText);
     }
 
     private SqlFailurePosition analyzeSqlFailurePosition(Throwable cause, String sqlText) {
