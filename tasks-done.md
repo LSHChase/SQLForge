@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-QUERY-TENANT-SYNC-20260526: SQL 查询页租户与 AUTO 数据源同步修复
+
+- Status: done
+- Completed at: 2026-05-26
+- Commit subject: `test(frontend): cover SQL query tenant AUTO datasource sync`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 查询分析页使用当前 tenantStore 租户加载 datasource，并在 AUTO 引擎切换时恢复可用 datasource；补充前端 smoke 覆盖。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-TENANT-SYNC-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: SQL 查询页按 tenantStore 当前租户加载 datasource，并补充前端 dev smoke 覆盖右上角租户切换与 AUTO/HETU/AUTO datasource 恢复。
+  - Validation evidence: npm run lint; npm run build; npm run smoke:frontend-dev; python3 scripts/foreman.py validate USER-CN-SQL-QUERY-TENANT-SYNC-20260526; python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未连接真实后端环境复测；本轮覆盖 Vite dev mock 浏览器链路。
+  - Next step: N/A
+
 ### USER-CN-QUERY-VIEW-IMPROVEMENT-20260526: SQL查询分析页面体验优化与DBeaver三态状态反馈
 
 - Status: done

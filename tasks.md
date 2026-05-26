@@ -16,16 +16,7 @@ _No tasks._
 
 ## In Progress
 
-### USER-CN-SQL-QUERY-TENANT-SYNC-20260526: SQL 查询页租户与 AUTO 数据源同步修复
-
-- Status: in_progress
-- Priority: 1
-- Depends on: N/A
-- Scope: 修复 SQL 查询分析页使用当前 tenantStore 租户加载 datasource，并在 AUTO 引擎切换时恢复可用 datasource；补充前端 smoke 覆盖。
-- Validation:
-  - `python3 scripts/foreman.py validate USER-CN-SQL-QUERY-TENANT-SYNC-20260526`
-- Progress log:
-  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+_No tasks._
 
 
 ## In Review

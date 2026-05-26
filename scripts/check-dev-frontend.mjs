@@ -129,6 +129,13 @@ const expectTextInLocator = async (locator, expectedText) => {
   throw new Error(`Expected locator to include "${expectedText}"`)
 }
 
+const selectOptionByTestId = async (page, testId, optionName) => {
+  const select = page.getByTestId(testId)
+  await select.waitFor({ timeout: defaultTimeoutMs })
+  await select.locator('.el-select__wrapper').click()
+  await page.getByRole('option', { name: optionName, exact: true }).click()
+}
+
 const assertSqlCompareDualPane = async compareLocator => {
   const originalPane = compareLocator.getByTestId('sql-compare-pane-original')
   const recommendedPane = compareLocator.getByTestId('sql-compare-pane-recommended')
@@ -259,6 +266,9 @@ const runBrowserSmoke = async baseUrl => {
   const sqlHistoryPageRequests = []
   const recommendationPageRequests = []
   let parseHistoryPageCalls = 0
+  const querySmokeTenantId = 'tenant-b'
+  const queryDatasourceTenantIds = []
+  const queryExecutionPayloads = []
 
   page.on('pageerror', error => {
     pageErrors.push(error.message)
@@ -936,23 +946,40 @@ const runBrowserSmoke = async baseUrl => {
     }
 
     if (pathname === '/api/governance/datasources') {
-      const protectedHeaders = request.headers()
-      const requestPrefix = protectedHeaders['x-sqlforge-dev-request-prefix']
       const systemContextPrefixes = [
         'frontend-parse-record-datasource-options',
         'frontend-sql-history-datasource-options'
       ]
-      assertDevHeaders(request, systemContextPrefixes.includes(requestPrefix) ? 'system' : 'tenant-a', [
+      const datasourceTenantId = requestUrl.searchParams.get('tenantId') || ''
+      const expectedTenantId =
+        systemContextPrefixes.includes(requestPrefix)
+          ? 'system'
+          : requestPrefix === 'frontend-query-datasource-inventory'
+            ? datasourceTenantId
+            : 'tenant-a'
+      assertDevHeaders(request, expectedTenantId, [
         'frontend-rewrite-validation-governance-datasources',
         'frontend-query-datasource-inventory',
         'frontend-parse-workbench-governance-datasources',
         'frontend-parse-record-datasource-options',
         'frontend-sql-history-datasource-options'
       ])
-      await fulfillJson(route, [
-        { datasourceCode: 'hetu_main', datasourceName: 'Hetu main', engineType: 'HETU' },
-        { datasourceCode: 'hive_archive', datasourceName: 'Hive archive', engineType: 'HIVE' }
-      ])
+      if (requestPrefix === 'frontend-query-datasource-inventory') {
+        queryDatasourceTenantIds.push(datasourceTenantId)
+      }
+      await fulfillJson(
+        route,
+        datasourceTenantId === querySmokeTenantId
+          ? [
+              { datasourceCode: 'trino_branch', datasourceName: 'Trino branch', engineType: 'TRINO' },
+              { datasourceCode: 'hetu_branch', datasourceName: 'Hetu branch', engineType: 'HETU' },
+              { datasourceCode: 'hive_archive_b', datasourceName: 'Hive archive B', engineType: 'HIVE' }
+            ]
+          : [
+              { datasourceCode: 'hetu_main', datasourceName: 'Hetu main', engineType: 'HETU' },
+              { datasourceCode: 'hive_archive', datasourceName: 'Hive archive', engineType: 'HIVE' }
+            ]
+      )
       return
     }
 
@@ -1055,9 +1082,16 @@ const runBrowserSmoke = async baseUrl => {
     }
 
     if (pathname === '/api/query-execution/queries/execute') {
-      assertDevHeaders(request, 'tenant-a', ['frontend-query'])
       queryExecuteCalls += 1
       const payload = parseJsonBody(request)
+      queryExecutionPayloads.push(payload)
+      assertDevHeaders(request, payload.tenantId, ['frontend-query'])
+      assert(payload.tenantId === querySmokeTenantId, `Query execution tenant mismatch: ${payload.tenantId}`)
+      assert(payload.datasourceType === 'AUTO', `Query execution must preserve AUTO datasourceType, got ${payload.datasourceType}`)
+      assert(
+        payload.datasourceCode === 'trino_branch',
+        `Query execution must restore first AUTO datasource, got ${payload.datasourceCode}`
+      )
       const isRecoveryFlow = Boolean(payload.queryContext?.timeoutMs)
       await fulfillJson(
         route,
@@ -1114,7 +1148,7 @@ const runBrowserSmoke = async baseUrl => {
     }
 
     if (pathname === '/api/governance/admin/messages/stats') {
-      assertDevHeaders(request, 'tenant-a', [
+      assertDevHeaders(request, querySmokeTenantId, [
         'frontend-query-governance-stats-before',
         'frontend-query-governance-stats-after'
       ])
@@ -1249,6 +1283,26 @@ const runBrowserSmoke = async baseUrl => {
 
     await page.goto(`${baseUrl}${ROUTE_PATHS.sqlQuery}`, { waitUntil: 'domcontentloaded' })
     await page.getByTestId('query-flow-page').waitFor({ timeout: defaultTimeoutMs })
+    const switchedTenantDatasourceResponse = page.waitForResponse(response => {
+      if (!response.url().includes('/api/governance/datasources')) {
+        return false
+      }
+      const responseUrl = new URL(response.url())
+      return responseUrl.searchParams.get('tenantId') === querySmokeTenantId
+    })
+    await selectOptionByTestId(page, 'workspace-tenant-select', 'Tenant B (Development)')
+    await switchedTenantDatasourceResponse
+    await expectTextInLocator(page.getByTestId('tenant-engine-switcher'), 'Tenant B')
+    await expectTextInLocator(page.getByTestId('query-flow-engine-select'), 'AUTO')
+    await expectTextInLocator(page.getByTestId('query-flow-datasource-select'), 'trino_branch')
+
+    await selectOptionByTestId(page, 'query-flow-engine-select', 'HETU')
+    await expectTextInLocator(page.getByTestId('query-flow-engine-select'), 'HETU')
+    await expectTextInLocator(page.getByTestId('query-flow-datasource-select'), 'hetu_branch')
+    await selectOptionByTestId(page, 'query-flow-engine-select', 'AUTO')
+    await expectTextInLocator(page.getByTestId('query-flow-engine-select'), 'AUTO')
+    await expectTextInLocator(page.getByTestId('query-flow-datasource-select'), 'trino_branch')
+    assert(await page.getByTestId('query-flow-submit').isEnabled(), 'AUTO must restore datasourceCode and enable query submit.')
 
     await page.getByTestId('query-flow-submit').click()
     await expectTextInLocator(page.locator('.result-rail'), 'SUCCESS')
@@ -1323,6 +1377,22 @@ const runBrowserSmoke = async baseUrl => {
     await page.getByTestId('parse-record-page').waitFor({ timeout: defaultTimeoutMs })
 
     assert(queryExecuteCalls === 2, `Expected 2 query execution calls, got ${queryExecuteCalls}`)
+    assert(
+      queryDatasourceTenantIds.includes(querySmokeTenantId),
+      `Expected query datasource inventory for ${querySmokeTenantId}, got ${JSON.stringify(queryDatasourceTenantIds)}`
+    )
+    assert(
+      queryDatasourceTenantIds[queryDatasourceTenantIds.length - 1] === querySmokeTenantId,
+      `Expected latest query datasource inventory to use ${querySmokeTenantId}, got ${JSON.stringify(queryDatasourceTenantIds)}`
+    )
+    assert(
+      queryExecutionPayloads.every(payload =>
+        payload.tenantId === querySmokeTenantId &&
+        payload.datasourceType === 'AUTO' &&
+        payload.datasourceCode === 'trino_branch'
+      ),
+      `Unexpected query execution payloads: ${JSON.stringify(queryExecutionPayloads)}`
+    )
     assert(governanceStatsCalls === 2, `Expected 2 governance stats calls, got ${governanceStatsCalls}`)
     assert(sqlHistoryPageCalls >= 1, `Expected SQL history page calls, got ${sqlHistoryPageCalls}`)
     assert(
