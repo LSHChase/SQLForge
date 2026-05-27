@@ -8,21 +8,21 @@ User request on 2026-05-21.
 
 继续实现下一阶段内容，提升改写，不懂页面，补充细节，实现功能。内容如下：
 
-四、与 Calcite/JSqlParser 的集成策略
+四、与 Calcite / historical legacy parser 的集成策略
 
 ### 4.1 双解析栈分工
 
 | 解析器 | 职责 | 原因 |
 |:---|:---|:---|
 | Calcite | L1->L3 解析、L4 关系代数构建、优化器集成 | 强大的 SqlNode -> RelNode 转换、内置 HepPlanner/VolcanoPlanner |
-| JSqlParser | L1 语法细节提取、方言特定模式识别、原始 SQL 文本映射 | 对 MySQL/Oracle 方言支持更灵活，便于保留原始注释/格式 |
+| historical legacy parser | L1 语法细节提取、方言特定模式识别、原始 SQL 文本映射 | 对 MySQL/Oracle 方言支持更灵活，便于保留原始注释/格式 |
 
 ### 4.2 协同工作流
 
 ```plain
 输入 SQL
   │
-  ├─→ JSqlParser ──→ 原始 AST (保留注释、格式、方言特征)
+  ├─→ historical legacy parser ──→ 原始 AST (保留注释、格式、方言特征)
   │       │
   │       └─→ 模式扫描: 识别 BI 工具特定生成模式（如帆软的 "SubXX_分组和汇总" 别名）
   │           输出: 元数据标签 {tool: FANRUAN, version_hint, nested_depth}
@@ -33,7 +33,7 @@ User request on 2026-05-21.
           │
           └─→ 输出: RelNode Tree + 代价估算
 
-  融合层: 将 JSqlParser 的元数据标签注入 Calcite RelNode 作为「改写约束」
+  融合层: 将 historical legacy parser 的元数据标签注入 Calcite RelNode 作为「改写约束」
           例如: 标记 "此子查询为 BI 工具生成的重复块，允许激进合并"
 ```
 

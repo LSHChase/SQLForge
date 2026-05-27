@@ -92,7 +92,7 @@ public class RewriteAlgorithmConformanceAnalyzer {
         return stage(
             "ALG-01",
             "PARSE_DUAL_STACK",
-            "Calcite SqlNode + JSqlParser AST -> 双栈融合",
+            "Calcite SqlNode -> 统一解析画像与规划约束",
             parserReport == null ? "MISSING" : "IMPLEMENTED_WITH_RELNODE_SURROGATE",
             gaps.isEmpty() ? "FULL" : "STATIC_SURROGATE",
             evidence("PARSER_STACK_FUSION", attributes),

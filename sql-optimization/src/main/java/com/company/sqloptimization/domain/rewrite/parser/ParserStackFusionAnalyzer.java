@@ -53,13 +53,13 @@ public class ParserStackFusionAnalyzer {
         );
         LinkedHashMap<String, Object> attributes = baseAttributes();
         attributes.put("inputParserEngine", ParserFusionCollections.text(parserEngine));
-        attributes.put("jsqlParserMetadataTagCount", Integer.valueOf(metadataTags.size()));
+        attributes.put("calciteMetadataTagCount", Integer.valueOf(metadataTags.size()));
         attributes.put("rewriteConstraintCount", Integer.valueOf(rewriteConstraints.size()));
         attributes.put("hetuPlanHintCount", Integer.valueOf(hetuPlanHints.size()));
         attributes.put("calcitePlannerStageCount", Integer.valueOf(plannerStages.size()));
         attributes.put("fusionConstraintInjection", rewriteConstraints.isEmpty()
             ? "NO_METADATA_CONSTRAINT"
-            : "JSQLPARSER_METADATA_INJECTED_AS_REWRITE_CONSTRAINT");
+            : "CALCITE_METADATA_INJECTED_AS_REWRITE_CONSTRAINT");
         attributes.put("relNodeBoundary", "STATIC_L4_RELATIONAL_ALGEBRA_SURROGATE_NOT_REAL_CALCITE_RELNODE");
         return new ParserStackFusionReport(
             ParserStackFusionReport.SCHEMA_VERSION,
@@ -82,9 +82,9 @@ public class ParserStackFusionAnalyzer {
             "SqlNode to RelNode 转换能力、HepPlanner/VolcanoPlanner 集成能力强；当前 repo-closed 路径使用 Calcite SqlNode 和 L4 surrogate，不执行真实 planner。"
         ));
         roles.add(role(
-            "JSQLPARSER",
-            Arrays.asList("L1_SYNTAX_DETAIL_EXTRACTION", "DIALECT_SPECIFIC_PATTERN_SCAN", "RAW_SQL_TEXT_MAPPING"),
-            "MySQL/Oracle 方言和原始文本形态更灵活；用于保留别名、函数、谓词和 BI 工具生成模式标签。"
+            "APACHE_CALCITE",
+            Arrays.asList("SQLNODE_PROFILE_EXTRACTION", "DIALECT_METADATA_TAGGING", "STATIC_REWRITE_CONSTRAINTS"),
+            "Apache Calcite 是当前唯一解析入口；画像、BI 元数据标签和 L4 改写约束均由 Calcite SqlNode 派生。"
         ));
         return roles;
     }
@@ -122,7 +122,7 @@ public class ParserStackFusionAnalyzer {
         int nestedDepth = nestedDepth(advancedProfile);
         for (String match : matches) {
             LinkedHashMap<String, Object> attributes = new LinkedHashMap<String, Object>();
-            attributes.put("metadataSource", "JSQLPARSER_RAW_TEXT_AND_ADVANCED_PROFILE");
+            attributes.put("metadataSource", "CALCITE_SQLNODE_AND_ADVANCED_PROFILE");
             attributes.put("aliasPattern", "SubXX_分组和汇总");
             attributes.put("constraintCandidate", "BI_GENERATED_REPEATED_BLOCK");
             tags.add(new ParserMetadataTag(
@@ -172,7 +172,7 @@ public class ParserStackFusionAnalyzer {
                 "BI_GENERATED_REPEATED_BLOCK_AGGRESSIVE_MERGE_ALLOWED",
                 "ALLOW_AGGRESSIVE_CSE_WITH_SEMANTIC_GATE",
                 duplicateBlockIds,
-                "JSqlParser 识别出 BI 工具生成的重复块别名，可注入 Calcite L4 规划作为 CSE 合并约束。",
+                "Calcite 结构画像识别出 BI 工具生成的重复块别名，可注入 L4 规划作为 CSE 合并约束。",
                 attributes
             ));
             sequence++;
@@ -503,13 +503,13 @@ public class ParserStackFusionAnalyzer {
 
     private LinkedHashMap<String, Object> baseAttributes() {
         LinkedHashMap<String, Object> attributes = new LinkedHashMap<String, Object>();
-        attributes.put("source", "DUAL_PARSER_STACK_AND_REWRITE_CORE");
+        attributes.put("source", "CALCITE_PARSER_AND_REWRITE_CORE");
         attributes.put("runtimeBoundary", "NO_SQL_EXECUTION");
         attributes.put("pageImpact", "NO_FRONTEND_PAGE_CHANGE");
         attributes.put("autoApplyAllowed", Boolean.FALSE);
-        attributes.put("workflow", "JSQLPARSER_METADATA_PLUS_CALCITE_L4_SURROGATE");
+        attributes.put("workflow", "CALCITE_METADATA_PLUS_L4_SURROGATE");
         attributes.put("calciteRole", "L1_TO_L3_L4_OPTIMIZER_INTEGRATION");
-        attributes.put("jsqlParserRole", "DIALECT_PATTERN_AND_RAW_TEXT_MAPPING");
+        attributes.put("metadataRole", "DIALECT_PATTERN_AND_RAW_TEXT_MAPPING");
         attributes.put("hetuAdapterStatus", "STATIC_PLAN_HINTS_ONLY");
         return attributes;
     }
@@ -523,7 +523,7 @@ public class ParserStackFusionAnalyzer {
         if (!hetuPlanHints.isEmpty()) {
             return "HETU_HINTS_READY";
         }
-        return "DUAL_STACK_REPORT_READY";
+        return "CALCITE_REPORT_READY";
     }
 
     private String sourceSchemaVersion(QueryBlockDag queryBlockDag) {

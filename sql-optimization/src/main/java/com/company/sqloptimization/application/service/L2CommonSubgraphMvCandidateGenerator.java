@@ -13,18 +13,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.AllTableColumns;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SelectItem;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.springframework.util.StringUtils;
 
 final class L2CommonSubgraphMvCandidateGenerator {
@@ -324,32 +325,24 @@ final class L2CommonSubgraphMvCandidateGenerator {
         List<Map<String, Object>> blockingReasons = new ArrayList<Map<String, Object>>();
         LinkedHashSet<String> columns = new LinkedHashSet<String>();
         try {
-            Select select = parseSelect(subgraphSql);
-            PlainSelect plainSelect = plainSelect(select);
-            if (plainSelect == null || plainSelect.getSelectItems() == null) {
-                    return outputColumnsByText(subgraphSql);
+            SqlSelect select = parseSelect(subgraphSql);
+            SqlNodeList selectList = select == null ? null : select.getSelectList();
+            if (selectList == null) {
+                return outputColumnsByText(subgraphSql);
             }
-            for (SelectItem item : plainSelect.getSelectItems()) {
-                if (item instanceof AllColumns || item instanceof AllTableColumns) {
+            for (SqlNode item : selectList.getList()) {
+                if (isStar(item)) {
                     blockingReasons.add(reason(
                         "EXPLICIT_PROJECTION_REQUIRED",
                         "公共子图包含 SELECT *，需要先展开字段后才能生成可审查物化视图。"
                     ));
                     continue;
                 }
-                if (!(item instanceof SelectExpressionItem)) {
-                    blockingReasons.add(reason(
-                        "SUBGRAPH_OUTPUT_COLUMNS_UNRESOLVED",
-                        "公共子图存在无法解析的输出项，不能证明 rewrite 覆盖。"
-                    ));
-                    continue;
-                }
-                SelectExpressionItem expressionItem = (SelectExpressionItem) item;
-                String output = expressionItem.getAlias() == null ? "" : expressionItem.getAlias().getName();
+                String output = aliasName(item);
                 if (!StringUtils.hasText(output)) {
-                    Expression expression = expressionItem.getExpression();
-                    if (expression instanceof Column) {
-                        output = ((Column) expression).getColumnName();
+                    SqlNode expression = stripAlias(item);
+                    if (expression instanceof SqlIdentifier) {
+                        output = ((SqlIdentifier) expression).getSimple();
                     }
                 }
                 if (!StringUtils.hasText(output)) {
@@ -361,7 +354,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 }
                 columns.add(cleanIdentifier(output));
             }
-        } catch (JSQLParserException ex) {
+        } catch (RuntimeException ex) {
             return outputColumnsByText(subgraphSql);
         }
         LinkedHashSet<String> normalized = new LinkedHashSet<String>();
@@ -410,19 +403,61 @@ final class L2CommonSubgraphMvCandidateGenerator {
         return new OutputColumns(new ArrayList<String>(columns), normalized, Collections.<Map<String, Object>>emptyList());
     }
 
-    private static Select parseSelect(String sql) throws JSQLParserException {
-        Statement statement = CCJSqlParserUtil.parse(trimTrailingSemicolon(sql));
-        if (!(statement instanceof Select)) {
-            throw new JSQLParserException("not select");
+    private static SqlSelect parseSelect(String sql) {
+        SqlNode statement;
+        try {
+            SqlParser.Config parserConfig = SqlParser.config()
+                .withConformance(SqlConformanceEnum.LENIENT)
+                .withUnquotedCasing(Casing.UNCHANGED);
+            statement = SqlParser.create(trimTrailingSemicolon(sql), parserConfig).parseStmt();
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("parse failed", ex);
         }
-        return (Select) statement;
+        SqlSelect select = unwrapSelect(statement);
+        if (select == null) {
+            throw new IllegalArgumentException("not select");
+        }
+        return select;
     }
 
-    private static PlainSelect plainSelect(Select select) {
-        if (select == null || !(select.getSelectBody() instanceof PlainSelect)) {
-            return null;
+    private static SqlSelect unwrapSelect(SqlNode node) {
+        if (node instanceof SqlSelect) {
+            return (SqlSelect) node;
         }
-        return (PlainSelect) select.getSelectBody();
+        if (node instanceof SqlOrderBy) {
+            return unwrapSelect(((SqlOrderBy) node).query);
+        }
+        if (node instanceof SqlWith) {
+            return unwrapSelect(((SqlWith) node).body);
+        }
+        return null;
+    }
+
+    private static boolean isStar(SqlNode item) {
+        if (item instanceof SqlIdentifier) {
+            return ((SqlIdentifier) item).isStar();
+        }
+        return item != null && "*".equals(item.toString().trim());
+    }
+
+    private static String aliasName(SqlNode item) {
+        if (item instanceof SqlBasicCall && item.getKind() == SqlKind.AS) {
+            List<SqlNode> operands = ((SqlBasicCall) item).getOperandList();
+            if (operands.size() >= 2) {
+                return operands.get(1).toString();
+            }
+        }
+        return "";
+    }
+
+    private static SqlNode stripAlias(SqlNode item) {
+        if (item instanceof SqlBasicCall && item.getKind() == SqlKind.AS) {
+            List<SqlNode> operands = ((SqlBasicCall) item).getOperandList();
+            if (!operands.isEmpty()) {
+                return operands.get(0);
+            }
+        }
+        return item;
     }
 
     private static Set<String> requiredColumns(String sourceSql, SubgraphCandidate candidate) {

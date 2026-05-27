@@ -550,7 +550,7 @@ SELECT ...
 
 Parser 边界：
 
-- 默认保留现有 JSQLParser 路径。
+- 默认使用 Apache Calcite 路径。
 - 新增 Trino parser adapter，必须通过统一 AST profile 输出结构信号，不允许业务层直接依赖单一 parser API。
 - Parser adapter 失败必须降级为结构解析问题，不得阻断页面展示或改变 access parse 独立失败语义。
 - NL2SQL 本阶段只预留消费字段，不实现自然语言生成 SQL。

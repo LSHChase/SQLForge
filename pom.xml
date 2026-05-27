@@ -69,8 +69,6 @@
         <lombok.version>1.18.32</lombok.version>
         <!-- 配置项 mapstruct.version：说明该配置的用途、默认值或运行影响。 -->
         <mapstruct.version>1.5.5.Final</mapstruct.version>
-        <!-- 配置项 pagehelper.version：说明该配置的用途、默认值或运行影响。 -->
-        <pagehelper.version>1.4.7</pagehelper.version>
         <!-- 配置项 xxl.job.version：说明该配置的用途、默认值或运行影响。 -->
         <xxl.job.version>2.4.1</xxl.job.version>
         <!-- 配置项 maven.compiler.plugin.version：说明该配置的用途、默认值或运行影响。 -->
@@ -214,16 +212,6 @@
                 <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
                 <version>${mapstruct.version}</version>
             </dependency>
-            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
-            <dependency>
-                <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
-                <groupId>com.github.pagehelper</groupId>
-                <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
-                <artifactId>pagehelper-spring-boot-starter</artifactId>
-                <!-- 配置项 version：说明该配置的用途、默认值或运行影响。 -->
-                <version>${pagehelper.version}</version>
-            </dependency>
-            <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
             <dependency>
                 <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
                 <groupId>com.xuxueli</groupId>

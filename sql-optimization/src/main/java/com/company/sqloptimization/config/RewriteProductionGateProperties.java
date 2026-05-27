@@ -8,7 +8,7 @@ public class RewriteProductionGateProperties {
     private boolean developmentDirectActivationEnabled = false;
     private final Adapter calciteRelNode = new Adapter();
     private final Adapter relToSql = new Adapter();
-    private final Adapter jsqlParserMetadata = new Adapter();
+    private final Adapter calciteMetadata = new Adapter();
     private final SmtSolver smtZ3 = new SmtSolver();
     private final Adapter hetuExplainCost = new Adapter();
     private final StatisticsCost statisticsCost = new StatisticsCost();
@@ -29,8 +29,8 @@ public class RewriteProductionGateProperties {
         return relToSql;
     }
 
-    public Adapter getJsqlParserMetadata() {
-        return jsqlParserMetadata;
+    public Adapter getCalciteMetadata() {
+        return calciteMetadata;
     }
 
     public SmtSolver getSmtZ3() {

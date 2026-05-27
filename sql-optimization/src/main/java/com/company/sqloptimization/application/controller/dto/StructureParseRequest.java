@@ -17,7 +17,7 @@ public class StructureParseRequest {
     private DataSourceTypeEnum datasourceType;
     private Map<String, Object> commentContext;
     private Boolean historyWriteEnabled;
-    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 APACHE_CALCITE 或 APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
 
     public String getSqlText() {

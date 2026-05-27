@@ -11,7 +11,7 @@
 2. 通过 Main Foreman 标准流程物化并实例化 `D-TASK-073`。
 3. 非 trivial 实现开始前执行 `python3 scripts/foreman.py preflight`，并在任务上下文内读取结构解析、parser ADR、前端解析工作台和验证规则。
 4. 后端实现先固化查询意图契约：SQL 指纹、分类标签、多维特征、风险清单、启发式资源估算与置信度。
-5. 抽象 parser adapter：保留现有 JSQLParser 作为默认实现，新增 Trino adapter 并通过统一 profile 屏蔽 parser 差异；失败统一降级为结构解析问题，不阻断响应。
+5. 抽象 parser adapter：保留历史 legacy parser 作为默认实现，新增 Trino adapter 并通过统一 profile 屏蔽 parser 差异；失败统一降级为结构解析问题，不阻断响应。
 6. 基于统一 profile 实现扫描模式、Join 类型、计算密度、资源类型、SLA 等级与查询分类标签提取。
 7. 将结构化风险与资源估算映射回现有 `riskTags/issues/priority` 兼容模型，并扩展结构解析响应 VO。
 8. 前端解析工作台展示 SQL 指纹、意图标签、特征维度、风险清单和资源估算；NL2SQL 仅作为后续能力预留，不实现自然语言生成 SQL。

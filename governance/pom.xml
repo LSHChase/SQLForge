@@ -57,14 +57,6 @@
             <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
             <artifactId>mybatis-spring-boot-starter</artifactId>
         </dependency>
-        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
-        <dependency>
-            <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
-            <groupId>com.github.pagehelper</groupId>
-            <!-- 配置项 artifactId：说明该配置的用途、默认值或运行影响。 -->
-            <artifactId>pagehelper-spring-boot-starter</artifactId>
-        </dependency>
-        <!-- 配置项 dependency：说明该配置的用途、默认值或运行影响。 -->
         <dependency>
             <!-- 配置项 groupId：说明该配置的用途、默认值或运行影响。 -->
             <groupId>io.hetu.core</groupId>

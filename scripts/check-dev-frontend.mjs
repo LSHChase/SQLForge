@@ -416,7 +416,7 @@ const runBrowserSmoke = async baseUrl => {
               name: 'astProfile',
               content: JSON.stringify({
                 statementType: 'SELECT',
-                parserEngine: 'JSQLPARSER',
+                parserEngine: 'APACHE_CALCITE',
                 tables: ['orders'],
                 projectionCount: 1,
                 predicateCount: 1,
@@ -553,7 +553,7 @@ const runBrowserSmoke = async baseUrl => {
         important: false,
         urgent: false,
         featureSummary: {
-          parserEngine: 'JSQLPARSER',
+          parserEngine: 'APACHE_CALCITE',
           scanMode: 'TABLE_SCAN',
           tableCount: 1,
           duplicateOrderByKeyCount: 1,

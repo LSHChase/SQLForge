@@ -67,7 +67,7 @@ class ReportBatchApplicationServiceTest {
         ReportBatchStatusResponse imported = service.importBatch(request);
         assertEquals("READY", imported.getStatus());
         assertEquals(Integer.valueOf(2), imported.getTotalReports());
-        assertEquals("JSQLPARSER", imported.getParserMode());
+        assertEquals("APACHE_CALCITE", imported.getParserMode());
 
         ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
         assertEquals("COMPLETED", resolved.getStatus());

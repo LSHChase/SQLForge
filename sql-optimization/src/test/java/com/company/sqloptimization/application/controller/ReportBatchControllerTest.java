@@ -49,7 +49,7 @@ class ReportBatchControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("READY"))
             .andExpect(jsonPath("$.fileType").value("TXT"))
-            .andExpect(jsonPath("$.parserMode").value("JSQLPARSER"))
+            .andExpect(jsonPath("$.parserMode").value("APACHE_CALCITE"))
             .andExpect(jsonPath("$.totalSqls").value(2))
             .andExpect(jsonPath("$.reportItems.length()").value(2))
             .andReturn();

@@ -204,9 +204,6 @@ public class RewriteCoreIrAssembler {
         if ("TRINO".equals(engine)) {
             return "TRINO_NODE";
         }
-        if ("JSQLPARSER".equals(engine)) {
-            return "JSQLPARSER_EXPRESSION";
-        }
         return "UNKNOWN_DIALECT_NODE";
     }
 

@@ -266,9 +266,10 @@ public class StructureParseApplicationService {
                                                     boolean sqlTooLong) {
         HeuristicFallbackProfile heuristicProfile = analyzeHeuristicFallback(sqlText, sqlTooLong);
         SqlOptimizationPipelineService.SqlFailurePosition position = ex == null ? null : ex.getFailurePosition();
+        String parserFailureToken = diagnosticFailureToken(position);
         String diagnosticFailureToken = sqlTooLong
             ? RISK_SQL_TOO_LONG
-            : diagnosticFailureToken(position);
+            : (StringUtils.hasText(parserFailureToken) ? parserFailureToken : RISK_SQL_SYNTAX_INVALID);
         String diagnosticFailureSnippet = sqlTooLong
             ? snippetAround(sqlText, 0, FAILURE_SNIPPET_TEXT_LIMIT)
             : diagnosticFailureSnippet(position);
@@ -308,18 +309,20 @@ public class StructureParseApplicationService {
         result.setComplexityLevel(resolveHeuristicComplexity(heuristicProfile));
         result.setSqlType(heuristicProfile.getSqlType());
         result.setFailureReason(failureReason);
+        if (StringUtils.hasText(failureToken)) {
+            result.setFailureToken(failureToken);
+        }
+        if (StringUtils.hasText(failureSnippet)) {
+            result.setFailureSnippet(failureSnippet);
+        }
         if (position != null) {
             result.setFailureLine(position.getLine());
             result.setFailureColumn(position.getColumn());
             result.setFailureOffset(position.getOffset());
-            result.setFailureToken(failureToken);
-            result.setFailureSnippet(failureSnippet);
         } else if (sqlTooLong) {
             result.setFailureLine(Integer.valueOf(1));
             result.setFailureColumn(Integer.valueOf(1));
             result.setFailureOffset(Integer.valueOf(0));
-            result.setFailureToken(failureToken);
-            result.setFailureSnippet(failureSnippet);
         }
         result.setQueryDateSummary(buildHeuristicQueryDateSummary(heuristicProfile));
         List<StructureParseLogicalObjectHit> heuristicHits = buildHeuristicLogicalObjectHits(heuristicProfile);

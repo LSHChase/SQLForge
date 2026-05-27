@@ -8,7 +8,7 @@
 输入: 病态 SQL（BI 工具生成 / 手写复杂查询）
   │
   ▼
-[解析] Calcite SqlNode + JSqlParser AST → 双栈融合
+[解析] Calcite SqlNode + historical legacy parser AST → 双栈融合
   │
   ▼
 [分解] 查询块 DAG + 结构哈希 → 识别重复/冗余模式

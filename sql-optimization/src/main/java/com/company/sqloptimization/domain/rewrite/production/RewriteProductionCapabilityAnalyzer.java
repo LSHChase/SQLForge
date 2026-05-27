@@ -11,8 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.Statement;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
@@ -46,7 +45,7 @@ public class RewriteProductionCapabilityAnalyzer {
         List<RewriteProductionAdapterStatus> adapters = new ArrayList<RewriteProductionAdapterStatus>();
         adapters.add(assessCalciteRelNode(normalizedSql));
         adapters.add(assessRelToSql(normalizedSql));
-        adapters.add(assessJsqlParserMetadata(normalizedSql));
+        adapters.add(assessCalciteMetadata(normalizedSql));
         adapters.add(assessSmtZ3());
         adapters.add(assessHetuExplain(normalizedSql, tenantId, datasourceCode, datasourceType));
         adapters.add(assessStatisticsCost());
@@ -147,35 +146,35 @@ public class RewriteProductionCapabilityAnalyzer {
         }
     }
 
-    private RewriteProductionAdapterStatus assessJsqlParserMetadata(String sqlText) {
-        if (!properties.getJsqlParserMetadata().isEnabled()) {
+    private RewriteProductionAdapterStatus assessCalciteMetadata(String sqlText) {
+        if (!properties.getCalciteMetadata().isEnabled()) {
             return RewriteProductionAdapterStatus.disabled(
-                "JSQLPARSER_METADATA_INJECTION",
-                "JSQLPARSER_TAG_INJECTION_REPORT_NOT_REQUESTED"
+                "CALCITE_METADATA_INJECTION",
+                "CALCITE_METADATA_REPORT_NOT_REQUESTED"
             );
         }
         try {
-            Statement statement = CCJSqlParserUtil.parse(sqlText);
+            SqlNode statement = parseCalciteSqlNode(sqlText);
             LinkedHashMap<String, Object> attributes = new LinkedHashMap<String, Object>();
             attributes.put("statementClass", statement.getClass().getName());
             attributes.put("metadataInjectionTarget", "CALCITE_L4_REWRITE_CONSTRAINTS");
             return new RewriteProductionAdapterStatus(
-                "JSQLPARSER_METADATA_INJECTION",
+                "CALCITE_METADATA_INJECTION",
                 true,
-                "REAL_JSQLPARSER_METADATA_AVAILABLE",
-                "REAL_JSQLPARSER_AST",
+                "REAL_CALCITE_METADATA_AVAILABLE",
+                "REAL_CALCITE_SQLNODE",
                 "METADATA_TAGS_STILL_REQUIRE_REWRITE_VALIDATION",
-                "JSQLPARSER_PARSE_AND_TAG",
+                "CALCITE_PARSE_AND_TAG",
                 "",
-                Arrays.asList("parser=JSqlParser", "tagInjection=enabled"),
+                Arrays.asList("parser=ApacheCalcite", "tagInjection=enabled"),
                 attributes
             );
         } catch (Exception ex) {
             return failedAdapter(
-                "JSQLPARSER_METADATA_INJECTION",
-                "JSQLPARSER_METADATA_PARSE_FAILED",
-                "JSQLPARSER_TAGS_NOT_AVAILABLE_FOR_THIS_SQL",
-                "JSQLPARSER_PARSE_AND_TAG",
+                "CALCITE_METADATA_INJECTION",
+                "CALCITE_METADATA_PARSE_FAILED",
+                "CALCITE_TAGS_NOT_AVAILABLE_FOR_THIS_SQL",
+                "CALCITE_PARSE_AND_TAG",
                 ex
             );
         }
@@ -305,7 +304,9 @@ public class RewriteProductionCapabilityAnalyzer {
         Planner planner = null;
         try {
             SqlParser.Config parserConfig =
-                SqlParser.config().withConformance(SqlConformanceEnum.LENIENT);
+                SqlParser.config()
+                    .withConformance(SqlConformanceEnum.LENIENT)
+                    .withUnquotedCasing(Casing.UNCHANGED);
             FrameworkConfig frameworkConfig = Frameworks.newConfigBuilder()
                 .parserConfig(parserConfig)
                 .defaultSchema(Frameworks.createRootSchema(true))
@@ -325,6 +326,14 @@ public class RewriteProductionCapabilityAnalyzer {
                 planner.close();
             }
         }
+    }
+
+    private SqlNode parseCalciteSqlNode(String sqlText) throws Exception {
+        SqlParser.Config parserConfig =
+            SqlParser.config()
+                .withConformance(SqlConformanceEnum.LENIENT)
+                .withUnquotedCasing(Casing.UNCHANGED);
+        return SqlParser.create(sqlText, parserConfig).parseStmt();
     }
 
     private RewriteProductionAdapterStatus failedAdapter(String adapterName,

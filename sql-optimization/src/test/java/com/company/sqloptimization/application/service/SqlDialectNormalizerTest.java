@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.Statement;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.junit.jupiter.api.Test;
 
 class SqlDialectNormalizerTest {
@@ -34,8 +38,7 @@ class SqlDialectNormalizerTest {
         assertFalse(normalized.contains("JOIN (\n  ("));
         assertFalse(normalized.trim().endsWith(";"));
         assertTrue(normalized.contains("'(JOIN ((SELECT)) untouched)'"));
-        Statement statement = CCJSqlParserUtil.parse(normalized);
-        assertTrue(statement instanceof net.sf.jsqlparser.statement.select.Select);
+        assertTrue(isSelectLike(parseCalcite(normalized)));
     }
 
     @Test
@@ -56,8 +59,7 @@ class SqlDialectNormalizerTest {
         assertTrue(normalized.contains("'-- not a comment'"));
         assertTrue(normalized.contains("'FROM ((SELECT kept))'"));
         assertTrue(normalized.contains("/* YH_RPTID"));
-        Statement statement = CCJSqlParserUtil.parse(normalized);
-        assertTrue(statement instanceof net.sf.jsqlparser.statement.select.Select);
+        assertTrue(isSelectLike(parseCalcite(normalized)));
     }
 
     @Test
@@ -85,5 +87,17 @@ class SqlDialectNormalizerTest {
             }
         }
         return count;
+    }
+
+    private SqlNode parseCalcite(String sql) throws Exception {
+        SqlParser.Config parserConfig = SqlParser.config().withConformance(SqlConformanceEnum.LENIENT);
+        return SqlParser.create(sql, parserConfig).parseStmt();
+    }
+
+    private boolean isSelectLike(SqlNode node) {
+        if (node instanceof SqlSelect || node instanceof SqlWith) {
+            return true;
+        }
+        return node instanceof SqlOrderBy && isSelectLike(((SqlOrderBy) node).query);
     }
 }

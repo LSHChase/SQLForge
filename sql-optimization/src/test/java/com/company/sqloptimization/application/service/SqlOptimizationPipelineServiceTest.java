@@ -208,7 +208,7 @@ class SqlOptimizationPipelineServiceTest {
     @Test
     void shouldReportEnabledProductionCapabilityAdapterStatuses() {
         RewriteProductionGateProperties properties = new RewriteProductionGateProperties();
-        properties.getJsqlParserMetadata().setEnabled(true);
+        properties.getCalciteMetadata().setEnabled(true);
         properties.getHetuExplainCost().setEnabled(true);
         properties.getSmtZ3().setEnabled(true);
         SqlOptimizationPipelineService productionService =
@@ -228,8 +228,8 @@ class SqlOptimizationPipelineServiceTest {
         assertEquals("LIVE_ADAPTER_AVAILABLE_WITH_GATES", report.getCapabilityStatus());
         assertEquals(Integer.valueOf(3), report.toSummaryMap().get("enabledAdapterCount"));
         assertEquals(Integer.valueOf(2), report.toSummaryMap().get("liveAvailableAdapterCount"));
-        assertEquals("REAL_JSQLPARSER_METADATA_AVAILABLE",
-            adapter(report, "JSQLPARSER_METADATA_INJECTION").getStatus());
+        assertEquals("REAL_CALCITE_METADATA_AVAILABLE",
+            adapter(report, "CALCITE_METADATA_INJECTION").getStatus());
         assertEquals("REAL_HETU_EXPLAIN_AVAILABLE",
             adapter(report, "HETU_EXPLAIN_COST").getStatus());
         assertEquals("BLOCKED_SOLVER_COMMAND_MISSING",
@@ -486,7 +486,7 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(snapshot.containsLayer(RewriteIrLayer.L3_QUERY_BLOCK));
         assertTrue(snapshot.containsLayer(RewriteIrLayer.L4_RELATIONAL_ALGEBRA));
         assertTrue(snapshot.containsLayer(RewriteIrLayer.L5_BUSINESS_INTENT));
-        assertEquals("JSQLPARSER_EXPRESSION", snapshot.getAst().getDialectNodeKind());
+        assertEquals("CALCITE_SQL_NODE", snapshot.getAst().getDialectNodeKind());
         assertFalse(snapshot.getTableReferences().isEmpty());
         assertFalse(snapshot.getQueryBlocks().isEmpty());
         assertTrue(containsOperator(snapshot, RelationalOperator.TABLE_SCAN));
@@ -860,9 +860,9 @@ class SqlOptimizationPipelineServiceTest {
         assertEquals("NO_SQL_EXECUTION", report.getAttributes().get("runtimeBoundary"));
         assertEquals("NO_FRONTEND_PAGE_CHANGE", report.getAttributes().get("pageImpact"));
         assertEquals(Boolean.FALSE, report.getAttributes().get("autoApplyAllowed"));
-        assertEquals("JSQLPARSER_METADATA_PLUS_CALCITE_L4_SURROGATE", report.getAttributes().get("workflow"));
+        assertEquals("CALCITE_METADATA_PLUS_L4_SURROGATE", report.getAttributes().get("workflow"));
         assertTrue(containsParserRole(report, "CALCITE"));
-        assertTrue(containsParserRole(report, "JSQLPARSER"));
+        assertTrue(containsParserRole(report, "APACHE_CALCITE"));
         assertTrue(containsPlannerStage(report, "SQL_NODE"));
         assertTrue(containsPlannerStage(report, "RELNODE_TREE"));
         assertTrue(containsPlannerStage(report, "HEP_PLANNER"));
@@ -1083,7 +1083,7 @@ class SqlOptimizationPipelineServiceTest {
             DataSourceTypeEnum.HETU
         );
 
-        assertEquals("JSQLPARSER", profile.getParserEngine());
+        assertEquals("APACHE_CALCITE", profile.getParserEngine());
         assertEquals(1, profile.getTables().size());
         assertEquals("orders", profile.getTables().get(0));
         assertTrue(profile.getPredicateCount() >= 2);
@@ -1159,7 +1159,7 @@ class SqlOptimizationPipelineServiceTest {
             DataSourceTypeEnum.HETU
         );
 
-        assertEquals("JSQLPARSER", profile.getParserEngine());
+        assertEquals("APACHE_CALCITE", profile.getParserEngine());
         assertEquals(5, profile.getTables().size());
         assertTrue(profile.getSubqueryCount() >= 9);
         assertEquals(3, profile.getScalarSubqueryCount());
@@ -1347,7 +1347,7 @@ class SqlOptimizationPipelineServiceTest {
             profile
         );
 
-        assertEquals("JSQLPARSER", profile.getParserEngine());
+        assertEquals("APACHE_CALCITE", profile.getParserEngine());
         assertTrue(containsText(profile.getTables(), "BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), profile.getTables().toString());
         assertTrue(profile.getSubqueryCount() >= 20, "subqueryCount=" + profile.getSubqueryCount());
         assertTrue(profile.getNestedSubqueryDepth() >= 3, "nestedSubqueryDepth=" + profile.getNestedSubqueryDepth());
@@ -1650,7 +1650,7 @@ class SqlOptimizationPipelineServiceTest {
         OptimizationTaskSuggestion rewriteSuggestion = service.buildRewriteSuggestion(profile);
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
 
-        assertEquals("JSQLPARSER", profile.getParserEngine(), caseName);
+        assertEquals("APACHE_CALCITE", profile.getParserEngine(), caseName);
         assertTrue(containsText(profile.getTables(), "BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), caseName);
         assertTrue(profile.getSubqueryCount() >= 20, caseName + " subqueryCount=" + profile.getSubqueryCount());
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"), caseName);

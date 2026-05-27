@@ -49,7 +49,7 @@ const form = reactive({
   tenantId: initialTenantId,
   datasourceCode: initialDatasourceCode,
   bindingMode: 'POSITIONAL',
-  parserMode: 'JSQLPARSER',
+  parserMode: 'APACHE_CALCITE',
   connectionRequired: true,
   sqlText: "SELECT * FROM vw_sales_daily WHERE dt = '2026-04-01' AND dt = '2026-04-01' ORDER BY id",
   sqlTemplateText: '',
@@ -64,7 +64,7 @@ const parseBatchForm = reactive({
   fileType: 'CSV',
   templateVersion: 'v1',
   datasourceCode: initialDatasourceCode,
-  parserMode: 'JSQLPARSER',
+  parserMode: 'APACHE_CALCITE',
   structureParseOnly: false,
   directInputMode: 'SQL_LINES',
   rawContent:
@@ -83,7 +83,7 @@ const reportBatchForm = reactive({
   fileType: 'TXT',
   reportCodeField: 'report_code',
   datasourceCode: initialDatasourceCode,
-  parserMode: 'JSQLPARSER',
+  parserMode: 'APACHE_CALCITE',
   stage: 'PROD',
   priority: 'high',
   rawContent: buildReportImportRows({ datasourceCode: initialDatasourceCode })
@@ -149,9 +149,7 @@ const pageSummary = computed(() =>
 )
 const bindingModeOptions = ['POSITIONAL', 'NAMED']
 const parserModeOptions = [
-  { label: 'JSQLParser', value: 'JSQLPARSER' },
   { label: 'Apache Calcite', value: 'APACHE_CALCITE' },
-  { label: 'JSQLParser + Hetu EXPLAIN', value: 'JSQLPARSER_WITH_PLAN' },
   { label: 'Apache Calcite + Hetu EXPLAIN', value: 'APACHE_CALCITE_WITH_PLAN' }
 ]
 const datasourceOptions = computed(() => buildDatasourceOptions(governanceDatasources.value))
@@ -645,7 +643,7 @@ function buildRequestPayload() {
     sqlText: String(form.sqlText || '').trim(),
     datasourceCode: String(form.datasourceCode || '').trim(),
     bindingMode: String(form.bindingMode || '').trim(),
-    parserMode: String(form.parserMode || 'JSQLPARSER').trim(),
+    parserMode: String(form.parserMode || 'APACHE_CALCITE').trim(),
     connectionRequired: Boolean(form.connectionRequired)
   }
   const sqlTemplateText = String(form.sqlTemplateText || '').trim()

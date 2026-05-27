@@ -24,7 +24,7 @@ public class ReportBatchImportRequest {
     private DataSourceTypeEnum datasourceType;
     private String stage;
     private String priority;
-    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN")
+    @Pattern(regexp = SqlParserMode.REQUEST_PATTERN, message = "parserMode 必须为 APACHE_CALCITE 或 APACHE_CALCITE_WITH_PLAN")
     private String parserMode;
     private String contentBase64;
     private String charset;

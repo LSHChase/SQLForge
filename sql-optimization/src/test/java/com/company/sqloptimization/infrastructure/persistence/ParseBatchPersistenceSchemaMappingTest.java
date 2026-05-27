@@ -19,7 +19,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         String schema = readRepositoryFile("sql/init-schema.sql");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS parse_batch");
         assertContains(schema, "import_mode VARCHAR(32) NOT NULL");
-        assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'JSQLPARSER'");
+        assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'APACHE_CALCITE'");
         assertContains(schema, "structure_parse_only TINYINT(1) NOT NULL DEFAULT 0");
         assertContains(schema, "status_history_json JSON NOT NULL");
         assertContains(schema, "idx_parse_batch_tenant_status_created");
@@ -73,7 +73,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         String schema = readRepositoryFile("sql/init-schema.sql");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch");
         assertContains(schema, "report_code_field VARCHAR(128) NOT NULL");
-        assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'JSQLPARSER'");
+        assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'APACHE_CALCITE'");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_item");
         assertContains(schema, "source_file_line VARCHAR(512)");
         assertContains(schema, "sql_column_name VARCHAR(128)");

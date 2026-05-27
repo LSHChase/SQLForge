@@ -401,7 +401,7 @@ class RewriteTrialApplicationServiceTest {
             ParseBatchFileType.CSV,
             "v1",
             "hetu_main",
-            "JSQLPARSER",
+            "APACHE_CALCITE",
             true,
             "user-001",
             Instant.now()

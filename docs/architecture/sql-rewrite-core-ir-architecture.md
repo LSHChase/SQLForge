@@ -13,7 +13,7 @@
 
 | IR 层 | 领域对象 | 模式 | 说明 |
 |:---|:---|:---|:---|
-| `L1_AST` | `AstNodeReference` | 具体方言节点 | 记录 parser engine、dialect node kind、root kind 与 normalized SQL；当前支持以 JSqlParser / Calcite / Trino 解析结果作为来源，不把 AST 对象跨层暴露为可变状态。 |
+| `L1_AST` | `AstNodeReference` | 具体方言节点 | 记录 parser engine、dialect node kind、root kind 与 normalized SQL；当前支持以 Apache Calcite / Trino 解析结果作为来源，不把 AST 对象跨层暴露为可变状态。 |
 | `L2_TABLE_REFERENCE` | `TableReferenceIr` | `{源, 别名, 访问路径, 谓词下推}` | 表示物理表、CTE、派生表、视图或未知来源；访问路径当前为静态解析证据，不代表真实执行计划。 |
 | `L3_QUERY_BLOCK` | `QueryBlockIr` | `{输入, 输出, 谓词, 聚合}` | 表示 root query、CTE 与 subquery 单元；root block 复用结构解析的 projection、predicate、aggregation 与 groupBy evidence。 |
 | `L4_RELATIONAL_ALGEBRA` | `RelationalAlgebraNode` | `σ, π, γ, ⋈, ∪, ∩, -` | 生成选择、投影、聚合、连接和集合运算的标准形节点，用于后续规则匹配和等价性验证准备。 |
@@ -37,7 +37,7 @@
 
 ## Next Extension Points
 
-- L1 后续可保留 parser-specific node path，用于精确定位 Calcite `SqlNode` 或 JSqlParser `Expression`。
+- L1 后续可保留 parser-specific node path，用于精确定位 Calcite `SqlNode`。
 - L2 后续可接入真实 plan / metadata，补齐访问路径和可下推谓词证明。
 - L3 后续可支持 CTE 展开、视图展开和 query block 之间的依赖图。
 - L4 后续可成为 rewrite rule 的统一输入，减少直接在 SQL 文本或 parser AST 上散落判断。
@@ -78,7 +78,7 @@
 
 | 选择点 | 已采用方案 | 备选 |
 |:---|:---|:---|
-| 用户算法指定 Calcite AST，但现有 BI SQL 样本可能含 Calcite 不兼容方言。 | Calcite 是主路径；失败时用已存在的 JSQLParser `advancedStructureProfile` 做静态降级，保留 QBDAG 与结构哈希信号。 | 强制 Calcite 失败即失败；实现更纯粹，但会削弱复杂 BI SQL 的可用性。 |
+| 用户算法指定 Calcite AST，但现有 BI SQL 样本可能含 Calcite 不兼容方言。 | Calcite 是主路径；失败时记录 `UNSUPPORTED_CALCITE_DIALECT` Gap，并保留已由 Calcite 成功产出的结构信号。 | 强制 Calcite 失败即失败；实现更纯粹，但会削弱复杂 BI SQL 的可用性。 |
 
 ### No Page / Runtime Impact
 
@@ -311,9 +311,9 @@
 - 不创建、激活或暂停 runtime rewrite binding。
 - 不把 `selectedRuleIds` 或 Beam Search 最优状态自动升级为生产改写。
 
-## Phase 4.1 / 4.2 / 4.3 Dual Parser Stack and Hetu Plan Adapter
+## Phase 4.1 / 4.2 / 4.3 Calcite Parser Stack and Hetu Plan Adapter
 
-当前已在后端新增 Calcite / JSqlParser 双解析栈融合报告，用于把 JSqlParser 的方言与 BI 工具元数据标签注入 Calcite L4 改写规划，并输出 Hetu 专属计划适配建议。实现入口：
+当前后端使用 Calcite 单解析栈融合报告，把 Calcite 结构画像与 BI 工具元数据标签注入 L4 改写规划，并输出 Hetu 专属计划适配建议。实现入口：
 
 - 领域模型包：`com.company.sqloptimization.domain.rewrite.parser`
 - 融合分析器：`ParserStackFusionAnalyzer`
@@ -325,7 +325,7 @@
 | 解析器 | 当前职责 | 边界 |
 |:---|:---|:---|
 | Calcite | 继续承担 QBDAG 的 L1-L3 查询块分解主路径，并把当前 L4 `RelationalAlgebraNode / RelationalRewritePlan` 作为 repo-closed 的 RelNode surrogate；报告中记录 `SQL_NODE`、`RELNODE_TREE`、`HEP_PLANNER`、`VOLCANO_PLANNER` 阶段。 | 当前不执行真实 `SqlToRelConverter`、`HepPlanner` 或 `VolcanoPlanner`，不把 L4 surrogate 写成真实 Calcite RelNode tree。 |
-| JSqlParser | 继续承担 L1 语法细节、方言模式、别名、谓词、函数、原始 SQL 文本扫描和 advanced structure profile；报告中检测 BI 工具生成模式。 | 当前不改变既有结构解析响应字段，不保留可执行 AST 对象，不开放页面配置。 |
+| Calcite metadata profile | 承担 L1 语法细节、方言模式、别名、谓词、函数、原始 SQL 文本扫描和 advanced structure profile；报告中检测 BI 工具生成模式。 | 当前不改变既有结构解析响应字段，不保留可执行 AST 对象，不开放页面配置。 |
 
 ### Fusion Contract
 
@@ -351,9 +351,9 @@
 - `schemaVersion = parser-stack-fusion/v1`
 - `sourceSchemaVersion`：当前引用 `query-block-dag/v1`
 - `fusionStatus`：`DUAL_STACK_REPORT_READY`、`HETU_HINTS_READY` 或 `METADATA_CONSTRAINTS_AND_HETU_HINTS_READY`
-- `parserRoles`：Calcite 与 JSqlParser 分工说明
+- `parserRoles`：Calcite 解析、结构画像和 planner 接入分工说明
 - `calcitePlannerStages`：SQL_NODE / RELNODE_TREE / HEP_PLANNER / VOLCANO_PLANNER 阶段证据
-- `metadataTags`：JSqlParser 方言与 BI 工具标签
+- `metadataTags`：Calcite 方言与 BI 工具标签
 - `rewriteConstraints`：注入 Calcite L4 改写规划的静态约束
 - `hetuPlanHints`：Hetu CTE、dynamic filter、分区裁剪和两阶段聚合提示
 - `attributes`：固定包含 `runtimeBoundary=NO_SQL_EXECUTION`、`pageImpact=NO_FRONTEND_PAGE_CHANGE`、`autoApplyAllowed=false`、`hetuAdapterStatus=STATIC_PLAN_HINTS_ONLY`
@@ -392,7 +392,7 @@
 |:---|:---|:---|
 | 推荐项结构 | `RewriteRecommendation` 固化 `rewriteId`、`confidence`、`category=STRUCTURAL_OPTIMIZATION`、`severity`、`beforeSummary`、`afterSummary`、`transformations`、`equivalenceProof`、`performance`、`executableSql`、`score`、`rank`、人工确认要求和 score breakdown。 | 推荐项来自静态改写报告，不代表生产 SQL 已经被改写、验证或应用。 |
 | 变更描述 | `beforeSummary / afterSummary` 将候选块扫描数、静态查询块数、嵌套深度、共享 CTE、CASE/FILTER 聚合或 LEFT JOIN unnest 以开发者 diff 摘要呈现。 | 摘要是静态结构概括，不写成真实扫描次数、真实层数或真实执行计划。 |
-| transformations | 基于候选规则输出 `MERGE`、`UNNEST`、`PUSH_DOWN`，并在 JSqlParser 检测到帆软 `SubXX_分组和汇总` 标签时补充 `INLINE`。 | transformation 使用 repo 内 RelNode surrogate 标准形，不是完整 Calcite `RelNode` 对象。 |
+| transformations | 基于候选规则输出 `MERGE`、`UNNEST`、`PUSH_DOWN`，并在 Calcite 结构画像检测到帆软 `SubXX_分组和汇总` 标签时补充 `INLINE`。 | transformation 使用 repo 内 RelNode surrogate 标准形，不是完整 Calcite `RelNode` 对象。 |
 | equivalenceProof | 输出 `STRUCTURAL_HASH + PREDICATE_SUBSUMPTION`、聚合拆解或 join key/group by/null extension 等 proof method，并记录 `ROW_COUNT`、`COLUMN_VALUES`、`AGGREGATION_RESULTS`、`NULL_HANDLING` 维度和 edge cases。 | SMT solver 未接入；proof 是静态证明义务和已有语义验证状态，不替代结果集 diff。 |
 | performance | 输出 `scanReduction`、`estimatedSpeedup`、`memoryImpact` 和 `riskLevel`，并保留抽象 cost vector、Pareto 状态和静态收益边界。 | 性能仍是静态估算，不是 Hetu EXPLAIN、真实扫描字节、真实 shuffle 或真实内存证据。 |
 | executableSql | 当前生成 `WITH ...` 静态 SQL 模板，便于开发者理解目标形态；字段明确标记 `STATIC_RELNODE_SURROGATE_NOT_REAL_CALCITE_RELTOSQL`。 | 未调用真实 Calcite `RelToSqlConverter`，未验证目标 Hetu 方言可执行性，不能直接生产应用。 |
@@ -469,7 +469,7 @@ Score = 0.4 * performance_gain
 | 算法阶段 | 当前验收信号 | 当前结论 |
 |:---|:---|:---|
 | 输入病态 SQL | `ParsedSqlProfile.normalizedSql` 与 BI 工具注释/别名信号。 | 支持 `docs/test01.sql` 这类 BI 生成复杂 SQL 进入后端解析链。 |
-| 解析双栈融合 | `ParserStackFusionReport` 汇总 Calcite / JSqlParser 角色、metadata tags、planner stages。 | 主干符合；真实 Calcite RelNode 仍是 surrogate，报告记录 `REAL_CALCITE_RELNODE_NOT_BUILT`。 |
+| Calcite 解析栈融合 | `ParserStackFusionReport` 汇总 Calcite 角色、metadata tags、planner stages。 | 主干符合；真实 Calcite RelNode 仍是 surrogate，报告记录 `REAL_CALCITE_RELNODE_NOT_BUILT`。 |
 | QBDAG 与结构哈希 | `QueryBlockDag` 输出 block count、structural hash groups、duplicate structural groups。 | 主干符合；结构哈希仍是静态规范形。 |
 | 规则识别 | `RuleConflictResolutionReport` 输出 matched rules、selected rules、conflicts 与 RDG/Beam Search 结果。 | 主干符合；规则库是静态代码目录。 |
 | 关系代数变换 | `RelationalRewritePlan` 输出 CSE、VerticalFold、HorizontalUnnest 等候选。 | 主干符合；不直接改写生产 SQL。 |

@@ -57,8 +57,8 @@ mybatis:
 sql-optimization:
   # 配置项 parser：用途：配置 SQL 解析策略；默认值：见其子项；运行影响：影响轻量解析、任务解析和改写入口。
   parser:
-    # 配置项 strategy：用途：指定解析或处理策略；默认值：环境变量 SQL_OPTIMIZATION_PARSER_STRATEGY，未设置时为 JSQLPARSER；运行影响：策略变化会切换底层解析实现。
-    strategy: ${SQL_OPTIMIZATION_PARSER_STRATEGY:JSQLPARSER}
+    # 配置项 strategy：用途：指定解析或处理策略；默认值：环境变量 SQL_OPTIMIZATION_PARSER_STRATEGY，未设置时为 APACHE_CALCITE；运行影响：策略变化会切换底层解析实现。
+    strategy: ${SQL_OPTIMIZATION_PARSER_STRATEGY:APACHE_CALCITE}
   # 配置项 parse-history：用途：配置解析历史存储；默认值：见其子项；运行影响：影响解析结果是否写入长期历史。
   parse-history:
     # 配置项 repository：用途：选择上级功能的 repository 实现；默认值：环境变量 SQL_OPTIMIZATION_PARSE_HISTORY_REPOSITORY，未设置时为 database；运行影响：database 会落库，test/local 会使用测试或占位实现。
@@ -141,10 +141,10 @@ sql-optimization:
     rel-to-sql:
       # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 SQL_OPTIMIZATION_REWRITE_PRODUCTION_REL_TO_SQL_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。
       enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_REL_TO_SQL_ENABLED:false}
-    # 配置项 jsql-parser-metadata：用途：配置 JSqlParser 元数据增强；默认值：见其子项；运行影响：影响解析结果中的表列元信息。
-    jsql-parser-metadata:
-      # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 SQL_OPTIMIZATION_REWRITE_PRODUCTION_JSQLPARSER_METADATA_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。
-      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_JSQLPARSER_METADATA_ENABLED:false}
+    # 配置项 calcite-metadata：用途：配置 Calcite 元数据增强；默认值：见其子项；运行影响：影响解析结果中的表列元信息。
+    calcite-metadata:
+      # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 SQL_OPTIMIZATION_REWRITE_PRODUCTION_CALCITE_METADATA_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。
+      enabled: ${SQL_OPTIMIZATION_REWRITE_PRODUCTION_CALCITE_METADATA_ENABLED:false}
     # 配置项 smt-z3：用途：配置 Z3 SMT 语义验证增强；默认值：见其子项；运行影响：影响等价验证是否调用外部求解器。
     smt-z3:
       # 配置项 enabled：用途：控制上级功能是否启用；默认值：环境变量 SQL_OPTIMIZATION_REWRITE_PRODUCTION_SMT_Z3_ENABLED，未设置时为 false；运行影响：关闭后上级功能不会进入运行路径。

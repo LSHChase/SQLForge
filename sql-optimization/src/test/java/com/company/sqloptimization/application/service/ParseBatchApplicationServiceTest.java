@@ -43,7 +43,7 @@ class ParseBatchApplicationServiceTest {
 
         assertEquals("READY", response.getStatus());
         assertEquals("FILE_UPLOAD", response.getSourceType());
-        assertEquals("JSQLPARSER", response.getParserMode());
+        assertEquals("APACHE_CALCITE", response.getParserMode());
         assertEquals(Integer.valueOf(3), Integer.valueOf(response.getStatusHistory().size()));
         assertEquals("sql_text", response.getTemplateColumns().get(8).getColumnKey());
     }
@@ -84,7 +84,7 @@ class ParseBatchApplicationServiceTest {
         RequestContext.set("tenant-a", "user-001", "request-007", "trace-007", "header", 1L, 2L);
 
         ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
-        request.setParserMode("JSQLPARSER_WITH_PLAN");
+        request.setParserMode("APACHE_CALCITE_WITH_PLAN");
         request.setStructureParseOnly(Boolean.TRUE);
         ParseBatchStatusResponse created = service.createBatch(request);
 
@@ -114,7 +114,7 @@ class ParseBatchApplicationServiceTest {
         RequestContext.set("tenant-a", "user-001", "request-008", "trace-008", "header", 1L, 2L);
 
         ParseBatchCreateRequest request = baseRequest("SQL_FILE", "SQL");
-        request.setParserMode("JSQLPARSER_WITH_PLAN");
+        request.setParserMode("APACHE_CALCITE_WITH_PLAN");
         request.setStructureParseOnly(Boolean.TRUE);
         ParseBatchStatusResponse created = service.createBatch(request);
         ParseBatchIngestRequest ingestRequest = new ParseBatchIngestRequest();

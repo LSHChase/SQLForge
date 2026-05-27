@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 public enum RewriteIrLayer {
-    L1_AST("L1_AST", "语法树层", "具体 SQL 方言节点，如 JSqlParser Expression 或 Calcite SqlNode。"),
+    L1_AST("L1_AST", "语法树层", "Apache Calcite SqlNode 语法树节点。"),
     L2_TABLE_REFERENCE("L2_TABLE_REFERENCE", "表引用层", "物理表、CTE、派生表、别名、访问路径与谓词下推候选。"),
     L3_QUERY_BLOCK("L3_QUERY_BLOCK", "查询块层", "子查询、CTE 或根查询单元的输入、输出、谓词与聚合。"),
     L4_RELATIONAL_ALGEBRA("L4_RELATIONAL_ALGEBRA", "关系代数层", "选择、投影、聚合、连接、集合运算的标准形。"),

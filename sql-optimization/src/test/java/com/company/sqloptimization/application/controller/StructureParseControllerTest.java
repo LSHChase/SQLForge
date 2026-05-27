@@ -89,7 +89,7 @@ class StructureParseControllerTest {
             .andExpect(jsonPath("$.sqlFingerprint").isNotEmpty())
             .andExpect(jsonPath("$.intentProfile.scanMode").value("PARTITION_RANGE_SCAN"))
             .andExpect(jsonPath("$.intentProfile.computeDensity").value("LIGHT"))
-            .andExpect(jsonPath("$.featureSummary.parserEngine").value("JSQLPARSER"))
+            .andExpect(jsonPath("$.featureSummary.parserEngine").value("APACHE_CALCITE"))
             .andExpect(jsonPath("$.estimatedResourceCost.overall").value("HIGH"))
             .andExpect(jsonPath("$.riskChecklist[0].riskCode").value("LARGE_RESULT_SET_RISK"))
             .andExpect(jsonPath("$.riskTags[0]").value("SELECT_STAR"))
@@ -422,7 +422,7 @@ class StructureParseControllerTest {
 
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"parserMode\":\"JSQLPARSER_WITH_PLAN\",\"sqlText\":\"SELECT * FROM orders WHERE dt = DATE '2026-04-01'\","
+                .content("{\"parserMode\":\"APACHE_CALCITE_WITH_PLAN\",\"sqlText\":\"SELECT * FROM orders WHERE dt = DATE '2026-04-01'\","
                     + "\"datasourceCode\":\"hetu_main\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.syntaxStatus").value("VALID"))
@@ -461,7 +461,7 @@ class StructureParseControllerTest {
     void shouldSkipHetuPlanForLocalOnlyParserModes() throws Exception {
         mockMvc.perform(addProtectedHeaders(post("/api/sql-optimization/parse/structure"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"parserMode\":\"JSQLPARSER\",\"sqlText\":\"SELECT id FROM orders WHERE dt = DATE '2026-04-01'\","
+                .content("{\"parserMode\":\"APACHE_CALCITE\",\"sqlText\":\"SELECT id FROM orders WHERE dt = DATE '2026-04-01'\","
                     + "\"datasourceCode\":\"hetu_main\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.analysisStatus").value("SUCCESS"))
@@ -507,7 +507,7 @@ class StructureParseControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"parserMode\":\"TRINO\",\"sqlText\":\"SELECT * FROM orders\"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("parserMode 必须为 JSQLPARSER、APACHE_CALCITE、JSQLPARSER_WITH_PLAN 或 APACHE_CALCITE_WITH_PLAN"));
+            .andExpect(jsonPath("$.message").value("parserMode 必须为 APACHE_CALCITE 或 APACHE_CALCITE_WITH_PLAN"));
     }
 
     @Test

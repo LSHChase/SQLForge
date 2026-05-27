@@ -710,7 +710,7 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 - **ORM框架：** MyBatis（XML配置方式，禁止复杂SQL用注解）
 - **事务管理：** 本地事务为主，@Transactional在Service层入口
 - **多数据源：** 动态数据源切换支持不同租户或引擎连接池
-- **分页：** PageHelper插件，统一分页参数与返回格式
+- **分页：** Mapper SQL 显式 `LIMIT/OFFSET`，统一分页参数与返回格式
 
 ---
 
@@ -831,7 +831,6 @@ SQL优化服务 → 公共管理服务（获取元数据、统计信息、写入
 | **工具库** | Lombok | 1.18+（Java 8兼容） |
 | | MapStruct | 1.5+（DTO转换） |
 | | MyBatis | 3.5+ |
-| | PageHelper | 5.3+ |
 
 ### 9.2 强制ADR清单（MADR完整版）
 

@@ -49,7 +49,7 @@ class ParseBatchControllerTest {
                     + "\"structureParseOnly\":false}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("READY"))
-            .andExpect(jsonPath("$.parserMode").value("JSQLPARSER"))
+            .andExpect(jsonPath("$.parserMode").value("APACHE_CALCITE"))
             .andExpect(jsonPath("$.templateColumns[8].columnKey").value("sql_text"))
             .andExpect(header().exists(RequestHeaderConstants.TRACE_ID))
             .andReturn();

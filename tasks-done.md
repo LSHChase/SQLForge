@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REPLACE-JSQLPARSER-CALCITE-20260527: Replace legacy SQL parser with Apache Calcite
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `Replace legacy SQL parser with Apache Calcite`
+- Priority: 1
+- Depends on: N/A
+- Scope: Replace all legacy parser dependencies, source code paths, parser modes, rewrite/analysis helpers, frontend/config/test/documentation references, and build artifacts with Apache Calcite equivalents; preserve or improve SQL parsing and processing capability, document any Calcite capability gaps in MIGRATION_REPORT.md, and verify no legacy parser traces remain in the requested file types.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REPLACE-JSQLPARSER-CALCITE-20260527`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Replaced parser modes, dependencies, backend Calcite collectors and rewrite paths, frontend parser-mode contracts, docs/scripts/schema references, portable assets, and migration report.
+  - Validation evidence: mvn clean test; npm run lint; npm run build; npm run build:portable; parser-token scans; dependency tree check; foreman validate; pre-closeout audit.
+  - Residual risk: Calcite source-format preservation and production RelNode SQL generation remain documented gaps in MIGRATION_REPORT.md; production execution remains gated.
+  - Next step: Use Calcite-only parser modes in future parser and rewrite tasks; add governed proof or runtime validation as separate tasks.
+
 ### USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527: docs/test01_mv.sql 期望驱动的动态 MV 推荐与改写提升
 
 - Status: done
@@ -191,7 +209,7 @@
 - Commit subject: `fix(sql): normalize Yonghong derived join wrappers`
 - Priority: 1
 - Depends on: N/A
-- Scope: 把 Yonghong/Hetu 派生表 join 包装归一化从按行判断改为轻量 token/括号栈重写；后端在 JSQLParser/Calcite 前统一方言归一化；前端 rewrite validation 保留自动格式化前的提交原文；补 docs/test01.sql raw、页面格式化、去注释格式化三类回归测试。
+- Scope: 把 Yonghong/Hetu 派生表 join 包装归一化从按行判断改为轻量 token/括号栈重写；后端在 legacy parser/Calcite 前统一方言归一化；前端 rewrite validation 保留自动格式化前的提交原文；补 docs/test01.sql raw、页面格式化、去注释格式化三类回归测试。
 - Validation:
   - `python3 scripts/foreman.py validate USER-CN-SQL-TOKEN-NORMALIZER-20260525`
 - Progress log:
@@ -842,13 +860,13 @@
 - Commit subject: `USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522 add production rewrite gates and adapters`
 - Priority: 1
 - Depends on: N/A
-- Scope: 按上一轮建议实现：为开发直通激活/查询直通增加配置开关；为真实 Calcite RelNode/RelToSql、JSqlParser 标签注入、可选 SMT/Z3、Hetu EXPLAIN/统计代价接入补充可启用适配层和报告状态，保持默认静态链路兼容并补回归测试。
+- Scope: 按上一轮建议实现：为开发直通激活/查询直通增加配置开关；为真实 Calcite RelNode/RelToSql、legacy parser 标签注入、可选 SMT/Z3、Hetu EXPLAIN/统计代价接入补充可启用适配层和报告状态，保持默认静态链路兼容并补回归测试。
 - Validation:
   - `python3 scripts/foreman.py validate USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522`
 - Progress log:
   - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: 为改写激活和查询执行开发直通路径增加默认关闭的配置开关；补充 Calcite RelNode/RelToSql、JSqlParser 元数据、SMT/Z3、Hetu EXPLAIN 和统计成本的可启用生产化适配层状态报告；把生产能力门禁摘要接入推荐收益/成本输出并保持默认静态链路兼容。
+  - Completed scope: 为改写激活和查询执行开发直通路径增加默认关闭的配置开关；补充 Calcite RelNode/RelToSql、legacy parser 元数据、SMT/Z3、Hetu EXPLAIN 和统计成本的可启用生产化适配层状态报告；把生产能力门禁摘要接入推荐收益/成本输出并保持默认静态链路兼容。
   - Validation evidence: python3 scripts/foreman.py validate USER-CN-IMPLEMENT-REWRITE-PRODUCTION-GATES-ADAPTERS-20260522 --include-task-audit --extra-command git-diff-check --extra-command query-execution-service-test --extra-command sql-optimization-rewrite-and-pipeline-tests；详见 docs/quality/validation-log.md。
   - Residual risk: 真实 Hetu/MRS 连接、外部 Z3 求解器与真实统计源仍需环境侧显式启用并提供外部证据；默认配置保持关闭，不声明生产规模收益。
   - Next step: 如需声明生产规模完成，继续等待 USER-CN-BENCHMARK-PRODUCTION-EVIDENCE-EXTERNAL-ARTIFACTS-20260518 的外部证据。
@@ -896,7 +914,7 @@
 - Commit subject: `USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521 implement rewrite algorithm conformance report`
 - Priority: 1
 - Depends on: USER-CN-REWRITE-RECOMMENDATION-FINAL-OUTPUT-PHASE6-20260521
-- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，基于用户给定的解析、分解、识别、变换、验证、择优、生成、输出核心算法脉络，为 sql-optimization 改写核心新增算法链路一致性报告：逐段汇总 Calcite/JSqlParser 双栈融合、QBDAG/结构哈希、规则库命中、关系代数候选、语义等价/SMT 边界、帕累托代价择优、SQL 生成和最终推荐输出状态；接入 RewriteCoreIrSnapshot 和 service，补充 docs/test01.sql 复测用例、架构文档和原始需求归档。
+- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，基于用户给定的解析、分解、识别、变换、验证、择优、生成、输出核心算法脉络，为 sql-optimization 改写核心新增算法链路一致性报告：逐段汇总 Calcite / legacy parser 双栈融合、QBDAG/结构哈希、规则库命中、关系代数候选、语义等价/SMT 边界、帕累托代价择优、SQL 生成和最终推荐输出状态；接入 RewriteCoreIrSnapshot 和 service，补充 docs/test01.sql 复测用例、架构文档和原始需求归档。
 - Validation:
   - `python3 scripts/foreman.py validate USER-CN-REWRITE-ALGORITHM-CONFORMANCE-TEST01-20260521`
 - Progress log:
@@ -932,16 +950,16 @@
 - Commit subject: `USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521 implement parser stack fusion hetu adapter`
 - Priority: 1
 - Depends on: USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521
-- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，在 sql-optimization 改写核心实现 Calcite/JSqlParser 双解析栈协同报告与 Hetu 执行计划适配第一版：固化 Calcite 与 JSqlParser 分工、JSqlParser 方言/BI 工具模式标签、Calcite L1-L4/RelNode/Planner 集成占位证据、融合层改写约束注入，以及 Hetu CTE 物化、Dynamic Filter、分区裁剪和两阶段分布式聚合适配建议；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
+- Scope: 在不改动页面、不执行真实 SQL、不自动应用生产改写的前提下，在 sql-optimization 改写核心实现 Calcite / legacy parser 双解析栈协同报告与 Hetu 执行计划适配第一版：固化 Calcite 与 legacy parser 分工、legacy parser 方言/BI 工具模式标签、Calcite L1-L4/RelNode/Planner 集成占位证据、融合层改写约束注入，以及 Hetu CTE 物化、Dynamic Filter、分区裁剪和两阶段分布式聚合适配建议；接入 RewriteCoreIrSnapshot，补充测试、架构文档和原始需求归档。
 - Validation:
   - `python3 scripts/foreman.py validate USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521`
 - Progress log:
   - 2026-05-21: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: 实现 Calcite/JSqlParser 双解析栈融合与 Hetu 静态计划适配第一版：新增 parser stack fusion domain model/analyzer，固化 Calcite L1-L4/RelNode/Planner 占位证据、JSqlParser 方言/BI 工具模式标签、融合层改写约束注入，以及 Hetu MATERIALIZED CTE、dynamic_filter、时间分区裁剪和两阶段聚合 hints；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充回归测试、架构文档和原始需求归档；未改动页面、未执行真实 SQL、未自动应用生产改写。
+  - Completed scope: 实现 Calcite / legacy parser 双解析栈融合与 Hetu 静态计划适配第一版：新增 parser stack fusion domain model/analyzer，固化 Calcite L1-L4/RelNode/Planner 占位证据、legacy parser 方言/BI 工具模式标签、融合层改写约束注入，以及 Hetu MATERIALIZED CTE、dynamic_filter、时间分区裁剪和两阶段聚合 hints；接入 SqlOptimizationPipelineService 与 RewriteCoreIrSnapshot；补充回归测试、架构文档和原始需求归档；未改动页面、未执行真实 SQL、未自动应用生产改写。
   - Validation evidence: java -version = OpenJDK 1.8.0_112; mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test => 32 tests passed; mvn -pl sql-optimization -am test => 343 tests passed; mvn -pl sql-optimization checkstyle:check -Dcheckstyle.includes changed Java paths => 0 violations; git diff --check; python3 scripts/foreman.py validate USER-CN-PARSER-STACK-HETU-ADAPTER-PHASE5-20260521; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js; node scripts/check-developer-copy-language.mjs --changed.
   - Residual risk: 当前 Calcite RelNode/HepPlanner/VolcanoPlanner 为静态融合报告和规划占位证据，不执行真实 SQL、不读取真实 schema/统计信息、不生成生产自动改写绑定；Hetu 适配为静态 hint/约束建议，dynamic filter、分区裁剪和两阶段聚合仍需后续接入真实执行计划、压测和治理审批后才能生产生效。
-  - Next step: 后续可在单独任务中接入真实 Calcite RelNode 构建、JSqlParser AST 精准定位、Hetu EXPLAIN/统计信息采集和受控 rewritten SQL 生成。
+  - Next step: 后续可在单独任务中接入真实 Calcite RelNode 构建、legacy parser AST 精准定位、Hetu EXPLAIN/统计信息采集和受控 rewritten SQL 生成。
 
 ### USER-CN-REWRITE-RULE-ENGINE-DSL-CONFLICT-20260521: 实现改写规则 DSL 与冲突消解
 
@@ -1726,7 +1744,7 @@
 - Context closeout:
   - Completed scope: 新增 advancedStructureProfile 结构画像并接入结构解析响应、AST_PROFILE 与 SIGNAL_PROFILE；画像覆盖表/别名、投影、谓词、Join 图、聚合、分组、ORDER/LIMIT、CTE、子查询、时间函数和非确定函数；保留既有 L1/L2 推荐规则行为。
   - Validation evidence: python3 scripts/foreman.py validate AMV-002 --include-task-audit --extra-command "mvn -pl sql-optimization -Dtest=StructureParseContractTest,StructureParseControllerTest,SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test" --extra-command "git diff --check"；python3 scripts/task_audit.py --check --phase pre-closeout。
-  - Residual risk: 本任务只做静态结构抽取，不生成 MV DDL/rewrite SQL，不做谓词分类、粒度/指标推导或覆盖证明；非 JSQLParser 模式的 advancedStructureProfile 仍以 PARTIAL 状态暴露，后续可按 AMV 任务继续扩展。
+  - Residual risk: 本任务只做静态结构抽取，不生成 MV DDL/rewrite SQL，不做谓词分类、粒度/指标推导或覆盖证明；非 legacy parser 模式的 advancedStructureProfile 仍以 PARTIAL 状态暴露，后续可按 AMV 任务继续扩展。
   - Next step: 继续 AMV-003/AMV-004，将该结构画像用于谓词分类、粒度和指标推导。
 
 ### AMV-001: 固化高级 MV 契约与禁止 EXACT_QUERY_MV 边界
@@ -4488,7 +4506,7 @@
 - Progress log:
   - 2026-05-08: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: Separated JSQLParser table discovery from real table-scan frequency, renamed the internal scan-frequency tracking, skipped simple column/identifier references in repeated-expression counting, and added pipeline/controller regressions for orders-prefixed column names while preserving real repeated-scan anti-pattern detection.
+  - Completed scope: Separated legacy parser table discovery from real table-scan frequency, renamed the internal scan-frequency tracking, skipped simple column/identifier references in repeated-expression counting, and added pipeline/controller regressions for orders-prefixed column names while preserving real repeated-scan anti-pattern detection.
   - Validation evidence: mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest test; python3 scripts/foreman.py validate HARN-085 --extra-command 'mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest test' --extra-command 'git diff --check'; git diff --check
   - Residual risk: Repo-closed coverage targets structure parsing behavior; no frontend contract fields, persistence schema, or access-parse semantics were changed.
   - Next step: Monitor future parser fixtures for dialect-specific cases where CTE aliases or engine-specific identifiers need stronger physical-table classification.
@@ -4600,7 +4618,7 @@
 - Context closeout:
   - Completed scope: Verified CALCITE-001 closeout evidence and implementation across parser selection, batch persistence, frontend contracts, and validation; fixed the combined parser controller test to wait for asynchronous access-parse completion so full sql-optimization reactor tests pass reliably.
   - Validation evidence: python3 scripts/foreman.py preflight; python3 scripts/foreman.py validate CALCITE-001; python3 scripts/task_audit.py --check --phase pre-closeout; python3 scripts/task_audit.py --check --phase post-closeout; node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ParseBatchApplicationServiceTest,ParseBatchControllerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest test; npm run lint; npm run build; mvn -pl sql-optimization -Dtest=StructureParseControllerTest test; mvn -pl sql-optimization -am clean test; python3 scripts/foreman.py validate CALCITE-001-VERIFY; python3 scripts/task_audit.py --check --phase pre-closeout
-  - Residual risk: No product-code residual risk found in repo-closed verification; Calcite parser scope remains structure/profile extraction only, with rewrite candidates JSQLParser-only by design.
+  - Residual risk: No product-code residual risk found in repo-closed verification; Calcite parser scope remains structure/profile extraction only, with rewrite candidates legacy-parser-only by design.
   - Next step: Monitor Calcite dialect coverage through parser tests when adding new SQL syntax cases.
 
 ### CALCITE-001: Add Apache Calcite parser mode
@@ -4610,16 +4628,16 @@
 - Commit subject: `feat(sql-optimization): add Apache Calcite parser mode`
 - Priority: 1
 - Depends on: N/A
-- Scope: Add request-level SQL parser selection for JSQLParser or Apache Calcite across structure, combined, parse batch, and report batch flows, with persistence, UI controls, validation, and tests.
+- Scope: Add request-level SQL parser selection for legacy parser or Apache Calcite across structure, combined, parse batch, and report batch flows, with persistence, UI controls, validation, and tests.
 - Validation:
   - `python3 scripts/foreman.py validate CALCITE-001`
 - Progress log:
   - 2026-05-07: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: Added request-level parserMode selection for JSQLParser and Apache Calcite across structure, combined, parse batch, and report batch flows, including persistence, migration, UI controls, contracts, and tests.
+  - Completed scope: Added request-level parserMode selection for legacy parser and Apache Calcite across structure, combined, parse batch, and report batch flows, including persistence, migration, UI controls, contracts, and tests.
   - Validation evidence: python3 scripts/foreman.py validate CALCITE-001; python3 scripts/task_audit.py --check --phase pre-closeout; mvn -pl sql-optimization -Dtest=SqlOptimizationPipelineServiceTest,StructureParseControllerTest,ParseBatchApplicationServiceTest,ParseBatchControllerTest,ReportBatchApplicationServiceTest,ReportBatchControllerTest,ParseBatchPersistenceSchemaMappingTest test; mvn -pl sql-optimization -am clean test; node scripts/check-parse-workbench-contract.mjs; node scripts/check-batch-import-contract.mjs; npm run lint; npm run build.
-  - Residual risk: Apache Calcite support is limited to structure/profile extraction; SQL rewrite candidates remain JSQLParser-only by design.
-  - Next step: Monitor Calcite dialect coverage and add neutral rewrite signals only when they do not require JSQLParser AST mutation.
+  - Residual risk: Apache Calcite support is limited to structure/profile extraction; SQL rewrite candidates remain legacy-parser-only by design.
+  - Next step: Monitor Calcite dialect coverage and add neutral rewrite signals only when they do not require legacy parser AST mutation.
 
 ### OPS-RESTART-20260507-3: Restart local frontend and backend on demand
 
@@ -5470,7 +5488,7 @@
 - Progress log:
   - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: Added expected-vs-system regression coverage for the supplied complex anti-pattern SQL, extended recursive JSQLParser traversal for nested/select/where subqueries, correlated alias detection, function-wrapped predicates, leading wildcard LIKE, OR predicates, ORDER BY random and repeated table scans, and surfaced the new counters through intent profile, feature summary, risk tags, checklist, issues and resource estimates.
+  - Completed scope: Added expected-vs-system regression coverage for the supplied complex anti-pattern SQL, extended recursive legacy parser traversal for nested/select/where subqueries, correlated alias detection, function-wrapped predicates, leading wildcard LIKE, OR predicates, ORDER BY random and repeated table scans, and surfaced the new counters through intent profile, feature summary, risk tags, checklist, issues and resource estimates.
   - Validation evidence: mvn -B -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test -DskipITs; mvn -B -pl sql-optimization -am -Dtest=StructureParseControllerTest -Dsurefire.failIfNoSpecifiedTests=false test -DskipITs; mvn -B -pl sql-optimization -am test -DskipITs; mvn -B -pl sql-optimization -am validate pmd:pmd checkstyle:check -DskipTests; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate D-TASK-075; python3 scripts/task_audit.py --check --phase pre-closeout
   - Residual risk: Signals remain static AST heuristics without catalog metadata, real index truth or execution-plan cost proof; Trino path remains compatibility-oriented and was not expanded to identical nested anti-pattern extraction in this task.
   - Next step: Add metadata-backed access/index evidence and a Trino-specific complex fixture if query-intent scoring needs engine-parity validation.
@@ -5518,7 +5536,7 @@
 - Progress log:
   - 2026-04-28: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: Added structure-parse query intent outputs, SQL fingerprint, feature summary, structured risk checklist, heuristic resource estimate, configurable JSQLParser/Trino parser adapter path, parse workbench display, contract tests, parser tests, frontend contract checks, and product documentation.
+  - Completed scope: Added structure-parse query intent outputs, SQL fingerprint, feature summary, structured risk checklist, heuristic resource estimate, configurable legacy parser / Trino parser adapter path, parse workbench display, contract tests, parser tests, frontend contract checks, and product documentation.
   - Validation evidence: mvn -B -pl sql-optimization -am test -DskipITs; node scripts/check-parse-workbench-contract.mjs; npm run lint; npm run build; mvn -B -pl sql-optimization -am validate pmd:pmd checkstyle:check -DskipTests; node scripts/lint-repository-knowledge.js; python3 scripts/foreman.py validate D-TASK-073; python3 scripts/task_audit.py --check --phase pre-closeout.
   - Residual risk: Trino parser adapter is covered by repo-local samples and should gain more dialect fixtures over time; resource cost remains static heuristic evidence, not a real execution plan; NL2SQL remains a future task.
   - Next step: Use the new intent profile as the backend contract for future NL2SQL and recommendation work without moving metadata or permissions into structure parse.
@@ -7381,7 +7399,7 @@
 - Progress log:
   - 2026-04-25: instantiated from foreman CLI using repository truth and task matrices.
 - Context closeout:
-  - Completed scope: Added a JSQLParser-backed sql-optimization pipeline with real AST analysis, conservative rewrite rules, acceleration suggestion generation, structured suggestion/failure persistence, schema/mapping updates, focused tests, and authority-doc synchronization for D-TASK-031.
+  - Completed scope: Added a legacy-parser-backed sql-optimization pipeline with real AST analysis, conservative rewrite rules, acceleration suggestion generation, structured suggestion/failure persistence, schema/mapping updates, focused tests, and authority-doc synchronization for D-TASK-031.
   - Validation evidence: mvn -B -pl sql-optimization -am test -DskipITs; python3 scripts/foreman.py validate D-TASK-031; python3 scripts/task_audit.py --check --phase pre-closeout; node scripts/lint-repository-knowledge.js
   - Residual risk: Rewrite coverage remains intentionally conservative, external queue/callback and acceleration-plan apply governance are still pending, and fingerprint-only submissions can be accepted by contract but will terminate failed because the real parser pipeline requires sqlText.
   - Next step: Proceed to D-TASK-032 to close the governed acceleration-plan apply/verify/rollback loop on top of the new real sql-optimization suggestion baseline.

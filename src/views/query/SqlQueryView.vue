@@ -669,7 +669,7 @@ const openDeepParseWorkbench = () => {
     tenantId: form.tenantId,
     datasourceCode: form.datasourceCode,
     sqlText: boundSqlPreview.value,
-    parserMode: 'JSQLPARSER_WITH_PLAN'
+    parserMode: 'APACHE_CALCITE_WITH_PLAN'
   }
   try {
     window.sessionStorage?.setItem(`${DEEP_PARSE_SESSION_PREFIX}${seedKey}`, JSON.stringify(payload))

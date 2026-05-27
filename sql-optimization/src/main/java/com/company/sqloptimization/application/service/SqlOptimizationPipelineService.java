@@ -61,56 +61,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.AnalyticExpression;
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.DateValue;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NotExpression;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.Parenthesis;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.TimestampValue;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.ComparisonOperator;
-import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.InExpression;
-import net.sf.jsqlparser.expression.operators.relational.ItemsList;
-import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.AllTableColumns;
-import net.sf.jsqlparser.statement.select.GroupByElement;
-import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.OrderByElement;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.statement.select.SetOperationList;
-import net.sf.jsqlparser.statement.select.SubSelect;
-import net.sf.jsqlparser.statement.select.WithItem;
-import net.sf.jsqlparser.util.TablesNamesFinder;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -121,7 +86,9 @@ import org.springframework.util.StringUtils;
 public class SqlOptimizationPipelineService {
 
     private static final Pattern DATE_PREDICATE_PATTERN =
-        Pattern.compile("([A-Z0-9_\\.]*?(DATE|TIME|DTE|DT|DAY))[\\s]*(=|>|<|BETWEEN|IN)");
+        Pattern.compile("[`\"]?([A-Z0-9_\\.]*?(DATE|TIME|DTE|DT|DAY)[A-Z0-9_\\.]*)[`\"]?\\s*(=|>=|<=|>|<|BETWEEN|IN)");
+    private static final Pattern FUNCTION_WRAPPED_PREDICATE_PATTERN =
+        Pattern.compile("(?is)\\b[A-Z_][A-Z0-9_]*\\s*\\([^()]*\\)\\s*(?:=|<>|!=|>=|<=|>|<)\\s*(?:DATE\\s+)?(?:'[^']*'|\\d+(?:\\.\\d+)?)");
     private static final Set<String> AGGREGATE_FUNCTIONS =
         new LinkedHashSet<String>(Arrays.asList(
             "COUNT", "SUM", "AVG", "MIN", "MAX", "APPROX_DISTINCT", "GROUP_CONCAT", "STRING_AGG", "LISTAGG"
@@ -224,9 +191,12 @@ public class SqlOptimizationPipelineService {
             "(?is)\\b(CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP|LOCALTIME|LOCALTIMESTAMP|NOW|RAND|RANDOM|UUID"
                 + "|CURRENT_USER|SESSION_USER)\\b\\s*(?:\\(|\\b)"
         );
+    private static final Pattern UNNEST_FUNCTION_PATTERN = Pattern.compile("(?i)\\bUNNEST\\s*\\(");
+    private static final Pattern SIMPLE_BACKTICK_IDENTIFIER_PATTERN =
+        Pattern.compile("[`\"]([A-Za-z_][A-Za-z0-9_]*)[`\"]");
 
-    @Value("${sql-optimization.parser.strategy:JSQLPARSER}")
-    private String parserStrategy = "JSQLPARSER";
+    @Value("${sql-optimization.parser.strategy:APACHE_CALCITE}")
+    private String parserStrategy = "APACHE_CALCITE";
 
     private final Map<SqlParserMode, SqlStructureParserAdapter> parserAdapters =
         new LinkedHashMap<SqlParserMode, SqlStructureParserAdapter>();
@@ -246,7 +216,6 @@ public class SqlOptimizationPipelineService {
         this.hetuPlanAnalysisClient = hetuPlanAnalysisClient == null
             ? HetuPlanAnalysisClient.unavailable()
             : hetuPlanAnalysisClient;
-        registerParserAdapter(new JsqlParserAdapter());
         registerParserAdapter(new ApacheCalciteParserAdapter());
     }
 
@@ -269,13 +238,13 @@ public class SqlOptimizationPipelineService {
         SqlParserMode resolvedMode = (parserMode == null ? resolveDefaultParserMode() : parserMode).structureMode();
         SqlStructureParserAdapter adapter = parserAdapters.get(resolvedMode);
         if (adapter == null) {
-            adapter = parserAdapters.get(SqlParserMode.JSQLPARSER);
+            adapter = parserAdapters.get(SqlParserMode.APACHE_CALCITE);
         }
         return adapter.analyze(normalizedSql, datasourceType);
     }
 
     private SqlParserMode resolveDefaultParserMode() {
-        String strategy = parserStrategy == null ? "JSQLPARSER" : parserStrategy.trim().toUpperCase(Locale.ROOT);
+        String strategy = parserStrategy == null ? "APACHE_CALCITE" : parserStrategy.trim().toUpperCase(Locale.ROOT);
         return SqlParserMode.resolveDefault(strategy);
     }
 
@@ -283,18 +252,6 @@ public class SqlOptimizationPipelineService {
         SqlParserMode parserMode();
 
         ParsedSqlProfile analyze(String normalizedSql, DataSourceTypeEnum datasourceType);
-    }
-
-    private final class JsqlParserAdapter implements SqlStructureParserAdapter {
-        @Override
-        public SqlParserMode parserMode() {
-            return SqlParserMode.JSQLPARSER;
-        }
-
-        @Override
-        public ParsedSqlProfile analyze(String normalizedSql, DataSourceTypeEnum datasourceType) {
-            return analyzeWithJsqlParser(normalizedSql, datasourceType);
-        }
     }
 
     private final class ApacheCalciteParserAdapter implements SqlStructureParserAdapter {
@@ -309,73 +266,6 @@ public class SqlOptimizationPipelineService {
         }
     }
 
-    private ParsedSqlProfile analyzeWithJsqlParser(String normalizedSql, DataSourceTypeEnum datasourceType) {
-        Statement statement;
-        try {
-            statement = CCJSqlParserUtil.parse(normalizedSql);
-        } catch (JSQLParserException ex) {
-            throw parserFailure(
-                "SQL 解析器无法为提交语句构建 AST。",
-                "请提交单条受支持的 SELECT 语句，或扩展数据源 "
-                    + datasourceType.name() + " 的解析器支持。",
-                Collections.singletonList(
-                    new OptimizationTaskRisk(
-                        "HIGH",
-                        "UNSUPPORTED_DIALECT",
-                        "提交的 SQL 无法解析为受支持的 AST。",
-                        "请保持语句为单条 SELECT/WITH 查询，或扩展该数据源的解析器覆盖范围。"
-                    )
-                ),
-                ex,
-                normalizedSql
-            );
-        }
-        if (statement == null) {
-            throw parserFailure(
-                "SQL 解析器无法为提交语句构建 AST。",
-                "请提交单条受支持的 SELECT 语句，或扩展数据源 "
-                    + datasourceType.name() + " 的解析器支持。",
-                Collections.singletonList(
-                    new OptimizationTaskRisk(
-                        "HIGH",
-                        "UNSUPPORTED_DIALECT",
-                        "提交的 SQL 无法解析为受支持的 AST。",
-                        "请保持语句为单条 SELECT/WITH 查询，或扩展该数据源的解析器覆盖范围。"
-                    )
-                ),
-                new JSQLParserException("JSQLParser 未返回语句对象。"),
-                normalizedSql
-            );
-        }
-        if (!(statement instanceof net.sf.jsqlparser.statement.select.Select)) {
-            throw invalidTask(
-                "真实优化当前仅支持 SELECT/WITH 语句。",
-                "请提交面向读取的 SELECT 语句，用于解析、改写或加速分析。"
-            );
-        }
-        Select select = (Select) statement;
-        ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql);
-        profile.parserEngine = "JSQLPARSER";
-        List<String> discoveredTables = new TablesNamesFinder().getTableList(statement);
-        profile.tables.addAll(deduplicate(discoveredTables));
-        if (select.getWithItemsList() != null) {
-            for (WithItem withItem : select.getWithItemsList()) {
-                profile.recordCte(withItem);
-            }
-            for (WithItem withItem : select.getWithItemsList()) {
-                if (withItem.getSubSelect() != null) {
-                    analyzeSelectBody(withItem.getSubSelect().getSelectBody(), profile);
-                }
-            }
-        }
-        analyzeSelectBody(select.getSelectBody(), profile);
-        profile.rewriteOutcome = applyRewriteRules(select);
-        profile.recordSqlLevelFunctions(normalizedSql);
-        profile.markAdvancedProfileAvailable();
-        finalizeWarnings(profile);
-        return profile;
-    }
-
     private ParsedSqlProfile analyzeWithTrinoParser(String normalizedSql, DataSourceTypeEnum datasourceType) {
         io.trino.sql.tree.Statement statement;
         try {
@@ -383,13 +273,13 @@ public class SqlOptimizationPipelineService {
         } catch (RuntimeException ex) {
             throw parserFailure(
                 "Trino 解析器无法为提交语句构建 AST。",
-                "请提交单条受支持的 SELECT/WITH 查询，或让该数据源继续使用 JSQLPARSER 解析策略。",
+                "请提交单条受支持的 SELECT/WITH 查询，或让该数据源使用 Apache Calcite 解析策略。",
                 Collections.singletonList(
                     new OptimizationTaskRisk(
                         "HIGH",
                         "UNSUPPORTED_TRINO_DIALECT",
                         "提交的 SQL 无法由 Trino 解析适配器解析。",
-                        "请使用受支持的 Trino SELECT 查询，或保留现有 JSQLParser 策略。"
+                        "请使用受支持的 Trino SELECT 查询，或改用 Apache Calcite 策略。"
                     )
                 ),
                 ex,
@@ -414,19 +304,17 @@ public class SqlOptimizationPipelineService {
     private ParsedSqlProfile analyzeWithApacheCalciteParser(String normalizedSql, DataSourceTypeEnum datasourceType) {
         SqlNode statement;
         try {
-            org.apache.calcite.sql.parser.SqlParser.Config parserConfig =
-                org.apache.calcite.sql.parser.SqlParser.config().withConformance(SqlConformanceEnum.LENIENT);
-            statement = org.apache.calcite.sql.parser.SqlParser.create(normalizedSql, parserConfig).parseStmt();
+            statement = parseApacheCalciteStatement(normalizedSql);
         } catch (Exception ex) {
             throw parserFailure(
                 "Apache Calcite 解析器无法为提交语句构建 AST。",
-                "请提交单条受支持的 SELECT/WITH 查询，或让该数据源的 parserMode 继续使用 JSQLPARSER。",
+                "请提交单条受支持的 SELECT/WITH 查询，或为该数据源补充 Calcite 方言扩展。",
                 Collections.singletonList(
                     new OptimizationTaskRisk(
                         "HIGH",
                         "UNSUPPORTED_CALCITE_DIALECT",
                         "提交的 SQL 无法由 Apache Calcite 解析适配器解析。",
-                        "请使用受支持的 Calcite SELECT 查询，或保留现有 JSQLParser 模式。"
+                        "请使用受支持的 Calcite SELECT 查询，或补充 Calcite Parser.Config / 操作符扩展。"
                     )
                 ),
                 ex,
@@ -441,11 +329,44 @@ public class SqlOptimizationPipelineService {
         }
         ParsedSqlProfile profile = new ParsedSqlProfile(normalizedSql);
         profile.parserEngine = "APACHE_CALCITE";
-        profile.markAdvancedProfilePartial();
+        profile.markAdvancedProfileAvailable();
         new ApacheCalciteProfileCollector().collect(statement, profile, true);
+        augmentCalciteProfileFromSqlText(normalizedSql, profile);
+        profile.rewriteOutcome = applyCalciteRewriteRules(statement);
         profile.recordSqlLevelFunctions(normalizedSql);
         finalizeWarnings(profile);
         return profile;
+    }
+
+    private SqlNode parseApacheCalciteStatement(String normalizedSql) throws Exception {
+        try {
+            return org.apache.calcite.sql.parser.SqlParser.create(
+                normalizedSql,
+                apacheCalciteParserConfig()
+            ).parseStmt();
+        } catch (Exception ex) {
+            String compatibleSql = calciteCompatibleSql(normalizedSql);
+            if (compatibleSql.equals(normalizedSql)) {
+                throw ex;
+            }
+            return org.apache.calcite.sql.parser.SqlParser.create(
+                compatibleSql,
+                apacheCalciteParserConfig()
+            ).parseStmt();
+        }
+    }
+
+    private org.apache.calcite.sql.parser.SqlParser.Config apacheCalciteParserConfig() {
+        return org.apache.calcite.sql.parser.SqlParser.config()
+            .withConformance(SqlConformanceEnum.LENIENT)
+            .withUnquotedCasing(Casing.UNCHANGED);
+    }
+
+    private String calciteCompatibleSql(String normalizedSql) {
+        if (!StringUtils.hasText(normalizedSql)) {
+            return "";
+        }
+        return UNNEST_FUNCTION_PATTERN.matcher(normalizedSql).replaceAll("EXPLODE(");
     }
 
     private boolean isCalciteSelectLike(SqlNode node) {
@@ -834,7 +755,7 @@ public class SqlOptimizationPipelineService {
         if (profile == null) {
             throw invalidTask(
                 "构建双解析栈融合报告需要有效 SQL 解析结果。",
-                "请先完成 SQL 结构解析，再生成 Calcite/JSqlParser 融合与 Hetu 适配报告。"
+                "请先完成 SQL 结构解析，再生成 Calcite 解析融合与 Hetu 适配报告。"
             );
         }
         QueryBlockDag queryBlockDag = buildQueryBlockDag(profile);
@@ -2156,694 +2077,203 @@ public class SqlOptimizationPipelineService {
         return clamp(62 + outcome.appliedRules.size() * 6 - unappliedRules.size() * 5 - profile.getWarnings().size() * 2, 25, 88);
     }
 
-    private void analyzeSelectBody(SelectBody selectBody, ParsedSqlProfile profile) {
-        if (selectBody == null) {
-            return;
-        }
-        if (selectBody instanceof PlainSelect) {
-            analyzePlainSelect((PlainSelect) selectBody, profile);
-            return;
-        }
-        if (selectBody instanceof SetOperationList) {
-            profile.setOperation = true;
-            SetOperationList setOperationList = (SetOperationList) selectBody;
-            if (setOperationList.getSelects() != null) {
-                for (SelectBody nestedBody : setOperationList.getSelects()) {
-                    analyzeSelectBody(nestedBody, profile);
-                }
-            }
-            if (setOperationList.getOrderByElements() != null) {
-                profile.orderByCount += setOperationList.getOrderByElements().size();
-                profile.orderByExpressionCount += setOperationList.getOrderByElements().size();
-                for (OrderByElement orderByElement : setOperationList.getOrderByElements()) {
-                    profile.recordOrderBy(orderByElement, collectColumnReferences(orderByElement == null ? null : orderByElement.getExpression()));
-                    profile.recordOrderByKey(orderByElement == null ? null : orderByElement.getExpression());
-                }
-            }
-            if (setOperationList.getLimit() != null) {
-                profile.limitPresent = true;
-                profile.recordLimit(setOperationList.getLimit());
-            }
-            return;
-        }
-        if (selectBody instanceof WithItem) {
-            WithItem withItem = (WithItem) selectBody;
-            if (withItem.getSubSelect() != null) {
-                profile.recordCte(withItem);
-                analyzeSelectBody(withItem.getSubSelect().getSelectBody(), profile);
-            }
-        }
+    private RewriteOutcome applyCalciteRewriteRules(SqlNode statement) {
+        LinkedHashSet<String> appliedRules = new LinkedHashSet<String>();
+        SqlNode rewritten = rewriteCalciteNode(statement, appliedRules);
+        String rewrittenSql = rewritten == null
+            ? ""
+            : removeSimpleIdentifierQuotes(rewritten.toString()).replaceAll("\\s+", " ").trim();
+        return new RewriteOutcome(rewrittenSql, new ArrayList<String>(appliedRules));
     }
 
-    private void analyzePlainSelect(PlainSelect plainSelect, ParsedSqlProfile profile) {
-        profile.pushAliasScope(collectAliases(plainSelect));
-        try {
-            recordFromItemScan(plainSelect.getFromItem(), profile);
-            if (plainSelect.getSelectItems() != null) {
-                profile.projectionCount += plainSelect.getSelectItems().size();
-                for (SelectItem selectItem : plainSelect.getSelectItems()) {
-                    profile.recordProjection(selectItem, collectProjectionColumns(selectItem));
-                    if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
-                        profile.selectStar = true;
-                        profile.recordSelectStar(selectItem);
-                        continue;
-                    }
-                    if (selectItem instanceof SelectExpressionItem) {
-                        Expression expression = ((SelectExpressionItem) selectItem).getExpression();
-                        profile.recordExpression(expression);
-                        if (expression instanceof SubSelect) {
-                            profile.scalarSubqueryCount++;
-                        }
-                        if (isStringProjectionExpression(expression)) {
-                            profile.stringProjectionCount++;
-                        }
-                        if (containsStringConcatenationText(expression)) {
-                            profile.stringConcatenationCount++;
-                        }
-                        int textStringAggregates = countStringAggregateText(expression);
-                        if (textStringAggregates > 0) {
-                            profile.largeStringAggregateCount += textStringAggregates;
-                            profile.aggregateFunctionCount += textStringAggregates;
-                        }
-                        collectExpressionSignals(expression, profile.projectedColumns, profile.aggregateFunctions, profile);
+    private SqlNode rewriteCalciteNode(SqlNode node, Set<String> appliedRules) {
+        if (node == null) {
+            return null;
+        }
+        if (node instanceof SqlOrderBy) {
+            SqlOrderBy orderBy = (SqlOrderBy) node;
+            rewriteCalciteNode(orderBy.query, appliedRules);
+            deduplicateCalciteNodeList(orderBy.orderList, appliedRules, "DEDUPLICATE_ORDER_BY_KEYS");
+            return orderBy;
+        }
+        if (node instanceof SqlWith) {
+            SqlWith with = (SqlWith) node;
+            if (with.withList != null) {
+                for (SqlNode itemNode : with.withList.getList()) {
+                    if (itemNode instanceof SqlWithItem) {
+                        SqlWithItem item = (SqlWithItem) itemNode;
+                        item.query = rewriteCalciteNode(item.query, appliedRules);
+                    } else {
+                        rewriteCalciteNode(itemNode, appliedRules);
                     }
                 }
             }
-            if (plainSelect.getJoins() != null) {
-                profile.joinCount += plainSelect.getJoins().size();
-                for (Join join : plainSelect.getJoins()) {
-                    profile.joinTypes.add(join.isInner() ? "INNER" : join.toString().split("\\s+")[0].toUpperCase(Locale.ROOT));
-                    profile.recordJoin(plainSelect.getFromItem(), join);
-                    recordFromItemScan(join.getRightItem(), profile);
-                    analyzeFromItem(join.getRightItem(), profile);
-                    if (join.getOnExpressions() != null) {
-                        for (Expression onExpression : join.getOnExpressions()) {
-                            if (onExpression == null) {
-                                continue;
-                            }
-                            recordPredicates("JOIN_ON", onExpression, profile);
-                            profile.predicateCount += countPredicates(onExpression);
-                            profile.joinCriteriaCount += countPredicates(onExpression);
-                            profile.recordExpression(onExpression);
-                            collectExpressionSignals(onExpression, null, null, profile);
-                        }
+            with.body = rewriteCalciteNode(with.body, appliedRules);
+            return with;
+        }
+        if (node instanceof SqlSelect) {
+            rewriteCalciteSelect((SqlSelect) node, appliedRules);
+            return node;
+        }
+        if (node instanceof SqlJoin) {
+            SqlJoin join = (SqlJoin) node;
+            join.setLeft(rewriteCalciteNode(join.getLeft(), appliedRules));
+            join.setRight(rewriteCalciteNode(join.getRight(), appliedRules));
+            return join;
+        }
+        if (node instanceof SqlCall) {
+            SqlCall call = (SqlCall) node;
+            List<SqlNode> operands = call.getOperandList();
+            for (int index = 0; index < operands.size(); index++) {
+                SqlNode operand = operands.get(index);
+                SqlNode rewrittenOperand = rewriteCalciteNode(operand, appliedRules);
+                if (rewrittenOperand != operand) {
+                    try {
+                        call.setOperand(index, rewrittenOperand);
+                    } catch (UnsupportedOperationException ex) {
+                        // 部分 Calcite 节点操作数不可变；遍历仍会继续改写可变子节点。
                     }
                 }
             }
-            if (plainSelect.getWhere() != null) {
-                recordPredicates("WHERE", plainSelect.getWhere(), profile);
-                profile.predicateCount += countPredicates(plainSelect.getWhere());
-                profile.recordExpression(plainSelect.getWhere());
-                profile.datePredicateColumns.addAll(extractDatePredicateColumns(plainSelect.getWhere()));
-                collectExpressionSignals(plainSelect.getWhere(), null, null, profile);
+        }
+        return node;
+    }
+
+    private void rewriteCalciteSelect(SqlSelect select, Set<String> appliedRules) {
+        if (select == null) {
+            return;
+        }
+        select.setFrom(rewriteCalciteNode(select.getFrom(), appliedRules));
+        if (select.getSelectList() != null) {
+            for (int index = 0; index < select.getSelectList().size(); index++) {
+                SqlNode item = select.getSelectList().get(index);
+                SqlNode rewrittenItem = rewriteCountLiteralProjection(item, appliedRules);
+                if (rewrittenItem != item) {
+                    select.getSelectList().set(index, rewrittenItem);
+                }
+                rewriteCalciteNode(rewrittenItem, appliedRules);
             }
-            if (plainSelect.getHaving() != null) {
-                recordPredicates("HAVING", plainSelect.getHaving(), profile);
-                profile.predicateCount += countPredicates(plainSelect.getHaving());
-                profile.recordExpression(plainSelect.getHaving());
-                collectExpressionSignals(plainSelect.getHaving(), null, null, profile);
+        }
+        if (select.getWhere() != null) {
+            SqlNode deduplicatedWhere = deduplicateCalciteAndExpression(select.getWhere());
+            if (!normalizeCalciteKey(select.getWhere()).equals(normalizeCalciteKey(deduplicatedWhere))) {
+                select.setWhere(deduplicatedWhere);
+                appliedRules.add("DEDUPLICATE_WHERE_PREDICATES");
             }
-            if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressions() != null) {
-                profile.groupByCount += plainSelect.getGroupBy().getGroupByExpressions().size();
-                for (Expression expression : plainSelect.getGroupBy().getGroupByExpressions()) {
-                    profile.recordGroupBy(expression, collectColumnReferences(expression));
-                    profile.recordGroupByKey(expression);
-                    profile.recordExpression(expression);
-                    collectExpressionSignals(expression, null, profile.aggregateFunctions, profile);
+            rewriteCalciteNode(select.getWhere(), appliedRules);
+        }
+        if (select.getHaving() != null) {
+            SqlNode deduplicatedHaving = deduplicateCalciteAndExpression(select.getHaving());
+            if (!normalizeCalciteKey(select.getHaving()).equals(normalizeCalciteKey(deduplicatedHaving))) {
+                select.setHaving(deduplicatedHaving);
+                appliedRules.add("DEDUPLICATE_HAVING_PREDICATES");
+            }
+            rewriteCalciteNode(select.getHaving(), appliedRules);
+        }
+        if (select.getGroup() != null && deduplicateCalciteNodeList(select.getGroup(), appliedRules, "DEDUPLICATE_GROUP_BY_KEYS")) {
+            select.setGroupBy(select.getGroup());
+        }
+        if (select.getOrderList() != null && deduplicateCalciteNodeList(select.getOrderList(), appliedRules, "DEDUPLICATE_ORDER_BY_KEYS")) {
+            select.setOrderBy(select.getOrderList());
+        }
+    }
+
+    private SqlNode rewriteCountLiteralProjection(SqlNode node, Set<String> appliedRules) {
+        if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
+            SqlBasicCall asCall = (SqlBasicCall) node;
+            List<SqlNode> operands = asCall.getOperandList();
+            if (operands.size() >= 2) {
+                SqlNode rewritten = rewriteCountLiteralProjection(operands.get(0), appliedRules);
+                if (rewritten != operands.get(0)) {
+                    return SqlStdOperatorTable.AS.createCall(node.getParserPosition(), rewritten, operands.get(1));
                 }
             }
-            if (plainSelect.getOrderByElements() != null) {
-                profile.orderByCount += plainSelect.getOrderByElements().size();
-                profile.orderByExpressionCount += plainSelect.getOrderByElements().size();
-                for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
-                    profile.recordOrderBy(orderByElement, collectColumnReferences(orderByElement == null ? null : orderByElement.getExpression()));
-                    profile.recordOrderByKey(orderByElement == null ? null : orderByElement.getExpression());
-                    profile.recordExpression(orderByElement);
-                    collectOrderBySignals(orderByElement, profile);
-                }
-            }
-            if (plainSelect.getLimit() != null) {
-                profile.limitPresent = true;
-                profile.recordLimit(plainSelect.getLimit());
-            }
-            if (plainSelect.getDistinct() != null) {
-                profile.distinctPresent = true;
-            }
-            analyzeFromItem(plainSelect.getFromItem(), profile);
-        } finally {
-            profile.popAliasScope();
+            return node;
         }
+        if (!(node instanceof SqlBasicCall)) {
+            return node;
+        }
+        SqlBasicCall call = (SqlBasicCall) node;
+        String operatorName = call.getOperator() == null ? "" : call.getOperator().getName();
+        List<SqlNode> operands = call.getOperandList();
+        if ((call.getKind() == SqlKind.COUNT || "COUNT".equalsIgnoreCase(operatorName))
+            && operands.size() == 1
+            && isNonNullCalciteLiteral(operands.get(0))) {
+            SqlParserPos pos = node.getParserPosition() == null ? SqlParserPos.ZERO : node.getParserPosition();
+            appliedRules.add("COUNT_LITERAL_TO_COUNT_STAR");
+            return SqlStdOperatorTable.COUNT.createCall(pos, SqlIdentifier.star(pos));
+        }
+        return node;
     }
 
-    private void analyzeFromItem(FromItem fromItem, ParsedSqlProfile profile) {
-        if (fromItem instanceof SubSelect) {
-            processSubSelect((SubSelect) fromItem, profile, "FROM", aliasName(fromItem));
+    private boolean deduplicateCalciteNodeList(SqlNodeList nodeList, Set<String> appliedRules, String rule) {
+        if (nodeList == null || nodeList.size() <= 1) {
+            return false;
         }
+        LinkedHashMap<String, SqlNode> unique = new LinkedHashMap<String, SqlNode>();
+        for (SqlNode node : nodeList.getList()) {
+            unique.put(normalizeCalciteKey(node), node);
+        }
+        if (unique.size() == nodeList.size()) {
+            return false;
+        }
+        nodeList.clear();
+        nodeList.addAll(unique.values());
+        appliedRules.add(rule);
+        return true;
     }
 
-    private List<String> collectProjectionColumns(SelectItem selectItem) {
-        if (selectItem instanceof SelectExpressionItem) {
-            return collectColumnReferences(((SelectExpressionItem) selectItem).getExpression());
+    private SqlNode deduplicateCalciteAndExpression(SqlNode expression) {
+        List<SqlNode> flattened = new ArrayList<SqlNode>();
+        flattenCalciteAndExpression(expression, flattened);
+        LinkedHashMap<String, SqlNode> unique = new LinkedHashMap<String, SqlNode>();
+        for (SqlNode item : flattened) {
+            unique.put(normalizeCalciteKey(item), item);
         }
-        if (selectItem instanceof AllTableColumns) {
-            AllTableColumns allTableColumns = (AllTableColumns) selectItem;
-            if (allTableColumns.getTable() != null) {
-                return Collections.singletonList(allTableColumns.getTable().getFullyQualifiedName() + ".*");
+        return rebuildCalciteAndExpression(unique.values(), expression == null ? SqlParserPos.ZERO : expression.getParserPosition());
+    }
+
+    private void flattenCalciteAndExpression(SqlNode expression, List<SqlNode> collector) {
+        if (expression instanceof SqlBasicCall && expression.getKind() == SqlKind.AND) {
+            for (SqlNode operand : ((SqlBasicCall) expression).getOperandList()) {
+                flattenCalciteAndExpression(operand, collector);
             }
-        }
-        return Collections.emptyList();
-    }
-
-    private void recordPredicates(String clause, Expression expression, ParsedSqlProfile profile) {
-        if (expression == null || profile == null) {
             return;
         }
-        recordPredicateNode(clause, expression, profile, "AND", null, new int[] {0});
+        if (expression != null) {
+            collector.add(expression);
+        }
     }
 
-    private void recordPredicateNode(String clause,
-                                     Expression expression,
-                                     ParsedSqlProfile profile,
-                                     String logicalContext,
-                                     String groupId,
-                                     int[] groupCounter) {
-        if (expression == null) {
-            return;
-        }
-        if (expression instanceof Parenthesis) {
-            recordPredicateNode(
-                clause,
-                ((Parenthesis) expression).getExpression(),
-                profile,
-                logicalContext,
-                groupId,
-                groupCounter
-            );
-            return;
-        }
-        if (expression instanceof AndExpression) {
-            AndExpression andExpression = (AndExpression) expression;
-            if (StringUtils.hasText(groupId)) {
-                recordPredicateNode(
-                    clause,
-                    andExpression.getLeftExpression(),
-                    profile,
-                    logicalContext,
-                    groupId,
-                    groupCounter
-                );
-                recordPredicateNode(
-                    clause,
-                    andExpression.getRightExpression(),
-                    profile,
-                    logicalContext,
-                    groupId,
-                    groupCounter
-                );
+    private SqlNode rebuildCalciteAndExpression(Collection<SqlNode> expressions, SqlParserPos pos) {
+        SqlNode result = null;
+        for (SqlNode expression : expressions) {
+            if (result == null) {
+                result = expression;
             } else {
-                recordPredicateNode(
-                    clause,
-                    andExpression.getLeftExpression(),
-                    profile,
-                    "AND",
-                    null,
-                    groupCounter
-                );
-                recordPredicateNode(
-                    clause,
-                    andExpression.getRightExpression(),
-                    profile,
-                    "AND",
-                    null,
-                    groupCounter
-                );
-            }
-            return;
-        }
-        if (expression instanceof OrExpression) {
-            OrExpression orExpression = (OrExpression) expression;
-            String currentGroupId = StringUtils.hasText(groupId) ? groupId : nextPredicateGroupId(clause, groupCounter);
-            recordPredicateNode(
-                clause,
-                orExpression.getLeftExpression(),
-                profile,
-                "OR",
-                currentGroupId,
-                groupCounter
-            );
-            recordPredicateNode(
-                clause,
-                orExpression.getRightExpression(),
-                profile,
-                "OR",
-                currentGroupId,
-                groupCounter
-            );
-            return;
-        }
-        profile.recordPredicate(
-            clause,
-            expression,
-            collectColumnReferences(expression),
-            collectFunctionNames(expression),
-            logicalContext,
-            groupId
-        );
-    }
-
-    private String nextPredicateGroupId(String clause, int[] groupCounter) {
-        String prefix = StringUtils.hasText(clause) ? clause.trim().toUpperCase(Locale.ROOT) : "PREDICATE";
-        prefix = prefix.replaceAll("[^A-Z0-9]+", "_").replaceAll("^_+", "").replaceAll("_+$", "");
-        if (!StringUtils.hasText(prefix)) {
-            prefix = "PREDICATE";
-        }
-        groupCounter[0]++;
-        return prefix + "_OR_" + groupCounter[0];
-    }
-
-    private List<String> collectColumnReferences(Expression expression) {
-        LinkedHashSet<String> columns = new LinkedHashSet<String>();
-        collectColumnReferences(expression, columns);
-        return new ArrayList<String>(columns);
-    }
-
-    private void collectColumnReferences(Expression expression, Set<String> columns) {
-        if (expression == null || columns == null) {
-            return;
-        }
-        if (expression instanceof Column) {
-            String column = ((Column) expression).getFullyQualifiedName();
-            if (StringUtils.hasText(column)) {
-                columns.add(column);
-            }
-            return;
-        }
-        if (expression instanceof Function) {
-            Function function = (Function) expression;
-            if (function.getParameters() != null && function.getParameters().getExpressions() != null) {
-                for (Expression parameter : function.getParameters().getExpressions()) {
-                    collectColumnReferences(parameter, columns);
-                }
-            }
-            if (function.getAttribute() != null) {
-                collectColumnReferences(function.getAttribute(), columns);
-            }
-            return;
-        }
-        if (expression instanceof BinaryExpression) {
-            BinaryExpression binaryExpression = (BinaryExpression) expression;
-            collectColumnReferences(binaryExpression.getLeftExpression(), columns);
-            collectColumnReferences(binaryExpression.getRightExpression(), columns);
-            return;
-        }
-        if (expression instanceof Parenthesis) {
-            collectColumnReferences(((Parenthesis) expression).getExpression(), columns);
-            return;
-        }
-        if (expression instanceof NotExpression) {
-            collectColumnReferences(((NotExpression) expression).getExpression(), columns);
-            return;
-        }
-        if (expression instanceof ExistsExpression) {
-            collectColumnReferences(((ExistsExpression) expression).getRightExpression(), columns);
-            return;
-        }
-        if (expression instanceof InExpression) {
-            InExpression inExpression = (InExpression) expression;
-            collectColumnReferences(inExpression.getLeftExpression(), columns);
-            collectColumnReferences(inExpression.getRightExpression(), columns);
-            collectItemsListColumnReferences(inExpression.getRightItemsList(), columns);
-        }
-    }
-
-    private void collectItemsListColumnReferences(ItemsList itemsList, Set<String> columns) {
-        if (itemsList instanceof ExpressionList) {
-            ExpressionList expressionList = (ExpressionList) itemsList;
-            if (expressionList.getExpressions() != null) {
-                for (Expression expression : expressionList.getExpressions()) {
-                    collectColumnReferences(expression, columns);
-                }
+                result = SqlStdOperatorTable.AND.createCall(pos == null ? SqlParserPos.ZERO : pos, result, expression);
             }
         }
+        return result;
     }
 
-    private List<String> collectFunctionNames(Expression expression) {
-        LinkedHashSet<String> names = new LinkedHashSet<String>();
-        collectFunctionNames(expression, names);
-        return new ArrayList<String>(names);
+    private String normalizeCalciteKey(Object value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toString()
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .trim()
+            .replaceAll("\\s+", " ")
+            .toUpperCase(Locale.ROOT);
     }
 
-    private void collectFunctionNames(Expression expression, Set<String> names) {
-        if (expression == null || names == null) {
-            return;
+    private static String removeSimpleIdentifierQuotes(String value) {
+        if (value == null) {
+            return "";
         }
-        if (expression instanceof Function) {
-            Function function = (Function) expression;
-            if (StringUtils.hasText(function.getName())) {
-                names.add(function.getName().toUpperCase(Locale.ROOT));
-            }
-            if (function.getParameters() != null && function.getParameters().getExpressions() != null) {
-                for (Expression parameter : function.getParameters().getExpressions()) {
-                    collectFunctionNames(parameter, names);
-                }
-            }
-            if (function.getAttribute() != null) {
-                collectFunctionNames(function.getAttribute(), names);
-            }
-            return;
-        }
-        if (expression instanceof BinaryExpression) {
-            BinaryExpression binaryExpression = (BinaryExpression) expression;
-            collectFunctionNames(binaryExpression.getLeftExpression(), names);
-            collectFunctionNames(binaryExpression.getRightExpression(), names);
-            return;
-        }
-        if (expression instanceof Parenthesis) {
-            collectFunctionNames(((Parenthesis) expression).getExpression(), names);
-            return;
-        }
-        if (expression instanceof NotExpression) {
-            collectFunctionNames(((NotExpression) expression).getExpression(), names);
-            return;
-        }
-        if (expression instanceof ExistsExpression) {
-            collectFunctionNames(((ExistsExpression) expression).getRightExpression(), names);
-            return;
-        }
-        if (expression instanceof InExpression) {
-            InExpression inExpression = (InExpression) expression;
-            collectFunctionNames(inExpression.getLeftExpression(), names);
-            collectFunctionNames(inExpression.getRightExpression(), names);
-        }
-    }
-
-    private String aliasName(FromItem fromItem) {
-        return fromItem == null || fromItem.getAlias() == null ? null : fromItem.getAlias().getName();
-    }
-
-    private Set<String> collectAliases(PlainSelect plainSelect) {
-        LinkedHashSet<String> aliases = new LinkedHashSet<String>();
-        addAlias(aliases, plainSelect.getFromItem());
-        if (plainSelect.getJoins() != null) {
-            for (Join join : plainSelect.getJoins()) {
-                addAlias(aliases, join.getRightItem());
-            }
-        }
-        return aliases;
-    }
-
-    private void addAlias(Set<String> aliases, FromItem fromItem) {
-        if (fromItem == null || fromItem.getAlias() == null || fromItem.getAlias().getName() == null) {
-            return;
-        }
-        aliases.add(fromItem.getAlias().getName().toUpperCase(Locale.ROOT));
-    }
-
-    private void recordFromItemScan(FromItem fromItem, ParsedSqlProfile profile) {
-        if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
-            net.sf.jsqlparser.schema.Table table = (net.sf.jsqlparser.schema.Table) fromItem;
-            profile.recordTableScan(table.getFullyQualifiedName());
-            profile.recordTable(table);
-        }
-    }
-
-    private void collectExpressionSignals(Expression expression,
-                                          Set<String> projectedColumns,
-                                          Set<String> aggregateFunctions,
-                                          ParsedSqlProfile profile) {
-        if (expression == null) {
-            return;
-        }
-        if (expression instanceof SubSelect) {
-            processSubSelect((SubSelect) expression, profile, "EXPRESSION", aliasName((SubSelect) expression));
-            return;
-        }
-        if (expression instanceof Column) {
-            if (projectedColumns != null) {
-                projectedColumns.add(((Column) expression).getFullyQualifiedName());
-            }
-            return;
-        }
-        if (expression instanceof Function) {
-            Function function = (Function) expression;
-            if (function.getName() != null) {
-                String upperName = function.getName().toUpperCase(Locale.ROOT);
-                profile.recordFunctionSignal(function, collectColumnReferences(function));
-                if (aggregateFunctions != null && AGGREGATE_FUNCTIONS.contains(upperName)) {
-                    aggregateFunctions.add(upperName);
-                }
-                if (AGGREGATE_FUNCTIONS.contains(upperName)) {
-                    profile.aggregateFunctionCount++;
-                }
-                if (STRING_AGGREGATE_FUNCTIONS.contains(upperName)) {
-                    profile.largeStringAggregateCount++;
-                }
-                if (STRING_CONCAT_FUNCTIONS.contains(upperName)) {
-                    profile.stringConcatenationCount++;
-                } else if (function.toString().toUpperCase(Locale.ROOT).contains("CONCAT(")) {
-                    profile.stringConcatenationCount++;
-                }
-                if (!AGGREGATE_FUNCTIONS.contains(upperName) && !BUILT_IN_SCALAR_FUNCTIONS.contains(upperName)) {
-                    profile.udfFunctions.add(upperName);
-                }
-            }
-            if (function.getParameters() != null && function.getParameters().getExpressions() != null) {
-                for (Expression parameter : function.getParameters().getExpressions()) {
-                    collectExpressionSignals(parameter, projectedColumns, aggregateFunctions, profile);
-                }
-            }
-            if (function.getAttribute() != null) {
-                collectExpressionSignals(function.getAttribute(), projectedColumns, aggregateFunctions, profile);
-            }
-            return;
-        }
-        if (expression instanceof AnalyticExpression) {
-            profile.windowFunctionCount++;
-            return;
-        }
-        if (expression instanceof OrExpression) {
-            profile.orPredicateCount++;
-        }
-        if (expression instanceof NotExpression) {
-            Expression innerExpression = ((NotExpression) expression).getExpression();
-            if (innerExpression instanceof ExistsExpression) {
-                profile.notExistsCount++;
-            }
-            collectExpressionSignals(innerExpression, projectedColumns, aggregateFunctions, profile);
-            return;
-        }
-        if (expression instanceof ExistsExpression) {
-            ExistsExpression existsExpression = (ExistsExpression) expression;
-            if (existsExpression.isNot()) {
-                profile.notExistsCount++;
-            }
-            collectExpressionSignals(existsExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
-            return;
-        }
-        if (expression instanceof InExpression) {
-            InExpression inExpression = (InExpression) expression;
-            collectExpressionSignals(inExpression.getLeftExpression(), projectedColumns, aggregateFunctions, profile);
-            collectExpressionSignals(inExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
-            collectItemsListSignals(inExpression.getRightItemsList(), projectedColumns, aggregateFunctions, profile);
-            return;
-        }
-        if (expression instanceof LikeExpression) {
-            LikeExpression likeExpression = (LikeExpression) expression;
-            if (isLeadingWildcardLike(likeExpression)) {
-                profile.leadingWildcardLikeCount++;
-            }
-        }
-        if (expression instanceof ComparisonOperator && hasFunctionWrappedOperand((ComparisonOperator) expression)) {
-            profile.functionWrappedPredicateCount++;
-            profile.recordFunctionWrappedPredicate(expression);
-        }
-        if (expression instanceof BinaryExpression) {
-            BinaryExpression binaryExpression = (BinaryExpression) expression;
-            if (isStringConcatenationExpression(binaryExpression)) {
-                profile.stringConcatenationCount++;
-            }
-            collectExpressionSignals(binaryExpression.getLeftExpression(), projectedColumns, aggregateFunctions, profile);
-            collectExpressionSignals(binaryExpression.getRightExpression(), projectedColumns, aggregateFunctions, profile);
-            return;
-        }
-        if (expression instanceof Parenthesis) {
-            collectExpressionSignals(((Parenthesis) expression).getExpression(), projectedColumns, aggregateFunctions, profile);
-        }
-    }
-
-    private boolean isStringProjectionExpression(Expression expression) {
-        if (expression == null) {
-            return false;
-        }
-        if (expression instanceof StringValue) {
-            return true;
-        }
-        if (expression instanceof Column) {
-            return isStringLikeProjectionKey(((Column) expression).getColumnName());
-        }
-        if (expression instanceof Function) {
-            Function function = (Function) expression;
-            String name = function.getName() == null ? "" : function.getName().toUpperCase(Locale.ROOT);
-            return STRING_AGGREGATE_FUNCTIONS.contains(name)
-                || STRING_CONCAT_FUNCTIONS.contains(name)
-                || STRING_SCALAR_FUNCTIONS.contains(name)
-                || "CAST".equals(name) && expression.toString().toUpperCase(Locale.ROOT).contains("CHAR");
-        }
-        return expression.toString().contains("||");
-    }
-
-    private boolean isStringConcatenationExpression(BinaryExpression expression) {
-        return expression != null && expression.toString().contains("||");
-    }
-
-    private boolean containsStringConcatenationText(Object expression) {
-        if (expression == null) {
-            return false;
-        }
-        String text = expression.toString().toUpperCase(Locale.ROOT);
-        return text.contains("CONCAT(") || text.contains("||");
-    }
-
-    private int countStringAggregateText(Object expression) {
-        if (expression == null) {
-            return 0;
-        }
-        int count = 0;
-        Matcher matcher = STRING_AGGREGATE_PATTERN.matcher(expression.toString());
-        while (matcher.find()) {
-            count++;
-        }
-        return count;
-    }
-
-    private static boolean isStringLikeProjectionKey(String key) {
-        if (!StringUtils.hasText(key)) {
-            return false;
-        }
-        String normalized = key.replace("\"", "").replace("`", "").trim();
-        return STRING_LIKE_PROJECTION_PATTERN.matcher(normalized).find();
-    }
-
-    private void collectItemsListSignals(ItemsList itemsList,
-                                         Set<String> projectedColumns,
-                                         Set<String> aggregateFunctions,
-                                         ParsedSqlProfile profile) {
-        if (itemsList instanceof SubSelect) {
-            processSubSelect((SubSelect) itemsList, profile, "PREDICATE", aliasName((SubSelect) itemsList));
-            return;
-        }
-        if (itemsList instanceof ExpressionList) {
-            ExpressionList expressionList = (ExpressionList) itemsList;
-            if (expressionList.getExpressions() != null) {
-                for (Expression item : expressionList.getExpressions()) {
-                    collectExpressionSignals(item, projectedColumns, aggregateFunctions, profile);
-                }
-            }
-        }
-    }
-
-    private void processSubSelect(SubSelect subSelect, ParsedSqlProfile profile) {
-        processSubSelect(subSelect, profile, "SUBQUERY", aliasName(subSelect));
-    }
-
-    private void processSubSelect(SubSelect subSelect, ParsedSqlProfile profile, String location, String alias) {
-        if (subSelect == null) {
-            return;
-        }
-        profile.subqueryCount++;
-        profile.recordSubquery(subSelect);
-        profile.updateNestedSubqueryDepth();
-        boolean correlated = profile.referencesVisibleAlias(subSelect.toString());
-        profile.recordSubqueryNode(subSelect, location, alias, correlated);
-        if (correlated) {
-            profile.correlatedSubqueryCount++;
-        }
-        profile.subqueryDepth++;
-        try {
-            if (subSelect.getWithItemsList() != null) {
-                for (WithItem withItem : subSelect.getWithItemsList()) {
-                    if (withItem.getSubSelect() != null) {
-                        profile.recordCte(withItem);
-                        processSubSelect(withItem.getSubSelect(), profile, "CTE", withItem.getName());
-                    }
-                }
-            }
-            analyzeSelectBody(subSelect.getSelectBody(), profile);
-        } finally {
-            profile.subqueryDepth--;
-        }
-    }
-
-    private void collectOrderBySignals(OrderByElement orderByElement, ParsedSqlProfile profile) {
-        if (orderByElement == null) {
-            return;
-        }
-        Expression expression = orderByElement.getExpression();
-        if (expression instanceof Function) {
-            Function function = (Function) expression;
-            if ("RAND".equalsIgnoreCase(function.getName()) || "RANDOM".equalsIgnoreCase(function.getName())) {
-                profile.randomOrderCount++;
-            }
-        }
-        collectExpressionSignals(expression, null, null, profile);
-    }
-
-    private boolean isLeadingWildcardLike(LikeExpression expression) {
-        if (!(expression.getRightExpression() instanceof StringValue)) {
-            return false;
-        }
-        String value = ((StringValue) expression.getRightExpression()).getValue();
-        return value != null && value.startsWith("%");
-    }
-
-    private boolean hasFunctionWrappedOperand(ComparisonOperator expression) {
-        return isColumnFunction(expression.getLeftExpression()) || isColumnFunction(expression.getRightExpression());
-    }
-
-    private boolean isColumnFunction(Expression expression) {
-        if (!(expression instanceof Function)) {
-            return false;
-        }
-        Function function = (Function) expression;
-        if (function.getParameters() == null || function.getParameters().getExpressions() == null) {
-            return false;
-        }
-        for (Expression parameter : function.getParameters().getExpressions()) {
-            if (parameter instanceof Column) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private int countPredicates(Expression expression) {
-        if (expression == null) {
-            return 0;
-        }
-        if (expression instanceof Parenthesis) {
-            return countPredicates(((Parenthesis) expression).getExpression());
-        }
-        if (expression instanceof AndExpression) {
-            AndExpression andExpression = (AndExpression) expression;
-            return countPredicates(andExpression.getLeftExpression()) + countPredicates(andExpression.getRightExpression());
-        }
-        if (expression instanceof OrExpression) {
-            OrExpression orExpression = (OrExpression) expression;
-            return countPredicates(orExpression.getLeftExpression()) + countPredicates(orExpression.getRightExpression());
-        }
-        return 1;
-    }
-
-    private List<String> extractDatePredicateColumns(Expression expression) {
-        if (expression == null) {
-            return Collections.emptyList();
-        }
-        LinkedHashSet<String> columns = new LinkedHashSet<String>();
-        Matcher matcher = DATE_PREDICATE_PATTERN.matcher(expression.toString().toUpperCase(Locale.ROOT));
-        while (matcher.find()) {
-            columns.add(matcher.group(1));
-        }
-        return new ArrayList<String>(columns);
+        return SIMPLE_BACKTICK_IDENTIFIER_PATTERN.matcher(value).replaceAll("$1");
     }
 
     private void finalizeWarnings(ParsedSqlProfile profile) {
@@ -2931,156 +2361,12 @@ public class SqlOptimizationPipelineService {
         }
     }
 
-    private RewriteOutcome applyRewriteRules(Select select) {
-        LinkedHashSet<String> appliedRules = new LinkedHashSet<String>();
-        if (select == null) {
-            return new RewriteOutcome("", new ArrayList<String>(appliedRules));
+    private static boolean isStringLikeProjectionKey(String key) {
+        if (!StringUtils.hasText(key)) {
+            return false;
         }
-        if (select.getWithItemsList() != null) {
-            for (WithItem withItem : select.getWithItemsList()) {
-                if (withItem.getSubSelect() != null) {
-                    applyRewriteRules(withItem.getSubSelect().getSelectBody(), appliedRules);
-                }
-            }
-        }
-        applyRewriteRules(select.getSelectBody(), appliedRules);
-        return new RewriteOutcome(select.toString(), new ArrayList<String>(appliedRules));
-    }
-
-    private void applyRewriteRules(SelectBody selectBody, Set<String> appliedRules) {
-        if (selectBody == null) {
-            return;
-        }
-        if (selectBody instanceof PlainSelect) {
-            PlainSelect plainSelect = (PlainSelect) selectBody;
-            rewriteCountLiteralFunctions(plainSelect, appliedRules);
-            deduplicateAndPredicates(plainSelect, appliedRules);
-            deduplicateGroupBy(plainSelect, appliedRules);
-            deduplicateOrderBy(plainSelect, appliedRules);
-            if (plainSelect.getFromItem() instanceof SubSelect) {
-                applyRewriteRules(((SubSelect) plainSelect.getFromItem()).getSelectBody(), appliedRules);
-            }
-            return;
-        }
-        if (selectBody instanceof SetOperationList) {
-            SetOperationList setOperationList = (SetOperationList) selectBody;
-            if (setOperationList.getSelects() != null) {
-                for (SelectBody nestedBody : setOperationList.getSelects()) {
-                    applyRewriteRules(nestedBody, appliedRules);
-                }
-            }
-        }
-    }
-
-    private void rewriteCountLiteralFunctions(PlainSelect plainSelect, Set<String> appliedRules) {
-        if (plainSelect.getSelectItems() == null) {
-            return;
-        }
-        for (SelectItem selectItem : plainSelect.getSelectItems()) {
-            if (!(selectItem instanceof SelectExpressionItem)) {
-                continue;
-            }
-            Expression expression = ((SelectExpressionItem) selectItem).getExpression();
-            if (!(expression instanceof Function)) {
-                continue;
-            }
-            Function function = (Function) expression;
-            if (!"COUNT".equalsIgnoreCase(function.getName())
-                || function.isAllColumns()
-                || function.getParameters() == null
-                || function.getParameters().getExpressions() == null
-                || function.getParameters().getExpressions().size() != 1) {
-                continue;
-            }
-            Expression parameter = function.getParameters().getExpressions().get(0);
-            if (isNonNullLiteral(parameter)) {
-                function.setAllColumns(true);
-                function.setParameters(null);
-                appliedRules.add("COUNT_LITERAL_TO_COUNT_STAR");
-            }
-        }
-    }
-
-    private void deduplicateAndPredicates(PlainSelect plainSelect, Set<String> appliedRules) {
-        if (plainSelect.getWhere() != null) {
-            Expression deduplicatedWhere = deduplicateAndExpression(plainSelect.getWhere());
-            if (!plainSelect.getWhere().toString().equals(deduplicatedWhere.toString())) {
-                plainSelect.setWhere(deduplicatedWhere);
-                appliedRules.add("DEDUPLICATE_WHERE_PREDICATES");
-            }
-        }
-        if (plainSelect.getHaving() != null) {
-            Expression deduplicatedHaving = deduplicateAndExpression(plainSelect.getHaving());
-            if (!plainSelect.getHaving().toString().equals(deduplicatedHaving.toString())) {
-                plainSelect.setHaving(deduplicatedHaving);
-                appliedRules.add("DEDUPLICATE_HAVING_PREDICATES");
-            }
-        }
-    }
-
-    private Expression deduplicateAndExpression(Expression expression) {
-        List<Expression> flattened = new ArrayList<Expression>();
-        flattenAndExpression(expression, flattened);
-        LinkedHashMap<String, Expression> unique = new LinkedHashMap<String, Expression>();
-        for (Expression item : flattened) {
-            unique.put(item.toString().toUpperCase(Locale.ROOT), item);
-        }
-        return rebuildAndExpression(unique.values());
-    }
-
-    private void flattenAndExpression(Expression expression, List<Expression> collector) {
-        if (expression instanceof Parenthesis) {
-            flattenAndExpression(((Parenthesis) expression).getExpression(), collector);
-            return;
-        }
-        if (expression instanceof AndExpression) {
-            AndExpression andExpression = (AndExpression) expression;
-            flattenAndExpression(andExpression.getLeftExpression(), collector);
-            flattenAndExpression(andExpression.getRightExpression(), collector);
-            return;
-        }
-        collector.add(expression);
-    }
-
-    private Expression rebuildAndExpression(Collection<Expression> expressions) {
-        Expression result = null;
-        for (Expression expression : expressions) {
-            if (result == null) {
-                result = expression;
-            } else {
-                result = new AndExpression(result, expression);
-            }
-        }
-        return result;
-    }
-
-    private void deduplicateGroupBy(PlainSelect plainSelect, Set<String> appliedRules) {
-        GroupByElement groupBy = plainSelect.getGroupBy();
-        if (groupBy == null || groupBy.getGroupByExpressions() == null || groupBy.getGroupByExpressions().isEmpty()) {
-            return;
-        }
-        LinkedHashMap<String, Expression> unique = new LinkedHashMap<String, Expression>();
-        for (Expression expression : groupBy.getGroupByExpressions()) {
-            unique.put(expression.toString().toUpperCase(Locale.ROOT), expression);
-        }
-        if (unique.size() != groupBy.getGroupByExpressions().size()) {
-            groupBy.setGroupByExpressions(new ArrayList<Expression>(unique.values()));
-            appliedRules.add("DEDUPLICATE_GROUP_BY_KEYS");
-        }
-    }
-
-    private void deduplicateOrderBy(PlainSelect plainSelect, Set<String> appliedRules) {
-        if (plainSelect.getOrderByElements() == null || plainSelect.getOrderByElements().isEmpty()) {
-            return;
-        }
-        LinkedHashMap<String, OrderByElement> unique = new LinkedHashMap<String, OrderByElement>();
-        for (OrderByElement orderByElement : plainSelect.getOrderByElements()) {
-            unique.put(orderByElement.toString().toUpperCase(Locale.ROOT), orderByElement);
-        }
-        if (unique.size() != plainSelect.getOrderByElements().size()) {
-            plainSelect.setOrderByElements(new ArrayList<OrderByElement>(unique.values()));
-            appliedRules.add("DEDUPLICATE_ORDER_BY_KEYS");
-        }
+        String normalized = key.replace("\"", "").replace("`", "").trim();
+        return STRING_LIKE_PROJECTION_PATTERN.matcher(normalized).find();
     }
 
     private LinkedHashMap<AccelerationSuggestionType, String> deriveAccelerationReasons(ParsedSqlProfile profile) {
@@ -3298,12 +2584,11 @@ public class SqlOptimizationPipelineService {
         return clamp(54 + reasons.size() * 8 + profile.aggregateFunctions.size() * 3 - profile.warnings.size() * 3, 40, 90);
     }
 
-    private boolean isNonNullLiteral(Expression expression) {
-        return expression instanceof LongValue
-            || expression instanceof DoubleValue
-            || expression instanceof StringValue
-            || expression instanceof DateValue
-            || expression instanceof TimestampValue;
+    private boolean isNonNullCalciteLiteral(SqlNode expression) {
+        if (!(expression instanceof SqlLiteral)) {
+            return false;
+        }
+        return ((SqlLiteral) expression).getValue() != null;
     }
 
     private SqlOptimizationExecutionException invalidTask(String message, String suggestedAction) {
@@ -3346,6 +2631,41 @@ public class SqlOptimizationPipelineService {
 
     private String normalizeSql(String sqlText) {
         return SqlDialectNormalizer.normalize(sqlText);
+    }
+
+    private void augmentCalciteProfileFromSqlText(String normalizedSql, ParsedSqlProfile profile) {
+        if (!StringUtils.hasText(normalizedSql) || profile == null) {
+            return;
+        }
+        profile.datePredicateColumns.addAll(extractDatePredicateColumns(normalizedSql));
+        recordSqlLevelFunctionWrappedPredicates(normalizedSql, profile);
+    }
+
+    private List<String> extractDatePredicateColumns(String expressionSql) {
+        if (expressionSql == null) {
+            return Collections.emptyList();
+        }
+        LinkedHashSet<String> columns = new LinkedHashSet<String>();
+        Matcher matcher = DATE_PREDICATE_PATTERN.matcher(expressionSql.toUpperCase(Locale.ROOT));
+        while (matcher.find()) {
+            columns.add(matcher.group(1));
+        }
+        return new ArrayList<String>(columns);
+    }
+
+    private void recordSqlLevelFunctionWrappedPredicates(String normalizedSql, ParsedSqlProfile profile) {
+        Matcher matcher = FUNCTION_WRAPPED_PREDICATE_PATTERN.matcher(normalizedSql);
+        int detected = 0;
+        while (matcher.find()) {
+            String expression = matcher.group().replace('\n', ' ').replace('\r', ' ').trim().replaceAll("\\s+", " ");
+            if (StringUtils.hasText(expression) && !profile.functionWrappedPredicateExpressions.contains(expression)) {
+                profile.functionWrappedPredicateExpressions.add(expression);
+            }
+            detected++;
+        }
+        if (detected > 0 && profile.functionWrappedPredicateCount == 0) {
+            profile.functionWrappedPredicateCount = detected;
+        }
     }
 
     private SqlFailurePosition analyzeSqlFailurePosition(Throwable cause, String sqlText) {
@@ -3596,8 +2916,9 @@ public class SqlOptimizationPipelineService {
         private void collectOrderBy(SqlOrderBy orderBy, ParsedSqlProfile profile, boolean root) {
             collect(orderBy.query, profile, root);
             collectOrderList(orderBy.orderList, profile);
-            if (orderBy.fetch != null) {
+            if (orderBy.fetch != null || orderBy.offset != null) {
                 profile.limitPresent = true;
+                profile.recordLimit(orderBy.fetch, orderBy.offset);
             }
         }
 
@@ -3607,7 +2928,9 @@ public class SqlOptimizationPipelineService {
                 if (with.withList != null) {
                     for (SqlNode itemNode : with.withList.getList()) {
                         if (itemNode instanceof SqlWithItem) {
-                            String cteName = normalizeCalciteIdentifier(((SqlWithItem) itemNode).name);
+                            SqlWithItem withItem = (SqlWithItem) itemNode;
+                            profile.recordCte(withItem);
+                            String cteName = normalizeCalciteIdentifier(withItem.name);
                             if (StringUtils.hasText(cteName) && cteNames.add(cteName.toUpperCase(Locale.ROOT))) {
                                 addedCteNames.add(cteName.toUpperCase(Locale.ROOT));
                             }
@@ -3635,34 +2958,43 @@ public class SqlOptimizationPipelineService {
                 profile.subqueryCount++;
                 profile.recordSubquery(select);
                 profile.updateNestedSubqueryDepth();
+                boolean correlated = profile.referencesVisibleAlias(select.toString());
+                profile.recordSubqueryNode(select, "SUBQUERY", "", correlated);
+                if (correlated) {
+                    profile.correlatedSubqueryCount++;
+                }
                 profile.subqueryDepth++;
             }
+            profile.pushAliasScope(collectCalciteAliases(select.getFrom()));
             try {
                 collectSelectList(select.getSelectList(), profile);
                 collectFrom(select.getFrom(), profile);
                 if (select.getWhere() != null) {
-                    collectPredicate(select.getWhere(), profile);
+                    collectPredicate("WHERE", select.getWhere(), profile);
                 }
                 SqlNodeList group = select.getGroup();
                 if (group != null) {
                     profile.groupByCount += group.size();
                     for (SqlNode item : group.getList()) {
+                        profile.recordGroupBy(item, collectCalciteColumnReferences(item));
                         profile.recordGroupByKey(item);
                         profile.recordExpression(item);
                         collectExpression(item, profile);
                     }
                 }
                 if (select.getHaving() != null) {
-                    collectPredicate(select.getHaving(), profile);
+                    collectPredicate("HAVING", select.getHaving(), profile);
                 }
                 collectOrderList(select.getOrderList(), profile);
-                if (select.getFetch() != null) {
+                if (select.getFetch() != null || select.getOffset() != null) {
                     profile.limitPresent = true;
+                    profile.recordLimit(select.getFetch(), select.getOffset());
                 }
                 if (select.isDistinct()) {
                     profile.distinctPresent = true;
                 }
             } finally {
+                profile.popAliasScope();
                 if (!root) {
                     profile.subqueryDepth--;
                 }
@@ -3675,17 +3007,43 @@ public class SqlOptimizationPipelineService {
             }
             profile.projectionCount += selectList.size();
             for (SqlNode item : selectList.getList()) {
-                if (isStar(item)) {
+                SqlNode expression = calciteExpressionWithoutAlias(item);
+                profile.recordProjection(item, collectCalciteColumnReferences(expression));
+                if (isCalciteSelectLike(expression) || (expression != null && expression.getKind() == SqlKind.SCALAR_QUERY)) {
+                    recordSubqueryOperand(expression, profile, "EXPRESSION", calciteProjectionAlias(item), true);
+                    continue;
+                }
+                if (isStar(expression)) {
                     profile.selectStar = true;
                     profile.recordSelectStar(item);
                     continue;
                 }
-                if (isCalciteStringProjection(item)) {
+                if (isCalciteStringProjection(expression)) {
                     profile.stringProjectionCount++;
                 }
-                profile.recordExpression(item);
-                collectExpression(item, profile);
+                profile.recordExpression(expression);
+                collectExpression(expression, profile);
             }
+        }
+
+        private SqlNode calciteExpressionWithoutAlias(SqlNode node) {
+            if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+                if (!operands.isEmpty()) {
+                    return operands.get(0);
+                }
+            }
+            return node;
+        }
+
+        private String calciteProjectionAlias(SqlNode node) {
+            if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+                if (operands.size() >= 2) {
+                    return normalizeCalciteIdentifier(operands.get(1));
+                }
+            }
+            return "";
         }
 
         private void collectFrom(SqlNode from, ParsedSqlProfile profile) {
@@ -3695,22 +3053,91 @@ public class SqlOptimizationPipelineService {
             if (from instanceof SqlIdentifier) {
                 String table = normalizeCalciteIdentifier(from);
                 if (isCteReference(table)) {
+                    profile.recordTable(table, "", "CTE_REFERENCE");
                     return;
                 }
                 if (!profile.tables.contains(table)) {
                     profile.tables.add(table);
                 }
                 profile.recordTableScan(table);
+                profile.recordTable(table, "", "BASE_TABLE");
                 return;
             }
             if (from instanceof SqlBasicCall && from.getKind() == SqlKind.AS) {
                 List<SqlNode> operands = ((SqlBasicCall) from).getOperandList();
                 if (!operands.isEmpty()) {
-                    collectFrom(operands.get(0), profile);
+                    String alias = operands.size() > 1 ? normalizeCalciteIdentifier(operands.get(1)) : "";
+                    SqlNode relation = operands.get(0);
+                    if (relation instanceof SqlIdentifier) {
+                        String table = normalizeCalciteIdentifier(relation);
+                        if (isCteReference(table)) {
+                            profile.recordTable(table, alias, "CTE_REFERENCE");
+                            return;
+                        }
+                        if (!profile.tables.contains(table)) {
+                            profile.tables.add(table);
+                        }
+                        profile.recordTableScan(table);
+                        profile.recordTable(table, alias, "BASE_TABLE");
+                        return;
+                    }
+                    if (isCalciteSelectLike(relation)) {
+                        profile.subqueryCount++;
+                        profile.recordSubquery(relation);
+                        profile.updateNestedSubqueryDepth();
+                        boolean correlated = profile.referencesVisibleAlias(relation.toString());
+                        profile.recordSubqueryNode(relation, "FROM", alias, correlated);
+                        if (correlated) {
+                            profile.correlatedSubqueryCount++;
+                        }
+                        profile.subqueryDepth++;
+                        try {
+                            collect(relation, profile, true);
+                        } finally {
+                            profile.subqueryDepth--;
+                        }
+                        return;
+                    }
+                    collectFrom(relation, profile);
                 }
                 return;
             }
             collect(from, profile, false);
+        }
+
+        private Set<String> collectCalciteAliases(SqlNode from) {
+            LinkedHashSet<String> aliases = new LinkedHashSet<String>();
+            collectCalciteAliases(from, aliases);
+            return aliases;
+        }
+
+        private void collectCalciteAliases(SqlNode node, Set<String> aliases) {
+            if (node == null || aliases == null) {
+                return;
+            }
+            if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+                if (operands.size() >= 2) {
+                    String alias = normalizeCalciteIdentifier(operands.get(1));
+                    if (StringUtils.hasText(alias)) {
+                        aliases.add(alias.toUpperCase(Locale.ROOT));
+                    }
+                    collectCalciteAliases(operands.get(0), aliases);
+                }
+                return;
+            }
+            if (node instanceof SqlJoin) {
+                collectCalciteAliases(((SqlJoin) node).getLeft(), aliases);
+                collectCalciteAliases(((SqlJoin) node).getRight(), aliases);
+                return;
+            }
+            if (node instanceof SqlIdentifier) {
+                String table = normalizeCalciteIdentifier(node);
+                if (StringUtils.hasText(table)) {
+                    String[] parts = table.split("\\.");
+                    aliases.add(parts[parts.length - 1].toUpperCase(Locale.ROOT));
+                }
+            }
         }
 
         private boolean isCteReference(String tableName) {
@@ -3727,8 +3154,69 @@ public class SqlOptimizationPipelineService {
             return node.toString()
                 .replace("\"", "")
                 .replace("`", "")
-                .trim()
-                .toLowerCase(Locale.ROOT);
+                .trim();
+        }
+
+        private List<String> collectCalciteColumnReferences(SqlNode node) {
+            LinkedHashSet<String> columns = new LinkedHashSet<String>();
+            collectCalciteColumnReferences(node, columns);
+            return new ArrayList<String>(columns);
+        }
+
+        private void collectCalciteColumnReferences(SqlNode node, Set<String> columns) {
+            if (node == null || columns == null) {
+                return;
+            }
+            if (node instanceof SqlIdentifier) {
+                SqlIdentifier identifier = (SqlIdentifier) node;
+                if (!identifier.isStar()) {
+                    columns.add(removeSimpleIdentifierQuotes(identifier.toString()));
+                }
+                return;
+            }
+            if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+                if (!operands.isEmpty()) {
+                    collectCalciteColumnReferences(operands.get(0), columns);
+                }
+                return;
+            }
+            if (node instanceof SqlCall) {
+                for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+                    collectCalciteColumnReferences(operand, columns);
+                }
+            }
+        }
+
+        private List<String> collectCalciteFunctionNames(SqlNode node) {
+            LinkedHashSet<String> names = new LinkedHashSet<String>();
+            collectCalciteFunctionNames(node, names);
+            return new ArrayList<String>(names);
+        }
+
+        private void collectCalciteFunctionNames(SqlNode node, Set<String> names) {
+            if (node == null || names == null) {
+                return;
+            }
+            if (node instanceof SqlBasicCall) {
+                SqlBasicCall call = (SqlBasicCall) node;
+                if (call.getKind() == SqlKind.AS) {
+                    List<SqlNode> operands = call.getOperandList();
+                    if (!operands.isEmpty()) {
+                        collectCalciteFunctionNames(operands.get(0), names);
+                    }
+                    return;
+                }
+                String functionName = call.getOperator() == null ? "" : call.getOperator().getName();
+                if (StringUtils.hasText(functionName)) {
+                    names.add(functionName.toUpperCase(Locale.ROOT));
+                }
+            }
+            if (node instanceof SqlCall) {
+                for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+                    collectCalciteFunctionNames(operand, names);
+                }
+            }
         }
 
         private void collectJoin(SqlJoin join, ParsedSqlProfile profile) {
@@ -3736,12 +3224,21 @@ public class SqlOptimizationPipelineService {
             if (join.getJoinType() != null) {
                 profile.joinTypes.add(join.getJoinType().name());
             }
+            profile.recordJoin(join.getLeft(), join);
             collectFrom(join.getLeft(), profile);
             collectFrom(join.getRight(), profile);
             if (join.getCondition() != null) {
                 int predicateCount = countCalcitePredicates(join.getCondition().toString());
                 profile.predicateCount += predicateCount;
                 profile.joinCriteriaCount += predicateCount;
+                profile.recordPredicate(
+                    "JOIN_ON",
+                    join.getCondition(),
+                    collectCalciteColumnReferences(join.getCondition()),
+                    collectCalciteFunctionNames(join.getCondition()),
+                    "AND",
+                    ""
+                );
                 profile.recordExpression(join.getCondition());
                 collectExpression(join.getCondition(), profile);
             }
@@ -3753,12 +3250,57 @@ public class SqlOptimizationPipelineService {
             }
         }
 
-        private void collectPredicate(SqlNode predicate, ParsedSqlProfile profile) {
+        private void collectPredicate(String clause, SqlNode predicate, ParsedSqlProfile profile) {
             String predicateSql = predicate.toString();
             profile.predicateCount += countCalcitePredicates(predicateSql);
             profile.datePredicateColumns.addAll(extractCalciteDatePredicateColumns(predicateSql));
+            recordCalcitePredicateNode(clause, predicate, profile, "AND", null, new int[] {0});
             profile.recordExpression(predicateSql);
             collectExpression(predicate, profile);
+        }
+
+        private void recordCalcitePredicateNode(String clause,
+                                                SqlNode predicate,
+                                                ParsedSqlProfile profile,
+                                                String logicalContext,
+                                                String groupId,
+                                                int[] groupCounter) {
+            if (predicate == null) {
+                return;
+            }
+            if (predicate instanceof SqlBasicCall && predicate.getKind() == SqlKind.AND) {
+                for (SqlNode operand : ((SqlBasicCall) predicate).getOperandList()) {
+                    recordCalcitePredicateNode(clause, operand, profile, logicalContext, groupId, groupCounter);
+                }
+                return;
+            }
+            if (predicate instanceof SqlBasicCall && predicate.getKind() == SqlKind.OR) {
+                String currentGroupId = StringUtils.hasText(groupId)
+                    ? groupId
+                    : nextCalcitePredicateGroupId(clause, groupCounter);
+                for (SqlNode operand : ((SqlBasicCall) predicate).getOperandList()) {
+                    recordCalcitePredicateNode(clause, operand, profile, "OR", currentGroupId, groupCounter);
+                }
+                return;
+            }
+            profile.recordPredicate(
+                clause,
+                predicate,
+                collectCalciteColumnReferences(predicate),
+                collectCalciteFunctionNames(predicate),
+                logicalContext,
+                groupId
+            );
+        }
+
+        private String nextCalcitePredicateGroupId(String clause, int[] groupCounter) {
+            String prefix = StringUtils.hasText(clause) ? clause.trim().toUpperCase(Locale.ROOT) : "PREDICATE";
+            prefix = prefix.replaceAll("[^A-Z0-9]+", "_").replaceAll("^_+", "").replaceAll("_+$", "");
+            if (!StringUtils.hasText(prefix)) {
+                prefix = "PREDICATE";
+            }
+            groupCounter[0]++;
+            return prefix + "_OR_" + groupCounter[0];
         }
 
         private void collectOrderList(SqlNodeList orderList, ParsedSqlProfile profile) {
@@ -3768,6 +3310,7 @@ public class SqlOptimizationPipelineService {
             profile.orderByCount += orderList.size();
             profile.orderByExpressionCount += orderList.size();
             for (SqlNode item : orderList.getList()) {
+                profile.recordOrderBy(item, collectCalciteColumnReferences(item));
                 profile.recordOrderByKey(item);
                 profile.recordExpression(item);
                 if (isRandomOrder(item)) {
@@ -3786,8 +3329,18 @@ public class SqlOptimizationPipelineService {
             if (kind == SqlKind.AS) {
                 List<SqlNode> operands = call.getOperandList();
                 if (!operands.isEmpty()) {
+                    if (isCalciteSelectLike(operands.get(0)) || operands.get(0).getKind() == SqlKind.SCALAR_QUERY) {
+                        recordSubqueryOperand(operands.get(0), profile, "EXPRESSION", normalizeCalciteIdentifier(
+                            operands.size() > 1 ? operands.get(1) : null
+                        ), true);
+                        return;
+                    }
                     collectExpression(operands.get(0), profile);
                 }
+                return;
+            }
+            if (kind == SqlKind.SCALAR_QUERY) {
+                recordSubqueryOperand(call, profile, "EXPRESSION", "", true);
                 return;
             }
             if (kind == SqlKind.OR) {
@@ -3810,11 +3363,58 @@ public class SqlOptimizationPipelineService {
             collectGenericCall(call, profile);
         }
 
+        private void recordSubqueryOperand(SqlNode node,
+                                           ParsedSqlProfile profile,
+                                           String location,
+                                           String alias,
+                                           boolean scalar) {
+            SqlNode query = unwrapScalarQuery(node);
+            if (query == null) {
+                return;
+            }
+            profile.subqueryCount++;
+            if (scalar) {
+                profile.scalarSubqueryCount++;
+            }
+            profile.recordSubquery(query);
+            profile.updateNestedSubqueryDepth();
+            boolean correlated = profile.referencesVisibleAlias(query.toString());
+            profile.recordSubqueryNode(query, location, alias, correlated);
+            if (correlated) {
+                profile.correlatedSubqueryCount++;
+            }
+            profile.subqueryDepth++;
+            try {
+                collect(query, profile, true);
+            } finally {
+                profile.subqueryDepth--;
+            }
+        }
+
+        private SqlNode unwrapScalarQuery(SqlNode node) {
+            if (node instanceof SqlBasicCall && node.getKind() == SqlKind.SCALAR_QUERY) {
+                List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+                return operands.isEmpty() ? null : operands.get(0);
+            }
+            return isCalciteSelectLike(node) ? node : null;
+        }
+
         private void collectGenericCall(SqlCall call, ParsedSqlProfile profile) {
             if (call.getKind() == SqlKind.UNION || call.getKind() == SqlKind.INTERSECT || call.getKind() == SqlKind.EXCEPT) {
                 profile.setOperation = true;
             }
             for (SqlNode operand : call.getOperandList()) {
+                if (isCalciteSelectLike(operand) || (operand != null && operand.getKind() == SqlKind.SCALAR_QUERY)) {
+                    boolean scalar = operand != null && operand.getKind() == SqlKind.SCALAR_QUERY;
+                    recordSubqueryOperand(
+                        operand,
+                        profile,
+                        "EXPRESSION",
+                        "",
+                        scalar
+                    );
+                    continue;
+                }
                 collect(operand, profile, false);
             }
         }
@@ -3825,6 +3425,7 @@ public class SqlOptimizationPipelineService {
                 return;
             }
             String upperName = functionName.toUpperCase(Locale.ROOT);
+            profile.recordFunctionSignal(call, collectCalciteColumnReferences(call));
             if (AGGREGATE_FUNCTIONS.contains(upperName)) {
                 profile.aggregateFunctions.add(upperName);
                 profile.aggregateFunctionCount++;
@@ -4144,7 +3745,7 @@ public class SqlOptimizationPipelineService {
         private final LinkedHashMap<String, Integer> subqueryFrequency = new LinkedHashMap<String, Integer>();
         private final Deque<Set<String>> aliasScopes = new ArrayDeque<Set<String>>();
         private final AdvancedStructureProfile advancedStructureProfile = new AdvancedStructureProfile();
-        private String parserEngine = "JSQLPARSER";
+        private String parserEngine = "APACHE_CALCITE";
         private int projectionCount;
         private int predicateCount;
         private int joinCount;
@@ -4443,20 +4044,20 @@ public class SqlOptimizationPipelineService {
             advancedStructureProfile.markPartial();
         }
 
-        private void recordCte(WithItem withItem) {
+        private void recordCte(SqlWithItem withItem) {
             advancedStructureProfile.recordCte(withItem);
         }
 
-        private void recordTable(net.sf.jsqlparser.schema.Table table) {
-            advancedStructureProfile.recordTable(table);
+        private void recordTable(String tableName, String alias, String sourceType) {
+            advancedStructureProfile.recordTable(tableName, alias, sourceType);
         }
 
-        private void recordProjection(SelectItem selectItem, List<String> sourceColumns) {
+        private void recordProjection(SqlNode selectItem, List<String> sourceColumns) {
             advancedStructureProfile.recordProjection(selectItem, sourceColumns);
         }
 
         private void recordPredicate(String clause,
-                                     Expression predicate,
+                                     SqlNode predicate,
                                      List<String> sourceColumns,
                                      List<String> functionNames,
                                      String logicalContext,
@@ -4471,27 +4072,27 @@ public class SqlOptimizationPipelineService {
             );
         }
 
-        private void recordJoin(FromItem leftItem, Join join) {
+        private void recordJoin(SqlNode leftItem, SqlJoin join) {
             advancedStructureProfile.recordJoin(leftItem, join);
         }
 
-        private void recordGroupBy(Expression expression, List<String> sourceColumns) {
+        private void recordGroupBy(SqlNode expression, List<String> sourceColumns) {
             advancedStructureProfile.recordGroupBy(expression, sourceColumns);
         }
 
-        private void recordOrderBy(OrderByElement orderByElement, List<String> sourceColumns) {
+        private void recordOrderBy(SqlNode orderByElement, List<String> sourceColumns) {
             advancedStructureProfile.recordOrderBy(orderByElement, sourceColumns);
         }
 
-        private void recordLimit(net.sf.jsqlparser.statement.select.Limit limit) {
-            advancedStructureProfile.recordLimit(limit);
+        private void recordLimit(SqlNode fetch, SqlNode offset) {
+            advancedStructureProfile.recordLimit(fetch, offset);
         }
 
-        private void recordSubqueryNode(SubSelect subSelect, String location, String alias, boolean correlated) {
+        private void recordSubqueryNode(SqlNode subSelect, String location, String alias, boolean correlated) {
             advancedStructureProfile.recordSubquery(subSelect, location, alias, subqueryDepth + 1, correlated);
         }
 
-        private void recordFunctionSignal(Function function, List<String> sourceColumns) {
+        private void recordFunctionSignal(SqlBasicCall function, List<String> sourceColumns) {
             advancedStructureProfile.recordFunctionSignal(function, sourceColumns);
         }
 
@@ -4501,14 +4102,6 @@ public class SqlOptimizationPipelineService {
 
         private void recordExpression(Object expression) {
             if (expression == null) {
-                return;
-            }
-            if (expression instanceof OrderByElement) {
-                recordExpression(((OrderByElement) expression).getExpression());
-                return;
-            }
-            if (expression instanceof Parenthesis) {
-                recordExpression(((Parenthesis) expression).getExpression());
                 return;
             }
             String key = expression.toString().trim().toUpperCase(Locale.ROOT);
@@ -4532,15 +4125,9 @@ public class SqlOptimizationPipelineService {
         }
 
         private boolean isSimpleExpressionReference(Object expression, String key) {
-            if (expression instanceof Column
-                || expression instanceof SqlIdentifier
+            if (expression instanceof SqlIdentifier
                 || expression instanceof DereferenceExpression
-                || expression instanceof LongValue
-                || expression instanceof DoubleValue
-                || expression instanceof StringValue
-                || expression instanceof DateValue
-                || expression instanceof TimestampValue
-                || expression instanceof NullValue) {
+                || expression instanceof SqlLiteral) {
                 return true;
             }
             return key.matches("[A-Z_][A-Z0-9_]*(\\.[A-Z_][A-Z0-9_]*)*")
@@ -4651,7 +4238,7 @@ public class SqlOptimizationPipelineService {
             if (sql == null || aliasScopes.isEmpty()) {
                 return false;
             }
-            String normalized = sql.toUpperCase(Locale.ROOT);
+            String normalized = removeSimpleIdentifierQuotes(sql).toUpperCase(Locale.ROOT);
             for (Set<String> scope : aliasScopes) {
                 for (String alias : scope) {
                     if (alias != null && !alias.isEmpty() && normalized.contains(alias + ".")) {
@@ -4692,39 +4279,39 @@ public class SqlOptimizationPipelineService {
             profileStatus = "PARTIAL";
         }
 
-        private void recordCte(WithItem withItem) {
-            if (withItem == null || !StringUtils.hasText(withItem.getName())) {
+        private void recordCte(SqlWithItem withItem) {
+            if (withItem == null || withItem.name == null) {
                 return;
             }
-            String name = cleanIdentifier(withItem.getName());
+            String name = cleanIdentifier(withItem.name.toString());
             cteNames.add(name.toUpperCase(Locale.ROOT));
             LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
             item.put("name", name);
-            item.put("recursive", Boolean.valueOf(withItem.isRecursive()));
-            item.put("query", withItem.getSubSelect() == null ? "" : normalizeText(withItem.getSubSelect()));
-            item.put("columns", selectItemTexts(withItem.getWithItemList()));
+            item.put("recursive", Boolean.valueOf(withItem.recursive != null && Boolean.TRUE.equals(withItem.recursive.getValue())));
+            item.put("query", normalizeText(withItem.query));
+            item.put("columns", nodeListTexts(withItem.columnList));
             addUnique(ctes, item);
         }
 
-        private void recordTable(net.sf.jsqlparser.schema.Table table) {
-            if (table == null || !StringUtils.hasText(table.getFullyQualifiedName())) {
+        private void recordTable(String tableName, String alias, String sourceType) {
+            if (!StringUtils.hasText(tableName)) {
                 return;
             }
-            String tableName = cleanIdentifier(table.getFullyQualifiedName());
+            String cleanTableName = cleanIdentifier(tableName);
             LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
-            item.put("tableName", tableName);
-            item.put("schemaName", cleanIdentifier(table.getSchemaName()));
-            item.put("alias", aliasName(table));
-            item.put("sourceType", isCteName(tableName) ? "CTE_REFERENCE" : "BASE_TABLE");
+            item.put("tableName", cleanTableName);
+            item.put("schemaName", schemaName(cleanTableName));
+            item.put("alias", cleanIdentifier(alias));
+            item.put("sourceType", StringUtils.hasText(sourceType) ? sourceType : (isCteName(cleanTableName) ? "CTE_REFERENCE" : "BASE_TABLE"));
             addUnique(tables, item);
         }
 
-        private void recordProjection(SelectItem selectItem, List<String> sourceColumns) {
+        private void recordProjection(SqlNode selectItem, List<String> sourceColumns) {
             if (selectItem == null) {
                 return;
             }
             LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
-            item.put("expression", normalizeText(selectItem));
+            item.put("expression", normalizeText(projectionExpression(selectItem)));
             item.put("alias", projectionAlias(selectItem));
             item.put("expressionType", projectionType(selectItem));
             item.put("sourceColumns", safeList(sourceColumns));
@@ -4732,7 +4319,7 @@ public class SqlOptimizationPipelineService {
         }
 
         private void recordPredicate(String clause,
-                                     Expression predicate,
+                                     SqlNode predicate,
                                      List<String> sourceColumns,
                                      List<String> functionNames,
                                      String logicalContext,
@@ -4751,21 +4338,21 @@ public class SqlOptimizationPipelineService {
             addUnique(predicates, item);
         }
 
-        private void recordJoin(FromItem leftItem, Join join) {
+        private void recordJoin(SqlNode leftItem, SqlJoin join) {
             if (join == null) {
                 return;
             }
             LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
-            item.put("joinType", joinType(join));
+            item.put("joinType", join.getJoinType() == null ? "JOIN" : join.getJoinType().name());
             item.put("left", relationName(leftItem));
-            item.put("right", relationName(join.getRightItem()));
-            item.put("rightAlias", aliasName(join.getRightItem()));
-            item.put("condition", joinCondition(join));
-            item.put("usingColumns", columnTexts(join.getUsingColumns()));
+            item.put("right", relationName(join.getRight()));
+            item.put("rightAlias", relationAlias(join.getRight()));
+            item.put("condition", normalizeText(join.getCondition()));
+            item.put("usingColumns", Collections.emptyList());
             addUnique(joinGraph, item);
         }
 
-        private void recordGroupBy(Expression expression, List<String> sourceColumns) {
+        private void recordGroupBy(SqlNode expression, List<String> sourceColumns) {
             if (expression == null) {
                 return;
             }
@@ -4775,32 +4362,32 @@ public class SqlOptimizationPipelineService {
             addUnique(groupBy, item);
         }
 
-        private void recordOrderBy(OrderByElement orderByElement, List<String> sourceColumns) {
+        private void recordOrderBy(SqlNode orderByElement, List<String> sourceColumns) {
             if (orderByElement == null) {
                 return;
             }
             LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
-            item.put("expression", normalizeText(orderByElement.getExpression()));
-            item.put("direction", orderByElement.isAsc() ? "ASC" : "DESC");
-            item.put("directionExplicit", Boolean.valueOf(orderByElement.isAscDescPresent()));
-            item.put("nullOrdering", orderByElement.getNullOrdering() == null ? "" : orderByElement.getNullOrdering().name());
+            item.put("expression", normalizeText(orderByElement));
+            item.put("direction", orderByDirection(orderByElement));
+            item.put("directionExplicit", Boolean.valueOf(orderByElement.getKind() == SqlKind.DESCENDING));
+            item.put("nullOrdering", orderByElement.toString().toUpperCase(Locale.ROOT).contains("NULLS LAST") ? "LAST" : "");
             item.put("sourceColumns", safeList(sourceColumns));
             addUnique(orderBy, item);
         }
 
-        private void recordLimit(net.sf.jsqlparser.statement.select.Limit limitClause) {
-            if (limitClause == null) {
+        private void recordLimit(SqlNode fetch, SqlNode offset) {
+            if (fetch == null && offset == null) {
                 return;
             }
             LinkedHashMap<String, Object> item = new LinkedHashMap<String, Object>();
             item.put("present", Boolean.TRUE);
-            item.put("rowCount", limitClause.getRowCount() == null ? "" : normalizeText(limitClause.getRowCount()));
-            item.put("offset", limitClause.getOffset() == null ? "" : normalizeText(limitClause.getOffset()));
-            item.put("limitAll", Boolean.valueOf(limitClause.isLimitAll()));
+            item.put("rowCount", fetch == null ? "" : normalizeText(fetch));
+            item.put("offset", offset == null ? "" : normalizeText(offset));
+            item.put("limitAll", Boolean.FALSE);
             this.limit = item;
         }
 
-        private void recordSubquery(SubSelect subSelect,
+        private void recordSubquery(SqlNode subSelect,
                                     String location,
                                     String alias,
                                     int nestedLevel,
@@ -4818,14 +4405,14 @@ public class SqlOptimizationPipelineService {
             addUnique(subqueries, item);
         }
 
-        private void recordFunctionSignal(Function function, List<String> sourceColumns) {
-            if (function == null || !StringUtils.hasText(function.getName())) {
+        private void recordFunctionSignal(SqlBasicCall function, List<String> sourceColumns) {
+            if (function == null || function.getOperator() == null || !StringUtils.hasText(function.getOperator().getName())) {
                 return;
             }
-            String functionName = function.getName().toUpperCase(Locale.ROOT);
+            String functionName = function.getOperator().getName().toUpperCase(Locale.ROOT);
             if (AGGREGATE_FUNCTIONS.contains(functionName)) {
                 LinkedHashMap<String, Object> aggregation = functionEntry(functionName, function, sourceColumns);
-                aggregation.put("distinct", Boolean.valueOf(function.isDistinct()));
+                aggregation.put("distinct", Boolean.valueOf(function.getFunctionQuantifier() != null));
                 addUnique(aggregations, aggregation);
             }
             if (TIME_FUNCTIONS.contains(functionName)) {
@@ -4889,120 +4476,133 @@ public class SqlOptimizationPipelineService {
             return item;
         }
 
-        private String projectionAlias(SelectItem selectItem) {
-            if (selectItem instanceof SelectExpressionItem) {
-                SelectExpressionItem expressionItem = (SelectExpressionItem) selectItem;
-                return expressionItem.getAlias() == null ? "" : cleanIdentifier(expressionItem.getAlias().getName());
+        private String projectionAlias(SqlNode selectItem) {
+            if (selectItem instanceof SqlBasicCall && selectItem.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) selectItem).getOperandList();
+                if (operands.size() >= 2) {
+                    return cleanIdentifier(operands.get(1).toString());
+                }
             }
             return "";
         }
 
-        private String projectionType(SelectItem selectItem) {
-            if (selectItem instanceof AllColumns || selectItem instanceof AllTableColumns) {
+        private SqlNode projectionExpression(SqlNode selectItem) {
+            if (selectItem instanceof SqlBasicCall && selectItem.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) selectItem).getOperandList();
+                if (!operands.isEmpty()) {
+                    return operands.get(0);
+                }
+            }
+            return selectItem;
+        }
+
+        private String projectionType(SqlNode selectItem) {
+            if (selectItem == null) {
+                return "EXPRESSION";
+            }
+            if (selectItem instanceof SqlIdentifier && ((SqlIdentifier) selectItem).isStar()) {
                 return "STAR";
             }
-            if (selectItem instanceof SelectExpressionItem) {
-                Expression expression = ((SelectExpressionItem) selectItem).getExpression();
-                if (expression instanceof SubSelect) {
-                    return "SCALAR_SUBQUERY";
+            SqlNode expression = selectItem;
+            if (selectItem instanceof SqlBasicCall && selectItem.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) selectItem).getOperandList();
+                if (!operands.isEmpty()) {
+                    expression = operands.get(0);
                 }
-                if (expression instanceof Function) {
-                    String functionName = ((Function) expression).getName();
-                    return functionName != null && AGGREGATE_FUNCTIONS.contains(functionName.toUpperCase(Locale.ROOT))
-                        ? "AGGREGATION"
-                        : "FUNCTION";
+            }
+            if (expression instanceof SqlSelect || expression instanceof SqlWith || expression instanceof SqlOrderBy) {
+                return "SCALAR_SUBQUERY";
+            }
+            if (expression instanceof SqlBasicCall) {
+                SqlBasicCall call = (SqlBasicCall) expression;
+                String functionName = call.getOperator() == null ? "" : call.getOperator().getName();
+                return AGGREGATE_FUNCTIONS.contains(functionName.toUpperCase(Locale.ROOT)) ? "AGGREGATION" : "FUNCTION";
+            }
+            if (expression instanceof SqlIdentifier) {
+                return "COLUMN";
+            }
+            return "EXPRESSION";
+        }
+
+        private String predicateType(SqlNode predicate) {
+            if (predicate instanceof SqlBasicCall) {
+                SqlKind kind = predicate.getKind();
+                if (kind == SqlKind.EQUALS
+                    || kind == SqlKind.NOT_EQUALS
+                    || kind == SqlKind.LESS_THAN
+                    || kind == SqlKind.LESS_THAN_OR_EQUAL
+                    || kind == SqlKind.GREATER_THAN
+                    || kind == SqlKind.GREATER_THAN_OR_EQUAL) {
+                    return "COMPARISON";
                 }
-                if (expression instanceof Column) {
-                    return "COLUMN";
+                if (kind == SqlKind.IN) {
+                    return "IN";
+                }
+                if (kind == SqlKind.EXISTS) {
+                    return "EXISTS";
+                }
+                if (kind == SqlKind.LIKE) {
+                    return "LIKE";
+                }
+                if (((SqlBasicCall) predicate).getOperator() != null) {
+                    return "FUNCTION";
                 }
             }
             return "EXPRESSION";
         }
 
-        private String predicateType(Expression predicate) {
-            if (predicate instanceof ComparisonOperator) {
-                return "COMPARISON";
+        private String relationName(SqlNode fromItem) {
+            if (fromItem instanceof SqlIdentifier) {
+                return cleanIdentifier(fromItem.toString());
             }
-            if (predicate instanceof InExpression) {
-                return "IN";
+            if (fromItem instanceof SqlBasicCall && fromItem.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) fromItem).getOperandList();
+                if (operands.size() >= 2) {
+                    SqlNode relation = operands.get(0);
+                    if (relation instanceof SqlIdentifier) {
+                        return cleanIdentifier(relation.toString());
+                    }
+                    return cleanIdentifier(operands.get(1).toString());
+                }
             }
-            if (predicate instanceof ExistsExpression) {
-                return "EXISTS";
-            }
-            if (predicate instanceof LikeExpression) {
-                return "LIKE";
-            }
-            if (predicate instanceof Function) {
-                return "FUNCTION";
-            }
-            return "EXPRESSION";
-        }
-
-        private String relationName(FromItem fromItem) {
-            if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
-                return cleanIdentifier(((net.sf.jsqlparser.schema.Table) fromItem).getFullyQualifiedName());
-            }
-            if (fromItem instanceof SubSelect) {
-                String alias = aliasName(fromItem);
-                return StringUtils.hasText(alias) ? alias : "SUBQUERY";
+            if (fromItem instanceof SqlSelect || fromItem instanceof SqlWith || fromItem instanceof SqlOrderBy) {
+                return "SUBQUERY";
             }
             return fromItem == null ? "UNKNOWN" : normalizeText(fromItem);
         }
 
-        private String joinType(Join join) {
-            if (join.isCross()) {
-                return "CROSS";
+        private String relationAlias(SqlNode fromItem) {
+            if (fromItem instanceof SqlBasicCall && fromItem.getKind() == SqlKind.AS) {
+                List<SqlNode> operands = ((SqlBasicCall) fromItem).getOperandList();
+                if (operands.size() >= 2) {
+                    return cleanIdentifier(operands.get(1).toString());
+                }
             }
-            if (join.isLeft()) {
-                return join.isOuter() ? "LEFT_OUTER" : "LEFT";
-            }
-            if (join.isRight()) {
-                return join.isOuter() ? "RIGHT_OUTER" : "RIGHT";
-            }
-            if (join.isFull()) {
-                return "FULL";
-            }
-            if (join.isInner()) {
-                return "INNER";
-            }
-            if (join.isSemi()) {
-                return "SEMI";
-            }
-            if (join.isSimple()) {
-                return "SIMPLE";
-            }
-            return "JOIN";
+            return "";
         }
 
-        private String joinCondition(Join join) {
-            if (join.getOnExpressions() == null || join.getOnExpressions().isEmpty()) {
+        private String orderByDirection(SqlNode orderByElement) {
+            if (orderByElement == null) {
+                return "ASC";
+            }
+            String text = orderByElement.toString().toUpperCase(Locale.ROOT);
+            return text.endsWith(" DESC") || orderByElement.getKind() == SqlKind.DESCENDING ? "DESC" : "ASC";
+        }
+
+        private String schemaName(String tableName) {
+            if (!StringUtils.hasText(tableName) || !tableName.contains(".")) {
                 return "";
             }
-            List<String> expressions = new ArrayList<String>();
-            for (Expression expression : join.getOnExpressions()) {
-                expressions.add(normalizeText(expression));
-            }
-            return String.join(" AND ", expressions);
+            return tableName.substring(0, tableName.lastIndexOf('.'));
         }
 
-        private List<String> columnTexts(List<Column> columns) {
-            if (columns == null || columns.isEmpty()) {
+        private List<String> nodeListTexts(SqlNodeList nodeList) {
+            if (nodeList == null || nodeList.isEmpty()) {
                 return Collections.emptyList();
             }
             List<String> result = new ArrayList<String>();
-            for (Column column : columns) {
-                result.add(column.getFullyQualifiedName());
-            }
-            return result;
-        }
-
-        private List<String> selectItemTexts(List<SelectItem> selectItems) {
-            if (selectItems == null || selectItems.isEmpty()) {
-                return Collections.emptyList();
-            }
-            List<String> result = new ArrayList<String>();
-            for (SelectItem selectItem : selectItems) {
-                result.add(normalizeText(selectItem));
+            for (SqlNode node : nodeList.getList()) {
+                result.add(normalizeText(node));
             }
             return result;
         }
@@ -5012,10 +4612,6 @@ public class SqlOptimizationPipelineService {
                 return Collections.emptyList();
             }
             return new ArrayList<String>(input);
-        }
-
-        private String aliasName(FromItem fromItem) {
-            return fromItem == null || fromItem.getAlias() == null ? "" : cleanIdentifier(fromItem.getAlias().getName());
         }
 
         private String cleanIdentifier(String value) {
@@ -5029,10 +4625,11 @@ public class SqlOptimizationPipelineService {
             if (value == null) {
                 return "";
             }
-            return value.toString()
+            return removeSimpleIdentifierQuotes(value.toString())
                 .replace('\n', ' ')
                 .replace('\r', ' ')
                 .trim()
+                .replaceAll("(?i)\\bBETWEEN\\s+ASYMMETRIC\\b", "BETWEEN")
                 .replaceAll("\\s+", " ");
         }
 

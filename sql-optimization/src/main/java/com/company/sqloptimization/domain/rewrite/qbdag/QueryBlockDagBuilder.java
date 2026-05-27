@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -54,7 +55,9 @@ public class QueryBlockDagBuilder {
 
     public QueryBlockDag buildFromSql(String normalizedSql) {
         try {
-            SqlParser.Config parserConfig = SqlParser.config().withConformance(SqlConformanceEnum.LENIENT);
+            SqlParser.Config parserConfig = SqlParser.config()
+                .withConformance(SqlConformanceEnum.LENIENT)
+                .withUnquotedCasing(Casing.UNCHANGED);
             SqlNode statement = SqlParser.create(normalizedSql, parserConfig).parseStmt();
             return build(statement, normalizedSql);
         } catch (Exception ex) {

@@ -1,4 +1,4 @@
-我来设计一个**企业级 SQL 改写推荐引擎**的核心算法体系。这是一个面向金融/电信级数据仓库场景的复杂系统，需要处理 BI 工具生成的病态 SQL（如你截图中的 700 行嵌套怪物），同时兼容 Calcite 和 JSqlParser 双解析栈。
+我来设计一个**企业级 SQL 改写推荐引擎**的核心算法体系。这是一个面向金融/电信级数据仓库场景的复杂系统，需要处理 BI 工具生成的病态 SQL（如你截图中的 700 行嵌套怪物），并以 Apache Calcite 作为统一解析与关系代数入口。
 
 ---
 
@@ -20,7 +20,7 @@
 │  L2: 表引用层 (Table Reference)           │  ← 物理表、派生表、关联路径
 │     模式: {源, 别名, 访问路径, 谓词下推}   │
 ├─────────────────────────────────────────┤
-│  L1: 语法树层 (AST)                      │  ← Calcite SqlNode / JSqlParser Expression
+│  L1: 语法树层 (AST)                      │  ← Calcite SqlNode / RexNode
 │     模式: 具体方言节点                    │
 └─────────────────────────────────────────┘
 ```
@@ -306,32 +306,30 @@ Rule {
 
 ---
 
-## 四、与 Calcite/JSqlParser 的集成策略
+## 四、与 Apache Calcite 的集成策略
 
-### 4.1 双解析栈分工
+### 4.1 统一解析栈分工
 
 | 解析器 | 职责 | 原因 |
 |--------|------|------|
 | **Calcite** | L1→L3 解析、L4 关系代数构建、优化器集成 | 强大的 SqlNode → RelNode 转换、内置 HepPlanner/VolcanoPlanner |
-| **JSqlParser** | L1 语法细节提取、方言特定模式识别、原始 SQL 文本映射 | 对 MySQL/Oracle 方言支持更灵活，便于保留原始注释/格式 |
+| **Calcite 扩展适配层** | L1 语法细节提取、方言特定模式识别、原始 SQL 文本映射 | 在统一 AST/RelNode 入口内保留必要的方言标签与位置线索 |
 
 ### 4.2 协同工作流
 
 ```
 输入 SQL
   │
-  ├─→ JSqlParser ──→ 原始 AST (保留注释、格式、方言特征)
-  │       │
-  │       └─→ 模式扫描: 识别 BI 工具特定生成模式（如帆软的 "SubXX_分组和汇总" 别名）
-  │           输出: 元数据标签 {tool: FANRUAN, version_hint, nested_depth}
-  │
   └─→ Calcite ────→ SqlNode → RelNode (L4 关系代数)
+          │
+          ├─→ 语义扫描: 识别 BI 工具特定生成模式（如帆软的 "SubXX_分组和汇总" 别名）
+          │           输出: 元数据标签 {tool: FANRUAN, version_hint, nested_depth}
           │
           ├─→ HepPlanner: 应用启发式规则（子查询去关联、谓词下推）
           │
           └─→ 输出: RelNode Tree + 代价估算
 
-  融合层: 将 JSqlParser 的元数据标签注入 Calcite RelNode 作为「改写约束」
+  标注层: 将语义扫描的元数据标签注入 Calcite RelNode 作为「改写约束」
           例如: 标记 "此子查询为 BI 工具生成的重复块，允许激进合并"
 ```
 
@@ -415,7 +413,7 @@ RewriteRecommendation {
 输入: 病态 SQL（BI 工具生成 / 手写复杂查询）
   │
   ▼
-[解析] Calcite SqlNode + JSqlParser AST → 双栈融合
+[解析] Calcite SqlNode + RelNode → 统一语义标注
   │
   ▼
 [分解] 查询块 DAG + 结构哈希 → 识别重复/冗余模式

@@ -16,7 +16,7 @@
 │  L2: 表引用层 (Table Reference)           │  ← 物理表、派生表、关联路径
 │     模式: {源, 别名, 访问路径, 谓词下推}   │
 ├─────────────────────────────────────────┤
-│  L1: 语法树层 (AST)                      │  ← Calcite SqlNode / JSqlParser Expression
+│  L1: 语法树层 (AST)                      │  ← Calcite SqlNode / legacy parser Expression
 │     模式: 具体方言节点                    │
 └─────────────────────────────────────────┘
 ```

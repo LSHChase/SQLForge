@@ -115,7 +115,7 @@ export function useParseBatchCenter() {
     fileType: 'CSV',
     templateVersion: 'v1',
     datasourceCode: initialDatasourceCode,
-    parserMode: 'JSQLPARSER',
+    parserMode: 'APACHE_CALCITE',
     structureParseOnly: false,
     directInputMode: 'SQL_LINES',
     rawContent:
@@ -133,7 +133,7 @@ export function useParseBatchCenter() {
     batchName: 'report-batch-alpha',
     reportCodeField: 'report_code',
     datasourceCode: initialDatasourceCode,
-    parserMode: 'JSQLPARSER',
+    parserMode: 'APACHE_CALCITE',
     stage: 'PROD',
     priority: 'high',
     rawContent:
@@ -146,9 +146,7 @@ export function useParseBatchCenter() {
   const parseImportModeOptions = ['TABULAR_FILE', 'SQL_FILE', 'REPORT_CATALOG']
   const directInputModeOptions = ['SQL_LINES', 'TABULAR_TEXT']
   const parserModeOptions = [
-    { label: 'JSQLParser', value: 'JSQLPARSER' },
     { label: 'Apache Calcite', value: 'APACHE_CALCITE' },
-    { label: 'JSQLParser + Hetu EXPLAIN', value: 'JSQLPARSER_WITH_PLAN' },
     { label: 'Apache Calcite + Hetu EXPLAIN', value: 'APACHE_CALCITE_WITH_PLAN' }
   ]
   const DIRECT_SQL_PREVIEW_LIMIT = 5
