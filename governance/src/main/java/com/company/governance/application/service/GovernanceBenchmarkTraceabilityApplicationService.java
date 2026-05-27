@@ -16,11 +16,11 @@ import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactTraceRe
 import com.company.sqlforge.common.governance.GovernanceBenchmarkArtifactTraceResponse;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceBenchmarkReportTraceResponse;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -35,7 +35,6 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "DATABASE_TRACE_EXPORT_ORCHESTRATION_BASELINE";
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final GovernanceProtectedPersistenceService governanceProtectedPersistenceService;
     private final ConfigSnapshotMapper configSnapshotMapper;
@@ -410,7 +409,7 @@ public class GovernanceBenchmarkTraceabilityApplicationService {
         if (StringUtils.hasText(rawValue) && !"null".equalsIgnoreCase(rawValue.trim())) {
             instant = Instant.parse(rawValue.trim());
         }
-        return LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private String firstTargetEngine(List<String> targetEngines) {

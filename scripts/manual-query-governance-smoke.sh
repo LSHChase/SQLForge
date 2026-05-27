@@ -36,7 +36,7 @@ EOF
 mysql_exec() {
   local sql="$1"
   docker exec "${MYSQL_CONTAINER}" sh -lc \
-    "mysql -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
+    "mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
 }
 
 cleanup_rows() {
@@ -85,14 +85,14 @@ main() {
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
 
-  SUCCESS_REQUEST_ID="query-governance-success-$(date +%Y%m%d%H%M%S)"
-  SUCCESS_TRACE_ID="query-governance-success-$(date +%Y%m%d%H%M%S)"
-  COMPENSATION_REQUEST_ID="query-governance-comp-$(date +%Y%m%d%H%M%S)"
-  COMPENSATION_TRACE_ID="${COMPENSATION_TRACE_PREFIX}-$(date +%Y%m%d%H%M%S)"
+  SUCCESS_REQUEST_ID="query-governance-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  SUCCESS_TRACE_ID="query-governance-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  COMPENSATION_REQUEST_ID="query-governance-comp-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  COMPENSATION_TRACE_ID="${COMPENSATION_TRACE_PREFIX}-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
 
   mapfile -t success_headers < <(build_protected_headers "${SUCCESS_REQUEST_ID}" "${SUCCESS_TRACE_ID}" "${issued_at}" "${expires_at}")
   mapfile -t compensation_headers < <(build_protected_headers "${COMPENSATION_REQUEST_ID}" "${COMPENSATION_TRACE_ID}" "${issued_at}" "${expires_at}")
-  mapfile -t stats_headers < <(build_protected_headers "query-governance-stats-$(date +%Y%m%d%H%M%S)" "query-governance-stats-$(date +%Y%m%d%H%M%S)" "${issued_at}" "${expires_at}")
+  mapfile -t stats_headers < <(build_protected_headers "query-governance-stats-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)" "query-governance-stats-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)" "${issued_at}" "${expires_at}")
 
   print_step "Reading queue stats before compensation scenario"
   stats_before="$(assert_get_json "${GOVERNANCE_API_BASE_URL}/api/governance/admin/messages/stats" "${stats_headers[@]}")"

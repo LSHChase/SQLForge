@@ -37,7 +37,7 @@ EOF
 mysql_exec() {
   local sql="$1"
   docker exec "${MYSQL_CONTAINER}" sh -lc \
-    "mysql -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
+    "mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
 }
 
 print_step() {
@@ -125,8 +125,8 @@ main() {
   require_command docker
   require_command curl
 
-  trace_id="manual-smoke-$(date +%Y%m%d%H%M%S)"
-  request_id="manual-request-$(date +%Y%m%d%H%M%S)"
+  trace_id="manual-smoke-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  request_id="manual-request-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
   mapfile -t protected_headers < <(build_protected_headers "${request_id}" "${trace_id}" "${issued_at}" "${expires_at}")

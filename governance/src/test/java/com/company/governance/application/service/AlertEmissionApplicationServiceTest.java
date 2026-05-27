@@ -16,9 +16,8 @@ import com.company.governance.infrastructure.persistence.entity.AlertNotificatio
 import com.company.governance.infrastructure.persistence.mapper.AlertEventMapper;
 import com.company.governance.infrastructure.persistence.mapper.AlertNotificationLogMapper;
 import com.company.governance.infrastructure.persistence.mapper.AlertPolicyMapper;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -109,7 +108,7 @@ class AlertEmissionApplicationServiceTest {
         existing.setAlertId("alert-existing-001");
         existing.setTenantId("tenant-a");
         existing.setDedupeKey("tenant-a|SQL_EXECUTION_MASS_FAILURE|service=query-execution");
-        existing.setCreatedAt(LocalDateTime.ofInstant(emittedAt.minusSeconds(60), ZoneOffset.UTC));
+        existing.setCreatedAt(DateUtils.toBeijingDateTime(emittedAt.minusSeconds(60)));
 
         when(alertPolicyMapper.selectEnabledByTenantId("tenant-a")).thenReturn(Collections.emptyList());
         when(alertEventMapper.selectByTenantIdAndDedupeKey("tenant-a", "tenant-a|SQL_EXECUTION_MASS_FAILURE|service=query-execution"))

@@ -12,7 +12,10 @@ import java.util.Date;
  */
 public final class DateUtils {
 
-    private static final ZoneId DEFAULT_ZONE = ZoneId.of("Asia/Shanghai");
+    public static final String BEIJING_ZONE_ID = "Asia/Shanghai";
+    public static final ZoneId BEIJING_ZONE = ZoneId.of(BEIJING_ZONE_ID);
+    public static final ZoneOffset BEIJING_ZONE_OFFSET = ZoneOffset.ofHours(8);
+
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -20,11 +23,19 @@ public final class DateUtils {
     }
 
     public static LocalDateTime now() {
-        return LocalDateTime.now(DEFAULT_ZONE);
+        return LocalDateTime.now(BEIJING_ZONE);
+    }
+
+    public static Instant nowInstant() {
+        return Instant.now();
     }
 
     public static String format(LocalDateTime dateTime) {
         return dateTime == null ? null : DATE_TIME_FORMATTER.format(dateTime);
+    }
+
+    public static String format(Instant instant) {
+        return instant == null ? null : DATE_TIME_FORMATTER.format(toBeijingDateTime(instant));
     }
 
     public static LocalDateTime parse(String value) {
@@ -34,14 +45,22 @@ public final class DateUtils {
     }
 
     public static LocalDateTime fromEpochMilli(long epochMilli) {
-        return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), DEFAULT_ZONE);
+        return toBeijingDateTime(Instant.ofEpochMilli(epochMilli));
     }
 
     public static long toEpochMilli(LocalDateTime dateTime) {
-        return dateTime == null ? 0L : dateTime.toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+        return dateTime == null ? 0L : toInstant(dateTime).toEpochMilli();
+    }
+
+    public static LocalDateTime toBeijingDateTime(Instant instant) {
+        return instant == null ? null : LocalDateTime.ofInstant(instant, BEIJING_ZONE);
+    }
+
+    public static Instant toInstant(LocalDateTime dateTime) {
+        return dateTime == null ? null : dateTime.toInstant(BEIJING_ZONE_OFFSET);
     }
 
     public static Date toDate(LocalDateTime dateTime) {
-        return dateTime == null ? null : Date.from(dateTime.atZone(DEFAULT_ZONE).toInstant());
+        return dateTime == null ? null : Date.from(dateTime.atZone(BEIJING_ZONE).toInstant());
     }
 }

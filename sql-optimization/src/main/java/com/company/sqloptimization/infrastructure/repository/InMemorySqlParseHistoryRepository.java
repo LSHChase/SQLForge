@@ -3,9 +3,9 @@ package com.company.sqloptimization.infrastructure.repository;
 import com.company.sqloptimization.domain.parsehistory.SqlParseHistory;
 import com.company.sqloptimization.domain.parsehistory.SqlParseHistoryFilter;
 import com.company.sqloptimization.domain.parsehistory.repository.SqlParseHistoryRepository;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -141,7 +141,7 @@ public class InMemorySqlParseHistoryRepository implements SqlParseHistoryReposit
         }
         LocalDateTime submitted = history.getSubmittedAt() == null
             ? null
-            : LocalDateTime.ofInstant(history.getSubmittedAt(), ZoneOffset.UTC);
+            : DateUtils.toBeijingDateTime(history.getSubmittedAt());
         if (filter.getSubmittedStart() != null && (submitted == null || submitted.isBefore(filter.getSubmittedStart()))) {
             return false;
         }

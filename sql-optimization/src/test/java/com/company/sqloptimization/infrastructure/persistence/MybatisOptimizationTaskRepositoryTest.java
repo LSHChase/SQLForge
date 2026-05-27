@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskContextDTO;
 import com.company.sqloptimization.application.controller.dto.OptimizationTaskSubmitRequest;
 import com.company.sqloptimization.application.service.OptimizationTaskModelApplicationService;
@@ -45,7 +46,9 @@ class MybatisOptimizationTaskRepositoryTest {
         ArgumentCaptor<OptimizationTaskRecord> captor = ArgumentCaptor.forClass(OptimizationTaskRecord.class);
         verify(mapper).insert(captor.capture());
         OptimizationTaskRecord record = captor.getValue();
-        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 0, 0), record.getSubmittedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-22T05:00:00Z")),
+            record.getSubmittedAt());
         assertNotNull(record.getStatusHistoryJson());
         assertTrue(record.getStatusHistoryJson().contains("TASK_SUBMITTED"));
     }
@@ -82,7 +85,7 @@ class MybatisOptimizationTaskRepositoryTest {
         OptimizationTask restored = repository.findByTaskId("task-db-002");
 
         assertNotNull(restored);
-        assertEquals(Instant.parse("2026-04-22T05:00:00Z"), restored.getSubmittedAt());
+        assertEquals(DateUtils.toInstant(LocalDateTime.of(2026, 4, 22, 5, 0, 0)), restored.getSubmittedAt());
         assertEquals(Instant.parse("2026-04-22T05:00:00Z"), restored.getStatusHistory().get(0).getOccurredAt());
         assertEquals("AST_PROFILE", restored.getSuggestion().getArtifacts().get(0).getCategory());
     }

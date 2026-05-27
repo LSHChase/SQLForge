@@ -30,12 +30,12 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldCreateListAndTestHealthyJdbcDatasource() {
-        RequestContext.set("tenant-a", "admin-001", "request-010", "trace-010", "header", 1L, 2L);
+        RequestContext.set("system", "admin-001", "request-010", "trace-010", "header", 1L, 2L);
         DatasourceConfigApplicationService service =
             newService(new InMemoryDatasourceConfigRepository(), successfulProbe());
 
         DatasourceConfigVO created = service.create(jdbcRequest("jdbc:mysql://localhost:3306/sqlforge"));
-        List<DatasourceConfigVO> listed = service.list("tenant-a");
+        List<DatasourceConfigVO> listed = service.list("system");
         DatasourceConnectionTestVO health = service.testConnection(created.getDatasourceId(), new DatasourceConnectionTestRequest());
 
         assertEquals("JDBC", created.getConnectionMode());
@@ -50,12 +50,12 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldReturnFailedHealthCheckForUnreachableApiDatasource() {
-        RequestContext.set("tenant-a", "admin-002", "request-011", "trace-011", "header", 1L, 2L);
+        RequestContext.set("system", "admin-002", "request-011", "trace-011", "header", 1L, 2L);
         DatasourceConfigApplicationService service =
             newService(new InMemoryDatasourceConfigRepository(), successfulProbe());
 
         DatasourceConfigUpsertRequest request = new DatasourceConfigUpsertRequest();
-        request.setTenantId("tenant-a");
+        request.setTenantId("system");
         request.setDatasourceCode("report_api");
         request.setDatasourceName("Report API");
         request.setConnectionMode("API");
@@ -65,7 +65,7 @@ class DatasourceConfigApplicationServiceTest {
         DatasourceConfigVO created = service.create(request);
 
         DatasourceConnectionTestRequest healthRequest = new DatasourceConnectionTestRequest();
-        healthRequest.setTenantId("tenant-a");
+        healthRequest.setTenantId("system");
         healthRequest.setTimeoutMsOverride(Integer.valueOf(5000));
         DatasourceConnectionTestVO health = service.testConnection(created.getDatasourceId(), healthRequest);
 
@@ -77,17 +77,17 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldEncryptPasswordAndResolvePlaintextOnlyForInternalJdbcEndpoint() {
-        RequestContext.set("tenant-a", "service-001", "request-012", "trace-012", "header", 1L, 2L);
+        RequestContext.set("system", "service-001", "request-012", "trace-012", "header", 1L, 2L);
         InMemoryDatasourceConfigRepository repository = new InMemoryDatasourceConfigRepository();
         DatasourceConfigApplicationService service = newService(repository, successfulProbe());
 
         DatasourceConfigVO created = service.create(jdbcRequest("jdbc:hetu://coordinator:8080/hive/default"));
-        DatasourceConfig stored = repository.findByTenantIdAndDatasourceId("tenant-a", created.getDatasourceId()).get();
+        DatasourceConfig stored = repository.findByTenantIdAndDatasourceId("system", created.getDatasourceId()).get();
         assertTrue(stored.getCredentialCiphertext().startsWith("ENC::AES256_GCM::"));
         assertFalse(stored.getCredentialCiphertext().contains("secret"));
 
         GovernanceJdbcDatasourceResolveRequest request = new GovernanceJdbcDatasourceResolveRequest();
-        request.setTenantId("tenant-a");
+        request.setTenantId("system");
         request.setDatasourceCode("hetu_main");
         request.setEngineType("HETU");
 
@@ -101,7 +101,7 @@ class DatasourceConfigApplicationServiceTest {
 
     @Test
     void shouldReturnFailedRealJdbcProbeReason() {
-        RequestContext.set("tenant-a", "admin-003", "request-013", "trace-013", "header", 1L, 2L);
+        RequestContext.set("system", "admin-003", "request-013", "trace-013", "header", 1L, 2L);
         DatasourceConfigApplicationService service = newService(
             new InMemoryDatasourceConfigRepository(),
             (config, password, timeoutMs) -> new DatasourceJdbcConnectionProbe.JdbcProbeResult(false, "JDBC_CONNECT_FAILED: refused", 11L)
@@ -119,7 +119,7 @@ class DatasourceConfigApplicationServiceTest {
 
     private DatasourceConfigUpsertRequest jdbcRequest(String jdbcUrl) {
         DatasourceConfigUpsertRequest request = new DatasourceConfigUpsertRequest();
-        request.setTenantId("tenant-a");
+        request.setTenantId("system");
         request.setDatasourceCode("hetu_main");
         request.setDatasourceName("Hetu Main");
         request.setEngineType("HETU");

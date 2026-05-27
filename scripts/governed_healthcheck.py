@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +40,10 @@ from scripts.governed_v2_support import (
     task_exists_anywhere,
     write_run_summary,
 )
+try:
+    from scripts.beijing_time import now_beijing_compact
+except ModuleNotFoundError:
+    from beijing_time import now_beijing_compact
 
 REQUIRED_TASK_PACK_FIELDS = {
     "task_id",
@@ -55,7 +58,7 @@ REQUIRED_TASK_PACK_FIELDS = {
 
 
 def default_run_id() -> str:
-    return "healthcheck-" + datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
+    return "healthcheck-" + now_beijing_compact()
 
 
 def done_task_ids(limit: int = 5) -> list[str]:

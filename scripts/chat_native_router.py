@@ -7,7 +7,6 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -26,10 +25,14 @@ from scripts.governed_v2_support import (
     relative_to_root,
     save_chat_router_state,
 )
+try:
+    from scripts.beijing_time import now_beijing_compact
+except ModuleNotFoundError:
+    from beijing_time import now_beijing_compact
 
 
 def default_run_id() -> str:
-    return "chat-router-" + datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
+    return "chat-router-" + now_beijing_compact()
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:

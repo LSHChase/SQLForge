@@ -93,7 +93,7 @@ wait_for_mysql() {
 run_sql_file() {
   local sql_file="$1"
   echo "Applying ${sql_file}..."
-  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 pull_with_retry() {

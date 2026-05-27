@@ -59,10 +59,10 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -74,8 +74,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnExpression("'${benchmark-engine.queues.mode:database-worker}' != 'local-placeholder'")
 public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, BenchmarkTestSetRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<List<Map<String, Object>>>() {
     };
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<List<String>>() {
@@ -921,10 +919,10 @@ public class MybatisBenchmarkTaskRepository implements BenchmarkTaskRepository, 
     }
 
     private LocalDateTime toLocalDateTime(Instant value) {
-        return value == null ? null : LocalDateTime.ofInstant(value, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(value);
     }
 
     private Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(value);
     }
 }

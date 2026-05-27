@@ -9,9 +9,9 @@ import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import com.company.sqlforge.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,8 +20,6 @@ import org.springframework.util.StringUtils;
 
 @Repository
 public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBindingRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
     private static final TypeReference<List<LogicalObjectSurface>> SURFACE_LIST_TYPE =
         new TypeReference<List<LogicalObjectSurface>>() {
         };
@@ -161,11 +159,11 @@ public class MybatisRuntimeRewriteBindingRepository implements RuntimeRewriteBin
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime dateTime) {
-        return dateTime == null ? null : dateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(dateTime);
     }
 
     private String toJson(Object value) {

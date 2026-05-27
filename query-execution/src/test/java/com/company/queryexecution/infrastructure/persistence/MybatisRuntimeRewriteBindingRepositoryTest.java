@@ -12,6 +12,7 @@ import com.company.queryexecution.domain.rewrite.RuntimeRewriteBindingStatus;
 import com.company.queryexecution.infrastructure.persistence.entity.RuntimeRewriteBindingRecord;
 import com.company.queryexecution.infrastructure.persistence.mapper.RuntimeRewriteBindingMapper;
 import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,9 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals("ACTIVE", record.getStatus());
         assertEquals(Long.valueOf(3), record.getRuleVersion());
         assertEquals("runtime-rewrite-v3", record.getRuntimeRuleVersion());
-        assertEquals(LocalDateTime.of(2026, 5, 11, 14, 0), record.getActivatedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-05-11T14:00:00Z")),
+            record.getActivatedAt());
     }
 
     @Test
@@ -70,7 +73,7 @@ class MybatisRuntimeRewriteBindingRepositoryTest {
         assertEquals("metadata-v2", binding.getMetadataSnapshotVersion());
         assertEquals("view-hash-002", binding.getViewDefinitionHash());
         assertEquals("validation divergence", binding.getPauseReason());
-        assertEquals(Instant.parse("2026-05-11T14:05:00Z"), binding.getPausedAt());
+        assertEquals(DateUtils.toInstant(LocalDateTime.of(2026, 5, 11, 14, 5)), binding.getPausedAt());
     }
 
     private RuntimeRewriteBinding sampleBinding() {

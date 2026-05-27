@@ -68,16 +68,16 @@ recreate_mysql() {
 
 mysql_apply_file() {
   local sql_file="$1"
-  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 mysql_exec() {
   local sql="$1"
-  compose exec -T mysql mysql -N -B -usqlforge -psqlforge sqlforge -e "$sql"
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -usqlforge -psqlforge sqlforge -e "$sql"
 }
 
 apply_legacy_bootstrap() {
-  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge <<'SQL'
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge <<'SQL'
 CREATE TABLE IF NOT EXISTS audit_log (
   id BIGINT NOT NULL AUTO_INCREMENT,
   tenant_id VARCHAR(64) NOT NULL,
@@ -123,7 +123,7 @@ verify_migrations() {
 
   for migration in "${REPO_ROOT}"/sql/migrations/*.sql; do
     print_step "Applying migration $(basename "${migration}")"
-    compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${migration}"
+    compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge < "${migration}"
   done
 
   mysql_exec "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='optimization_task';" | grep -Fx '1' >/dev/null

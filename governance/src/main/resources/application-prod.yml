@@ -4,8 +4,8 @@ spring:
   datasource:
     # 配置项 driver-class-name：用途：指定 JDBC 驱动类；默认值：com.mysql.cj.jdbc.Driver；运行影响：驱动不匹配会导致数据库连接初始化失败。
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 配置项 url：用途：指定数据库或服务访问地址；默认值：环境变量 SQLFORGE_PROD_DB_URL，未设置时为 jdbc:mysql://tdsql-prod:3306/sqlforge；运行影响：地址错误会导致运行时连接失败。
-    url: ${SQLFORGE_PROD_DB_URL:jdbc:mysql://tdsql-prod:3306/sqlforge}
+    # 配置项 url：用途：指定数据库或服务访问地址；默认值：环境变量 SQLFORGE_PROD_DB_URL，未设置时为 jdbc:mysql://tdsql-prod:3306/sqlforge?useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=false；运行影响：地址错误或时区参数缺失会导致生产时间读写口径漂移。
+    url: ${SQLFORGE_PROD_DB_URL:jdbc:mysql://tdsql-prod:3306/sqlforge?useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=false}
     # 配置项 username：用途：指定连接账号；默认值：环境变量 SQLFORGE_PROD_DB_USER，未设置时为 sqlforge；运行影响：账号错误会导致认证失败。
     username: ${SQLFORGE_PROD_DB_USER:sqlforge}
     # 配置项 password：用途：指定连接密码或令牌；默认值：环境变量 SQLFORGE_PROD_DB_PASSWORD，未设置时为 空值；运行影响：为空或错误会导致认证失败，生产必须由环境变量注入。

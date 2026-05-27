@@ -7,10 +7,13 @@ import argparse
 import re
 import subprocess
 import sys
-from datetime import date
 from pathlib import Path
 from typing import Dict, List
 
+try:
+    from scripts.beijing_time import today_beijing_iso
+except ModuleNotFoundError:
+    from beijing_time import today_beijing_iso
 
 ROOT = Path(__file__).resolve().parent.parent
 TASKS_PATH = ROOT / "tasks.md"
@@ -321,9 +324,10 @@ def validate_pending_commit_state(done_blocks: List[Dict[str, str]], subjects: L
         return []
 
     completed_at = completed_at_of(pending_block)
-    if completed_at != date.today().isoformat():
+    today = today_beijing_iso()
+    if completed_at != today:
         errors.append(
-            f"{pending_block['task_id']} is pending git history but Completed at is not today ({date.today().isoformat()})."
+            f"{pending_block['task_id']} is pending git history but Completed at is not today ({today})."
         )
         return []
 

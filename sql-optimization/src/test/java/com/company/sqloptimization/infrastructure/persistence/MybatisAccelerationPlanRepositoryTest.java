@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqloptimization.domain.plan.AccelerationPlan;
 import com.company.sqloptimization.domain.task.AccelerationSuggestionType;
 import com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord;
@@ -36,8 +37,12 @@ class MybatisAccelerationPlanRepositoryTest {
         ArgumentCaptor<AccelerationPlanRecord> captor = ArgumentCaptor.forClass(AccelerationPlanRecord.class);
         verify(mapper).insert(captor.capture());
         AccelerationPlanRecord record = captor.getValue();
-        assertEquals(LocalDateTime.of(2026, 4, 25, 5, 0, 0), record.getCreatedAt());
-        assertEquals(LocalDateTime.of(2026, 4, 25, 5, 0, 10), record.getActivatedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-25T05:00:00Z")),
+            record.getCreatedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-25T05:00:10Z")),
+            record.getActivatedAt());
         assertEquals("cfg-001", record.getConfigSnapshotId());
         assertTrue(record.getStatusHistoryJson().contains("PLAN_ACTIVATED"));
     }
@@ -82,7 +87,7 @@ class MybatisAccelerationPlanRepositoryTest {
         AccelerationPlan restored = repository.findByPlanId("plan-db-002");
 
         assertNotNull(restored);
-        assertEquals(Instant.parse("2026-04-25T05:00:00Z"), restored.getCreatedAt());
+        assertEquals(DateUtils.toInstant(LocalDateTime.of(2026, 4, 25, 5, 0, 0)), restored.getCreatedAt());
         assertEquals(DataSourceTypeEnum.HETU, restored.getDatasourceType());
         assertEquals(AccelerationSuggestionType.PRECOMPUTE, restored.getSelectedSuggestionTypes().get(0));
         assertEquals("user-001", restored.getPausedBy());

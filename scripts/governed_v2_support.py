@@ -11,6 +11,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+try:
+    from scripts.beijing_time import now_beijing, now_beijing_iso
+except ModuleNotFoundError:
+    from beijing_time import now_beijing, now_beijing_iso
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_DIR = ROOT / ".codex" / "state"
@@ -49,7 +53,7 @@ RESERVATION_RESHAPING_REQUIRED_STATUSES = {"released", "archived", "abandoned"}
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    return now_beijing_iso()
 
 
 def read_text(path: Path) -> str:
@@ -237,7 +241,7 @@ def reservation_is_stale(payload: dict[str, Any], path: Path) -> bool:
             created_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
     else:
         created_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
-    return created_at < datetime.now(timezone.utc) - timedelta(hours=RESERVATION_STALE_HOURS)
+    return created_at < now_beijing() - timedelta(hours=RESERVATION_STALE_HOURS)
 
 
 def reserve_task_id(prefix: str, run_id: str) -> tuple[str, Path]:

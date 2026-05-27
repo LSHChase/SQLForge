@@ -12,9 +12,9 @@ import com.company.sqloptimization.domain.task.OptimizationTaskRisk;
 import com.company.sqloptimization.infrastructure.persistence.entity.AccelerationPlanRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationPlanMapper;
 import com.fasterxml.jackson.databind.JavaType;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,8 +24,6 @@ import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "database-worker")
 public class MybatisAccelerationPlanRepository implements AccelerationPlanRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final AccelerationPlanMapper accelerationPlanMapper;
 
@@ -132,10 +130,10 @@ public class MybatisAccelerationPlanRepository implements AccelerationPlanReposi
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

@@ -2,6 +2,7 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DEFAULT_TENANT_ID } from '../../config/tenantDefaults.mjs'
 import { useTenantStore } from '../../stores'
+import { formatBeijingTimestamp } from '../common/beijingTime.mjs'
 import {
   ackModeOptions,
   authModeOptions,
@@ -650,8 +651,7 @@ export function useSystemManagement() {
   }
 
   const formatJson = (value) => JSON.stringify(value, null, 2)
-  const formatTimestamp = (value) =>
-    value ? String(value).replace('T', ' ').slice(0, 19) : '-'
+  const formatTimestamp = (value) => formatBeijingTimestamp(value)
   const statusTagType = (value) => {
     if (isHealthyStatus(value)) {
       return 'success'

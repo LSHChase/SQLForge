@@ -198,12 +198,12 @@ wait_for_log_text() {
 mysql_exec() {
   local sql="$1"
   docker exec "${MYSQL_CONTAINER}" sh -lc \
-    "mysql -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
+    "mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
 }
 
 run_sql_file() {
   local sql_file="$1"
-  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 cleanup() {

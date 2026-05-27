@@ -35,7 +35,7 @@ EOF
 mysql_exec() {
   local sql="$1"
   docker exec "${MYSQL_CONTAINER}" sh -lc \
-    "mysql -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
+    "mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
 }
 
 restore_datasource_policy() {
@@ -109,12 +109,12 @@ main() {
 
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
-  SUCCESS_REQUEST_ID="gov-datasource-success-$(date +%Y%m%d%H%M%S)"
-  DENY_REQUEST_ID="gov-datasource-deny-$(date +%Y%m%d%H%M%S)"
-  CROSS_TENANT_REQUEST_ID="gov-datasource-cross-tenant-$(date +%Y%m%d%H%M%S)"
-  REVOKE_CHANGE_REQUEST_ID="gov-datasource-revoke-$(date +%Y%m%d%H%M%S)"
-  REVOKED_ACCESS_REQUEST_ID="gov-datasource-revoked-access-$(date +%Y%m%d%H%M%S)"
-  RESTORE_CHANGE_REQUEST_ID="gov-datasource-restore-$(date +%Y%m%d%H%M%S)"
+  SUCCESS_REQUEST_ID="gov-datasource-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  DENY_REQUEST_ID="gov-datasource-deny-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  CROSS_TENANT_REQUEST_ID="gov-datasource-cross-tenant-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  REVOKE_CHANGE_REQUEST_ID="gov-datasource-revoke-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  REVOKED_ACCESS_REQUEST_ID="gov-datasource-revoked-access-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  RESTORE_CHANGE_REQUEST_ID="gov-datasource-restore-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
 
   mapfile -t admin_headers < <(build_protected_headers "${SUCCESS_REQUEST_ID}" "${SUCCESS_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t readonly_headers < <(build_protected_headers "${DENY_REQUEST_ID}" "${DENY_REQUEST_ID}" "${issued_at}" "${expires_at}")

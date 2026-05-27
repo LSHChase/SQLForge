@@ -753,7 +753,7 @@ public class SqlRewriteRecordApplicationService {
         policy.put("sampleLimit", Integer.valueOf(5));
         policy.put("orderSensitive", Boolean.FALSE);
         policy.put("numericTolerance", "0");
-        policy.put("timezone", "UTC");
+        policy.put("timezone", "Asia/Shanghai");
         policy.put("nullHandling", "STRICT");
         if (request != null && request.getComparisonPolicy() != null) {
             policy.putAll(request.getComparisonPolicy());

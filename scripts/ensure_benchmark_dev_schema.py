@@ -87,6 +87,7 @@ def mysql_exec(sql: str) -> str:
         "-i",
         MYSQL_CONTAINER,
         "mysql",
+        "--init-command=SET time_zone='+08:00'",
         f"-u{MYSQL_USER}",
         f"-p{MYSQL_PASSWORD}",
         MYSQL_DATABASE,

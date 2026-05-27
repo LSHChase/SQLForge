@@ -30,9 +30,9 @@ import com.company.sqloptimization.infrastructure.persistence.entity.ReportBatch
 import com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchStatisticsRecords.SummaryRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.ReportBatchStatisticsMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,8 +46,6 @@ import org.springframework.util.StringUtils;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.report-batch", name = "repository", havingValue = "database")
 public class MybatisReportBatchStatisticsRepository implements ReportBatchStatisticsRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<List<String>>() {
     };
     private static final TypeReference<List<ReportBatchIssueLocationVO>> LIST_OF_ISSUE_LOCATIONS =
@@ -739,10 +737,10 @@ public class MybatisReportBatchStatisticsRepository implements ReportBatchStatis
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

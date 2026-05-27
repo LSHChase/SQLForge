@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BEIJING-TIME-24H-20260526: 统一北京时间 24 小时制显示与管理
+
+- Status: done
+- Completed at: 2026-05-27
+- Commit subject: `feat(time): unify Beijing time display`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修改本项目所有时间管理与展示口径，统一按北京时间 Asia/Shanghai 24 小时制处理，覆盖前端展示、后端 DTO/服务/日志可读时间、脚本输出和数据库 schema/default/seed/migration 中的时间字段说明与默认值；补充或更新验证，确保 UTC/本地时区不会泄露到用户可读显示。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BEIJING-TIME-24H-20260526`
+- Progress log:
+  - 2026-05-26: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 统一前端展示、后端 DateUtils/Jackson/logback/JDBC 持久化转换、脚本输出标识、MySQL compose/init/migration 与持久化文档的北京时间 Asia/Shanghai 24 小时制口径，并补充北京时间合同检查；foreman/task audit 时间戳也改为北京时间。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-BEIJING-TIME-24H-20260526 --include-task-audit；npm run test:beijing-time；mvn -pl sqlforge-shared,governance,query-execution,sql-optimization,benchmark-engine -am test；python3 -m py_compile changed Python scripts；bash -n changed shell scripts；git diff --check。
+  - Residual risk: 无已知遗留风险；领域模型中表达绝对事件点的 Instant 保留，写入 DATETIME 和用户可读展示前按北京时间转换。
+  - Next step: N/A
+
 ### USER-CN-DYNAMIC-MV-REWRITE-QUALITY-20260526: 动态 MV 推荐与复杂 SQL 改写能力提升
 
 - Status: done

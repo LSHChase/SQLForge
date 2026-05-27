@@ -4,6 +4,7 @@ import {
   getGovernanceDatasources,
   getGovernanceQueryHistoryPage
 } from '../../services/runtimeGateApi'
+import { nowBeijingTimestamp } from '../common/beijingTime.mjs'
 import { resolveProtectedTenantId } from '../../config/tenantDefaults.mjs'
 import {
   buildDatasourceOptions,
@@ -178,13 +179,13 @@ export const useSqlHistoryList = ({ routeTenantId, historyType }) => {
       )
       applyPageInfo(tablePage.value)
       listStatus.value = 'success'
-      lastQueryAt.value = new Date().toISOString()
+      lastQueryAt.value = nowBeijingTimestamp()
     } catch (error) {
       tablePage.value = null
       pageInfo.total = 0
       pageInfo.pageCount = 0
       listStatus.value = 'error'
-      lastQueryAt.value = new Date().toISOString()
+      lastQueryAt.value = nowBeijingTimestamp()
       listErrorMessage.value = formatRuntimeError(error)
     } finally {
       loadingList.value = false

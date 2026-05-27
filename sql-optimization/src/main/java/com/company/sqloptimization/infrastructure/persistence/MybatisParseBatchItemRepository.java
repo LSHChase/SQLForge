@@ -7,9 +7,9 @@ import com.company.sqloptimization.domain.batch.repository.ParseBatchItemReposit
 import com.company.sqloptimization.infrastructure.persistence.entity.ParseBatchItemRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.ParseBatchItemMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,8 +18,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.parse-batch", name = "repository", havingValue = "database")
 public class MybatisParseBatchItemRepository implements ParseBatchItemRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<List<String>>() {
     };
 
@@ -150,10 +148,10 @@ public class MybatisParseBatchItemRepository implements ParseBatchItemRepository
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

@@ -27,6 +27,7 @@ import {
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
 import SqlEditorField from '../common/SqlEditorField.vue'
 import RewriteValidationView from '../rewrite-validation/RewriteValidationView.vue'
+import { formatBeijingTimestamp } from '../common/beijingTime.mjs'
 import { buildDatasourceOptions, withCurrentOption } from '../common/formComponentGovernance'
 import {
   findDatasourceOption,
@@ -606,21 +607,11 @@ function formatNumber(value) {
 }
 
 function formatTimestamp(value) {
-  if (!value) {
-    return '-'
-  }
-  const numeric = Number(value)
-  if (!Number.isNaN(numeric) && numeric > 0) {
-    return new Date(numeric).toLocaleString(isChinese.value ? 'zh-CN' : 'en-US')
-  }
-  return String(value).replace('T', ' ').slice(0, 19)
+  return formatBeijingTimestamp(value)
 }
 
 function formatInstant(value) {
-  if (!value) {
-    return '-'
-  }
-  return String(value).replace('T', ' ').replace('Z', ' UTC')
+  return formatBeijingTimestamp(value)
 }
 
 function formatJson(value) {

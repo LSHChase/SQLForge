@@ -105,7 +105,7 @@ compose() {
 
 run_sql_file() {
   local sql_file="$1"
-  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 print_step() {

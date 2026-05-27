@@ -9,9 +9,9 @@ import com.company.sqloptimization.infrastructure.persistence.entity.RewriteTria
 import com.company.sqloptimization.infrastructure.persistence.entity.RewriteTrialRunRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.RewriteTrialMapper;
 import com.fasterxml.jackson.databind.JavaType;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,8 +22,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.rewrite-trial", name = "repository", havingValue = "database")
 public class MybatisRewriteTrialRepository implements RewriteTrialRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final RewriteTrialMapper rewriteTrialMapper;
 
@@ -195,10 +193,10 @@ public class MybatisRewriteTrialRepository implements RewriteTrialRepository {
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

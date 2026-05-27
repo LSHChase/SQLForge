@@ -8,6 +8,12 @@ spring:
   profiles:
     # 配置项 active：用途：选择默认激活的 Spring profile；默认值：环境变量 SPRING_PROFILES_ACTIVE，未设置时为 dev；运行影响：决定未显式指定环境时加载哪套配置。
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  # 配置项 jackson：用途：统一 HTTP JSON 时间序列化；默认值：见其子项；运行影响：影响 Date 等时间字段对外展示的时区和 24 小时制格式。
+  jackson:
+    # 配置项 time-zone：用途：指定 JSON 时间序列化时区；默认值：Asia/Shanghai；运行影响：对外可读时间统一按北京时间展示。
+    time-zone: Asia/Shanghai
+    # 配置项 date-format：用途：指定 JSON 日期时间格式；默认值：yyyy-MM-dd HH:mm:ss；运行影响：避免 12 小时制或宿主机本地时区泄露到响应。
+    date-format: yyyy-MM-dd HH:mm:ss
   # 配置项 servlet：用途：配置 Spring Web servlet 行为；默认值：见其子项；运行影响：影响上传、请求解析和 Web 容器限制。
   servlet:
     # 配置项 multipart：用途：配置文件上传 multipart 限制；默认值：见其子项；运行影响：影响数据源驱动等上传接口可接收的文件大小。

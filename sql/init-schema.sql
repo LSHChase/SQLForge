@@ -1,4 +1,5 @@
 SET NAMES utf8mb4;
+SET time_zone = '+08:00';
 
 CREATE DATABASE IF NOT EXISTS sqlforge
   DEFAULT CHARACTER SET utf8mb4
@@ -11,6 +12,7 @@ USE sqlforge;
 -- 1. audit_log must use dedicated storage/tablespace strategy in production operations.
 -- 2. Encrypted fields must store AES-256 or SM4 ciphertext only, never plaintext.
 -- 3. Backup target: RPO < 1 hour, RTO < 4 hours, encrypted backup media.
+-- 4. 所有 DATETIME/CURRENT_TIMESTAMP 字段统一按北京时间（Asia/Shanghai，24 小时制）管理和展示。
 
 CREATE TABLE IF NOT EXISTS tenant_config (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',

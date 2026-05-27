@@ -232,7 +232,7 @@ class GovernanceDatasourceAccessApplicationServiceTest {
         );
         service.initializeRuntimeDatasourceScopes();
         RequestContext.set(
-            "tenant-a",
+            "system",
             "system-runtime",
             "request-004",
             "trace-004",

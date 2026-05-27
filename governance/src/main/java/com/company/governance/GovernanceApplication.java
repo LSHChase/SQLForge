@@ -7,6 +7,8 @@ import com.company.governance.config.GovernanceAccessProperties;
 import com.company.governance.config.GovernanceBenchmarkEngineProperties;
 import com.company.governance.config.GovernanceSqlOptimizationProperties;
 import com.company.governance.config.MessagingProperties;
+import com.company.sqlforge.common.utils.DateUtils;
+import java.util.TimeZone;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -28,6 +30,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class GovernanceApplication {
 
     public static void main(String[] args) {
+        TimeZone.setDefault(TimeZone.getTimeZone(DateUtils.BEIJING_ZONE_ID));
         SpringApplication.run(GovernanceApplication.class, args);
     }
 }

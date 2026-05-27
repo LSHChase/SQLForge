@@ -15,6 +15,7 @@ import {
   getReportBatchIssueSceneDetail,
   getReportBatchParseStatistics
 } from '../../services/runtimeGateApi'
+import { formatBeijingTimestamp } from '../common/beijingTime.mjs'
 import { buildDatasourceOptions, buildTenantOptions, withCurrentOption } from '../common/formComponentGovernance'
 import { issueSceneHelpText, riskDisplayText as sharedRiskDisplayText } from '../common/issueSceneHelp.mjs'
 
@@ -1558,10 +1559,7 @@ const reportItemAccessHighlights = item => {
 }
 
 const formatTimestamp = value => {
-  if (!value) {
-    return '-'
-  }
-  return String(value).replace('T', ' ').slice(0, 19)
+  return formatBeijingTimestamp(value)
 }
 
 const displayValue = value => {

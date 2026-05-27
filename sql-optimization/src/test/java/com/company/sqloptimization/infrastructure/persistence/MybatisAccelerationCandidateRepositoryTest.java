@@ -14,6 +14,7 @@ import com.company.sqloptimization.domain.governance.GovernanceSourceKind;
 import com.company.sqloptimization.domain.governance.GovernanceSourceType;
 import com.company.sqloptimization.infrastructure.persistence.entity.AccelerationCandidateRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationCandidateMapper;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -43,7 +44,9 @@ class MybatisAccelerationCandidateRepositoryTest {
         assertEquals("STRUCTURE_PARSE", record.getSourceKind());
         assertEquals("ACCELERATION_AND_REWRITE", record.getCandidateType());
         assertEquals("STATIC_PARSE", record.getEvidenceLevel());
-        assertEquals(LocalDateTime.of(2026, 5, 10, 9, 0), record.getCreatedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-05-10T09:00:00Z")),
+            record.getCreatedAt());
         assertEquals("{\"object\":\"orders\"}", record.getSourceEvidenceJson());
     }
 
@@ -88,7 +91,7 @@ class MybatisAccelerationCandidateRepositoryTest {
         assertEquals(CandidateType.REWRITE, restored.getCandidateType());
         assertEquals(CandidateStatus.RECOMMENDED, restored.getStatus());
         assertEquals(EvidenceLevel.RUNTIME_HISTORY, restored.getEvidenceLevel());
-        assertEquals(Instant.parse("2026-05-10T09:01:00Z"), restored.getCreatedAt());
+        assertEquals(DateUtils.toInstant(LocalDateTime.of(2026, 5, 10, 9, 1)), restored.getCreatedAt());
         assertEquals(Integer.valueOf(1200), restored.getRuntimeEvidence().get("p99Ms"));
     }
 

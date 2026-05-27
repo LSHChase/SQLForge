@@ -15,9 +15,9 @@ import com.company.sqloptimization.domain.recommendation.repository.Acceleration
 import com.company.sqloptimization.infrastructure.persistence.entity.AccelerationRecommendationRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.AccelerationRecommendationMapper;
 import com.fasterxml.jackson.databind.JavaType;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,8 +28,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.recommendation", name = "repository", havingValue = "database")
 public class MybatisAccelerationRecommendationRepository implements AccelerationRecommendationRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final AccelerationRecommendationMapper recommendationMapper;
 
@@ -218,10 +216,10 @@ public class MybatisAccelerationRecommendationRepository implements Acceleration
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

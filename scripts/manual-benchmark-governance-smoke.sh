@@ -41,7 +41,7 @@ EOF
 mysql_exec() {
   local sql="$1"
   docker exec "${MYSQL_CONTAINER}" sh -lc \
-    "mysql -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
+    "mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} -e \"$sql\""
 }
 
 poll_terminal_status() {
@@ -116,14 +116,14 @@ main() {
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
 
-  SUCCESS_SUBMIT_REQUEST_ID="benchmark-submit-success-$(date +%Y%m%d%H%M%S)"
-  SUCCESS_STATUS_REQUEST_ID="benchmark-status-success-$(date +%Y%m%d%H%M%S)"
-  SUCCESS_REPORT_REQUEST_ID="benchmark-report-success-$(date +%Y%m%d%H%M%S)"
-  SUCCESS_RAW_REQUEST_ID="benchmark-raw-success-$(date +%Y%m%d%H%M%S)"
-  FAILURE_SUBMIT_REQUEST_ID="benchmark-submit-failure-$(date +%Y%m%d%H%M%S)"
-  FAILURE_STATUS_REQUEST_ID="benchmark-status-failure-$(date +%Y%m%d%H%M%S)"
-  COMPENSATION_REQUEST_ID="benchmark-status-comp-$(date +%Y%m%d%H%M%S)"
-  COMPENSATION_TRACE_ID="${COMPENSATION_TRACE_PREFIX}-benchmark-$(date +%Y%m%d%H%M%S)"
+  SUCCESS_SUBMIT_REQUEST_ID="benchmark-submit-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  SUCCESS_STATUS_REQUEST_ID="benchmark-status-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  SUCCESS_REPORT_REQUEST_ID="benchmark-report-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  SUCCESS_RAW_REQUEST_ID="benchmark-raw-success-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  FAILURE_SUBMIT_REQUEST_ID="benchmark-submit-failure-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  FAILURE_STATUS_REQUEST_ID="benchmark-status-failure-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  COMPENSATION_REQUEST_ID="benchmark-status-comp-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+  COMPENSATION_TRACE_ID="${COMPENSATION_TRACE_PREFIX}-benchmark-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
 
   mapfile -t success_submit_headers < <(build_protected_headers "${SUCCESS_SUBMIT_REQUEST_ID}" "${SUCCESS_SUBMIT_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t success_status_headers < <(build_protected_headers "${SUCCESS_STATUS_REQUEST_ID}" "${SUCCESS_STATUS_REQUEST_ID}" "${issued_at}" "${expires_at}")
@@ -132,7 +132,7 @@ main() {
   mapfile -t failure_submit_headers < <(build_protected_headers "${FAILURE_SUBMIT_REQUEST_ID}" "${FAILURE_SUBMIT_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t failure_status_headers < <(build_protected_headers "${FAILURE_STATUS_REQUEST_ID}" "${FAILURE_STATUS_REQUEST_ID}" "${issued_at}" "${expires_at}")
   mapfile -t compensation_headers < <(build_protected_headers "${COMPENSATION_REQUEST_ID}" "${COMPENSATION_TRACE_ID}" "${issued_at}" "${expires_at}")
-  mapfile -t stats_headers < <(build_protected_headers "benchmark-stats-$(date +%Y%m%d%H%M%S)" "benchmark-stats-$(date +%Y%m%d%H%M%S)" "${issued_at}" "${expires_at}")
+  mapfile -t stats_headers < <(build_protected_headers "benchmark-stats-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)" "benchmark-stats-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)" "${issued_at}" "${expires_at}")
 
   print_step "Reading queue stats before compensation scenario"
   stats_before="$(assert_get_json "${GOVERNANCE_API_BASE_URL}/api/governance/admin/messages/stats" "${stats_headers[@]}")"

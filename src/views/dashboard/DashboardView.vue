@@ -22,6 +22,7 @@ import MetricCard from '../common/MetricCard.vue'
 import PageHero from '../common/PageHero.vue'
 import SectionHeader from '../common/SectionHeader.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
+import { formatBeijingMinute, toBeijingEpochMilli } from '../common/beijingTime.mjs'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -589,26 +590,11 @@ const goTo = path => {
 }
 
 function toEpoch(value) {
-  if (!value) {
-    return 0
-  }
-  const numeric = Number(value)
-  if (!Number.isNaN(numeric) && numeric > 0) {
-    return numeric
-  }
-  const parsed = Date.parse(String(value))
-  return Number.isNaN(parsed) ? 0 : parsed
+  return toBeijingEpochMilli(value)
 }
 
 function formatTimestamp(value) {
-  if (!value) {
-    return '-'
-  }
-  const numeric = Number(value)
-  if (!Number.isNaN(numeric) && numeric > 0) {
-    return new Date(numeric).toLocaleString(isChinese.value ? 'zh-CN' : 'en-US')
-  }
-  return String(value).replace('T', ' ').slice(0, 16)
+  return formatBeijingMinute(value)
 }
 
 onMounted(() => {

@@ -9,9 +9,9 @@ import com.company.sqloptimization.domain.reportbatch.repository.ReportBatchRepo
 import com.company.sqloptimization.infrastructure.persistence.entity.ReportBatchRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.ReportBatchMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,8 +23,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.report-batch", name = "repository", havingValue = "database")
 public class MybatisReportBatchRepository implements ReportBatchRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<List<Map<String, Object>>>() {
     };
 
@@ -150,10 +148,10 @@ public class MybatisReportBatchRepository implements ReportBatchRepository {
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

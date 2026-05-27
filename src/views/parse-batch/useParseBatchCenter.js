@@ -20,6 +20,7 @@ import {
   resolveRuntimeDatasourceCode,
   resolveRuntimeTenantId
 } from '../../config/tenantDefaults.mjs'
+import { formatBeijingTimestamp } from '../common/beijingTime.mjs'
 import { issueSceneHelpText } from '../common/issueSceneHelp.mjs'
 
 export function useParseBatchCenter() {
@@ -529,10 +530,7 @@ export function useParseBatchCenter() {
   }
 
   const formatInstant = value => {
-    if (!value) {
-      return '-'
-    }
-    return String(value).replace('T', ' ').replace('Z', ' UTC')
+    return formatBeijingTimestamp(value)
   }
 
   const displayValue = value => {

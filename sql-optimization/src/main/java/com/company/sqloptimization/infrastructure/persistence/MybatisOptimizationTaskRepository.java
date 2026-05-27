@@ -20,9 +20,9 @@ import com.company.sqloptimization.infrastructure.persistence.entity.Optimizatio
 import com.company.sqloptimization.infrastructure.persistence.mapper.OptimizationTaskMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,8 +33,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "database-worker")
 public class MybatisOptimizationTaskRepository implements OptimizationTaskRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<List<Map<String, Object>>>() {
     };
@@ -265,10 +263,10 @@ public class MybatisOptimizationTaskRepository implements OptimizationTaskReposi
     }
 
     private LocalDateTime toLocalDateTime(Instant value) {
-        return value == null ? null : LocalDateTime.ofInstant(value, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(value);
     }
 
     private Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(value);
     }
 }

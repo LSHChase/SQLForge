@@ -104,9 +104,9 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
+from scripts.beijing_time import now_beijing_compact
 from scripts.governed_v2_support import (
     append_executed_command,
     build_suggestion,
@@ -231,7 +231,7 @@ def resolve_repo_relative(repo_root: Path, raw: str) -> Path:
 
 
 def now_compact() -> str:
-    return datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
+    return now_beijing_compact()
 
 
 def write_json(path: Path, payload: dict) -> None:

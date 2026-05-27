@@ -15,6 +15,7 @@
     "lint": "eslint . --ext .js,.mjs,.vue --max-warnings=0",
     "test:form-governance": "node scripts/validate-form-component-governance.mjs",
     "test:sql-ui-contract": "node scripts/check-sql-ui-contract.mjs",
+    "test:beijing-time": "node scripts/check-beijing-time-contract.mjs",
     "test:frontend-page-governance": "node scripts/check-frontend-page-governance.mjs --self-test && node scripts/check-frontend-page-governance.mjs && node scripts/check-frontend-i18n-copy.mjs",
     "test:i18n-copy": "node scripts/check-frontend-i18n-copy.mjs",
     "portable:start": "node dist-portable/portable-server.mjs --config dist-portable/portable-config.json",

@@ -86,13 +86,13 @@ wait_for_mysql() {
 run_sql_file() {
   local sql_file="$1"
   echo "Applying ${sql_file}..."
-  compose exec -T mysql mysql -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
+  compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -usqlforge -psqlforge sqlforge < "${REPO_ROOT}/${sql_file}"
 }
 
 check_message_queue_table() {
   local table_count
 
-  table_count="$(compose exec -T mysql mysql -N -B -usqlforge -psqlforge sqlforge -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';" 2>/dev/null || echo "")"
+  table_count="$(compose exec -T mysql mysql --init-command=SET\ time_zone=\'+08:00\' -N -B -usqlforge -psqlforge sqlforge -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='sqlforge' AND table_name='kafka_message_queue';" 2>/dev/null || echo "")"
 
   if [[ "${table_count}" == "1" ]]; then
     echo "Verified kafka_message_queue table exists for R-144 DATABASE mode."

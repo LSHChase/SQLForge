@@ -8,7 +8,6 @@ import json
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +24,10 @@ from scripts.governed_v2_support import (
     relative_to_root,
     write_json,
 )
+try:
+    from scripts.beijing_time import now_beijing_compact
+except ModuleNotFoundError:
+    from beijing_time import now_beijing_compact
 
 SCHEMA_VERSION = 2
 TASK_ID_PATTERN = re.compile(r"^[A-Z]+-[0-9]{3}$")
@@ -80,7 +83,7 @@ def parse_template(text: str) -> dict[str, Any]:
 
 
 def default_run_id() -> str:
-    return "template-adapter-" + datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
+    return "template-adapter-" + now_beijing_compact()
 
 
 def build_governed_intake_command(payload: dict[str, Any], run_id: str) -> list[str]:

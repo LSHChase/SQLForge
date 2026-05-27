@@ -7,8 +7,8 @@ import com.company.sqloptimization.application.controller.vo.StructureParseRespo
 import com.company.sqloptimization.domain.parsehistory.SlowSqlExecutionHistoryCandidate;
 import com.company.sqloptimization.domain.parsehistory.SlowSqlExecutionHistoryQuery;
 import com.company.sqloptimization.domain.parsehistory.SlowSqlExecutionHistorySource;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -24,7 +24,7 @@ public class EndOfDaySlowSqlParseApplicationService {
     private static final int DEFAULT_LIMIT = 500;
     private static final int MAX_LIMIT = 5000;
     private static final DateTimeFormatter BATCH_KEY_TIME =
-        DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneOffset.UTC);
+        DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(DateUtils.BEIJING_ZONE);
 
     private final SlowSqlExecutionHistorySource slowSqlExecutionHistorySource;
     private final StructureParseApplicationService structureParseApplicationService;

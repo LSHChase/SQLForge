@@ -13,13 +13,13 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,7 +36,6 @@ public class GovernanceQueryExecutionHistoryApplicationService {
     private static final String HISTORY_TYPE = "QUERY_EXECUTION";
     private static final String OPERATION = "QUERY_EXECUTE_SYNC";
     private static final String TARGET_TYPE = "QUERY_EXECUTION_QUERY";
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final GovernanceProtectedPersistenceService protectedPersistenceService;
     private final ConfigSnapshotMapper configSnapshotMapper;
@@ -452,7 +451,7 @@ public class GovernanceQueryExecutionHistoryApplicationService {
     }
 
     private LocalDateTime toDatabaseTime(Instant instant) {
-        return LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private String toJson(Object payload) {

@@ -61,6 +61,7 @@ import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTa
 import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetCaseMapper;
 import com.company.benchmarkengine.infrastructure.persistence.mapper.BenchmarkTestSetMapper;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -106,9 +107,15 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertEquals("FAILED", record.getStatus());
         assertEquals("FINISHED", record.getCurrentPhase());
         assertEquals(Integer.valueOf(60), record.getProgressPercent());
-        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 0, 0), record.getSubmittedAt());
-        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 0, 5), record.getStartedAt());
-        assertEquals(LocalDateTime.of(2026, 4, 22, 5, 1, 0), record.getFinishedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-22T05:00:00Z")),
+            record.getSubmittedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-22T05:00:05Z")),
+            record.getStartedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-22T05:01:00Z")),
+            record.getFinishedAt());
         assertTrue(record.getTargetEnginesJson().contains("HETU"));
         assertTrue(record.getScaleTargetJson().contains("\"targetConcurrency\":10000"));
         assertTrue(record.getScaleTargetJson().contains("\"targetDailyQueryVolume\":10000000"));
@@ -249,7 +256,9 @@ class MybatisBenchmarkTaskRepositoryTest {
         assertNotNull(record);
         assertEquals("report-task-db-003", record.getReportId());
         assertEquals("task-db-003", record.getTaskId());
-        assertEquals(LocalDateTime.of(2026, 4, 22, 6, 1, 10), record.getGeneratedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-04-22T06:01:10Z")),
+            record.getGeneratedAt());
         assertTrue(record.getEngineProfilesJson().contains("HETU"));
         assertTrue(record.getThresholdAssessmentsJson().contains("P99_LATENCY_MS"));
         assertTrue(record.getRecommendationsJson().contains("REGRESSION_GATE"));

@@ -917,18 +917,18 @@ class GovernanceHistoryApplicationServiceTest {
         );
 
         RequestContext.set(
-            "tenant-a",
-            "tenant-admin-001",
+            "system",
+            "system-runtime",
             "request-001",
             "trace-batch-001",
             "header",
             100L,
             200L
         );
-        when(tenantAccessLogic.validateDataSourceAccess("tenant-a", "governance-tenant-config", "READ")).thenReturn(true);
+        when(tenantAccessLogic.validateDataSourceAccess("system", "governance-tenant-config", "READ")).thenReturn(true);
 
         GovernanceBenchmarkArtifactOperationResponse success = new GovernanceBenchmarkArtifactOperationResponse();
-        success.setTenantId("tenant-a");
+        success.setTenantId("system");
         success.setReportId("report-001");
         success.setArtifactKey("json-export");
         success.setOperationType("CLEANUP_ARTIFACT");
@@ -949,7 +949,7 @@ class GovernanceHistoryApplicationServiceTest {
         ));
 
         GovernanceBenchmarkArtifactBatchOperationRequest request = new GovernanceBenchmarkArtifactBatchOperationRequest();
-        request.setTenantId("tenant-a");
+        request.setTenantId("system");
         request.setOperationType("EXECUTE_RETENTION_BATCH");
         request.setOperationReason("retention-window");
         request.setTargets(Arrays.asList(
@@ -957,7 +957,6 @@ class GovernanceHistoryApplicationServiceTest {
             target("report-001", "json-export"),
             target("report-002", "raw-data")
         ));
-
         GovernanceBenchmarkArtifactBatchOperationResponse response = service.operateArtifactBatch(request);
 
         assertEquals("artifact-batch-request-001", response.getBatchId());

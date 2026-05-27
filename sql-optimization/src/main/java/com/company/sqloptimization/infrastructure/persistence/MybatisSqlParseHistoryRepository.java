@@ -5,9 +5,9 @@ import com.company.sqloptimization.domain.parsehistory.SqlParseHistoryFilter;
 import com.company.sqloptimization.domain.parsehistory.repository.SqlParseHistoryRepository;
 import com.company.sqloptimization.infrastructure.persistence.entity.SqlParseHistoryRecord;
 import com.company.sqloptimization.infrastructure.persistence.mapper.SqlParseHistoryMapper;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,8 +16,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.parse-history", name = "repository", havingValue = "database")
 public class MybatisSqlParseHistoryRepository implements SqlParseHistoryRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final SqlParseHistoryMapper sqlParseHistoryMapper;
 
@@ -154,10 +152,10 @@ public class MybatisSqlParseHistoryRepository implements SqlParseHistoryReposito
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

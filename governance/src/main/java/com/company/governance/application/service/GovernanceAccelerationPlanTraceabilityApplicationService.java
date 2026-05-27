@@ -12,9 +12,9 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -24,7 +24,6 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
 
     private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
     private static final String IMPLEMENTATION_STAGE = "ACCELERATION_PLAN_TRACEABILITY_BASELINE";
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final GovernanceProtectedPersistenceService governanceProtectedPersistenceService;
     private final ConfigSnapshotMapper configSnapshotMapper;
@@ -248,6 +247,6 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
     }
 
     private LocalDateTime toDatabaseTime(Instant instant) {
-        return LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 }

@@ -10,6 +10,14 @@
 - 当前增量脚本目录固定为 `sql/migrations/`。
 - 当前 Java 持久化实现固定为 MyBatis XML，禁止在注解中写复杂 SQL。
 
+## Time Baseline
+
+- 所有用户可读时间统一按北京时间 `Asia/Shanghai`、24 小时制展示，标准格式为 `yyyy-MM-dd HH:mm:ss`。
+- Java 主代码通过 `DateUtils` 生成、格式化和转换业务时间；不得在主代码中用 `ZoneOffset.UTC` 或宿主机默认时区解释业务 `DATETIME`。
+- MySQL / TDSQL 连接必须显式使用 `serverTimezone=Asia/Shanghai` 或等价连接会话时区；本地 compose 的 MySQL 启动参数固定 `TZ=Asia/Shanghai` 与 `--default-time-zone=+08:00`。
+- `DATETIME` 与 `CURRENT_TIMESTAMP` 字段按北京时间业务时刻落库；跨服务事件仍可在领域模型中使用 `Instant` 表达绝对时间点，但写入 MySQL `DATETIME` 前必须转换为北京时间。
+- 前端页面不得直接调用浏览器本地 `toLocaleString()` 展示时间，必须走统一北京时间格式化工具，防止操作者所在终端时区改变展示结果。
+
 ## Current Carrier
 
 - `governance` 是当前承载事务型治理元数据的实现载体。

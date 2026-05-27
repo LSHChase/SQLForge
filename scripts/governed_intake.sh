@@ -458,7 +458,7 @@ else
 fi
 
 if [[ -z "${RUN_ID}" ]]; then
-  RUN_ID="intake-$(date +%Y%m%d%H%M%S)"
+  RUN_ID="intake-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
 fi
 
 INTAKE_ROOT="${REPO_ROOT}/.codex/state/intake/${RUN_ID}"

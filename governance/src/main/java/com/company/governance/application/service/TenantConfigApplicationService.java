@@ -13,6 +13,7 @@ import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.TenantContext;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -100,7 +101,7 @@ public class TenantConfigApplicationService {
 
         tenantConfig.setDefaultEngine(defaultEngine);
         tenantConfig.setBackupEngine(backupEngine);
-        tenantConfig.setUpdateTime(LocalDateTime.now());
+        tenantConfig.setUpdateTime(DateUtils.now());
         int updated = tenantConfigRepository.update(tenantConfig);
         if (updated <= 0) {
             throw new BizException(
@@ -208,7 +209,7 @@ public class TenantConfigApplicationService {
         auditLogRecord.setResponseSummary("defaultEngine=" + defaultEngine.name() + ", backupEngine=" + backupEngine.name());
         auditLogRecord.setStatus("SUCCESS");
         auditLogRecord.setCostMs(0L);
-        auditLogRecord.setCreateTime(LocalDateTime.now());
+        auditLogRecord.setCreateTime(DateUtils.now());
         governanceProtectedPersistenceService.saveAuditLog(auditLogRecord);
     }
 }

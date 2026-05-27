@@ -8,6 +8,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqloptimization.domain.governance.ComparisonStatus;
 import com.company.sqloptimization.domain.governance.DifferenceType;
 import com.company.sqloptimization.domain.governance.EvidenceLevel;
@@ -57,15 +58,21 @@ class MybatisSqlRewriteRecordRepositoryTest {
         assertEquals("CHANGES_REQUESTED", record.getReviewStatus());
         assertEquals("needs safer predicate", record.getReviewNote());
         assertEquals("reviewer-001", record.getReviewedBy());
-        assertEquals(LocalDateTime.of(2026, 5, 10, 10, 5), record.getReviewedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-05-10T10:05:00Z")),
+            record.getReviewedAt());
         assertEquals("ACTIVATE_FAILED", record.getActivationStatus());
         assertEquals("binding-001", record.getRuntimeBindingId());
-        assertEquals(LocalDateTime.of(2026, 5, 10, 10, 6), record.getRuntimeBindingAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-05-10T10:06:00Z")),
+            record.getRuntimeBindingAt());
         assertEquals("operator-002", record.getRuntimeBindingBy());
         assertEquals("tenant-a:fp-001", record.getRuntimeBindingScope());
         assertEquals("fp-published-001", record.getActivatedSqlFingerprint());
         assertEquals("rule-v1", record.getRuntimeRuleVersion());
-        assertEquals(LocalDateTime.of(2026, 5, 10, 10, 0), record.getCreatedAt());
+        assertEquals(
+            DateUtils.toBeijingDateTime(Instant.parse("2026-05-10T10:00:00Z")),
+            record.getCreatedAt());
         assertEquals("[{\"rule\":\"COUNT_STAR\"}]", record.getRuleChainJson());
         assertEquals("{\"risk\":\"LOW\"}", record.getRiskJson());
     }
@@ -91,10 +98,10 @@ class MybatisSqlRewriteRecordRepositoryTest {
         assertEquals(RewriteReviewStatus.APPROVED, restored.getReviewStatus());
         assertEquals("review accepted", restored.getReviewNote());
         assertEquals("reviewer-002", restored.getReviewedBy());
-        assertEquals(Instant.parse("2026-05-10T10:32:00Z"), restored.getReviewedAt());
+        assertEquals(DateUtils.toInstant(LocalDateTime.of(2026, 5, 10, 10, 32)), restored.getReviewedAt());
         assertEquals(RewriteActivationStatus.ACTIVE, restored.getActivationStatus());
         assertEquals("binding-002", restored.getRuntimeBindingId());
-        assertEquals(Instant.parse("2026-05-10T10:33:00Z"), restored.getRuntimeBindingAt());
+        assertEquals(DateUtils.toInstant(LocalDateTime.of(2026, 5, 10, 10, 33)), restored.getRuntimeBindingAt());
         assertEquals("operator-002", restored.getRuntimeBindingBy());
         assertEquals("tenant-a:fp-002", restored.getRuntimeBindingScope());
         assertEquals("fp-published-002", restored.getActivatedSqlFingerprint());

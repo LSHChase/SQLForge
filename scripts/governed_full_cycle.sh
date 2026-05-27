@@ -133,7 +133,7 @@ case "${STOP_AFTER}" in
 esac
 
 if [[ -z "${RUN_ID}" ]]; then
-  RUN_ID="${TASK_PREFIX,,}-full-cycle-$(date +%Y%m%d%H%M%S)"
+  RUN_ID="${TASK_PREFIX,,}-full-cycle-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
 fi
 
 if [[ "${DRY_RUN}" == "true" ]]; then

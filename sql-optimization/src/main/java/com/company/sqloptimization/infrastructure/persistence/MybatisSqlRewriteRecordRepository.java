@@ -20,9 +20,9 @@ import com.company.sqloptimization.infrastructure.persistence.entity.SqlRewriteR
 import com.company.sqloptimization.infrastructure.persistence.mapper.RewriteValidationRunMapper;
 import com.company.sqloptimization.infrastructure.persistence.mapper.SqlRewriteRecordMapper;
 import com.fasterxml.jackson.databind.JavaType;
+import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,8 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 @ConditionalOnProperty(prefix = "sql-optimization.queues", name = "mode", havingValue = "database-worker")
 public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordRepository {
-
-    private static final ZoneOffset DATABASE_ZONE_OFFSET = ZoneOffset.UTC;
 
     private final SqlRewriteRecordMapper sqlRewriteRecordMapper;
     private final RewriteValidationRunMapper rewriteValidationRunMapper;
@@ -298,10 +296,10 @@ public class MybatisSqlRewriteRecordRepository implements SqlRewriteRecordReposi
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, DATABASE_ZONE_OFFSET);
+        return DateUtils.toBeijingDateTime(instant);
     }
 
     private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(DATABASE_ZONE_OFFSET);
+        return DateUtils.toInstant(localDateTime);
     }
 }

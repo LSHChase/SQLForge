@@ -10,6 +10,7 @@ import {
   getQueryHistoryRewriteRecords
 } from '../../services/runtimeGateApi'
 import { engineOptions } from '../common/formComponentGovernance'
+import { formatBeijingTimestamp } from '../common/beijingTime.mjs'
 import MetricCard from '../common/MetricCard.vue'
 import SectionHeader from '../common/SectionHeader.vue'
 import SqlCodeBlock from '../common/SqlCodeBlock.vue'
@@ -1131,10 +1132,7 @@ const isNonEmpty = value => {
 }
 
 const formatTimestamp = value => {
-  if (!value) {
-    return '-'
-  }
-  return String(value).replace('T', ' ').slice(0, 19)
+  return formatBeijingTimestamp(value)
 }
 
 const formatJson = value => JSON.stringify(value, null, 2)

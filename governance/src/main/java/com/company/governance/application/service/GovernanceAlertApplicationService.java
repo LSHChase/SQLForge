@@ -12,10 +12,10 @@ import com.company.governance.infrastructure.persistence.mapper.AlertEventMapper
 import com.company.governance.infrastructure.persistence.mapper.AlertNotificationLogMapper;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.utils.DateUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -325,10 +325,10 @@ public class GovernanceAlertApplicationService {
     }
 
     private Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.toInstant(ZoneOffset.UTC);
+        return value == null ? null : DateUtils.toInstant(value);
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+        return instant == null ? null : DateUtils.toBeijingDateTime(instant);
     }
 }

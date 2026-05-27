@@ -19,6 +19,8 @@ services:
       MYSQL_USER: sqlforge
       # 配置项 MYSQL_PASSWORD：用途：设置 MySQL 业务用户密码；默认值：sqlforge；运行影响：密码错误会导致应用数据库连接失败。
       MYSQL_PASSWORD: sqlforge
+      # 配置项 TZ：用途：固定 MySQL 容器系统时区；默认值：Asia/Shanghai；运行影响：CURRENT_TIMESTAMP 与日志时间按北京时间 24 小时制输出。
+      TZ: Asia/Shanghai
     # 配置项 ports：用途：声明宿主机到容器的端口映射；默认值：见其子项；运行影响：端口变化会影响本机访问地址以及端口冲突风险。
     ports:
       # 配置列表项 列表值：用途：映射宿主机和容器端口 "3306:3306"；默认值：当前列表项为 "3306:3306"；运行影响：该端口用于本机访问对应容器服务。
@@ -31,6 +33,8 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       # 配置列表项 列表值：用途：向容器启动命令追加参数 --default-authentication-plugin=mysql_native_password；默认值：当前列表项为 --default-authentication-plugin=mysql_native_password；运行影响：该参数会改变容器内组件启动行为。
       - --default-authentication-plugin=mysql_native_password
+      # 配置列表项 列表值：用途：向容器启动命令追加参数 --default-time-zone=+08:00；默认值：当前列表项为 --default-time-zone=+08:00；运行影响：MySQL 默认会话时间按北京时间解释。
+      - --default-time-zone=+08:00
     # 配置项 volumes：用途：声明持久化卷或目录挂载；默认值：见其子项；运行影响：挂载变化会影响数据保留、恢复和本地文件写入位置。
     volumes:
       # 配置列表项 列表值：用途：挂载卷或目录 mysql-simple-data:/var/lib/mysql；默认值：当前列表项为 mysql-simple-data:/var/lib/mysql；运行影响：该挂载决定容器数据持久化位置。

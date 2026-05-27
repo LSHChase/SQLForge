@@ -59,8 +59,9 @@ import json
 import shlex
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
+
+from scripts.beijing_time import now_beijing_iso
 
 
 def fail(message: str) -> None:
@@ -86,7 +87,7 @@ def resolve_repo_relative(repo_root: Path, raw: str) -> Path:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    return now_beijing_iso()
 
 
 def quoted_command(parts: list[str], prompt_path: Path) -> str:

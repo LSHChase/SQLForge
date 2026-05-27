@@ -1,5 +1,7 @@
 package com.company.benchmarkengine;
 
+import com.company.sqlforge.common.utils.DateUtils;
+import java.util.TimeZone;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,6 +20,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class BenchmarkEngineApplication {
 
     public static void main(String[] args) {
+        TimeZone.setDefault(TimeZone.getTimeZone(DateUtils.BEIJING_ZONE_ID));
         SpringApplication.run(BenchmarkEngineApplication.class, args);
     }
 }

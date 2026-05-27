@@ -14,6 +14,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
+try:
+    from scripts.beijing_time import now_beijing_iso, today_beijing_iso
+except ModuleNotFoundError:
+    from beijing_time import now_beijing_iso, today_beijing_iso
+
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
@@ -188,11 +193,11 @@ def run_or_raise(command: Sequence[str], cwd: Path | None = None) -> CommandResu
 
 
 def now_iso() -> str:
-    return run_or_raise(["date", "--iso-8601=seconds"]).stdout.strip()
+    return now_beijing_iso()
 
 
 def today_iso() -> str:
-    return now_iso()[:10]
+    return today_beijing_iso()
 
 
 def compact(text: str, limit: int = 200) -> str:

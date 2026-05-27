@@ -84,12 +84,13 @@ import json
 import os
 import pathlib
 import sys
-from datetime import datetime, timezone
+
+from scripts.beijing_time import now_beijing_iso
 
 path = pathlib.Path(sys.argv[1])
 path.parent.mkdir(parents=True, exist_ok=True)
 bundle = {
-    "generatedAt": datetime.now(timezone.utc).isoformat(),
+    "generatedAt": now_beijing_iso(),
     "routeCalibration": json.loads(os.environ["ROUTE_CALIBRATION_JSON"]),
     "executionResponse": json.loads(os.environ["EXECUTION_RESPONSE_JSON"]),
 }
@@ -120,7 +121,7 @@ main() {
 
   issued_at="$(date +%s000)"
   expires_at="$((issued_at + 600000))"
-  mapfile -t headers < <(build_protected_headers "hetu-env-smoke-$(date +%Y%m%d%H%M%S)" "hetu-env-smoke-$(date +%Y%m%d%H%M%S)" "${issued_at}" "${expires_at}")
+  mapfile -t headers < <(build_protected_headers "hetu-env-smoke-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)" "hetu-env-smoke-$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)" "${issued_at}" "${expires_at}")
 
   print_step "Health check: query-execution"
   response="$(assert_get_json "${QUERY_EXECUTION_HEALTH_URL}")"

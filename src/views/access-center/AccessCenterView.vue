@@ -5,6 +5,7 @@ import CapabilityPlaceholderDialog from '../common/CapabilityPlaceholderDialog.v
 import SectionHeader from '../common/SectionHeader.vue'
 import ToolbarShell from '../common/ToolbarShell.vue'
 import { resolveRuntimeTenantId } from '../../config/tenantDefaults.mjs'
+import { formatBeijingTimestamp } from '../common/beijingTime.mjs'
 import { resolveCapabilityPlaceholder } from '../common/capabilityPlaceholderRegistry.mjs'
 import {
   formatRuntimeError,
@@ -169,7 +170,7 @@ const displayValue = value => {
 }
 
 const formatJson = value => JSON.stringify(value, null, 2)
-const formatTimestamp = value => (value ? String(value).replace('T', ' ').slice(0, 19) : '-')
+const formatTimestamp = value => formatBeijingTimestamp(value)
 
 onMounted(() => {
   refreshAudit()
