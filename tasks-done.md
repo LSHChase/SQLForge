@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260527: 全量更新 dist-portable 便携前端产物
+
+- Status: done
+- Completed at: 2026-05-27
+- Commit subject: `build(portable): refresh dist-portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: 使用现有 portable 前端构建入口按当前仓库源代码全量重新生成受跟踪的 dist-portable 包，清理过期 hashed assets，并通过 portable 构建、浏览器 smoke、任务审计与差异检查验证；不修改业务源码、接口语义或页面功能。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260527`
+- Progress log:
+  - 2026-05-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Cleared stale dist-portable hashed assets and regenerated the tracked portable frontend package from current repository source without changing business behavior.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260527 --include-task-audit --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'git diff --check'; npm run build:portable; npm run smoke:portable-frontend; git diff --check; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No known repository-side residual risk; runtime backend availability still depends on target host portable-config.json service URLs.
+  - Next step: Use dist-portable/start-portable.sh or start-portable.cmd with configured backend services when distributing the refreshed portable package.
+
 ### USER-CN-BEIJING-TIME-24H-20260526: 统一北京时间 24 小时制显示与管理
 
 - Status: done
