@@ -498,9 +498,20 @@ public class SqlOptimizationPipelineService {
 
     public OptimizationTaskSuggestion buildRewriteSuggestion(ParsedSqlProfile profile) {
         RewriteOutcome outcome = profile == null ? RewriteOutcome.empty() : profile.getRewriteOutcome();
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate dynamicSnapshotRewrite =
+            profile == null ? null : L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(
+                profile.getNormalizedSql(),
+                profile
+            );
+        List<String> appliedRules = new ArrayList<String>(outcome.appliedRules);
+        String candidateSql = outcome.rewrittenSql;
+        if (dynamicSnapshotRewrite != null && StringUtils.hasText(dynamicSnapshotRewrite.getRewriteSql())) {
+            candidateSql = dynamicSnapshotRewrite.getRewriteSql();
+            addIfAbsent(appliedRules, L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
+        }
         RewriteCoreIrSnapshot coreIrSnapshot = profile == null ? null : buildRewriteCoreIr(profile);
         List<OptimizationTaskRisk> risks = new ArrayList<OptimizationTaskRisk>(buildShapeRisks(profile));
-        if (outcome.appliedRules.isEmpty()) {
+        if (appliedRules.isEmpty()) {
             risks.add(
                 new OptimizationTaskRisk(
                     "MEDIUM",
@@ -520,8 +531,20 @@ public class SqlOptimizationPipelineService {
             );
         }
         List<OptimizationTaskArtifact> artifacts = new ArrayList<OptimizationTaskArtifact>();
-        artifacts.add(new OptimizationTaskArtifact("REWRITTEN_SQL", "candidateSql", outcome.rewrittenSql));
-        artifacts.add(new OptimizationTaskArtifact("REWRITE_RULE_TRACE", "appliedRules", JsonUtils.toJson(outcome.appliedRules)));
+        artifacts.add(new OptimizationTaskArtifact("REWRITTEN_SQL", "candidateSql", candidateSql));
+        artifacts.add(new OptimizationTaskArtifact("REWRITE_RULE_TRACE", "appliedRules", JsonUtils.toJson(appliedRules)));
+        if (dynamicSnapshotRewrite != null) {
+            artifacts.add(new OptimizationTaskArtifact(
+                "DYNAMIC_REWRITE_EVIDENCE",
+                "dynamicSnapshotRewriteEvidence",
+                JsonUtils.toJson(dynamicSnapshotRewrite.getEvidence())
+            ));
+            artifacts.add(new OptimizationTaskArtifact(
+                "DYNAMIC_REWRITE_VALIDATION_METHODS",
+                "dynamicSnapshotValidationMethods",
+                JsonUtils.toJson(dynamicSnapshotRewrite.getValidationMethods())
+            ));
+        }
         artifacts.add(new OptimizationTaskArtifact("AST_PROFILE", "astProfile", JsonUtils.toJson(profile.toAstProfile())));
         if (coreIrSnapshot != null) {
             artifacts.add(new OptimizationTaskArtifact(
@@ -550,19 +573,19 @@ public class SqlOptimizationPipelineService {
         List<OptimizationTaskBenefit> benefits = Arrays.asList(
             new OptimizationTaskBenefit(
                 "PLAN_SIMPLIFICATION",
-                Integer.valueOf(clamp(20 + outcome.appliedRules.size() * 12, 10, 70)),
+                Integer.valueOf(clamp(20 + appliedRules.size() * 12, 10, 70)),
                 "移除重复谓词、分组键或排序项后，逻辑计划更小且更容易校验。"
             ),
             new OptimizationTaskBenefit(
                 "RULE_TRACEABILITY",
-                Integer.valueOf(clamp(30 + outcome.appliedRules.size() * 10, 15, 75)),
+                Integer.valueOf(clamp(30 + appliedRules.size() * 10, 15, 75)),
                 "每次改写都会记录为确定性规则追踪，而不是不透明的占位摘要。"
             )
         );
         List<OptimizationTaskCost> costs = Arrays.asList(
             new OptimizationTaskCost(
                 "VALIDATION",
-                outcome.appliedRules.isEmpty() ? "LOW" : "MEDIUM",
+                appliedRules.isEmpty() ? "LOW" : "MEDIUM",
                 "后续批准或应用前，候选 SQL 应与原始语句进行差异校验。"
             ),
             new OptimizationTaskCost(
@@ -571,16 +594,16 @@ public class SqlOptimizationPipelineService {
                 "当前改写规则保持保守策略，不尝试依赖 schema 的投影展开。"
             )
         );
-        String summary = outcome.appliedRules.isEmpty()
+        String summary = appliedRules.isEmpty()
             ? "语句解析成功，但未找到保守的自动改写候选。"
-            : "已生成候选改写 SQL，包含 " + outcome.appliedRules.size() + " 条安全 AST 规则。";
-        String recommendation = outcome.appliedRules.isEmpty()
+            : rewriteSummary(appliedRules, dynamicSnapshotRewrite);
+        String recommendation = appliedRules.isEmpty()
             ? "请使用解析制品人工评审投影宽度、过滤位置和引擎专属提示。"
-            : "请先将候选改写结果与原始语句做校验，再把批准后的 SQL 带入下一步治理。";
+            : rewriteRecommendation(dynamicSnapshotRewrite);
         return new OptimizationTaskSuggestion(
             summary,
             recommendation,
-            Integer.valueOf(calculateRewriteConfidence(profile, outcome)),
+            Integer.valueOf(calculateRewriteConfidence(profile, appliedRules)),
             artifacts,
             benefits,
             costs,
@@ -926,6 +949,8 @@ public class SqlOptimizationPipelineService {
         List<Map<String, Object>> semanticRisks = new ArrayList<Map<String, Object>>();
 
         RewriteOutcome outcome = profile.getRewriteOutcome();
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate dynamicSnapshotRewrite =
+            L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(profile.getNormalizedSql(), profile);
         for (String appliedRule : outcome.appliedRules) {
             ruleChain.add(ruleEntry(
                 "L0",
@@ -934,6 +959,27 @@ public class SqlOptimizationPipelineService {
                 "STATIC_PARSE",
                 Boolean.TRUE,
                 l0RuleDescription(appliedRule)
+            ));
+        }
+        if (dynamicSnapshotRewrite != null) {
+            ruleChain.add(ruleEntry(
+                "L2",
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
+                "APPLIED_TO_CANDIDATE_SQL",
+                MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
+                Boolean.FALSE,
+                "基于解析画像、重复扫描特征、日期/机构/客户/阈值字段动态生成报表快照聚合改写 SQL。"
+            ));
+            preconditions.add(preconditionEntry(
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
+                "RESULT_SET_AND_METRIC_DIFF_VALIDATION_REQUIRED",
+                "激活前必须执行结果集、机构标签、逐键指标、汇总指标和计划形态校验。"
+            ));
+            semanticRisks.add(semanticRiskEntry(
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
+                "COUNT_DISTINCT_SNAPSHOT_AGGREGATE",
+                "MEDIUM",
+                "COUNT DISTINCT 报表被改写为机构-客户-日期快照聚合，必须证明锚点行集、NULL 指标和机构标签语义一致。"
             ));
         }
         if (profile.isSelectStar()) {
@@ -3219,6 +3265,32 @@ public class SqlOptimizationPipelineService {
 
     private int calculateRewriteConfidence(ParsedSqlProfile profile, RewriteOutcome outcome) {
         return clamp(58 + outcome.appliedRules.size() * 9 - profile.warnings.size() * 4, 35, 92);
+    }
+
+    private int calculateRewriteConfidence(ParsedSqlProfile profile, List<String> appliedRules) {
+        int appliedRuleCount = appliedRules == null ? 0 : appliedRules.size();
+        return clamp(58 + appliedRuleCount * 9 - profile.warnings.size() * 4, 35, 92);
+    }
+
+    private String rewriteSummary(List<String> appliedRules,
+                                  L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate dynamicSnapshotRewrite) {
+        if (dynamicSnapshotRewrite != null) {
+            return "已基于动态解析画像生成报表快照聚合改写 SQL，候选规则数 " + appliedRules.size() + " 条。";
+        }
+        return "已生成候选改写 SQL，包含 " + appliedRules.size() + " 条安全 AST 规则。";
+    }
+
+    private String rewriteRecommendation(L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate dynamicSnapshotRewrite) {
+        if (dynamicSnapshotRewrite != null) {
+            return "请先执行结果集、机构标签、逐键指标和计划形态校验，再把推荐 SQL 带入改写记录治理。";
+        }
+        return "请先将候选改写结果与原始语句做校验，再把批准后的 SQL 带入下一步治理。";
+    }
+
+    private void addIfAbsent(List<String> values, String value) {
+        if (values != null && StringUtils.hasText(value) && !values.contains(value)) {
+            values.add(value);
+        }
     }
 
     private int calculateAccelerationConfidence(ParsedSqlProfile profile,

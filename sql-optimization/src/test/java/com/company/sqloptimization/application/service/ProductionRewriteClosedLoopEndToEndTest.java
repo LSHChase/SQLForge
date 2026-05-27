@@ -254,9 +254,10 @@ class ProductionRewriteClosedLoopEndToEndTest {
     }
 
     @Test
-    void shouldNotGenerateDocsTest01RuntimeSnapshotTemplateRewriteVariantsWithTiming() throws Exception {
+    void shouldGenerateDocsTest01DynamicSnapshotRewriteVariantsWithTiming() throws Exception {
         setRequestContext("user-001", "request-test01-runtime", "trace-test01-runtime");
         String originalSql = readRepositorySqlFixture("docs/test01.sql");
+        String expectedRecommendedSql = readRepositorySqlFixture("docs/test01_mv.sql");
         InMemoryAccelerationRecommendationRepository recommendationRepository =
             new InMemoryAccelerationRecommendationRepository();
         RewriteTrialApplicationService trialService = new RewriteTrialApplicationService(
@@ -275,11 +276,13 @@ class ProductionRewriteClosedLoopEndToEndTest {
         AccelerationRecommendation recommendation = recommendationRepository.findByRecommendationId(recommendationId);
         assertEquals("RECOMMENDED", trialRun.getTrialStatus());
         assertNotNull(recommendation);
-        assertFalse(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
-        assertFalse(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
-        assertFalse(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
-        assertFalse(String.valueOf(recommendation.getRuleChain()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
-        assertFalse(String.valueOf(recommendation.getIssueRuleLinks()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertEquals(normalizeExecutableSql(expectedRecommendedSql),
+            normalizeExecutableSql(recommendation.getRecommendedSqlText()));
+        assertTrue(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
+        assertTrue(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
+        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+        assertTrue(String.valueOf(recommendation.getRuleChain()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertTrue(String.valueOf(recommendation.getIssueRuleLinks()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertFalse(recommendation.isAutoApplyAllowed());
         assertTrue(recommendation.isManualReviewRequired());
         assertNotNull(recommendation.getAccelerationArtifact());
@@ -290,6 +293,8 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
             .contains("EXPLAIN_UNAVAILABLE"));
         assertFalse("EXACT_QUERY_MV".equals(recommendation.getAccelerationArtifact().get("mvType")));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("dynamicSnapshotRewriteEvidence"))
+            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
 
         String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
         if ("BLOCKED".equals(artifactStatus)) {
@@ -301,7 +306,7 @@ class ProductionRewriteClosedLoopEndToEndTest {
             assertFalse(rewriteSql.contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
         }
         assertTrue(generationMicros < 2000000L, "docs/test01.sql 推荐生成耗时微秒=" + generationMicros);
-        System.out.println("TEST01_RUNTIME_TEMPLATE_REMOVED_METRICS generation_us=" + generationMicros);
+        System.out.println("TEST01_DYNAMIC_SNAPSHOT_REWRITE_METRICS generation_us=" + generationMicros);
     }
 
     private RewriteTrialRequest test01TrialRequest(String sqlText) {
@@ -392,6 +397,27 @@ class ProductionRewriteClosedLoopEndToEndTest {
             fixture = root.resolve("..").resolve(relativePath).normalize();
         }
         return new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+    }
+
+    private String normalizeExecutableSql(String sql) {
+        StringBuilder builder = new StringBuilder();
+        String[] lines = sql == null ? new String[0] : sql.split("\\r?\\n");
+        for (String line : lines) {
+            String trimmed = line == null ? "" : line.trim();
+            if (trimmed.startsWith("--") || trimmed.startsWith("#")) {
+                continue;
+            }
+            if (trimmed.length() > 0) {
+                builder.append(trimmed).append('\n');
+            }
+        }
+        return builder.toString()
+            .replaceAll("\\s+", " ")
+            .replaceAll("\\(\\s+", "(")
+            .replaceAll("\\s+\\)", ")")
+            .replaceAll("\\s*,\\s*", ", ")
+            .replaceAll("\\s*;\\s*$", "")
+            .trim();
     }
 
     private String firstText(String first, String second) {

@@ -51,6 +51,7 @@
 | `docs/product/frontend-retrospective-gap-closure-baseline.md` | Authority | 前端复盘、规格补漏与 repo-closed 边界基线 | Consumed | `U-TASK-004` 的前端差距基线、导航/首页补漏边界与剩余待后端承接项权威落点 |
 | `docs/改写核心算法.txt` | Archive | SQL 改写推荐核心算法草稿 | Archived | 保留复杂 BI SQL 通用化改写推荐的算法思路输入，不替代当前代码、架构基线和验证规则 |
 | `docs/test01.sql` | Archive | 永洪百万客户净增报表 SQL 回归样本 | Archived | `USER-CN-PROD-SQL-PARSE-REWRITE-20260521` 的 parser/rewrite/L2 MV 回归 fixture；保留原始 SQL，不作为生产执行证据 |
+| `docs/test01_mv.sql` | Archive | 永洪百万客户净增报表动态改写期望 SQL 样本 | Archived | `USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527` 的动态解析推荐 SQL/MV fixture；仅作为测试期望与回归证据，不允许运行时代码静态读取 |
 | `docs/report-import-parse-stress-sample.md` | Indexed | 报表导入解析 XLSX 压测样例说明 | Referenced | 记录本次报表导入测试样例的模板、规模、低质量 SQL 场景、自测边界与使用参数 |
 | `docs/report-import-parse-stress-sample.xlsx` | Archive | 报表导入解析 XLSX 压测样例文件 | Archived | 供后续手动导入测试使用；按 `report_code` + `sql_1..sql_120` 宽表模板保留 |
 | `docs/agent-prompts/auto-planner.md` | Indexed | requirement-driven auto planner prompt 模板 | Referenced | 约束 full-auto 模式下的 exec plan 与 manifest 自动生成，不允许绕过 Main Foreman 治理链 |

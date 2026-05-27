@@ -1328,6 +1328,7 @@ class SqlOptimizationPipelineServiceTest {
     @Test
     void shouldAnalyzeYonghongProductionReportSqlAndRecommendGovernedRewriteShapes() throws Exception {
         String sql = readRepositorySqlFixture("docs/test01.sql");
+        String expectedRecommendedSql = readRepositorySqlFixture("docs/test01_mv.sql");
 
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
         SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
@@ -1368,14 +1369,20 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getUnappliedRules(), "OR_TO_UNION_ALL"));
         assertTrue(containsRule(model.getUnappliedRules(), "MULTI_COUNT_DISTINCT_DECOMPOSITION"));
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
+        assertTrue(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"));
-        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
             rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"));
         assertFalse(model.isAutoApplyAllowed());
 
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
+        String appliedRulesJson = artifact(rewriteSuggestion, "REWRITE_RULE_TRACE", "appliedRules");
+        String dynamicEvidenceJson = artifact(
+            rewriteSuggestion,
+            "DYNAMIC_REWRITE_EVIDENCE",
+            "dynamicSnapshotRewriteEvidence"
+        );
         String recommendationReportJson = artifact(
             rewriteSuggestion,
             "REWRITE_RECOMMENDATION_REPORT",
@@ -1391,9 +1398,14 @@ class SqlOptimizationPipelineServiceTest {
             "REWRITE_ALGORITHM_CONFORMANCE",
             "conformanceReport"
         );
-        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
-        assertFalse(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
-        assertFalse(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
+        assertEquals(normalizeExecutableSql(expectedRecommendedSql), normalizeExecutableSql(rewriteCandidateSql));
+        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
+        assertTrue(appliedRulesJson.contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"), appliedRulesJson);
+        assertTrue(dynamicEvidenceJson.contains("\"generator\":\"DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE\""),
+            dynamicEvidenceJson);
+        assertTrue(dynamicEvidenceJson.contains("\"staticTest01TemplateUsed\":false"), dynamicEvidenceJson);
         assertTrue(recommendationReportJson.contains("\"generationStatus\":\"RECOMMENDATION_GENERATED\""),
             recommendationReportJson);
         assertTrue(selectedRecommendationJson.contains("\"confidence\""), selectedRecommendationJson);
@@ -1411,6 +1423,8 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(String.valueOf(accelerationArtifact.get("coverageProof")).contains("MV_COVERAGE_PROOF_ENGINE_V1"));
         assertTrue(String.valueOf(accelerationArtifact.get("explainEvidence")).contains("EXPLAIN_UNAVAILABLE"));
         assertTrue(String.valueOf(accelerationArtifact.get("metadataEvidence")).contains("METADATA_PARTIAL"));
+        assertTrue(String.valueOf(accelerationArtifact.get("dynamicSnapshotRewriteEvidence"))
+            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
         String status = String.valueOf(accelerationArtifact.get("artifactStatus"));
         if ("BLOCKED".equals(status)) {
             assertFalse(maps(accelerationArtifact.get("blockingReasons")).isEmpty(), String.valueOf(accelerationArtifact));
@@ -1419,6 +1433,8 @@ class SqlOptimizationPipelineServiceTest {
             assertTrue("GENERATED".equals(status) || "REVIEW_REQUIRED".equals(status), String.valueOf(accelerationArtifact));
             assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql")).contains("FROM "
                 + accelerationArtifact.get("mvName")), String.valueOf(accelerationArtifact));
+            assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"),
+                String.valueOf(accelerationArtifact));
             assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
                 .contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
         }
@@ -1460,12 +1476,12 @@ class SqlOptimizationPipelineServiceTest {
         );
 
         assertTrue(profile.getRepeatedTableScanCount() >= 4, "repeatedTableScanCount=" + profile.getRepeatedTableScanCount());
-        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertTrue(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
             rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"));
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
-        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
-        assertFalse(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
+        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
 
         assertNotNull(accelerationArtifact);
         assertFalse("EXACT_QUERY_MV".equals(accelerationArtifact.get("mvType")));
@@ -1639,12 +1655,12 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(profile.getSubqueryCount() >= 20, caseName + " subqueryCount=" + profile.getSubqueryCount());
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"), caseName);
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"), caseName);
-        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"), caseName);
+        assertTrue(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"), caseName);
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
             rule(model.getRuleChain(), "PRECOMPUTE_MV").get("evidenceLevel"), caseName);
-        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), caseName);
-        assertFalse(rewriteCandidateSql.contains("report_customer_snapshot"), caseName);
-        assertFalse(rewriteCandidateSql.contains("base_100_anchor"), caseName);
+        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), caseName);
+        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), caseName);
+        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), caseName);
     }
 
     private String frontendFormatSql(String sql) throws Exception {
@@ -1738,6 +1754,27 @@ class SqlOptimizationPipelineServiceTest {
             root = root.resolve("..").normalize();
         }
         return root;
+    }
+
+    private String normalizeExecutableSql(String sql) {
+        StringBuilder builder = new StringBuilder();
+        String[] lines = sql == null ? new String[0] : sql.split("\\r?\\n");
+        for (String line : lines) {
+            String trimmed = line == null ? "" : line.trim();
+            if (trimmed.startsWith("--") || trimmed.startsWith("#")) {
+                continue;
+            }
+            if (trimmed.length() > 0) {
+                builder.append(trimmed).append('\n');
+            }
+        }
+        return builder.toString()
+            .replaceAll("\\s+", " ")
+            .replaceAll("\\(\\s+", "(")
+            .replaceAll("\\s+\\)", ")")
+            .replaceAll("\\s*,\\s*", ", ")
+            .replaceAll("\\s*;\\s*$", "")
+            .trim();
     }
 
     private String artifact(OptimizationTaskSuggestion suggestion, String category, String name) {

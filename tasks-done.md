@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527: docs/test01_mv.sql 期望驱动的动态 MV 推荐与改写提升
+
+- Status: done
+- Completed at: 2026-05-27
+- Commit subject: `USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527 generate dynamic test01 MV rewrite`
+- Priority: 1
+- Depends on: N/A
+- Scope: 以 docs/test01.sql 作为输入，以 docs/test01_mv.sql 作为动态解析生成的推荐 SQL/MV 期望，修复任何静态处理或页面/后端硬编码，确保 test01 与既有复杂 SQL 回归均通过，并补充验证证据。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527`
+- Progress log:
+  - 2026-05-27: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 动态解析 docs/test01.sql 并生成与 docs/test01_mv.sql 可执行 SQL 等价的推荐 SQL；MV artifact 改为基于动态快照聚合候选生成；改写试跑、推荐规则链和页面形态检查改为后端动态证据驱动；新增 test01_mv fixture 覆盖登记与回归测试。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527；mvn -pl sql-optimization -am test；mvn -pl sql-optimization -am -Dtest=SqlOptimizationPipelineServiceTest,L2SnapshotAggregateReportMvCandidateGeneratorTest,RewriteTrialApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest,L2MaterializedViewLargeSqlQualityTest -Dsurefire.failIfNoSpecifiedTests=false test；npm run lint；npm run build；python3 scripts/task_audit.py --check --phase pre-closeout；git diff --check。
+  - Residual risk: 动态快照聚合推荐仍标记为人工复核/非自动应用，生产激活前需要执行结果集、机构标签、逐键指标、汇总指标和计划形态验证 SQL。
+  - Next step: 如要投产，接入真实 Hetu planner/数据环境执行 validationSql 并保留外部证据。
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260527: 全量更新 dist-portable 便携前端产物
 
 - Status: done

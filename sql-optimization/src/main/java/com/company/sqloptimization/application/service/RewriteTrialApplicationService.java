@@ -210,6 +210,7 @@ public class RewriteTrialApplicationService {
 
     private static Set<String> candidateRewriteProblems() {
         LinkedHashSet<String> values = new LinkedHashSet<String>(SAFE_REWRITE_PROBLEMS);
+        values.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
         return Collections.unmodifiableSet(values);
     }
 
@@ -1297,6 +1298,9 @@ public class RewriteTrialApplicationService {
     }
 
     private String summaryFor(String scene) {
+        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
+            return "重复扫描快照聚合报表可动态改写为机构-客户-日期快照 CTE 和 MV 查询";
+        }
         if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
             return safeRuleSummary(scene);
         }
@@ -1304,6 +1308,9 @@ public class RewriteTrialApplicationService {
     }
 
     private String candidateRuleLevel(String scene) {
+        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
+            return "L2";
+        }
         return "L0";
     }
 

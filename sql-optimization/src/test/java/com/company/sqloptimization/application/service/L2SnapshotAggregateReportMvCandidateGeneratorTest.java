@@ -2,8 +2,14 @@ package com.company.sqloptimization.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.company.sqlforge.common.constants.DataSourceTypeEnum;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -19,6 +25,32 @@ class L2DynamicSnapshotAggregateMvCandidateGeneratorTest {
     private static final String CURRENT_DATE = "20260519";
     private static final long LOW = 1000000L;
     private static final long HIGH = 6000000L;
+    private final SqlOptimizationPipelineService service = new SqlOptimizationPipelineService();
+
+    @Test
+    void shouldGenerateDocsTest01ExpectedSqlFromDynamicShapeNotStaticFixture() throws Exception {
+        String sourceSql = readSqlFixture("docs/test01.sql");
+        String expectedSql = readSqlFixture("docs/test01_mv.sql");
+
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate candidate = rewriteCandidate(sourceSql);
+
+        assertNotNull(candidate);
+        assertEquals(normalizeExecutableSql(expectedSql), normalizeExecutableSql(candidate.getRewriteSql()));
+        assertEquals(Boolean.FALSE, candidate.getEvidence().get("staticTest01TemplateUsed"));
+        assertEquals("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE", candidate.getEvidence().get("generator"));
+
+        String variantSql = sourceSql
+            .replace("41H006", "41H008")
+            .replace("20260430", "20260331")
+            .replace("20260519", "20260531");
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate variantCandidate = rewriteCandidate(variantSql);
+
+        assertNotNull(variantCandidate);
+        assertTrue(variantCandidate.getRewriteSql().contains("41H008"), variantCandidate.getRewriteSql());
+        assertTrue(variantCandidate.getRewriteSql().contains("20260331"), variantCandidate.getRewriteSql());
+        assertTrue(variantCandidate.getRewriteSql().contains("20260531"), variantCandidate.getRewriteSql());
+        assertFalse(normalizeExecutableSql(expectedSql).equals(normalizeExecutableSql(variantCandidate.getRewriteSql())));
+    }
 
     @Test
     void shouldPreserveYonghongAnchorRowsOrgLabelsAndMetricSemantics() {
@@ -237,6 +269,41 @@ class L2DynamicSnapshotAggregateMvCandidateGeneratorTest {
             values.put(key, customers);
         }
         customers.add(customerNo);
+    }
+
+    private L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate rewriteCandidate(String sql) {
+        SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
+        return L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(sql, profile);
+    }
+
+    private String readSqlFixture(String relativePath) throws Exception {
+        Path path = Paths.get(relativePath);
+        if (!Files.exists(path)) {
+            path = Paths.get("..").resolve(relativePath).normalize();
+        }
+        assertTrue(Files.exists(path), "未找到 SQL 测试文件：" + path.toAbsolutePath());
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+    }
+
+    private String normalizeExecutableSql(String sql) {
+        StringBuilder builder = new StringBuilder();
+        String[] lines = sql == null ? new String[0] : sql.split("\\r?\\n");
+        for (String line : lines) {
+            String trimmed = line == null ? "" : line.trim();
+            if (trimmed.startsWith("--") || trimmed.startsWith("#")) {
+                continue;
+            }
+            if (trimmed.length() > 0) {
+                builder.append(trimmed).append('\n');
+            }
+        }
+        return builder.toString()
+            .replaceAll("\\s+", " ")
+            .replaceAll("\\(\\s+", "(")
+            .replaceAll("\\s+\\)", ")")
+            .replaceAll("\\s*,\\s*", ", ")
+            .replaceAll("\\s*;\\s*$", "")
+            .trim();
     }
 
     private Map<String, Integer> sizes(Map<String, Set<String>> values) {

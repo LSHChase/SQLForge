@@ -119,6 +119,7 @@ class RewriteTrialApplicationServiceTest {
 
     @Test
     void shouldCreateRecommendationForReportRewriteTrialSqlFixture() throws Exception {
+        String expectedRecommendedSql = readSqlFixture("docs/test01_mv.sql");
         RewriteTrialRequest request = new RewriteTrialRequest();
         request.setTenantId("tenant-a");
         request.setSqlText(readSqlFixture("docs/test01.sql"));
@@ -134,21 +135,25 @@ class RewriteTrialApplicationServiceTest {
         assertEquals("RECOMMENDED", run.getItems().get(0).getTrialStatus());
         assertNotNull(run.getItems().get(0).getCandidateSql());
         assertNotNull(run.getItems().get(0).getRecommendationId());
-        assertFalse(run.getItems().get(0).getCandidateSql().contains("base_100_anchor"));
-        assertFalse(run.getItems().get(0).getCandidateSql().contains("report_customer_snapshot"));
-        assertFalse(run.getItems().get(0).getCandidateSql().contains("raw_customer_snapshot"));
-        assertFalse(containsProblem(run.getItems().get(0).getSourceProblems(),
+        assertEquals(normalizeExecutableSql(expectedRecommendedSql),
+            normalizeExecutableSql(run.getItems().get(0).getCandidateSql()));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("base_100_anchor"));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("report_customer_snapshot"));
+        assertTrue(run.getItems().get(0).getCandidateSql().contains("raw_customer_snapshot"));
+        assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(),
             "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
-        assertFalse(containsLink(run.getItems().get(0).getIssueRuleLinks(),
+        assertTrue(containsLink(run.getItems().get(0).getIssueRuleLinks(),
             "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(), "PRECOMPUTE_MV"));
 
         AccelerationRecommendation recommendation =
             recommendationRepository.findByRecommendationId(run.getItems().get(0).getRecommendationId());
         assertNotNull(recommendation);
-        assertFalse(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
-        assertFalse(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
-        assertFalse(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
+        assertEquals(normalizeExecutableSql(expectedRecommendedSql),
+            normalizeExecutableSql(recommendation.getRecommendedSqlText()));
+        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
+        assertTrue(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
+        assertTrue(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
         assertEquals("NOT_VALIDATED", recommendation.getValidationStatus().name());
         assertFalse(recommendation.isAutoApplyAllowed());
         assertTrue(recommendation.isManualReviewRequired());
@@ -164,6 +169,8 @@ class RewriteTrialApplicationServiceTest {
             .contains("MV_COVERAGE_PROOF_ENGINE_V1"));
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
             .contains("EXPLAIN_UNAVAILABLE"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("dynamicSnapshotRewriteEvidence"))
+            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
         String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
         if ("BLOCKED".equals(artifactStatus)) {
             assertTrue(recommendation.getAccelerationArtifact().get("rewriteSql") == null,
@@ -173,6 +180,8 @@ class RewriteTrialApplicationServiceTest {
                 String.valueOf(recommendation.getAccelerationArtifact()));
             assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))
                 .contains("FROM " + recommendation.getAccelerationArtifact().get("mvName")));
+            assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("ddlSql"))
+                .contains("CREATE MATERIALIZED VIEW"));
         }
         assertEquals("TARGET_DATASOURCE_HINT",
             nestedMap(recommendation.getAccelerationArtifact(), "targetEngineResolution").get("resolutionSource"));
@@ -352,6 +361,27 @@ class RewriteTrialApplicationServiceTest {
         }
         assertTrue(Files.exists(path), "未找到 SQL 测试文件：" + path.toAbsolutePath());
         return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+    }
+
+    private String normalizeExecutableSql(String sql) {
+        StringBuilder builder = new StringBuilder();
+        String[] lines = sql == null ? new String[0] : sql.split("\\r?\\n");
+        for (String line : lines) {
+            String trimmed = line == null ? "" : line.trim();
+            if (trimmed.startsWith("--") || trimmed.startsWith("#")) {
+                continue;
+            }
+            if (trimmed.length() > 0) {
+                builder.append(trimmed).append('\n');
+            }
+        }
+        return builder.toString()
+            .replaceAll("\\s+", " ")
+            .replaceAll("\\(\\s+", "(")
+            .replaceAll("\\s+\\)", ")")
+            .replaceAll("\\s*,\\s*", ", ")
+            .replaceAll("\\s*;\\s*$", "")
+            .trim();
     }
 
     @SuppressWarnings("unchecked")
