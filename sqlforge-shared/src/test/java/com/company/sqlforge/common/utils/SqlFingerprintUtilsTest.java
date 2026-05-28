@@ -54,6 +54,21 @@ class SqlFingerprintUtilsTest {
     }
 
     @Test
+    void shouldIgnoreFormatterWhitespaceAroundOperatorsAndPunctuation() {
+        String compact = "SELECT SUM(a-b) AS delta FROM orders WHERE tenant_id=7 AND amount>=100";
+        String formatted = "SELECT\n"
+            + "  SUM( a - b ) AS delta\n"
+            + "FROM orders\n"
+            + "WHERE tenant_id = 8\n"
+            + "  AND amount >= 200";
+
+        assertEquals(
+            SqlFingerprintUtils.fingerprint(compact),
+            SqlFingerprintUtils.fingerprint(formatted)
+        );
+    }
+
+    @Test
     void shouldKeepDifferentQueryShapesApart() {
         String byTenant = "SELECT * FROM orders WHERE tenant_id = 1";
         String byStatus = "SELECT * FROM orders WHERE status = 'PAID'";

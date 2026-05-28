@@ -14,6 +14,7 @@ import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
 import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateEngine;
 import com.company.sqlforge.common.rewrite.RuntimeSqlRewriteTemplateResult;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqlforge.common.utils.JsonUtils;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -61,7 +62,10 @@ public class QueryExecutionRuntimeRewriteBindingService {
         String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
         requireProtectedTenant(tenantId);
         String rewriteRecordId = requireText(request.getRewriteRecordId(), "rewriteRecordId");
-        String sqlFingerprint = requireText(request.getSqlFingerprint(), "sqlFingerprint");
+        String sqlFingerprint = requireText(
+            canonicalSqlFingerprint(request.getOriginalSqlText(), request.getSqlFingerprint()),
+            "sqlFingerprint"
+        );
         RuntimeRewriteBinding active =
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
         if (active != null) {
@@ -147,7 +151,10 @@ public class QueryExecutionRuntimeRewriteBindingService {
     public RuntimeRewriteBindingResponse resolveActive(RuntimeRewriteBindingResolveRequest request) {
         String tenantId = requireText(request == null ? null : request.getTenantId(), "tenantId");
         requireProtectedTenant(tenantId);
-        String sqlFingerprint = requireText(request.getSqlFingerprint(), "sqlFingerprint");
+        String sqlFingerprint = requireText(
+            canonicalSqlFingerprint(request.getSqlText(), request.getSqlFingerprint()),
+            "sqlFingerprint"
+        );
         List<String> currentRuntimeMatchObjectNames = resolveRequestedRuntimeMatchObjectNames(request);
         RuntimeRewriteBinding binding =
             runtimeRewriteBindingRepository.findActiveByTenantIdAndSqlFingerprint(tenantId, sqlFingerprint);
@@ -380,6 +387,11 @@ public class QueryExecutionRuntimeRewriteBindingService {
             return request.getSqlFingerprint();
         }
         return RuntimeSqlRewriteTemplateEngine.templateFamilyFingerprint(request.getOriginalSqlText());
+    }
+
+    private String canonicalSqlFingerprint(String sqlText, String fallbackFingerprint) {
+        String computed = SqlFingerprintUtils.fingerprint(sqlText);
+        return StringUtils.hasText(computed) ? computed : trimToNull(fallbackFingerprint);
     }
 
     private List<LogicalObjectSurface> resolveRuntimeMatchObjectRefs(RuntimeRewriteBindingActivationRequest request) {

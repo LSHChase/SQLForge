@@ -3,6 +3,7 @@ package com.company.sqlforge.common.utils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 
 /**
  * 用于治理聚合的 SQL 指纹生成器。
@@ -30,7 +31,7 @@ public final class SqlFingerprintUtils {
         String rewrittenSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(sql);
         String withoutComments = stripComments(rewrittenSql);
         String parameterized = parameterizeLiterals(withoutComments);
-        String normalized = parameterized.trim().replaceAll("\\s+", " ").toLowerCase();
+        String normalized = canonicalizeInsignificantWhitespace(parameterized).toLowerCase(Locale.ROOT);
         while (normalized.endsWith(";")) {
             normalized = normalized.substring(0, normalized.length() - 1).trim();
         }
@@ -97,6 +98,115 @@ public final class SqlFingerprintUtils {
             index++;
         }
         return builder.toString();
+    }
+
+    private static String canonicalizeInsignificantWhitespace(String sql) {
+        StringBuilder builder = new StringBuilder(sql.length());
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktick = false;
+        boolean pendingWhitespace = false;
+        int index = 0;
+        while (index < sql.length()) {
+            char current = sql.charAt(index);
+            char next = index + 1 < sql.length() ? sql.charAt(index + 1) : '\0';
+            if (inSingleQuote || inDoubleQuote || inBacktick) {
+                builder.append(current);
+                if (current == '\'' && inSingleQuote) {
+                    if (next == '\'') {
+                        builder.append(next);
+                        index += 2;
+                        continue;
+                    }
+                    inSingleQuote = false;
+                } else if (current == '"' && inDoubleQuote) {
+                    if (next == '"') {
+                        builder.append(next);
+                        index += 2;
+                        continue;
+                    }
+                    inDoubleQuote = false;
+                } else if (current == '`' && inBacktick) {
+                    inBacktick = false;
+                }
+                index++;
+                continue;
+            }
+            if (current == '\'') {
+                appendPendingWhitespace(builder, pendingWhitespace);
+                pendingWhitespace = false;
+                builder.append(current);
+                inSingleQuote = true;
+                index++;
+                continue;
+            }
+            if (current == '"') {
+                appendPendingWhitespace(builder, pendingWhitespace);
+                pendingWhitespace = false;
+                builder.append(current);
+                inDoubleQuote = true;
+                index++;
+                continue;
+            }
+            if (current == '`') {
+                appendPendingWhitespace(builder, pendingWhitespace);
+                pendingWhitespace = false;
+                builder.append(current);
+                inBacktick = true;
+                index++;
+                continue;
+            }
+            if (Character.isWhitespace(current)) {
+                pendingWhitespace = true;
+                index++;
+                continue;
+            }
+            if (isOperatorOrPunctuation(current)) {
+                trimTrailingSpace(builder);
+                builder.append(current);
+                pendingWhitespace = false;
+                index++;
+                continue;
+            }
+            appendPendingWhitespace(builder, pendingWhitespace);
+            pendingWhitespace = false;
+            builder.append(current);
+            index++;
+        }
+        trimTrailingSpace(builder);
+        return builder.toString().trim();
+    }
+
+    private static void appendPendingWhitespace(StringBuilder builder, boolean pendingWhitespace) {
+        if (!pendingWhitespace || builder.length() == 0 || isOperatorOrPunctuation(builder.charAt(builder.length() - 1))) {
+            return;
+        }
+        builder.append(' ');
+    }
+
+    private static void trimTrailingSpace(StringBuilder builder) {
+        while (builder.length() > 0 && Character.isWhitespace(builder.charAt(builder.length() - 1))) {
+            builder.deleteCharAt(builder.length() - 1);
+        }
+    }
+
+    private static boolean isOperatorOrPunctuation(char value) {
+        return value == '('
+            || value == ')'
+            || value == ','
+            || value == '.'
+            || value == ';'
+            || value == '='
+            || value == '<'
+            || value == '>'
+            || value == '+'
+            || value == '-'
+            || value == '*'
+            || value == '/'
+            || value == '%'
+            || value == '|'
+            || value == '&'
+            || value == '!';
     }
 
     private static String parameterizeLiterals(String sql) {

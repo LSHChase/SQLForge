@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-RUNTIME-BINDING-HIT-20260528: 修复 SQL 执行运行时改写绑定命中与路由开放
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(query): canonicalize runtime rewrite fingerprint`
+- Priority: 1
+- Depends on: N/A
+- Scope: 定位并修复 SQL 查询分析执行 test01.sql 时运行时改写绑定无法命中导致同步查询路由拒绝的问题，确保同一 SQL 绑定后执行可命中改写并补充回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-RUNTIME-BINDING-HIT-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 SQL 执行运行时改写绑定命中：格式化前后 SQL 使用同一规范化指纹，绑定激活与解析均以服务端 SQL 文本重算指纹，并兼容 select/with 后换行等格式化形态。
+  - Validation evidence: mvn -pl sqlforge-shared -Dtest=SqlFingerprintUtilsTest,RuntimeSqlRewriteTemplateEngineTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl query-execution -am -Dtest=ReadonlyQueryGuardTest,QueryExecutionApplicationServiceTest,QueryExecutionRuntimeRewriteBindingServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am -Dtest=AccelerationRewriteContractApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test; git diff --check; python3 scripts/foreman.py validate USER-CN-SQL-RUNTIME-BINDING-HIT-20260528; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 若目标数据源执行路由仍未开放且未启用开发直通，命中改写后仍会进入真实执行路由；本次修复的是 rewriteActivationStatusSnapshot=Inactive/MISSING 的绑定命中问题。
+  - Next step: 在实际 test01.sql 环境重新绑定并执行，观察 rewriteActivationStatusSnapshot 应为 ACTIVE；如仍返回 12000，继续检查目标数据源路由开关。
+
 ### USER-CN-SQL-FORMAT-RUNTIME-REWRITE-20260528: 修复 SQL 格式化执行与运行时改写绑定命中
 
 - Status: done

@@ -37,6 +37,24 @@ class RuntimeSqlRewriteTemplateEngineTest {
     }
 
     @Test
+    void shouldReplayFormatterEquivalentSqlByCanonicalFingerprint() {
+        RuntimeSqlRewriteTemplateResult result = RuntimeSqlRewriteTemplateEngine.rewrite(
+            "SELECT SUM(a-b) AS delta FROM orders WHERE tenant_id=1 AND amount>=100",
+            "WITH metric AS (SELECT SUM(a-b) AS delta FROM orders WHERE tenant_id=1 AND amount>=100) "
+                + "SELECT delta FROM metric",
+            "SELECT\n"
+                + "  SUM( a - b ) AS delta\n"
+                + "FROM orders\n"
+                + "WHERE tenant_id = 2\n"
+                + "  AND amount >= 200"
+        );
+
+        assertTrue(result.isApplied());
+        assertTrue(result.getRewrittenSql().contains("tenant_id=2"));
+        assertTrue(result.getRewrittenSql().contains("amount>=200"));
+    }
+
+    @Test
     void shouldRejectDifferentSourceShape() {
         RuntimeSqlRewriteTemplateResult result = RuntimeSqlRewriteTemplateEngine.rewrite(
             "SELECT * FROM orders WHERE tenant_id = 1",

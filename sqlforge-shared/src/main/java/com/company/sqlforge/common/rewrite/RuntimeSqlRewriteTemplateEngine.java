@@ -191,10 +191,17 @@ public final class RuntimeSqlRewriteTemplateEngine {
 
     private static boolean isQuerySql(String sql) {
         String normalized = sql.trim().toLowerCase(Locale.ROOT);
-        return normalized.startsWith("select ")
-            || "select".equals(normalized)
-            || normalized.startsWith("with ")
-            || "with".equals(normalized);
+        return startsWithKeyword(normalized, "select")
+            || startsWithKeyword(normalized, "with");
+    }
+
+    private static boolean startsWithKeyword(String normalized, String keyword) {
+        if (normalized.equals(keyword)) {
+            return true;
+        }
+        return normalized.startsWith(keyword)
+            && normalized.length() > keyword.length()
+            && Character.isWhitespace(normalized.charAt(keyword.length()));
     }
 
     private static List<String> literals(String sql) {

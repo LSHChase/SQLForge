@@ -15,6 +15,7 @@ import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingActivatio
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingStateChangeRequest;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -159,13 +160,48 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
 
         RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
         resolveRequest.setTenantId("tenant-a");
+        String currentSql = "SELECT * FROM orders WHERE tenant_id = 8";
+        String currentFingerprint = SqlFingerprintUtils.fingerprint(currentSql);
         resolveRequest.setSqlFingerprint("fp-current-different");
-        resolveRequest.setSqlText("SELECT * FROM orders WHERE tenant_id = 8");
+        resolveRequest.setSqlText(currentSql);
         RuntimeRewriteBindingResponse response = service.resolveActive(resolveRequest);
 
         assertEquals("ACTIVE", response.getStatus());
-        assertEquals("fp-current-different", response.getSqlFingerprint());
+        assertEquals(currentFingerprint, response.getSqlFingerprint());
         assertEquals("SELECT id FROM orders WHERE tenant_id = 8", response.getRecommendedSqlText());
+    }
+
+    @Test
+    void shouldResolveFormattedSqlAgainstBindingCreatedFromCompactSql() {
+        setRequestContext();
+        QueryExecutionRuntimeRewriteBindingService service =
+            new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository());
+        RuntimeRewriteBindingActivationRequest request = activationRequest("rewrite-format-001");
+        request.setSqlFingerprint("stale-client-fingerprint");
+        request.setOriginalSqlText("SELECT SUM(a-b) AS delta FROM orders WHERE tenant_id=1 AND amount>=100");
+        request.setRecommendedSqlText(
+            "WITH metric AS (SELECT SUM(a-b) AS delta FROM orders WHERE tenant_id=1 AND amount>=100) "
+                + "SELECT delta FROM metric"
+        );
+        RuntimeRewriteBindingResponse activated = service.activate(request);
+        String expectedFingerprint = SqlFingerprintUtils.fingerprint(request.getOriginalSqlText());
+
+        RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
+        resolveRequest.setTenantId("tenant-a");
+        resolveRequest.setSqlFingerprint("formatted-editor-fingerprint");
+        resolveRequest.setSqlText("SELECT\n"
+            + "  SUM( a - b ) AS delta\n"
+            + "FROM orders\n"
+            + "WHERE tenant_id = 2\n"
+            + "  AND amount >= 200");
+        RuntimeRewriteBindingResponse response = service.resolveActive(resolveRequest);
+
+        assertEquals(expectedFingerprint, activated.getSqlFingerprint());
+        assertEquals("ACTIVE", response.getStatus());
+        assertTrue(response.isActive());
+        assertEquals(SqlFingerprintUtils.fingerprint(resolveRequest.getSqlText()), response.getSqlFingerprint());
+        assertTrue(response.getRecommendedSqlText().contains("tenant_id=2"));
+        assertTrue(response.getRecommendedSqlText().contains("amount>=200"));
     }
 
     @Test
