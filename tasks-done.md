@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260528: 全量更新 dist-portable 便携前端产物
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `build(portable): refresh dist-portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: 使用现有 portable 前端构建入口按当前仓库源代码全量重新生成受跟踪的 dist-portable 包，清理过期 hashed assets，并通过 portable 构建、浏览器 smoke、任务审计与差异检查验证；不修改业务源码、接口语义或页面功能。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Regenerated the tracked portable frontend package from current repository source; the rebuilt dist-portable package is byte-identical to the existing tracked package, so no business behavior or portable asset bytes changed.
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260528 --include-task-audit --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend' --extra-command 'git diff --check'; npm run build:portable; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: No known repository-side residual risk; runtime backend availability still depends on target host portable-config.json service URLs.
+  - Next step: Use dist-portable/start-portable.sh or start-portable.cmd with configured backend services when distributing the verified portable package.
+
 ### USER-CN-REPLACE-JSQLPARSER-CALCITE-20260527: Replace legacy SQL parser with Apache Calcite
 
 - Status: done

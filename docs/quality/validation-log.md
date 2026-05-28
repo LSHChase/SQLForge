@@ -6192,3 +6192,13 @@
 2026-05-28T01:15:07+08:00 | USER-CN-REPLACE-JSQLPARSER-CALCITE-20260527 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-28T01:15:07+08:00 | USER-CN-REPLACE-JSQLPARSER-CALCITE-20260527 closeout commit | `R-168` | projected | `git commit -m 'Replace legacy SQL parser with Apache Calcite' (projected-precommit)`
 2026-05-28T01:15:07+08:00 | USER-CN-REPLACE-JSQLPARSER-CALCITE-20260527 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-28T09:10:14+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-28T09:10:14+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-28T09:10:14+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-28T09:10:18+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-28T09:10:22+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-28T09:10:22+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-05-28T09:11:02+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-28T09:11:02+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 closeout commit | `R-168` | projected | `git commit -m 'build(portable): refresh dist-portable package' (projected-precommit)`
+2026-05-28T09:11:02+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-28T09:11:02+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260528 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:portable-frontend (projected-precommit)`
