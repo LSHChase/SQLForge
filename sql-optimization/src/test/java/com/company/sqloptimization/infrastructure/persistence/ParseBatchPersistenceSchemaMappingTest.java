@@ -75,7 +75,7 @@ class ParseBatchPersistenceSchemaMappingTest {
         assertContains(schema, "report_code_field VARCHAR(128) NOT NULL");
         assertContains(schema, "parser_mode VARCHAR(32) NOT NULL DEFAULT 'APACHE_CALCITE'");
         assertContains(schema, "CREATE TABLE IF NOT EXISTS report_batch_item");
-        assertContains(schema, "source_file_line VARCHAR(512)");
+        assertContains(schema, "source_file_line VARCHAR(4096)");
         assertContains(schema, "sql_column_name VARCHAR(128)");
         assertContains(schema, "sql_ordinal_in_report INT");
         assertContains(schema, "plan_analysis_status VARCHAR(32)");
@@ -107,6 +107,10 @@ class ParseBatchPersistenceSchemaMappingTest {
         String parserModeMigration = readRepositoryFile("sql/migrations/V20260507_003__parser_mode_contract.sql");
         assertContains(parserModeMigration, "ADD COLUMN parser_mode");
         assertContains(parserModeMigration, "APACHE_CALCITE");
+        String sourceFileLineMigration = readRepositoryFile(
+            "sql/migrations/V20260528_001__report_batch_source_file_line_locator.sql"
+        );
+        assertContains(sourceFileLineMigration, "MODIFY COLUMN source_file_line VARCHAR(4096)");
     }
 
     @Test

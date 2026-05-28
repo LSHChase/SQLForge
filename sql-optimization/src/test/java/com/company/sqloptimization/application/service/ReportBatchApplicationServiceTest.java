@@ -149,7 +149,34 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(120), Integer.valueOf(imported.getReportItems().size()));
         assertEquals("sql_1", imported.getReportItems().get(0).getSqlColumnName());
         assertEquals(Integer.valueOf(1), imported.getReportItems().get(0).getSqlOrdinalInReport());
+        assertEquals(
+            "row=2 column=sql_1 reportCode=RPT_WIDE sqlOrdinal=1",
+            imported.getReportItems().get(0).getSourceFileLine()
+        );
         assertEquals("sql_120", imported.getReportItems().get(119).getSqlColumnName());
+    }
+
+    @Test
+    void shouldKeepReportImportSourceFileLineAsLocatorForLongCsvRows() {
+        ReportBatchApplicationService service = buildService();
+        RequestContext.set("tenant-a", "user-001", "request-020", "trace-020", "header", 1L, 2L);
+
+        StringBuilder longSql = new StringBuilder("SELECT 1 AS metric_value");
+        for (int index = 0; index < 700; index++) {
+            longSql.append(" /* long source payload ").append(index).append(" */");
+        }
+        String csv = "report_code,sql_1\nRPT_LONG," + csvEscape(longSql.toString());
+
+        ReportBatchStatusResponse imported = service.importBatch(baseRequest("long-source-line-csv", "CSV", csv));
+
+        assertEquals(Integer.valueOf(1), imported.getTotalSqls());
+        assertEquals(longSql.toString(), imported.getReportItems().get(0).getSqlText());
+        assertEquals(
+            "row=2 column=sql_1 reportCode=RPT_LONG sqlOrdinal=1",
+            imported.getReportItems().get(0).getSourceFileLine()
+        );
+        assertTrue(imported.getReportItems().get(0).getSourceFileLine().length() <= 4096);
+        assertFalse(imported.getReportItems().get(0).getSourceFileLine().contains("long source payload"));
     }
 
     @Test
@@ -375,7 +402,11 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(1), imported.getTotalSqls());
         assertEquals("SELECT customer_id FROM orders WHERE dt = DATE '2026-04-01'",
             imported.getReportItems().get(0).getSqlText());
-        assertTrue(imported.getReportItems().get(0).getSourceFileLine().contains("-- 报表注释"));
+        assertEquals(
+            "row=2 column=sql_1 reportCode=RPT_COMMENTED sqlOrdinal=1",
+            imported.getReportItems().get(0).getSourceFileLine()
+        );
+        assertFalse(imported.getReportItems().get(0).getSourceFileLine().contains("-- 报表注释"));
 
         ReportBatchStatusResponse resolved = resolveAndAwait(service, imported.getBatchId());
 
@@ -636,6 +667,10 @@ class ReportBatchApplicationServiceTest {
         assertEquals(Integer.valueOf(1), imported.getTotalReports());
         assertEquals(Integer.valueOf(3), imported.getTotalSqls());
         assertEquals("sql_2", imported.getReportItems().get(1).getSqlColumnName());
+        assertEquals(
+            "row=2 column=sql_2 reportCode=RPT_XLSX_WIDE sqlOrdinal=2",
+            imported.getReportItems().get(1).getSourceFileLine()
+        );
         assertEquals("SELECT 3 AS metric_value", imported.getReportItems().get(2).getSqlText());
     }
 

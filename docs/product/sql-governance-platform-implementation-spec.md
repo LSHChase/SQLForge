@@ -289,6 +289,7 @@ SQL 改写相关页面的产品分层以 [SQL 改写功能分层设计](./sql-re
   - `csv` / `xlsx` / `xls` / `et` 表格载荷按列位置解析，不依赖固定 SQL 列数
   - 第一列为报表代码；若首行是表头，第一列表头可为 `report_code`、`reportCode`、`报表代码` 或请求中的 `reportCodeField`
   - 第二列及之后，只要单元格 trim 后非空，均作为该行报表代码下的一条 SQL
+  - 报表导入 SQL 级 `sourceFileLine` 只保存源行、源列、报表编码和 SQL 序号定位摘要，不保存整行表格载荷；完整 SQL 正文以 `sqlText` 为准
   - 若 SQL 单元格以同一行 `--` 说明前缀开头，且该首行后续包含 `SELECT` / `WITH` 语句起点，导入侧必须提取真实 SQL 语句再进入结构解析；源行证据仍通过 `sourceFileLine` 保留，正常换行形式的 SQL 行注释继续交给结构解析器处理
   - 中间空单元格跳过，不产生 SQL；后续 100+ SQL 列必须动态遍历
   - 若表格行只有报表代码且没有内联 SQL，继续走报表 SQL resolver / txt mock source 回退

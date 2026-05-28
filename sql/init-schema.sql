@@ -871,7 +871,7 @@ CREATE TABLE IF NOT EXISTS report_batch_item (
   datasource_code VARCHAR(128) DEFAULT NULL COMMENT '该行解析得到的数据源编码',
   stage VARCHAR(32) DEFAULT NULL COMMENT '阶段元数据',
   priority VARCHAR(32) DEFAULT NULL COMMENT '优先级提示',
-  source_file_line VARCHAR(512) DEFAULT NULL COMMENT '原始来源行或 CSV 载荷摘要',
+  source_file_line VARCHAR(4096) DEFAULT NULL COMMENT '源行、源列和报表编码定位摘要',
   sql_column_name VARCHAR(128) DEFAULT NULL COMMENT '提供该 SQL 的来源电子表格列',
   sql_ordinal_in_report INT DEFAULT NULL COMMENT '同一 report_code 内从 1 开始的 SQL 序号',
   sql_text MEDIUMTEXT DEFAULT NULL COMMENT '解析后的 SQL 文本',

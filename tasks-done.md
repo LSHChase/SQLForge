@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528: 报表导入 source_file_line 定位摘要与字段扩容
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(sql-optimization): bound report import source locator`
+- Priority: 1
+- Depends on: N/A
+- Scope: 报表清单宽表导入时 source_file_line 仅保存源行/列定位摘要并将字段扩展到 VARCHAR(4096)，避免长 SQL 行载荷触发 MySQL Data truncation。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 报表清单宽表导入 sourceFileLine 改为源行/源列/reportCode/sqlOrdinal 定位摘要；sqlText 继续保存完整 SQL；report_batch_item.source_file_line 扩展到 VARCHAR(4096)，并同步 init schema、迁移、产品说明和测试。
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=ReportBatchApplicationServiceTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test；python3 scripts/foreman.py validate USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528；python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 未连接真实 MySQL 执行迁移；仓库侧通过 schema mapping 与服务层导入行为测试覆盖。
+  - Next step: 在目标环境发布时执行 V20260528_001__report_batch_source_file_line_locator.sql 后重试原报表导入。
+
 ### USER-CN-RUNTIME-REWRITE-HETU-FAILURE-DIAG-20260528: 区分运行时改写 Hetu 执行失败与路由未开放
 
 - Status: done

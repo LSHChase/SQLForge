@@ -93,6 +93,7 @@ public class ReportBatchApplicationService {
     private static final int COORDINATOR_QUEUE_CAPACITY = 16;
     private static final int DEFAULT_LIST_PAGE_SIZE = 10;
     private static final int MAX_LIST_PAGE_SIZE = 100;
+    private static final int SOURCE_FILE_LINE_LIMIT = 4096;
     private static final AtomicInteger THREAD_SEQUENCE = new AtomicInteger(0);
     private static final Pattern REPORT_SQL_START_PATTERN =
         Pattern.compile("(?i)\\b(WITH|SELECT)\\b(?=\\s|/\\*)");
@@ -1075,7 +1076,7 @@ public class ReportBatchApplicationService {
                 firstNonBlank(row.datasourceCode, batch.getDatasourceCode()),
                 firstNonBlank(row.stage, batch.getStage()),
                 firstNonBlank(row.priority, batch.getPriority()),
-                row.rawLine,
+                compactSourceFileLine(row.rawLine),
                 row.sqlColumnName,
                 row.sqlOrdinalInReport == null ? Integer.valueOf(ordinal) : row.sqlOrdinalInReport,
                 batch.getCreatedAt()
@@ -1167,7 +1168,7 @@ public class ReportBatchApplicationService {
                 List<String> effectiveHeaders = effectiveHeaders(headers, cellCount);
                 List<String> values = readWorkbookRowValues(row, formatter, cellCount);
                 if (hasAnyText(values)) {
-                    rows.addAll(expandReportRows(effectiveHeaders, values, values.toString()));
+                    rows.addAll(expandReportRows(effectiveHeaders, values, sourceRowLocator(rowIndex + 1L)));
                 }
             }
             workbook.close();
@@ -1212,7 +1213,7 @@ public class ReportBatchApplicationService {
                 CSVRecord record = records.get(recordIndex);
                 List<String> values = csvRecordValues(record, cellCount);
                 if (hasAnyText(values)) {
-                    rows.addAll(expandReportRows(headers, values, values.toString()));
+                    rows.addAll(expandReportRows(headers, values, sourceRowLocator(record.getRecordNumber())));
                 }
             }
             return rows;
@@ -1706,9 +1707,48 @@ public class ReportBatchApplicationService {
         return -1;
     }
 
+    private String sourceRowLocator(long rowNumber) {
+        return "row=" + rowNumber;
+    }
+
+    private String buildSourceFileLine(String rowLocator,
+                                       String columnName,
+                                       String reportCode,
+                                       Integer sqlOrdinal) {
+        StringBuilder builder = new StringBuilder();
+        appendSourceFileLinePart(builder, rowLocator);
+        appendSourceFileLinePart(builder, "column=" + firstNonBlank(columnName, "UNKNOWN"));
+        appendSourceFileLinePart(builder, "reportCode=" + firstNonBlank(reportCode, "UNSPECIFIED"));
+        if (sqlOrdinal != null) {
+            appendSourceFileLinePart(builder, "sqlOrdinal=" + sqlOrdinal);
+        }
+        return compactSourceFileLine(builder.toString());
+    }
+
+    private void appendSourceFileLinePart(StringBuilder builder, String part) {
+        String normalized = trimToNull(part);
+        if (!StringUtils.hasText(normalized)) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append(' ');
+        }
+        builder.append(normalized);
+    }
+
+    private String compactSourceFileLine(String value) {
+        String normalized = trimToNull(value);
+        if (!StringUtils.hasText(normalized) || normalized.length() <= SOURCE_FILE_LINE_LIMIT) {
+            return normalized;
+        }
+        String suffix = "...[truncated]";
+        int retainedLength = Math.max(0, SOURCE_FILE_LINE_LIMIT - suffix.length());
+        return normalized.substring(0, retainedLength) + suffix;
+    }
+
     private List<ReportSourceRow> expandReportRows(List<String> headers, List<String> values, String rawLine) {
         ReportSourceRow base = new ReportSourceRow();
-        base.rawLine = rawLine;
+        base.rawLine = compactSourceFileLine(rawLine);
         base.reportCode = trimToNull(valueAt(values, 0));
 
         List<ReportSourceRow> rows = new ArrayList<ReportSourceRow>();
@@ -1721,7 +1761,7 @@ public class ReportBatchApplicationService {
             sqlOrdinal++;
             ReportSourceRow sqlRow = base.copy();
             String header = headerAt(headers, index);
-            sqlRow.rawLine = rawLine + " column=" + header;
+            sqlRow.rawLine = buildSourceFileLine(rawLine, header, base.reportCode, Integer.valueOf(sqlOrdinal));
             sqlRow.sqlColumnName = header;
             sqlRow.sqlOrdinalInReport = Integer.valueOf(sqlOrdinal);
             sqlRow.sqlText = extractReportImportSql(sqlText);
