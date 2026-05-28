@@ -269,10 +269,17 @@ public class HetuRouteCalibrationService {
         if (exception == null) {
             return "";
         }
-        if (StringUtils.hasText(exception.getMessage())) {
-            return exception.getMessage();
+        StringBuilder message = new StringBuilder();
+        Throwable cursor = exception;
+        while (cursor != null) {
+            if (StringUtils.hasText(cursor.getMessage())) {
+                if (message.length() > 0) {
+                    message.append(" | ");
+                }
+                message.append(cursor.getMessage());
+            }
+            cursor = cursor.getCause();
         }
-        Throwable cause = exception.getCause();
-        return cause == null || !StringUtils.hasText(cause.getMessage()) ? "" : cause.getMessage();
+        return message.toString();
     }
 }

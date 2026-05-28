@@ -84,6 +84,8 @@ public class QueryExecutionApplicationService {
     private static final String STATE_PRIMARY_ROUTE_SELECTED = "PRIMARY_ROUTE_SELECTED";
     private static final String STATE_PRIMARY_MODE_CHAIN_FAILED = "PRIMARY_MODE_CHAIN_FAILED";
     private static final String STATE_PRIMARY_TIMEOUT = "PRIMARY_TIMEOUT";
+    private static final String STATE_RUNTIME_REWRITE_EXECUTION_FAILED = "RUNTIME_REWRITE_EXECUTION_FAILED";
+    private static final String STATE_RUNTIME_REWRITE_ORIGINAL_RETRY = "RUNTIME_REWRITE_ORIGINAL_RETRY";
     private static final String STATE_DEV_REWRITE_DIRECT_SUCCESS = "DEV_REWRITE_DIRECT_SUCCESS";
     private static final String STATE_LOCAL_ROLLBACK_MARKED = "LOCAL_ROLLBACK_MARKED";
     private static final String STATE_FALLBACK_REQUESTED = "FALLBACK_REQUESTED";
@@ -92,8 +94,10 @@ public class QueryExecutionApplicationService {
     private static final String MARKER_TIMEOUT_ROLLBACK = "LOCAL_TIMEOUT_ROLLBACK_MARKED";
     private static final String MARKER_PRIMARY_ROUTE_FAILURE = "LOCAL_PRIMARY_ROUTE_FAILURE_MARKED";
     private static final String MARKER_FALLBACK_COMPENSATION = "LOCAL_FALLBACK_COMPENSATION_MARKED";
+    private static final String MARKER_RUNTIME_REWRITE_ORIGINAL_RETRY = "LOCAL_RUNTIME_REWRITE_ORIGINAL_SQL_RETRY";
     private static final String ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT = "CLOSE_PRIMARY_ATTEMPT_CONTEXT";
     private static final String ACTION_RECORD_DEGRADED_RESULT = "RECORD_DEGRADED_RESULT";
+    private static final String ACTION_RETRY_ORIGINAL_SQL = "RETRY_ORIGINAL_SQL_AFTER_REWRITE_FAILURE";
     private static final String RESOURCE_TYPE_QUERY = "QUERY_EXECUTION_QUERY";
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final Pattern ISO_DATE_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
@@ -416,6 +420,18 @@ public class QueryExecutionApplicationService {
             try {
                 primaryStep = queryExecutionAdapter.execute(primaryEngine, actualSql, executionRequest, false);
             } catch (HetuExecutionUnavailableException ex) {
+                if (runtimeRewriteResolution.isRewriteApplied()
+                    && shouldRetryOriginalSqlAfterRewriteFailure(ex)) {
+                    return handleRuntimeRewriteExecutionFailure(
+                        request,
+                        primaryEngine,
+                        sqlFingerprint,
+                        effectiveSql,
+                        runtimeRewriteResolution,
+                        ex,
+                        start
+                    );
+                }
                 return handleUnavailableHetuRoute(
                     request,
                     primaryEngine,
@@ -624,6 +640,117 @@ public class QueryExecutionApplicationService {
             "BYPASSED",
             "DEV_RUNTIME_REWRITE_DIRECT_SUCCESS"
         );
+    }
+
+    private boolean shouldRetryOriginalSqlAfterRewriteFailure(HetuExecutionUnavailableException exception) {
+        if (exception == null || exception.getAttemptedModes() == null || exception.getAttemptedModes().isEmpty()) {
+            return false;
+        }
+        boolean sawExecutionFailure = false;
+        for (String attemptedMode : exception.getAttemptedModes()) {
+            if (!StringUtils.hasText(attemptedMode)) {
+                continue;
+            }
+            String normalized = attemptedMode.toUpperCase(Locale.ROOT);
+            if (normalized.contains("FAILED_CONFIGURATION")
+                || normalized.contains("FAILED_CONNECTIVITY")
+                || normalized.contains("FAILED_AUTH")
+                || normalized.contains("CHAIN_DISABLED")
+                || normalized.contains("CHAIN_UNCONFIGURED")
+                || normalized.contains("SKIPPED_UNCONFIGURED")) {
+                return false;
+            }
+            if (normalized.contains("FAILED_EXECUTION") || normalized.contains("FAILED_TIMEOUT")) {
+                sawExecutionFailure = true;
+            }
+        }
+        return sawExecutionFailure;
+    }
+
+    private QueryExecuteResponse handleRuntimeRewriteExecutionFailure(QueryExecuteRequest request,
+                                                                      DataSourceTypeEnum primaryEngine,
+                                                                      String sqlFingerprint,
+                                                                      String originalExecutionSql,
+                                                                      RuntimeRewriteResolution runtimeRewriteResolution,
+                                                                      HetuExecutionUnavailableException exception,
+                                                                      long start) {
+        logStateChange(
+            sqlFingerprint,
+            request,
+            STATE_PRIMARY_ROUTE_SELECTED,
+            STATE_RUNTIME_REWRITE_EXECUTION_FAILED,
+            primaryEngine.name(),
+            0L,
+            QueryExecutionStatus.FAILED.name(),
+            MARKER_RUNTIME_REWRITE_ORIGINAL_RETRY
+        );
+        QueryRetryStepVO rewriteFailureStep = buildRecoveryStep(
+            primaryEngine.name(),
+            0L,
+            QueryExecutionStatus.FAILED.name(),
+            MARKER_RUNTIME_REWRITE_ORIGINAL_RETRY,
+            ACTION_RETRY_ORIGINAL_SQL
+        );
+        RuntimeRewriteResolution fallbackRewriteResolution =
+            runtimeRewriteResolution.fallbackAfterRewriteExecutionFailure(
+                originalExecutionSql,
+                "RUNTIME_REWRITE_EXECUTION_FAILED"
+            );
+        QueryExecuteRequest fallbackExecutionRequest = normalizeAccelerationRequest(
+            request,
+            false,
+            primaryEngine,
+            fallbackRewriteResolution
+        );
+        try {
+            logStateChange(
+                sqlFingerprint,
+                request,
+                STATE_RUNTIME_REWRITE_EXECUTION_FAILED,
+                STATE_RUNTIME_REWRITE_ORIGINAL_RETRY,
+                primaryEngine.name(),
+                0L,
+                "RETRYING_ORIGINAL_SQL",
+                MARKER_RUNTIME_REWRITE_ORIGINAL_RETRY
+            );
+            QueryExecutionStep fallbackStep =
+                queryExecutionAdapter.execute(primaryEngine, fallbackRewriteResolution.getActualSql(), fallbackExecutionRequest, false);
+            fallbackStep = queryExecutionCacheGovernanceRuntimeService.finalizeSuccessfulExecution(
+                QueryExecutionCacheGovernanceRuntimeService.CacheResolution.ungoverned(),
+                fallbackStep
+            );
+            return logAndReturn(
+                buildSuccessResponse(
+                    QueryExecutionStatus.PARTIAL,
+                    fallbackStep,
+                    fallbackRewriteResolution,
+                    true,
+                    "运行时改写 SQL 执行失败，已回退原 SQL。原因：" + exception.getMessage(),
+                    Collections.singletonList(rewriteFailureStep)
+                ),
+                request,
+                start
+            );
+        } catch (HetuExecutionUnavailableException retryException) {
+            return handleUnavailableHetuRoute(
+                request,
+                primaryEngine,
+                sqlFingerprint,
+                fallbackRewriteResolution,
+                new HetuExecutionUnavailableException(
+                    "运行时改写 SQL 执行失败，原 SQL 回退也未成功。rewriteFailure="
+                        + exception.getMessage() + "; originalRetryFailure=" + retryException.getMessage(),
+                    retryException.getAttemptedModes(),
+                    retryException,
+                    retryException.getRouteProfile(),
+                    retryException.getRouteOrder(),
+                    retryException.getRouteEvidenceSource(),
+                    retryException.getRouteVerificationStatus()
+                ),
+                start,
+                QueryExecutionCacheGovernanceRuntimeService.CacheResolution.ungoverned()
+            );
+        }
     }
 
     private QueryExecuteResponse handleUnavailableHetuRoute(QueryExecuteRequest request,
@@ -2103,6 +2230,24 @@ public class QueryExecutionApplicationService {
                 response == null ? null : response.getRuntimeRuleVersion(),
                 null,
                 response == null ? "UNKNOWN" : toRewriteActivationStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
+                reason
+            );
+        }
+
+        RuntimeRewriteResolution fallbackAfterRewriteExecutionFailure(String fallbackActualSql, String reason) {
+            return new RuntimeRewriteResolution(
+                originalSql,
+                originalSqlFingerprint,
+                fallbackActualSql,
+                SqlFingerprintUtils.fingerprint(fallbackActualSql),
+                false,
+                runtimeStatus,
+                rewriteRecordId,
+                runtimeBindingId,
+                ruleVersion,
+                runtimeRuleVersion,
+                datasourceCode,
+                rewriteActivationStatusSnapshot,
                 reason
             );
         }

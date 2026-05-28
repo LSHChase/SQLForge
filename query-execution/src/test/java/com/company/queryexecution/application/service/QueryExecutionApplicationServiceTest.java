@@ -310,6 +310,50 @@ class QueryExecutionApplicationServiceTest {
     }
 
     @Test
+    void shouldFallbackToOriginalSqlWhenAppliedRuntimeRewriteSqlFailsExecution() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        String originalSql = "SELECT * FROM orders";
+        String recommendedSql = "SELECT missing_column FROM orders";
+        when(rewriteBindingService.resolveActive(any()))
+            .thenReturn(activeRuntimeRewriteResponse(SqlFingerprintUtils.fingerprint(originalSql), recommendedSql));
+        RecordingRewriteFailureAdapter adapter = new RecordingRewriteFailureAdapter(recommendedSql);
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            newService(adapter, governanceCapabilityClient, rewriteBindingService);
+
+        QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
+
+        assertEquals(QueryExecutionStatus.PARTIAL, response.getStatus());
+        assertTrue(response.isDegraded());
+        assertTrue(response.getDegradeReason().contains("运行时改写 SQL 执行失败"));
+        assertEquals(originalSql, adapter.actualSql);
+        assertEquals("hetu_main", adapter.request.getDatasourceCode());
+        assertEquals(2, adapter.executionCount);
+        assertEquals(originalSql, response.getMetadata().getActualSql());
+        assertFalse(response.getMetadata().isRewriteApplied());
+        assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
+        assertEquals("ACTIVE", response.getMetadata().getRuntimeRewriteStatus());
+        assertEquals("RUNTIME_REWRITE_EXECUTION_FAILED", response.getMetadata().getRewriteFallbackReason());
+        assertEquals("RUNTIME_REWRITE_EXECUTION_FAILED", response.getBindingSummary().get("rewriteFallbackReason"));
+        assertEquals("hetu_main", response.getBindingSummary().get("runtimeDatasourceCode"));
+        assertEquals(1, response.getRetryPath().size());
+        assertEquals("LOCAL_RUNTIME_REWRITE_ORIGINAL_SQL_RETRY", response.getRetryPath().get(0).getLocalRecoveryMarker());
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(historyCaptor.capture());
+        GovernanceQueryExecutionHistoryWriteRequest historyRequest = historyCaptor.getValue();
+        assertEquals(Boolean.FALSE, historyRequest.getRewriteApplied());
+        assertEquals(originalSql, historyRequest.getBoundSql());
+        assertEquals("rewrite-001", historyRequest.getRewriteRecordId());
+        assertEquals("rwb-001", historyRequest.getRuntimeBindingId());
+        assertEquals("RUNTIME_REWRITE_EXECUTION_FAILED", historyRequest.getRewriteFallbackReason());
+        assertEquals("hetu_main", historyRequest.getDatasourceCode());
+    }
+
+    @Test
     void shouldKeepOriginalSqlWhenRuntimeRewriteBindingIsMissing() {
         setRequestContext("tenant-a");
         QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
@@ -1019,6 +1063,38 @@ class QueryExecutionApplicationServiceTest {
             this.actualSql = actualSql;
             this.targetEngine = targetEngine;
             this.request = request;
+            return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
+        }
+    }
+
+    private static final class RecordingRewriteFailureAdapter implements QueryExecutionAdapter {
+        private final String failingSql;
+        private String actualSql;
+        private QueryExecuteRequest request;
+        private int executionCount;
+
+        private RecordingRewriteFailureAdapter(String failingSql) {
+            this.failingSql = failingSql;
+        }
+
+        @Override
+        public QueryExecutionStep execute(DataSourceTypeEnum targetEngine,
+                                          String actualSql,
+                                          QueryExecuteRequest request,
+                                          boolean degradedPath) {
+            executionCount += 1;
+            this.actualSql = actualSql;
+            this.request = request;
+            if (failingSql.equals(actualSql)) {
+                throw new HetuExecutionUnavailableException(
+                    "已校准的 Hetu 执行模式均未成功，attemptedModes=[JDBC, JDBC:FAILED_EXECUTION]",
+                    java.util.Arrays.asList("JDBC", "JDBC:FAILED_EXECUTION"),
+                    "REPO_CLOSED_BASELINE",
+                    java.util.Collections.singletonList("JDBC"),
+                    "REPO_CLOSED_CONFIGURATION",
+                    "PASSED"
+                );
+            }
             return new DeterministicQueryExecutionAdapter().execute(targetEngine, actualSql, request, degradedPath);
         }
     }

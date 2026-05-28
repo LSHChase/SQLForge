@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RUNTIME-REWRITE-HETU-FAILURE-DIAG-20260528: 区分运行时改写 Hetu 执行失败与路由未开放
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(query): fallback original sql after rewrite execution failure`
+- Priority: 1
+- Depends on: N/A
+- Scope: 排查另一台电脑部署 datasourceCode 继承修复后，test01.sql 激活改写仍报当前同步路径未开放执行路由的问题；区分 Hetu 路由配置不可用与改写 SQL 实际执行失败，保留改写执行失败的真实原因并补充 query-execution 回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-HETU-FAILURE-DIAG-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 区分运行时改写 SQL 执行失败与真实路由不可用：Hetu 失败分类现在读取异常 cause，active rewrite 命中后若改写 SQL 在已校准模式链路中执行失败，会用原执行 SQL 降级重试；原 SQL 成功时返回 PARTIAL/degraded 并保留 runtime binding、datasourceCode、rewriteFallbackReason 和历史证据。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112; mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionRuntimeRewriteBindingServiceTest,HetuRouteCalibrationServiceTest,ModeRoutingQueryExecutionAdapterTest -Dsurefire.failIfNoSpecifiedTests=false test; git diff --check; python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-HETU-FAILURE-DIAG-20260528 --include-task-audit --extra-command 'mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionRuntimeRewriteBindingServiceTest,HetuRouteCalibrationServiceTest,ModeRoutingQueryExecutionAdapterTest -Dsurefire.failIfNoSpecifiedTests=false test' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 真实 Hetu/MRS 外部环境仍需在目标电脑验证；若原 SQL 与改写 SQL都失败，仍会按路由/执行失败返回错误，但错误建议会包含 rewriteFailure 与 originalRetryFailure。
+  - Next step: 部署并重启 query-execution 后，在目标电脑重新执行 test01.sql；若返回 PARTIAL/degraded 且 rewriteFallbackReason=RUNTIME_REWRITE_EXECUTION_FAILED，说明改写 SQL 本身需要回到推荐/验证环节修正或暂停绑定。
+
 ### USER-CN-RUNTIME-REWRITE-DATASOURCE-ROUTE-20260528: 修复运行时改写后数据源路由证据丢失
 
 - Status: done

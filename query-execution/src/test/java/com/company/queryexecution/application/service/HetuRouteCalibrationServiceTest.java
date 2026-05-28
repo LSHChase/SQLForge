@@ -74,6 +74,10 @@ class HetuRouteCalibrationServiceTest {
         assertEquals("FAILED_CONFIGURATION", service.classifyFailure(new IllegalStateException("endpoint is not configured")));
         assertEquals("FAILED_CONNECTIVITY", service.classifyFailure(new IllegalStateException("connection refused")));
         assertEquals("FAILED_EXECUTION", service.classifyFailure(new IllegalStateException("unexpected engine failure")));
+        assertEquals(
+            "FAILED_CONNECTIVITY",
+            service.classifyFailure(new IllegalStateException("Hetu JDBC 执行失败", new java.sql.SQLException("Connection refused")))
+        );
     }
 
     @Test
