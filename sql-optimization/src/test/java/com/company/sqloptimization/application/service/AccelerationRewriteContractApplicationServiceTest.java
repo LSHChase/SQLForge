@@ -15,6 +15,7 @@ import com.company.sqlforge.common.queryexecution.QueryExecutionResultDigestResp
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
+import com.company.sqlforge.common.utils.SqlFingerprintUtils;
 import com.company.sqloptimization.config.RewriteProductionGateProperties;
 import com.company.sqloptimization.application.controller.dto.AccelerationCandidateCreateRequest;
 import com.company.sqloptimization.application.controller.dto.RewriteValidationRunCreateRequest;
@@ -414,6 +415,7 @@ class AccelerationRewriteContractApplicationServiceTest {
         );
         setTenant("tenant-a");
         SqlRewriteRecordVO ready = createPublishableRewriteRecord(service, "history-publish", "fp-publish");
+        String originalFingerprint = SqlFingerprintUtils.fingerprint("SELECT * FROM orders");
 
         SqlRewriteRecordVO published = service.activateRewriteRecord(
             ready.getRewriteRecordId(),
@@ -423,8 +425,8 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals("ACTIVE", published.getActivationStatus());
         assertEquals("rwb-001", published.getRuntimeBindingId());
         assertEquals("runtime-rewrite-v1", published.getRuntimeRuleVersion());
-        assertEquals("tenant-a:fp-publish", published.getRuntimeBindingScope());
-        assertEquals("fp-publish", published.getActivatedSqlFingerprint());
+        assertEquals("tenant-a:" + originalFingerprint, published.getRuntimeBindingScope());
+        assertEquals(originalFingerprint, published.getActivatedSqlFingerprint());
         assertEquals(1, runtimeClient.activateCount);
         assertEquals(Collections.singletonList("orders"), runtimeClient.lastActivateRequest.getRuntimeMatchObjectNames());
         Map<?, ?> publishTrace = (Map<?, ?>) published.getTraceRefs().get("activationEvidence");
@@ -433,7 +435,35 @@ class AccelerationRewriteContractApplicationServiceTest {
         assertEquals(Boolean.TRUE, publishTrace.get("runtimeBinding"));
         assertEquals("ACTIVE", publishTrace.get("runtimeStatus"));
         assertEquals("rwb-001", publishTrace.get("runtimeBindingId"));
-        assertEquals("fp-publish", runtimeClient.lastActivateRequest.getSqlFingerprint());
+        assertEquals(originalFingerprint, runtimeClient.lastActivateRequest.getSqlFingerprint());
+    }
+
+    @Test
+    void shouldBindRuntimeRewriteToOriginalSqlFingerprintWhenClientFingerprintIsStale() {
+        InMemorySqlRewriteRecordRepository repository = new InMemorySqlRewriteRecordRepository();
+        StubRuntimeRewriteBindingClient runtimeClient = new StubRuntimeRewriteBindingClient();
+        SqlRewriteRecordApplicationService service = new SqlRewriteRecordApplicationService(
+            repository,
+            null,
+            new ResultDigestComparisonEngine(),
+            runtimeClient,
+            developmentDirectActivationProperties()
+        );
+        setTenant("tenant-a");
+        String originalSql = "SELECT * FROM orders WHERE status = 'PAID'";
+        String expectedFingerprint = SqlFingerprintUtils.fingerprint(originalSql);
+        SqlRewriteRecordCreateRequest request = rewriteRecordRequest("tenant-a", "history-stale-fp");
+        request.setOriginalSqlText(originalSql);
+        request.setSqlFingerprint("formatted-editor-stale-fingerprint");
+
+        SqlRewriteRecordVO created = service.createRewriteRecord(request);
+        SqlRewriteRecordVO activated =
+            service.activateRewriteRecord(created.getRewriteRecordId(), publishActionRequest("activate original SQL"));
+
+        assertEquals(expectedFingerprint, created.getSqlFingerprint());
+        assertEquals(expectedFingerprint, runtimeClient.lastActivateRequest.getSqlFingerprint());
+        assertEquals(expectedFingerprint, activated.getActivatedSqlFingerprint());
+        assertEquals(originalSql, runtimeClient.lastActivateRequest.getOriginalSqlText());
     }
 
     @Test

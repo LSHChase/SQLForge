@@ -251,6 +251,7 @@ public class SqlRewriteRecordApplicationService {
         }
         Instant now = Instant.now();
         Map<String, Object> traceRefs = buildCreateTraceRefs(request, tenantId);
+        String sqlFingerprint = canonicalSqlFingerprint(request.getOriginalSqlText(), request.getSqlFingerprint());
         SqlRewriteRecord rewriteRecord = SqlRewriteRecord.builder()
             .rewriteRecordId(UUID.randomUUID().toString())
             .tenantId(tenantId)
@@ -262,7 +263,7 @@ public class SqlRewriteRecordApplicationService {
             .evidenceLevel(request.getEvidenceLevel())
             .historyId(trimToNull(request.getHistoryId()))
             .parseHistoryId(trimToNull(request.getParseHistoryId()))
-            .sqlFingerprint(trimToNull(request.getSqlFingerprint()))
+            .sqlFingerprint(sqlFingerprint)
             .datasourceCode(trimToNull(request.getDatasourceCode()))
             .status(request.getStatus())
             .validationStatus(request.getValidationStatus())
@@ -779,9 +780,9 @@ public class SqlRewriteRecordApplicationService {
         request.setSourceType(name(rewriteRecord.getSourceType()));
         request.setSourceKind(name(rewriteRecord.getSourceKind()));
         request.setSourceId(rewriteRecord.getSourceId());
-        request.setSqlFingerprint(firstText(
-            rewriteRecord.getSqlFingerprint(),
-            SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText())
+        request.setSqlFingerprint(canonicalSqlFingerprint(
+            rewriteRecord.getOriginalSqlText(),
+            rewriteRecord.getSqlFingerprint()
         ));
         request.setOriginalSqlDigest(SqlFingerprintUtils.fingerprint(rewriteRecord.getOriginalSqlText()));
         request.setOriginalSqlText(rewriteRecord.getOriginalSqlText());
@@ -1070,6 +1071,11 @@ public class SqlRewriteRecordApplicationService {
         }
         requireRecommendedSqlTextMatchesArtifact(request.getRecommendedSqlText(), storedArtifact);
         return normalizeMvArtifactTraceRefs(traceRefs, storedArtifact, request.getRecommendationId());
+    }
+
+    private String canonicalSqlFingerprint(String originalSqlText, String fallbackFingerprint) {
+        String computed = SqlFingerprintUtils.fingerprint(originalSqlText);
+        return firstText(computed, fallbackFingerprint);
     }
 
     private Map<String, Object> enrichViewAwareRuntimeTraceRefs(Map<String, Object> traceRefs,

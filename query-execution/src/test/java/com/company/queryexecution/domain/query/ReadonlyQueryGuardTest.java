@@ -17,6 +17,15 @@ class ReadonlyQueryGuardTest {
     }
 
     @Test
+    void shouldAllowReadonlySqlFormattedWithNewlineAfterKeyword() {
+        ReadonlyQueryAssessment assessment = ReadonlyQueryGuard.assess(
+            "--report_code=RPT_SQL_QUERY\nSELECT\n  1 AS ok"
+        );
+
+        assertTrue(assessment.isReadonly());
+    }
+
+    @Test
     void shouldAllowReadonlySqlWithLeadingBlockComment() {
         ReadonlyQueryAssessment assessment = ReadonlyQueryGuard.assess(
             "/* governance context */\nSELECT 1 AS ok"
@@ -30,6 +39,13 @@ class ReadonlyQueryGuardTest {
         ReadonlyQueryAssessment assessment = ReadonlyQueryGuard.assess(
             "--report_code=RPT_MUTATION\nDELETE FROM orders"
         );
+
+        assertFalse(assessment.isReadonly());
+    }
+
+    @Test
+    void shouldRejectKeywordPrefixThatIsNotStandaloneReadonlyKeyword() {
+        ReadonlyQueryAssessment assessment = ReadonlyQueryGuard.assess("SELECTED FROM orders");
 
         assertFalse(assessment.isReadonly());
     }

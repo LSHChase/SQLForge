@@ -8,11 +8,11 @@ import java.util.Locale;
 public final class ReadonlyQueryGuard {
 
     private static final String[] READONLY_PREFIXES = {
-        "SELECT ",
-        "WITH ",
-        "SHOW ",
-        "DESCRIBE ",
-        "EXPLAIN "
+        "SELECT",
+        "WITH",
+        "SHOW",
+        "DESCRIBE",
+        "EXPLAIN"
     };
     private static final String[] FORBIDDEN_TOKENS = {
         " INSERT ",
@@ -62,7 +62,11 @@ public final class ReadonlyQueryGuard {
     private static boolean hasReadonlyPrefix(String upperSql) {
         int i;
         for (i = 0; i < READONLY_PREFIXES.length; i++) {
-            if (upperSql.startsWith(READONLY_PREFIXES[i])) {
+            String prefix = READONLY_PREFIXES[i];
+            if (upperSql.equals(prefix)) {
+                return true;
+            }
+            if (upperSql.startsWith(prefix) && Character.isWhitespace(upperSql.charAt(prefix.length()))) {
                 return true;
             }
         }

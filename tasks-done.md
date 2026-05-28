@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-SQL-FORMAT-RUNTIME-REWRITE-20260528: 修复 SQL 格式化执行与运行时改写绑定命中
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(query): stabilize formatted SQL runtime rewrite`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 SQL 查询分析页格式化后执行 test01.sql 被只读守卫误拒，以及改写记录激活时因前端 stale sqlFingerprint 导致 runtime binding 未绑定原 SQL 指纹的问题；补充后端回归验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-SQL-FORMAT-RUNTIME-REWRITE-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 SQL 查询分析页格式化后只读守卫误拒 SELECT 换行的问题；改写记录创建与激活 runtime binding 时统一使用 originalSqlText 计算权威 SQL 指纹，避免前端 stale/格式化指纹导致执行页无法命中改写；补充 query-execution 与 sql-optimization 回归测试。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112；mvn -pl query-execution -am -Dtest=ReadonlyQueryGuardTest,QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization -am -Dtest=AccelerationRewriteContractApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；python3 scripts/foreman.py validate USER-CN-SQL-FORMAT-RUNTIME-REWRITE-20260528；python3 scripts/task_audit.py --check --phase pre-closeout；git diff --check
+  - Residual risk: 未连接真实外部 Hetu/MRS 执行环境；仓库内以只读守卫、执行服务和 runtime binding 激活链路回归覆盖。
+  - Next step: 无。
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260528: 全量更新 dist-portable 便携前端产物
 
 - Status: done
