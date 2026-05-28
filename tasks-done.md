@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RUNTIME-REWRITE-ROUTE-FIX-20260528: 修复运行时改写路由数据源证据与对象归一化命中
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(query): align runtime rewrite route evidence`
+- Priority: 1
+- Depends on: PRW-006
+- Scope: 排查并修复 SQL 推荐记录激活后执行侧无法命中运行时改写的问题，聚焦 datasourceCode 证据传递、BI_*_V 到 BI_*_HETU 的对象名归一化一致性，以及受保护路由校准接口请求头提示。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-ROUTE-FIX-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复 query-execution 运行时改写解析时 datasourceCode 证据优先级，统一 SQL 表面对象抽取的 BI_*_V 到 BI_*_HETU catalog 归一化，并同步推荐记录 trace/VO 的 runtimeMatchObjectNames 规范化。
+  - Validation evidence: mvn -pl query-execution -am -Dtest=QueryExecutionRuntimeRewriteBindingServiceTest,QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl sql-optimization -am -Dtest=ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-ROUTE-FIX-20260528 --include-task-audit --extra-command ...; git diff --check
+  - Residual risk: 真实 Hetu/JDBC 驱动连通性仍属于环境侧验证；浏览器直开受保护校准接口仍需要完整 X-* 请求头，不改变安全边界。
+  - Next step: 在目标环境用带 X-Request-Id 等受保护请求头的 curl 校验 route-calibration，再执行同 tenantId + datasourceCode 的激活改写 SQL。
+
 ### USER-CN-SQL-RUNTIME-BINDING-HIT-20260528: 修复 SQL 执行运行时改写绑定命中与路由开放
 
 - Status: done

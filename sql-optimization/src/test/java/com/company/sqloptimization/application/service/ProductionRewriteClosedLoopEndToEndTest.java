@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.company.queryexecution.application.controller.dto.QueryContextDTO;
 import com.company.queryexecution.application.controller.dto.QueryExecuteRequest;
 import com.company.queryexecution.application.controller.vo.QueryExecuteResponse;
 import com.company.queryexecution.application.service.QueryExecutionAccelerationRuntimeService;
@@ -587,6 +588,10 @@ class ProductionRewriteClosedLoopEndToEndTest {
         QueryExecuteRequest request = new QueryExecuteRequest();
         request.setTenantId(TENANT_ID);
         request.setDatasourceType(DataSourceTypeEnum.HETU);
+        request.setDatasourceCode("hetu_main");
+        QueryContextDTO queryContext = new QueryContextDTO();
+        queryContext.setDatabaseName("BI_SALES_HETU");
+        request.setQueryContext(queryContext);
         request.setSqlText(sqlText);
         return request;
     }

@@ -348,6 +348,10 @@ class QueryExecutionApplicationServiceTest {
         verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
         assertEquals(effectiveSql, resolveCaptor.getValue().getSqlText());
         assertEquals(effectiveFingerprint, resolveCaptor.getValue().getSqlFingerprint());
+        assertEquals(
+            Collections.singletonList("bi_sales_hetu.orders"),
+            resolveCaptor.getValue().getRuntimeMatchObjectNames()
+        );
 
         ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =
             ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
@@ -404,6 +408,34 @@ class QueryExecutionApplicationServiceTest {
             ArgumentCaptor.forClass(RuntimeRewriteBindingResolveRequest.class);
         verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
         assertEquals("hetu_reporting", resolveCaptor.getValue().getDatasourceCode());
+    }
+
+    @Test
+    void shouldPreferRequestDatasourceCodeWhenResolvingRuntimeRewriteBinding() {
+        setRequestContext("tenant-a");
+        QueryExecutionRuntimeRewriteBindingService rewriteBindingService =
+            mock(QueryExecutionRuntimeRewriteBindingService.class);
+        when(rewriteBindingService.resolveActive(any())).thenReturn(missingRuntimeRewriteResponse());
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
+        QueryExecutionApplicationService service =
+            newService(new RecordingQueryExecutionAdapter(), governanceCapabilityClient, rewriteBindingService);
+        QueryExecuteRequest request = baseRequest("SELECT * FROM orders");
+        request.setDatasourceCode("hetu_main");
+        QueryContextDTO queryContext = new QueryContextDTO();
+        queryContext.setDatabaseName("BI_SALES_HETU");
+        request.setQueryContext(queryContext);
+
+        service.executeSynchronously(request);
+
+        ArgumentCaptor<RuntimeRewriteBindingResolveRequest> resolveCaptor =
+            ArgumentCaptor.forClass(RuntimeRewriteBindingResolveRequest.class);
+        verify(rewriteBindingService).resolveActive(resolveCaptor.capture());
+        assertEquals("hetu_main", resolveCaptor.getValue().getDatasourceCode());
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(historyCaptor.capture());
+        assertEquals("hetu_main", historyCaptor.getValue().getDatasourceCode());
     }
 
     @Test

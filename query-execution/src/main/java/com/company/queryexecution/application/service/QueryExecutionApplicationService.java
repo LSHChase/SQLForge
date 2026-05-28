@@ -1256,9 +1256,10 @@ public class QueryExecutionApplicationService {
     private String resolveRuntimeRewriteDatasourceEvidence(QueryExecuteRequest request, String originalSql) {
         Map<String, String> commentContext = buildCommentContext(originalSql);
         return firstText(
+            request == null ? null : request.getDatasourceCode(),
             commentContext == null ? null : commentContext.get("datasource"),
             commentContext == null ? null : commentContext.get("datasource_code"),
-            request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName()
+            request == null || request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName()
         );
     }
 
@@ -1537,10 +1538,11 @@ public class QueryExecutionApplicationService {
     private String resolveDatasourceCode(QueryExecuteRequest request, QueryExecuteResponse response) {
         Map<String, String> commentContext = response == null ? null : response.getCommentContext();
         return firstText(
+            request == null ? null : request.getDatasourceCode(),
             commentContext == null ? null : commentContext.get("datasource"),
             commentContext == null ? null : commentContext.get("datasource_code"),
-            request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName(),
-            request.getDatasourceType() == null ? null : request.getDatasourceType().name()
+            request == null || request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName(),
+            request == null || request.getDatasourceType() == null ? null : request.getDatasourceType().name()
         );
     }
 

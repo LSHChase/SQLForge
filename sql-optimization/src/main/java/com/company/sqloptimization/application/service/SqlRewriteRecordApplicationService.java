@@ -1089,7 +1089,10 @@ public class SqlRewriteRecordApplicationService {
         }
         if (request != null && request.getRuntimeMatchObjectNames() != null
             && !request.getRuntimeMatchObjectNames().isEmpty()) {
-            result.put("runtimeMatchObjectNames", request.getRuntimeMatchObjectNames());
+            result.put(
+                "runtimeMatchObjectNames",
+                SqlSurfaceObjectRefExtractor.normalizeObjectNames(request.getRuntimeMatchObjectNames())
+            );
         }
         if (request != null && request.getAnalysisPhysicalObjectRefs() != null
             && !request.getAnalysisPhysicalObjectRefs().isEmpty()) {
@@ -1450,7 +1453,7 @@ public class SqlRewriteRecordApplicationService {
         List<String> runtimeMatchObjectNames = traceStringList(record.getTraceRefs(), "runtimeMatchObjectNames");
         vo.setRuntimeMatchObjectNames(runtimeMatchObjectNames.isEmpty()
             ? SqlSurfaceObjectRefExtractor.surfaceObjectNames(runtimeMatchObjectRefs)
-            : runtimeMatchObjectNames);
+            : SqlSurfaceObjectRefExtractor.normalizeObjectNames(runtimeMatchObjectNames));
         vo.setAnalysisPhysicalObjectRefs(surfaceMaps(traceSurfaceList(record.getTraceRefs(), "analysisPhysicalObjectRefs")));
         vo.setMetadataSnapshotVersion(traceText(record.getTraceRefs(), "metadataSnapshotVersion"));
         vo.setViewDefinitionHash(traceText(record.getTraceRefs(), "viewDefinitionHash"));

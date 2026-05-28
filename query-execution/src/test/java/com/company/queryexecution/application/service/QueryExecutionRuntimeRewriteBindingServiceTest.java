@@ -242,6 +242,30 @@ class QueryExecutionRuntimeRewriteBindingServiceTest {
         assertEquals("ACTIVE", service.resolveActive(viewRequest).getStatus());
     }
 
+    @Test
+    void shouldNormalizeBiViewCatalogSurfaceNamesForActivationAndResolve() {
+        setRequestContext();
+        QueryExecutionRuntimeRewriteBindingService service =
+            new QueryExecutionRuntimeRewriteBindingService(new InMemoryRuntimeRewriteBindingRepository());
+        RuntimeRewriteBindingActivationRequest request = activationRequest("rewrite-bi-001");
+        request.setOriginalSqlText("SELECT * FROM BI_SALES_V.orders WHERE tenant_id = 1");
+        request.setRecommendedSqlText("SELECT id FROM BI_SALES_V.orders WHERE tenant_id = 1");
+        request.setRuntimeMatchObjectNames(Arrays.asList("BI_SALES_V.orders"));
+        RuntimeRewriteBindingResponse activated = service.activate(request);
+        String currentSql = "SELECT * FROM BI_SALES_HETU.orders WHERE tenant_id = 2";
+
+        RuntimeRewriteBindingResolveRequest resolveRequest = new RuntimeRewriteBindingResolveRequest();
+        resolveRequest.setTenantId("tenant-a");
+        resolveRequest.setSqlFingerprint(SqlFingerprintUtils.fingerprint(currentSql));
+        resolveRequest.setSqlText(currentSql);
+        resolveRequest.setDatasourceCode("hetu_main");
+        RuntimeRewriteBindingResponse resolved = service.resolveActive(resolveRequest);
+
+        assertEquals(Arrays.asList("bi_sales_hetu.orders"), activated.getRuntimeMatchObjectNames());
+        assertEquals("ACTIVE", resolved.getStatus());
+        assertTrue(resolved.isActive());
+    }
+
     private RuntimeRewriteBindingActivationRequest activationRequest(String rewriteRecordId) {
         RuntimeRewriteBindingActivationRequest request = new RuntimeRewriteBindingActivationRequest();
         request.setTenantId("tenant-a");

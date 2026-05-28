@@ -1,5 +1,6 @@
 package com.company.sqlforge.common.logicalobject;
 
+import com.company.sqlforge.common.utils.SqlCatalogQualifierRewriteUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -25,7 +26,8 @@ public final class SqlSurfaceObjectRefExtractor {
         if (!StringUtils.hasText(sqlText)) {
             return Collections.emptyList();
         }
-        String scanSql = maskSingleQuotedLiterals(stripSqlComments(sqlText));
+        String compatibleSql = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(sqlText);
+        String scanSql = maskSingleQuotedLiterals(stripSqlComments(compatibleSql));
         List<LogicalObjectSurface> refs = new ArrayList<LogicalObjectSurface>();
         Set<String> seenKeys = new LinkedHashSet<String>();
         Matcher matcher = SURFACE_OBJECT_PATTERN.matcher(scanSql);
@@ -116,7 +118,8 @@ public final class SqlSurfaceObjectRefExtractor {
         if (!StringUtils.hasText(value)) {
             return null;
         }
-        String normalized = value.trim().replaceAll("\\s*\\.\\s*", ".");
+        String compatible = SqlCatalogQualifierRewriteUtils.rewriteBiViewCatalogQualifier(value);
+        String normalized = compatible.trim().replaceAll("\\s*\\.\\s*", ".");
         while (normalized.endsWith(",") || normalized.endsWith(")") || normalized.endsWith(";")) {
             normalized = normalized.substring(0, normalized.length() - 1).trim();
         }
