@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RUNTIME-REWRITE-DATASOURCE-ROUTE-20260528: 修复运行时改写后数据源路由证据丢失
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(query): preserve rewrite datasource route`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复 test01.sql 在 SQL 查询分析中未激活改写可执行、激活运行时改写后因执行请求未继承绑定 datasourceCode 而进入未开放路由的问题；保持未命中改写路径不变并补充 query-execution 回归测试。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-DATASOURCE-ROUTE-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 修复运行时改写命中后执行请求未继承绑定 datasourceCode 的问题；RuntimeRewriteResolution 现在携带 active binding datasourceCode，实际执行请求在原请求未显式指定 datasourceCode 时使用绑定 datasourceCode，并在 bindingSummary 与治理历史 datasourceCode 中保留该证据。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112; mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionRuntimeRewriteBindingServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; git diff --check; python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-DATASOURCE-ROUTE-20260528 --include-task-audit --extra-command 'mvn -pl query-execution -am -Dtest=QueryExecutionApplicationServiceTest,QueryExecutionRuntimeRewriteBindingServiceTest -Dsurefire.failIfNoSpecifiedTests=false test' --extra-command 'git diff --check'; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 真实 Hetu/MRS 连通性和外部环境留证仍属 environment-backed；若已发布的运行时绑定 datasourceCode 本身为空或错误，需要重新激活/修正该绑定后才能路由到正确数据源。
+  - Next step: 部署并重启 query-execution 后，在目标电脑重新激活受影响改写记录或确认绑定 datasourceCode=hetu_main，再用 test01.sql 执行验证。
+
 ### USER-CN-RUNTIME-REWRITE-CONSISTENCY-20260528: Fix runtime rewrite activation consistency
 
 - Status: done

@@ -288,17 +288,25 @@ class QueryExecutionApplicationServiceTest {
         when(rewriteBindingService.resolveActive(any()))
             .thenReturn(activeRuntimeRewriteResponse(SqlFingerprintUtils.fingerprint(originalSql), recommendedSql));
         RecordingQueryExecutionAdapter adapter = new RecordingQueryExecutionAdapter();
+        GovernanceCapabilityClient governanceCapabilityClient = mockGovernanceClient();
         QueryExecutionApplicationService service =
-            newService(adapter, mockGovernanceClient(), rewriteBindingService);
+            newService(adapter, governanceCapabilityClient, rewriteBindingService);
 
         QueryExecuteResponse response = service.executeSynchronously(baseRequest(originalSql));
 
         assertEquals(QueryExecutionStatus.SUCCESS, response.getStatus());
         assertEquals(recommendedSql, adapter.actualSql);
+        assertEquals("hetu_main", adapter.request.getDatasourceCode());
         assertEquals(recommendedSql, response.getMetadata().getActualSql());
         assertEquals("SIMULATED", response.getMetadata().getExecutionMode());
         assertTrue(response.getMetadata().isRewriteApplied());
         assertEquals("rwb-001", response.getMetadata().getRuntimeBindingId());
+        assertEquals("hetu_main", response.getBindingSummary().get("runtimeDatasourceCode"));
+
+        ArgumentCaptor<GovernanceQueryExecutionHistoryWriteRequest> historyCaptor =
+            ArgumentCaptor.forClass(GovernanceQueryExecutionHistoryWriteRequest.class);
+        verify(governanceCapabilityClient).writeQueryExecutionHistory(historyCaptor.capture());
+        assertEquals("hetu_main", historyCaptor.getValue().getDatasourceCode());
     }
 
     @Test

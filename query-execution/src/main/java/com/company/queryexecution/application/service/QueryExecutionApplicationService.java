@@ -410,7 +410,7 @@ public class QueryExecutionApplicationService {
                 request,
                 activatedAccelerationBinding != null,
                 primaryEngine,
-                actualSql
+                runtimeRewriteResolution
             );
             QueryExecutionStep primaryStep;
             try {
@@ -1539,11 +1539,20 @@ public class QueryExecutionApplicationService {
         Map<String, String> commentContext = response == null ? null : response.getCommentContext();
         return firstText(
             request == null ? null : request.getDatasourceCode(),
+            extractRuntimeDatasourceCode(response),
             commentContext == null ? null : commentContext.get("datasource"),
             commentContext == null ? null : commentContext.get("datasource_code"),
             request == null || request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName(),
             request == null || request.getDatasourceType() == null ? null : request.getDatasourceType().name()
         );
+    }
+
+    private String extractRuntimeDatasourceCode(QueryExecuteResponse response) {
+        if (response == null || response.getBindingSummary() == null) {
+            return null;
+        }
+        Object datasourceCode = response.getBindingSummary().get("runtimeDatasourceCode");
+        return datasourceCode == null ? null : String.valueOf(datasourceCode);
     }
 
     private String toJson(Object payload) {
@@ -1614,6 +1623,7 @@ public class QueryExecutionApplicationService {
         summary.put("runtimeBindingId", runtimeRewriteResolution.getRuntimeBindingId());
         summary.put("ruleVersion", runtimeRewriteResolution.getRuleVersion());
         summary.put("runtimeRuleVersion", runtimeRewriteResolution.getRuntimeRuleVersion());
+        summary.put("runtimeDatasourceCode", runtimeRewriteResolution.getDatasourceCode());
         summary.put("rewriteActivationStatusSnapshot", runtimeRewriteResolution.getRewriteActivationStatusSnapshot());
         if (StringUtils.hasText(runtimeRewriteResolution.getRewriteFallbackReason())) {
             summary.put("rewriteFallbackReason", runtimeRewriteResolution.getRewriteFallbackReason());
@@ -1908,12 +1918,18 @@ public class QueryExecutionApplicationService {
     private QueryExecuteRequest normalizeAccelerationRequest(QueryExecuteRequest request,
                                                             boolean accelerationAllowed,
                                                             DataSourceTypeEnum primaryEngine,
-                                                            String actualSql) {
+                                                            RuntimeRewriteResolution runtimeRewriteResolution) {
         QueryExecuteRequest normalized = new QueryExecuteRequest();
+        String actualSql = runtimeRewriteResolution == null
+            ? request.getSqlText()
+            : runtimeRewriteResolution.getActualSql();
         normalized.setSqlText(actualSql);
         normalized.setTenantId(request.getTenantId());
         normalized.setDatasourceType(primaryEngine == null ? request.getDatasourceType() : primaryEngine);
-        normalized.setDatasourceCode(request.getDatasourceCode());
+        normalized.setDatasourceCode(firstText(
+            request.getDatasourceCode(),
+            runtimeRewriteResolution == null ? null : runtimeRewriteResolution.getDatasourceCode()
+        ));
         normalized.setQueryContext(request.getQueryContext());
         normalized.setFaultToleranceStrategy(request.getFaultToleranceStrategy());
         normalized.setAccelerationPreference(accelerationAllowed
@@ -1965,6 +1981,7 @@ public class QueryExecutionApplicationService {
         private final String runtimeBindingId;
         private final Long ruleVersion;
         private final String runtimeRuleVersion;
+        private final String datasourceCode;
         private final String rewriteActivationStatusSnapshot;
         private final String rewriteFallbackReason;
 
@@ -1978,6 +1995,7 @@ public class QueryExecutionApplicationService {
                                          String runtimeBindingId,
                                          Long ruleVersion,
                                          String runtimeRuleVersion,
+                                         String datasourceCode,
                                          String rewriteActivationStatusSnapshot,
                                          String rewriteFallbackReason) {
             this.originalSql = originalSql;
@@ -1990,6 +2008,7 @@ public class QueryExecutionApplicationService {
             this.runtimeBindingId = runtimeBindingId;
             this.ruleVersion = ruleVersion;
             this.runtimeRuleVersion = runtimeRuleVersion;
+            this.datasourceCode = trimToNull(datasourceCode);
             this.rewriteActivationStatusSnapshot = rewriteActivationStatusSnapshot;
             this.rewriteFallbackReason = rewriteFallbackReason;
         }
@@ -2006,6 +2025,7 @@ public class QueryExecutionApplicationService {
                 SqlFingerprintUtils.fingerprint(actualSql),
                 false,
                 "NOT_LOOKED_UP",
+                null,
                 null,
                 null,
                 null,
@@ -2031,6 +2051,7 @@ public class QueryExecutionApplicationService {
                 null,
                 null,
                 null,
+                null,
                 toRewriteActivationStatusSnapshot(runtimeStatus, null),
                 summary
             );
@@ -2051,6 +2072,7 @@ public class QueryExecutionApplicationService {
                 response.getRuntimeBindingId(),
                 response.getRuleVersion(),
                 response.getRuntimeRuleVersion(),
+                response.getDatasourceCode(),
                 toRewriteActivationStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
                 null
             );
@@ -2079,6 +2101,7 @@ public class QueryExecutionApplicationService {
                 response == null ? null : response.getRuntimeBindingId(),
                 response == null ? null : response.getRuleVersion(),
                 response == null ? null : response.getRuntimeRuleVersion(),
+                null,
                 response == null ? "UNKNOWN" : toRewriteActivationStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
                 reason
             );
@@ -2107,7 +2130,12 @@ public class QueryExecutionApplicationService {
         String getRuntimeBindingId() { return runtimeBindingId; }
         Long getRuleVersion() { return ruleVersion; }
         String getRuntimeRuleVersion() { return runtimeRuleVersion; }
+        String getDatasourceCode() { return datasourceCode; }
         String getRewriteActivationStatusSnapshot() { return rewriteActivationStatusSnapshot; }
         String getRewriteFallbackReason() { return rewriteFallbackReason; }
+
+        private static String trimToNull(String value) {
+            return !StringUtils.hasText(value) ? null : value.trim();
+        }
     }
 }
