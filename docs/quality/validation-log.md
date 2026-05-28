@@ -6273,3 +6273,22 @@
 2026-05-28T20:07:15+08:00 | USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528 closeout commit | `R-168` | projected | `git commit -m 'fix(sql-optimization): bound report import source locator' (projected-precommit)`
 2026-05-28T20:07:15+08:00 | USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-28T20:07:15+08:00 | USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `mvn -pl sql-optimization -am -Dtest=ReportBatchApplicationServiceTest,ParseBatchPersistenceSchemaMappingTest -Dsurefire.failIfNoSpecifiedTests=false test (projected-precommit)`
+2026-05-28T22:49:52+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-28T22:49:53+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-28T22:49:54+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-124`, `R-184` | failed | `npm run lint`
+2026-05-28T22:49:58+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-28T22:49:58+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-28T22:49:58+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-28T22:49:59+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-28T22:49:59+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-28T22:50:41+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-28T22:50:41+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-28T22:50:43+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-28T22:50:47+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-28T22:50:47+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-28T22:50:47+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-28T22:50:47+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-28T22:50:47+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-28T22:52:35+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-28T22:52:35+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 closeout commit | `R-168` | projected | `git commit -m 'Enhance Calcite MV recommendation for BI reports' (projected-precommit)`
+2026-05-28T22:52:35+08:00 | USER-CN-CALCITE-MV-RECOMMENDATION-20260528 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

@@ -89,8 +89,10 @@ final class L2AccelerationArtifactBuilder {
             sourceSql,
             candidateSourceSql
         );
-        if (candidateProfile == profile) {
+        boolean rootRewriteCandidate = candidateProfile == profile;
+        if (rootRewriteCandidate) {
             candidateSourceSql = sourceSql;
+            candidateProfile = profile;
         }
         Map<String, Object> candidateAdvancedStructureProfile = candidateProfile == null
             ? null
@@ -111,7 +113,6 @@ final class L2AccelerationArtifactBuilder {
         L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql = null;
         L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql = null;
         L2CommonSubgraphMvCandidateGenerator.CandidateSql commonSubgraphCandidateSql = null;
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshotCandidateSql = null;
         String mvName = L2MaterializedViewNamePolicy.mvName(
             input.logicalObjectKey,
             input.reportCode,
@@ -121,15 +122,7 @@ final class L2AccelerationArtifactBuilder {
             grainMeasureDerivation
         );
         if (blockingReasons.isEmpty()) {
-            dynamicSnapshotCandidateSql = L2DynamicSnapshotAggregateMvCandidateGenerator.generate(
-                candidateSourceSql,
-                mvName,
-                targetEngine,
-                candidateProfile
-            );
-            if (dynamicSnapshotCandidateSql != null) {
-                blockingReasons.addAll(dynamicSnapshotCandidateSql.getBlockingReasons());
-            } else if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
+            if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
                 commonSubgraphCandidateSql = L2CommonSubgraphMvCandidateGenerator.generate(
                     candidateSourceSql,
                     mvName,
@@ -184,14 +177,15 @@ final class L2AccelerationArtifactBuilder {
         L2MaterializedViewRewriteCoverageValidator.ValidationResult rewriteValidation = null;
         String validatedRewriteSql = null;
         String candidateSubgraphRewriteSql = candidateRewriteSql(
-            dynamicSnapshotCandidateSql,
             candidateSql,
             prejoinCandidateSql,
             starAggCandidateSql,
             rollupCandidateSql,
             commonSubgraphCandidateSql
         );
-        String candidateRootRewriteSql = planningEvidence.getWrapperAnalysis().composeRootRewrite(candidateSubgraphRewriteSql);
+        String candidateRootRewriteSql = rootRewriteCandidate
+            ? candidateSubgraphRewriteSql
+            : planningEvidence.getWrapperAnalysis().composeRootRewrite(candidateSubgraphRewriteSql);
         if (blockingReasons.isEmpty()) {
             rewriteValidation = L2MaterializedViewRewriteCoverageValidator.validate(
                 new L2MaterializedViewRewriteCoverageValidator.ValidationInput(
@@ -201,10 +195,9 @@ final class L2AccelerationArtifactBuilder {
                     candidateRootRewriteSql,
                     rootAdvancedStructureProfile,
                     rootPredicateClassification,
-                    effectiveMeasures(grainMeasureDerivation, dynamicSnapshotCandidateSql),
+                    grainMeasureDerivation.getMeasures(),
                     mvFieldNames(
                         grainMeasureDerivation,
-                        dynamicSnapshotCandidateSql,
                         prejoinCandidateSql,
                         starAggCandidateSql,
                         rollupCandidateSql,
@@ -212,7 +205,6 @@ final class L2AccelerationArtifactBuilder {
                     ),
                     additionalCoverageReferences(
                         grainMeasureDerivation,
-                        dynamicSnapshotCandidateSql,
                         rollupCandidateSql,
                         commonSubgraphCandidateSql
                     )
@@ -234,22 +226,6 @@ final class L2AccelerationArtifactBuilder {
                 validatedRewriteSql = rewriteValidation.getRewriteSql();
                 if (!StringUtils.hasText(validatedRewriteSql)) {
                     validatedRewriteSql = ensureTrailingSemicolon(candidateRootRewriteSql);
-                }
-            } else if (dynamicSnapshotCandidateSql != null) {
-                validationCoverage = dynamicSnapshotCandidateSql.getCoverage(mvName);
-                validationBlockingReasons = removeCoverageReasons(
-                    validationBlockingReasons,
-                    L2MaterializedViewRewriteCoverageValidator.REWRITE_PROJECTION_NOT_COVERED,
-                    L2MaterializedViewRewriteCoverageValidator.REWRITE_FILTER_NOT_COVERED,
-                    L2MaterializedViewRewriteCoverageValidator.REWRITE_GROUPING_NOT_COVERED,
-                    L2MaterializedViewRewriteCoverageValidator.REWRITE_MEASURE_NOT_COVERED,
-                    L2MaterializedViewRewriteCoverageValidator.REWRITE_SECURITY_PREDICATE_NOT_COVERED
-                );
-                if (validationBlockingReasons.isEmpty() && StringUtils.hasText(candidateRootRewriteSql)) {
-                    validatedRewriteSql = ensureTrailingSemicolon(candidateRootRewriteSql);
-                }
-                if (!validationBlockingReasons.isEmpty()) {
-                    blockingReasons.addAll(validationBlockingReasons);
                 }
             } else {
                 blockingReasons.addAll(validationBlockingReasons);
@@ -293,16 +269,13 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("targetEngineResolution", targetEngineResolution.toEvidence());
         artifact.put("targetDatasource", input.targetDatasource);
         artifact.put("dialect", L2MaterializedViewDialectRenderer.dialect(targetEngine));
-        artifact.put("grain", effectiveGrain(grainMeasureDerivation, dynamicSnapshotCandidateSql));
-        artifact.put("dimensions", effectiveDimensions(grainMeasureDerivation, dynamicSnapshotCandidateSql));
-        artifact.put("measures", effectiveMeasures(grainMeasureDerivation, dynamicSnapshotCandidateSql));
+        artifact.put("grain", grainMeasureDerivation.getGrain());
+        artifact.put("dimensions", grainMeasureDerivation.getDimensions());
+        artifact.put("measures", grainMeasureDerivation.getMeasures());
         artifact.put("joinGraph", grainMeasureDerivation.getJoinGraph());
         artifact.put("requiredEvidence", REQUIRED_EVIDENCE);
-        artifact.put("externalizedPredicates", effectiveExternalizedPredicates(
-            rootPredicateClassification,
-            dynamicSnapshotCandidateSql
-        ));
-        artifact.put("retainedPredicates", effectiveRetainedPredicates(rootPredicateClassification, dynamicSnapshotCandidateSql));
+        artifact.put("externalizedPredicates", rootPredicateClassification.getExternalizedPredicates());
+        artifact.put("retainedPredicates", rootPredicateClassification.getRetainedPredicates());
         artifact.put("securityPredicates", rootPredicateClassification.getSecurityPredicates());
         artifact.put("blockedPredicates", rootPredicateClassification.getBlockedPredicates());
         artifact.put("coverage", coverage);
@@ -342,10 +315,6 @@ final class L2AccelerationArtifactBuilder {
             && !commonSubgraphCandidateSql.getCommonSubgraphEvidence().isEmpty()) {
             artifact.put("commonSubgraphEvidence", commonSubgraphCandidateSql.getCommonSubgraphEvidence());
         }
-        if (dynamicSnapshotCandidateSql != null) {
-            artifact.put("dynamicSnapshotRewriteEvidence", dynamicSnapshotCandidateSql.getRewriteEvidence());
-            artifact.put("dynamicSnapshotValidationMethods", dynamicSnapshotCandidateSql.getValidationMethods());
-        }
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");
@@ -354,13 +323,7 @@ final class L2AccelerationArtifactBuilder {
         artifact.put("generationSource", planningEvidence.getGenerationSource());
         artifact.put("source", source(input));
         if (blockingReasons.isEmpty()) {
-            if (dynamicSnapshotCandidateSql != null) {
-                artifact.put("ddlSql", dynamicSnapshotCandidateSql.getDdlSql());
-                artifact.put("refreshSql", dynamicSnapshotCandidateSql.getRefreshSql());
-                artifact.put("rollbackSql", dynamicSnapshotCandidateSql.getRollbackSql());
-                artifact.put("validationSql", dynamicSnapshotCandidateSql.getValidationSql());
-                artifact.put("rewriteSql", plannedRewriteSql);
-            } else if (commonSubgraphCandidateSql != null) {
+            if (commonSubgraphCandidateSql != null) {
                 artifact.put("ddlSql", commonSubgraphCandidateSql.getDdlSql());
                 artifact.put("refreshSql", commonSubgraphCandidateSql.getRefreshSql());
                 artifact.put("rollbackSql", commonSubgraphCandidateSql.getRollbackSql());
@@ -501,56 +464,13 @@ final class L2AccelerationArtifactBuilder {
         return STATUS_GENERATED;
     }
 
-    private static List<String> effectiveGrain(L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
-                                               L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql
-                                                   dynamicSnapshotCandidateSql) {
-        return dynamicSnapshotCandidateSql == null ? grainMeasureDerivation.getGrain() : dynamicSnapshotCandidateSql.getGrain();
-    }
-
-    private static List<String> effectiveDimensions(L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
-                                                    L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql
-                                                        dynamicSnapshotCandidateSql) {
-        return dynamicSnapshotCandidateSql == null
-            ? grainMeasureDerivation.getDimensions()
-            : dynamicSnapshotCandidateSql.getDimensions();
-    }
-
-    private static List<Map<String, Object>> effectiveMeasures(
-        L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshotCandidateSql) {
-        return dynamicSnapshotCandidateSql == null
-            ? grainMeasureDerivation.getMeasures()
-            : dynamicSnapshotCandidateSql.getMeasures();
-    }
-
-    private static List<Map<String, Object>> effectiveExternalizedPredicates(
-        L2PredicateClassifier.PredicateClassificationResult rootPredicateClassification,
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshotCandidateSql) {
-        return dynamicSnapshotCandidateSql == null
-            ? rootPredicateClassification.getExternalizedPredicates()
-            : dynamicSnapshotCandidateSql.getExternalizedPredicates();
-    }
-
-    private static List<Map<String, Object>> effectiveRetainedPredicates(
-        L2PredicateClassifier.PredicateClassificationResult rootPredicateClassification,
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshotCandidateSql) {
-        return dynamicSnapshotCandidateSql == null
-            ? rootPredicateClassification.getRetainedPredicates()
-            : dynamicSnapshotCandidateSql.getRetainedPredicates();
-    }
-
     private static String candidateRewriteSql(
-                                              L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql
-                                                  dynamicSnapshotCandidateSql,
                                               L2ParameterizedAggMvCandidateGenerator.CandidateSql candidateSql,
                                               L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql,
                                               L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql,
                                               L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql,
                                               L2CommonSubgraphMvCandidateGenerator.CandidateSql
                                                   commonSubgraphCandidateSql) {
-        if (dynamicSnapshotCandidateSql != null) {
-            return dynamicSnapshotCandidateSql.getRewriteSql();
-        }
         if (commonSubgraphCandidateSql != null) {
             return commonSubgraphCandidateSql.getRewriteSql();
         }
@@ -567,8 +487,6 @@ final class L2AccelerationArtifactBuilder {
     }
 
     private static List<String> mvFieldNames(L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
-                                             L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql
-                                                 dynamicSnapshotCandidateSql,
                                              L2PrejoinMvCandidateGenerator.CandidateSql prejoinCandidateSql,
                                              L2StarAggMvCandidateGenerator.CandidateSql starAggCandidateSql,
                                              L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql,
@@ -578,10 +496,6 @@ final class L2AccelerationArtifactBuilder {
         if (grainMeasureDerivation != null) {
             fields.addAll(grainMeasureDerivation.getDimensions());
             addMeasureFields(fields, grainMeasureDerivation.getMeasures());
-        }
-        if (dynamicSnapshotCandidateSql != null) {
-            fields.addAll(dynamicSnapshotCandidateSql.getDimensions());
-            addMeasureFields(fields, dynamicSnapshotCandidateSql.getMeasures());
         }
         if (prejoinCandidateSql != null) {
             for (Map<String, Object> mapping : prejoinCandidateSql.getFieldMappings()) {
@@ -607,18 +521,12 @@ final class L2AccelerationArtifactBuilder {
 
     private static List<String> additionalCoverageReferences(
         L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
-        L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshotCandidateSql,
         L2RollupMvCandidateGenerator.CandidateSql rollupCandidateSql,
         L2CommonSubgraphMvCandidateGenerator.CandidateSql commonSubgraphCandidateSql) {
         LinkedHashSet<String> references = new LinkedHashSet<String>();
         if (grainMeasureDerivation != null) {
             references.addAll(grainMeasureDerivation.getGrain());
             references.addAll(grainMeasureDerivation.getDimensions());
-        }
-        if (dynamicSnapshotCandidateSql != null) {
-            references.addAll(dynamicSnapshotCandidateSql.getGrain());
-            references.addAll(dynamicSnapshotCandidateSql.getDimensions());
-            addMeasureFields(references, dynamicSnapshotCandidateSql.getMeasures());
         }
         if (rollupCandidateSql != null) {
             Map<String, Object> evidence = rollupCandidateSql.getTimeRollupEvidence();

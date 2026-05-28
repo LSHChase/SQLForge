@@ -119,7 +119,6 @@ class RewriteTrialApplicationServiceTest {
 
     @Test
     void shouldCreateRecommendationForReportRewriteTrialSqlFixture() throws Exception {
-        String expectedRecommendedSql = readSqlFixture("docs/test01_mv.sql");
         RewriteTrialRequest request = new RewriteTrialRequest();
         request.setTenantId("tenant-a");
         request.setSqlText(readSqlFixture("docs/test01.sql"));
@@ -135,25 +134,17 @@ class RewriteTrialApplicationServiceTest {
         assertEquals("RECOMMENDED", run.getItems().get(0).getTrialStatus());
         assertNotNull(run.getItems().get(0).getCandidateSql());
         assertNotNull(run.getItems().get(0).getRecommendationId());
-        assertEquals(normalizeExecutableSql(expectedRecommendedSql),
-            normalizeExecutableSql(run.getItems().get(0).getCandidateSql()));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("base_100_anchor"));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("report_customer_snapshot"));
-        assertTrue(run.getItems().get(0).getCandidateSql().contains("raw_customer_snapshot"));
-        assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(),
-            "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
-        assertTrue(containsLink(run.getItems().get(0).getIssueRuleLinks(),
-            "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertTrue(containsProblem(run.getItems().get(0).getSourceProblems(), "PRECOMPUTE_MV"));
 
         AccelerationRecommendation recommendation =
             recommendationRepository.findByRecommendationId(run.getItems().get(0).getRecommendationId());
         assertNotNull(recommendation);
-        assertEquals(normalizeExecutableSql(expectedRecommendedSql),
+        assertEquals(normalizeExecutableSql(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))),
             normalizeExecutableSql(recommendation.getRecommendedSqlText()));
-        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
-        assertTrue(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
-        assertTrue(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
+        assertTrue(recommendation.getRecommendedSqlText()
+            .contains(String.valueOf(recommendation.getAccelerationArtifact().get("mvName"))));
+        assertFalse(recommendation.getRecommendedSqlText().contains("FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("FROM BI_HQX00_V.BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
         assertEquals("NOT_VALIDATED", recommendation.getValidationStatus().name());
         assertFalse(recommendation.isAutoApplyAllowed());
         assertTrue(recommendation.isManualReviewRequired());
@@ -169,8 +160,8 @@ class RewriteTrialApplicationServiceTest {
             .contains("MV_COVERAGE_PROOF_ENGINE_V1"));
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
             .contains("EXPLAIN_UNAVAILABLE"));
-        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("dynamicSnapshotRewriteEvidence"))
-            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("commonSubgraphEvidence"))
+            .contains("CALCITE_AST_QBDAG_STRUCTURAL_REUSE"));
         String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
         if ("BLOCKED".equals(artifactStatus)) {
             assertTrue(recommendation.getAccelerationArtifact().get("rewriteSql") == null,
@@ -179,7 +170,7 @@ class RewriteTrialApplicationServiceTest {
             assertTrue("GENERATED".equals(artifactStatus) || "REVIEW_REQUIRED".equals(artifactStatus),
                 String.valueOf(recommendation.getAccelerationArtifact()));
             assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))
-                .contains("FROM " + recommendation.getAccelerationArtifact().get("mvName")));
+                .contains(String.valueOf(recommendation.getAccelerationArtifact().get("mvName"))));
             assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("ddlSql"))
                 .contains("CREATE MATERIALIZED VIEW"));
         }

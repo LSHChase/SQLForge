@@ -58,6 +58,9 @@ final class QueryWrapperPreserver {
             return WrapperShape.none();
         }
         String suffix = sql.substring(closeIndex + 1).trim();
+        if (topLevelKeywordPresent(suffix, "JOIN")) {
+            return WrapperShape.none();
+        }
         String alias = firstAlias(suffix);
         String outerProjection = sql.substring(selectIndex + 6, fromIndex).trim();
         String outerSelectPrefix = sql.substring(selectIndex, fromValueIndex);
@@ -356,17 +359,18 @@ final class QueryWrapperPreserver {
             if (!hasOrderOrLimit()) {
                 return true;
             }
-            String normalized = rewriteSql == null ? "" : rewriteSql.toUpperCase(Locale.ROOT);
+            String normalized = normalizeForComparison(rewriteSql);
             return (!outerOrderByPresent || normalized.contains("ORDER BY"))
-                && (!outerLimitPresent || normalized.contains("LIMIT"));
+                && (!outerLimitPresent || normalized.contains("LIMIT")
+                || normalized.matches("(?is).*\\bFETCH\\s+NEXT\\s+\\d+\\s+ROWS\\s+ONLY\\b.*"));
         }
 
         boolean projectionPreservedBy(String rewriteSql) {
             if (!outerQueryPreserved || !StringUtils.hasText(outerProjection)) {
                 return true;
             }
-            String normalizedRewrite = normalizeSpace(rewriteSql).toUpperCase(Locale.ROOT);
-            String normalizedProjection = normalizeSpace(outerProjection).toUpperCase(Locale.ROOT);
+            String normalizedRewrite = normalizeForComparison(rewriteSql);
+            String normalizedProjection = normalizeForComparison(outerProjection);
             if (normalizedProjection.startsWith("COUNT(")) {
                 return normalizedRewrite.startsWith("SELECT " + normalizedProjection)
                     || normalizedRewrite.startsWith("WITH ") && normalizedRewrite.contains("SELECT " + normalizedProjection);
@@ -400,6 +404,14 @@ final class QueryWrapperPreserver {
 
         private String normalizeSpace(String value) {
             return value == null ? "" : value.trim().replaceAll("\\s+", " ");
+        }
+
+        private String normalizeForComparison(String value) {
+            return normalizeSpace(value)
+                .replace("`", "")
+                .replace("\"", "")
+                .replaceAll("\\s*\\.\\s*", ".")
+                .toUpperCase(Locale.ROOT);
         }
     }
 }

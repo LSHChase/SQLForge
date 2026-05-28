@@ -269,6 +269,26 @@ class L2MaterializedViewLargeSqlQualityTest {
         assertTrue(sawManyLines, "样例集合必须包含超过 180 行的 SQL");
     }
 
+    @Test
+    void shouldUseCalciteProjectionLineageForYonghongAliasSnapshotFields() {
+        Map<String, Object> artifact = artifact(calciteAliasLineageSnapshotSql());
+
+        assertNotNull(artifact);
+        assertEquals("COMMON_SUBGRAPH_MV", artifact.get("mvType"), String.valueOf(artifact));
+        assertEquals("GENERATED", artifact.get("artifactStatus"), String.valueOf(artifact));
+        assertTrue(maps(artifact.get("blockingReasons")).isEmpty(), String.valueOf(artifact));
+        assertTrue(String.valueOf(artifact.get("commonSubgraphEvidence"))
+            .contains("CALCITE_AST_QBDAG_STRUCTURAL_REUSE"), String.valueOf(artifact));
+        assertTrue(String.valueOf(artifact.get("commonSubgraphEvidence")).contains("sourceName=s"),
+            String.valueOf(artifact.get("commonSubgraphEvidence")));
+        assertTrue(String.valueOf(artifact.get("ddlSql")).contains("asset_value AS"),
+            String.valueOf(artifact.get("ddlSql")));
+        assertTrue(String.valueOf(artifact.get("rewriteSql")).contains("FROM " + artifact.get("mvName")),
+            String.valueOf(artifact.get("rewriteSql")));
+        assertFalse(String.valueOf(artifact.get("rewriteSql")).contains("FROM ledger_daily_assets"),
+            String.valueOf(artifact.get("rewriteSql")));
+    }
+
     private void assertUsableBundle(MvCase item, Map<String, Object> artifact) {
         if (item.reviewCode == null) {
             assertEquals("GENERATED", artifact.get("artifactStatus"), item.name + " " + artifact);
@@ -395,6 +415,58 @@ class L2MaterializedViewLargeSqlQualityTest {
             + "FROM wide_orders\n"
             + "WHERE region = 'CN'\n"
             + "GROUP BY customer_id";
+    }
+
+    private static String calciteAliasLineageSnapshotSql() {
+        String first = snapshotCountSubquery("a", "20260430", "1000000");
+        String second = snapshotCountSubquery("b", "20260519", "1000000");
+        String third = snapshotCountSubquery("c", "20260430", "6000000");
+        String fourth = snapshotCountSubquery("d", "20260519", "6000000");
+        String fifth = snapshotCountSubquery("e", "20260519", "1000000");
+        return "SELECT a.\"机构编码__第二层时点机构号\", a.\"机构编码__第二层机构简称\", a.\"org\",\n"
+            + "  a.cnt AS \"基期100\",\n"
+            + "  b.cnt AS \"当期100\",\n"
+            + "  e.cnt - a.cnt AS \"新增100\",\n"
+            + "  d.cnt - c.cnt AS \"新增100-600\",\n"
+            + "  b.cnt - a.cnt AS \"Sum_增量100\"\n"
+            + "FROM " + first + "\n"
+            + "LEFT JOIN " + second + " ON a.\"机构编码__第二层时点机构号\" = b.\"机构编码__第二层时点机构号\"\n"
+            + "LEFT JOIN " + third + " ON a.\"机构编码__第二层时点机构号\" = c.\"机构编码__第二层时点机构号\"\n"
+            + "LEFT JOIN " + fourth + " ON a.\"机构编码__第二层时点机构号\" = d.\"机构编码__第二层时点机构号\"\n"
+            + "LEFT JOIN " + fifth + " ON a.\"机构编码__第二层时点机构号\" = e.\"机构编码__第二层时点机构号\"\n"
+            + "ORDER BY a.\"org\"";
+    }
+
+    private static String snapshotCountSubquery(String alias, String date, String threshold) {
+        return "(\n"
+            + "  SELECT s.\"机构编码__第二层时点机构号\", s.\"机构编码__第二层机构简称\", s.\"org\",\n"
+            + "    COUNT(DISTINCT s.\"客户编号\") AS cnt\n"
+            + "  FROM (\n"
+            + "    SELECT\n"
+            + "      dept_l0_cd AS \"机构编码__零层时点机构号\",\n"
+            + "      dept_l1_cd AS \"机构编码__第一层时点机构号\",\n"
+            + "      dept_l2_cd AS \"机构编码__第二层时点机构号\",\n"
+            + "      dept_l3_cd AS \"机构编码__第三层时点机构号\",\n"
+            + "      dept_l4_cd AS \"机构编码__第四层时点机构号\",\n"
+            + "      dept_l2_nm AS \"机构编码__第二层机构简称\",\n"
+            + "      dept_l3_nm AS \"机构编码__第三层机构简称\",\n"
+            + "      dept_l4_nm AS \"机构编码__第四层机构简称\",\n"
+            + "      dept_hier_rank AS \"机构层级\",\n"
+            + "      acct_no AS \"客户编号\",\n"
+            + "      book_day AS \"数据日期\",\n"
+            + "      asset_value AS \"月日均AUM\",\n"
+            + "      '深圳市分行' AS \"org\"\n"
+            + "    FROM ledger_daily_assets\n"
+            + "    WHERE dept_hier_rank = 4\n"
+            + "      AND (dept_l2_cd = '41H006' OR dept_l3_cd = '41H006' OR dept_l4_cd = '41H006')\n"
+            + "      AND (book_day = '20260430' OR book_day = '20260519')\n"
+            + "    GROUP BY dept_l0_cd, dept_l1_cd, dept_l2_cd, dept_l3_cd, dept_l4_cd,\n"
+            + "      dept_l2_nm, dept_l3_nm, dept_l4_nm, dept_hier_rank, acct_no, book_day, asset_value\n"
+            + "  ) s\n"
+            + "  WHERE s.\"数据日期\" = '" + date + "'\n"
+            + "    AND s.\"月日均AUM\" >= " + threshold + "\n"
+            + "  GROUP BY s.\"机构编码__第二层时点机构号\", s.\"机构编码__第二层机构简称\", s.\"org\"\n"
+            + ") " + alias;
     }
 
     private static void assertText(Object value, String name) {

@@ -58,9 +58,13 @@ final class L2MaterializedViewValidationSqlBuilder {
             ));
         }
 
-        List<ValidationColumn> groupKeys = groupKeyColumns(input.advancedStructureProfile, blockingReasons);
-        List<ValidationMeasure> measures = measureColumns(input.measures, blockingReasons);
         boolean commonSubgraph = L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(input.mvType);
+        List<ValidationColumn> groupKeys = commonSubgraph
+            ? Collections.<ValidationColumn>emptyList()
+            : groupKeyColumns(input.advancedStructureProfile, blockingReasons);
+        List<ValidationMeasure> measures = commonSubgraph
+            ? Collections.<ValidationMeasure>emptyList()
+            : measureColumns(input.measures, blockingReasons);
         if (AGGREGATION_MV_TYPES.contains(input.mvType) && measures.isEmpty() && groupKeys.isEmpty()) {
             blockingReasons.add(reason(
                 "VALIDATION_MEASURE_REQUIRED",
@@ -178,17 +182,18 @@ final class L2MaterializedViewValidationSqlBuilder {
             ));
         }
         List<String> columns = new ArrayList<String>();
+        Set<String> seen = new LinkedHashSet<String>();
         for (String outputColumn : input.commonSubgraphOutputColumns) {
             String column = cleanOutputIdentifier(outputColumn);
-            if (!StringUtils.hasText(column) || !isSafeIdentifier(column)) {
+            if (!StringUtils.hasText(column)) {
                 Map<String, Object> reason = reason(
                     "VALIDATION_COMMON_SUBGRAPH_OUTPUT_UNRESOLVED",
                     "公共子图输出字段无法安全引用，不能生成公共子图输出差异检查。"
                 );
                 reason.put("outputColumn", outputColumn);
                 blockingReasons.add(reason);
-            } else if (!columns.contains(column)) {
-                columns.add(column);
+            } else if (seen.add(column.toUpperCase(Locale.ROOT))) {
+                columns.add(sqlIdentifier(column));
             }
         }
         if (columns.isEmpty()) {
@@ -298,6 +303,14 @@ final class L2MaterializedViewValidationSqlBuilder {
 
     private static String mvSubgraphResultSql(String mvName, List<String> outputColumns) {
         return "SELECT " + join(outputColumns, ", ") + "\nFROM " + mvName;
+    }
+
+    private static String sqlIdentifier(String value) {
+        String cleaned = cleanOutputIdentifier(value);
+        if (isSafeIdentifier(cleaned)) {
+            return cleaned;
+        }
+        return "\"" + cleaned.replace("\"", "\"\"") + "\"";
     }
 
     private static String rowCountCheck(String checkName,

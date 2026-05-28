@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-CALCITE-MV-RECOMMENDATION-20260528: Calcite 原生 MV 推荐能力增强
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `Enhance Calcite MV recommendation for BI reports`
+- Priority: 1
+- Depends on: USER-CN-DYNAMIC-MV-TEST01-EXPECTED-20260527
+- Scope: 围绕用户要求的 Calcite 原生能力提升高级 MV 推荐：在 sql-optimization 中引入可审计的 Calcite SQL AST 派生 MV 模式证据，减少字符串/样例驱动路径，覆盖永洪 BI 复杂报表常见的多层派生表、CTE、Join 聚合、窗口/排序阻断与公共子图推荐；保持 PULL_ONLY、禁止 EXACT_QUERY_MV，不执行生产 DDL/refresh/runtime binding 自动激活，并补充聚焦回归验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-CALCITE-MV-RECOMMENDATION-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 移除旧动态快照 MV 模板路径，改为 Calcite AST/QBDAG 公共子图 MV 推荐；支持 CTE、派生表、UNION ALL、反引号/中文别名、外层 wrapper 组合和 MV 覆盖证明；trial 推荐在 MV artifact 未证明时不退回静态 SQL。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-CALCITE-MV-RECOMMENDATION-20260528；mvn -pl sql-optimization -am -Dtest=L2CommonSubgraphMvCandidateGeneratorTest,L2MaterializedViewLargeSqlQualityTest,L2MaterializedViewRewriteCoverageValidatorTest,RewriteTrialApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest,SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未执行真实 Hetu/MRS SQL 或生产 DDL/refresh/runtime binding；真实生产规模收益仍需外部环境验证与人工审批。
+  - Next step: 在外部 Hetu/MRS 环境提供 schema、统计和结果集校验证据后，再推进生产级 EXPLAIN/结果 diff 接入。
+
 ### USER-CN-REPORT-BATCH-SOURCE-LINE-SUMMARY-20260528: 报表导入 source_file_line 定位摘要与字段扩容
 
 - Status: done

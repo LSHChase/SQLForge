@@ -59,8 +59,6 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
         assertTrue(validationSql.contains("ROW_COUNT_CHECK"));
         assertTrue(validationSql.contains("COMMON_SUBGRAPH_OUTPUT_CHECK"));
         assertTrue(validationSql.contains("UPPER_REWRITE_RESULT_CHECK"));
-        assertTrue(validationSql.contains("GROUP_MEASURE_DIFF"));
-        assertTrue(validationSql.contains("GROUP_KEY_DIFF"));
     }
 
     @Test

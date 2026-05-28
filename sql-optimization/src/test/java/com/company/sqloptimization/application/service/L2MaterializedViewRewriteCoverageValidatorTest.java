@@ -132,6 +132,16 @@ class L2MaterializedViewRewriteCoverageValidatorTest {
             L2MaterializedViewRewriteCoverageValidator.REWRITE_SQL_MV_REFERENCE_REQUIRED);
         assertBlocked(replacementFailure.result,
             L2MaterializedViewRewriteCoverageValidator.REWRITE_SQL_ACCESSES_ORIGINAL_SOURCE);
+
+        ValidationResultData quotedSchemaOriginal = validate(
+            "SELECT customer_id FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM GROUP BY customer_id",
+            "SELECT customer_id FROM mv_sales UNION ALL "
+                + "SELECT customer_id FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM;",
+            Arrays.asList("customer_id"),
+            Collections.<String>emptyList()
+        );
+        assertBlocked(quotedSchemaOriginal.result,
+            L2MaterializedViewRewriteCoverageValidator.REWRITE_SQL_ACCESSES_ORIGINAL_SOURCE);
     }
 
     private Map<String, Object> artifact(String sql) {

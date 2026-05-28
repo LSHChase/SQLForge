@@ -111,12 +111,6 @@ const coreRecommendation = computed(() => {
 const algorithmConformance = computed(() =>
   parseJsonObject(artifactContent('REWRITE_ALGORITHM_CONFORMANCE', 'conformanceReport'))
 )
-const dynamicRewriteEvidence = computed(() =>
-  parseJsonObject(artifactContent('DYNAMIC_REWRITE_EVIDENCE', 'dynamicSnapshotRewriteEvidence'))
-)
-const dynamicValidationMethods = computed(() =>
-  parseJsonArray(artifactContent('DYNAMIC_REWRITE_VALIDATION_METHODS', 'dynamicSnapshotValidationMethods'))
-)
 const firstRecommendation = computed(() => relatedRecommendations.value[0] || null)
 const activeRewriteRecordId = computed(
   () => form.validationRewriteRecordId || createdRewriteRecord.value?.rewriteRecordId || ''
@@ -188,28 +182,6 @@ const coreRecommendationCards = computed(() =>
 )
 
 const rewriteShapeChecks = computed(() => {
-  const evidence = dynamicRewriteEvidence.value
-  if (hasValue(evidence.generator)) {
-    const coverage = evidence.fieldCoverageProof || {}
-    return [
-      shapeCheck('dynamicGenerator', evidence.generator === 'DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE', evidence.generator),
-      shapeCheck(
-        'inputFieldLineage',
-        ['factTable', 'dateColumn', 'customerColumn', 'measureColumn'].every(key => hasValue(evidence[key])),
-        [evidence.factTable, evidence.dateColumn, evidence.customerColumn, evidence.measureColumn].filter(hasValue).join(' / ')
-      ),
-      shapeCheck('projectionCoverage', coverage.coversProjection === true, displayValue(coverage.factTable)),
-      shapeCheck('filterCoverage', coverage.coversFilters === true, displayValue(evidence.orgFilterValue)),
-      shapeCheck('groupingCoverage', coverage.coversGrouping === true, displayValue(evidence.replacementBoundary)),
-      shapeCheck('measureCoverage', coverage.coversMeasures === true, displayValue(evidence.measureColumn)),
-      shapeCheck(
-        'validationMethods',
-        dynamicValidationMethods.value.length > 0,
-        dynamicValidationMethods.value.map(item => item.code).filter(hasValue).join(', ')
-      ),
-      shapeCheck('staticTemplateBypassed', evidence.staticTest01TemplateUsed === false, displayValue(evidence.shapeDetectionSource))
-    ]
-  }
   const sql = String(recommendedSql.value || '').trim()
   const upperSql = sql.toUpperCase()
   return [
@@ -289,18 +261,6 @@ function parseJsonObject(value) {
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
   } catch {
     return {}
-  }
-}
-
-function parseJsonArray(value) {
-  if (!hasValue(value)) {
-    return []
-  }
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
   }
 }
 

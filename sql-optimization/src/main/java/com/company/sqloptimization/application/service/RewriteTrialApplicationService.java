@@ -210,7 +210,6 @@ public class RewriteTrialApplicationService {
 
     private static Set<String> candidateRewriteProblems() {
         LinkedHashSet<String> values = new LinkedHashSet<String>(SAFE_REWRITE_PROBLEMS);
-        values.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
         return Collections.unmodifiableSet(values);
     }
 
@@ -826,6 +825,15 @@ public class RewriteTrialApplicationService {
             profile
         );
         String targetEngine = targetEngineFromArtifact(accelerationArtifact);
+        String artifactRecommendedSql = recommendedSqlFromArtifact(accelerationArtifact);
+        Set<String> sourceIssueScenes = sourceIssueScenes(sourceProblems);
+        boolean precomputeMvRecommendation = sourceIssueScenes.contains(L2AccelerationArtifactBuilder.RULE_PRECOMPUTE_MV)
+            && sourceIssueScenes.size() == 1;
+        String recommendedSqlText = firstText(
+            artifactRecommendedSql,
+            precomputeMvRecommendation ? null : candidateSql,
+            precomputeMvRecommendation ? null : sqlText
+        );
         Instant now = Instant.now();
         AccelerationRecommendation recommendation = AccelerationRecommendation.builder()
             .recommendationId(recommendationId)
@@ -837,7 +845,7 @@ public class RewriteTrialApplicationService {
             .batchId(run.getBatchId())
             .sqlFingerprint(sqlFingerprint)
             .sourceSqlText(sqlText)
-            .recommendedSqlText(firstText(candidateSql, sqlText))
+            .recommendedSqlText(recommendedSqlText)
             .targetEngine(firstText(targetEngine, DataSourceTypeEnum.AUTO.name()))
             .targetDatasource(trimToNull(datasourceCode))
             .summary("解析问题已生成改写试算候选：" + String.join(", ", sourceIssueScenes(sourceProblems)))
@@ -872,6 +880,23 @@ public class RewriteTrialApplicationService {
             .build();
         recommendationRepository.save(recommendation);
         return recommendationId;
+    }
+
+    private String recommendedSqlFromArtifact(Map<String, Object> accelerationArtifact) {
+        if (accelerationArtifact == null || accelerationArtifact.isEmpty()) {
+            return null;
+        }
+        String status = objectText(accelerationArtifact.get("artifactStatus"));
+        if (!("GENERATED".equals(status) || "REVIEW_REQUIRED".equals(status)) || hasBlockingReasons(accelerationArtifact)) {
+            return null;
+        }
+        Object rewriteSql = accelerationArtifact.get("rewriteSql");
+        return rewriteSql == null ? null : trimToNull(String.valueOf(rewriteSql));
+    }
+
+    private boolean hasBlockingReasons(Map<String, Object> accelerationArtifact) {
+        Object value = accelerationArtifact == null ? null : accelerationArtifact.get("blockingReasons");
+        return value instanceof List<?> && !((List<?>) value).isEmpty();
     }
 
     private String targetEngineFromArtifact(Map<String, Object> accelerationArtifact) {
@@ -1298,9 +1323,6 @@ public class RewriteTrialApplicationService {
     }
 
     private String summaryFor(String scene) {
-        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
-            return "重复扫描快照聚合报表可动态改写为机构-客户-日期快照 CTE 和 MV 查询";
-        }
         if (SAFE_REWRITE_PROBLEMS.contains(scene)) {
             return safeRuleSummary(scene);
         }
@@ -1308,9 +1330,6 @@ public class RewriteTrialApplicationService {
     }
 
     private String candidateRuleLevel(String scene) {
-        if (L2DynamicSnapshotAggregateMvCandidateGenerator.RULE.equals(scene)) {
-            return "L2";
-        }
         return "L0";
     }
 

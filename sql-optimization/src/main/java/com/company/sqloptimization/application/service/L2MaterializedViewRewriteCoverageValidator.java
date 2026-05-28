@@ -33,8 +33,9 @@ final class L2MaterializedViewRewriteCoverageValidator {
             "INSERT", "UPDATE", "DELETE", "MERGE", "UPSERT", "CREATE", "ALTER", "DROP", "TRUNCATE",
             "GRANT", "REVOKE", "CALL", "EXPORT", "IMPORT", "LOAD"
         ));
-    private static final Pattern RELATION_PATTERN =
-        Pattern.compile("(?i)\\b(FROM|JOIN)\\s+([`\\\"]?[A-Z_][A-Z0-9_$]*(?:\\.[`\\\"]?[A-Z_][A-Z0-9_$]*)*)");
+    private static final Pattern RELATION_PATTERN = Pattern.compile(
+        "(?i)\\b(FROM|JOIN)\\s+((?:[`\\\"][^`\\\"]+[`\\\"]|[A-Z_][A-Z0-9_$]*)(?:\\s*\\.\\s*(?:[`\\\"][^`\\\"]+[`\\\"]|[A-Z_][A-Z0-9_$]*))*)"
+    );
     private static final Pattern ALIAS_PATTERN =
         Pattern.compile("(?is)\\s+AS\\s+([A-Z_][A-Z0-9_$]*)\\s*$");
 
@@ -57,7 +58,8 @@ final class L2MaterializedViewRewriteCoverageValidator {
         List<String> accessedOriginalSources = accessedOriginalSources(normalizedRewrite, safeInput.mvName, originalSources);
         boolean avoidsOriginalSources = accessedOriginalSources.isEmpty();
 
-        boolean coversProjection = L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(safeInput.mvType)
+        boolean commonSubgraphMv = L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(safeInput.mvType);
+        boolean coversProjection = commonSubgraphMv
             ? coversCommonSubgraphProjection(safeInput.additionalCoverageReferences, mvFields, normalizedRewrite)
             : coversProjection(
                 mapList(safeInput.advancedStructureProfile.get("projections")),
@@ -72,15 +74,19 @@ final class L2MaterializedViewRewriteCoverageValidator {
                 : safeInput.predicateClassification.getExternalizedPredicates(),
             coverageFields
         ) && (safeInput.predicateClassification == null || !safeInput.predicateClassification.hasBlockedPredicates());
-        boolean coversGrouping = coversGrouping(
-            mapList(safeInput.advancedStructureProfile.get("groupBy")),
-            coverageFields
-        );
-        boolean coversMeasures = coversMeasures(
-            mapList(safeInput.advancedStructureProfile.get("aggregations")),
-            safeInput.measures,
-            coverageFields
-        );
+        boolean coversGrouping = commonSubgraphMv
+            ? coversProjection
+            : coversGrouping(
+                mapList(safeInput.advancedStructureProfile.get("groupBy")),
+                coverageFields
+            );
+        boolean coversMeasures = commonSubgraphMv
+            ? coversProjection
+            : coversMeasures(
+                mapList(safeInput.advancedStructureProfile.get("aggregations")),
+                safeInput.measures,
+                coverageFields
+            );
         if (rootCountProjectionPreservedByMvRewrite(safeInput.advancedStructureProfile, normalizedRewrite)) {
             coversProjection = true;
             coversMeasures = true;
@@ -740,20 +746,19 @@ final class L2MaterializedViewRewriteCoverageValidator {
         }
         StringBuilder builder = new StringBuilder(sql.length());
         boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
         for (int i = 0; i < sql.length(); i++) {
             char current = sql.charAt(i);
-            if (current == '\'' && !inDoubleQuote) {
+            if (current == '\'') {
+                if (inSingleQuote && i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
+                    builder.append(' ');
+                    i++;
+                    continue;
+                }
                 inSingleQuote = !inSingleQuote;
                 builder.append(' ');
                 continue;
             }
-            if (current == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-                builder.append(' ');
-                continue;
-            }
-            builder.append(inSingleQuote || inDoubleQuote ? ' ' : current);
+            builder.append(inSingleQuote ? ' ' : current);
         }
         return builder.toString();
     }
@@ -793,7 +798,7 @@ final class L2MaterializedViewRewriteCoverageValidator {
 
     private static String cleanReference(String value) {
         return StringUtils.hasText(value)
-            ? value.replace("`", "").replace("\"", "").trim()
+            ? value.replace("`", "").replace("\"", "").replaceAll("\\s*\\.\\s*", ".").trim()
             : "";
     }
 

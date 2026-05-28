@@ -283,10 +283,9 @@ class ProductionRewriteClosedLoopEndToEndTest {
     }
 
     @Test
-    void shouldGenerateDocsTest01DynamicSnapshotRewriteVariantsWithTiming() throws Exception {
+    void shouldGenerateDocsTest01CommonSubgraphRewriteVariantsWithTiming() throws Exception {
         setRequestContext("user-001", "request-test01-runtime", "trace-test01-runtime");
         String originalSql = readRepositorySqlFixture("docs/test01.sql");
-        String expectedRecommendedSql = readRepositorySqlFixture("docs/test01_mv.sql");
         InMemoryAccelerationRecommendationRepository recommendationRepository =
             new InMemoryAccelerationRecommendationRepository();
         RewriteTrialApplicationService trialService = new RewriteTrialApplicationService(
@@ -305,16 +304,16 @@ class ProductionRewriteClosedLoopEndToEndTest {
         AccelerationRecommendation recommendation = recommendationRepository.findByRecommendationId(recommendationId);
         assertEquals("RECOMMENDED", trialRun.getTrialStatus());
         assertNotNull(recommendation);
-        assertEquals(normalizeExecutableSql(expectedRecommendedSql),
+        assertNotNull(recommendation.getAccelerationArtifact());
+        assertEquals(normalizeExecutableSql(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))),
             normalizeExecutableSql(recommendation.getRecommendedSqlText()));
-        assertTrue(recommendation.getRecommendedSqlText().contains("raw_customer_snapshot"));
-        assertTrue(recommendation.getRecommendedSqlText().contains("report_customer_snapshot"));
-        assertTrue(recommendation.getRecommendedSqlText().contains("base_100_anchor"));
-        assertTrue(String.valueOf(recommendation.getRuleChain()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
-        assertTrue(String.valueOf(recommendation.getIssueRuleLinks()).contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertTrue(recommendation.getRecommendedSqlText()
+            .contains(String.valueOf(recommendation.getAccelerationArtifact().get("mvName"))));
+        assertFalse(recommendation.getRecommendedSqlText().contains("FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
+        assertFalse(recommendation.getRecommendedSqlText().contains("FROM BI_HQX00_V.BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"));
+        assertTrue(String.valueOf(recommendation.getRuleChain()).contains("PRECOMPUTE_MV"));
         assertFalse(recommendation.isAutoApplyAllowed());
         assertTrue(recommendation.isManualReviewRequired());
-        assertNotNull(recommendation.getAccelerationArtifact());
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
             recommendation.getAccelerationArtifact().get("generationSource"));
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("coverageProof"))
@@ -322,8 +321,8 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
             .contains("EXPLAIN_UNAVAILABLE"));
         assertFalse("EXACT_QUERY_MV".equals(recommendation.getAccelerationArtifact().get("mvType")));
-        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("dynamicSnapshotRewriteEvidence"))
-            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("commonSubgraphEvidence"))
+            .contains("CALCITE_AST_QBDAG_STRUCTURAL_REUSE"));
 
         String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
         if ("BLOCKED".equals(artifactStatus)) {
@@ -331,11 +330,13 @@ class ProductionRewriteClosedLoopEndToEndTest {
                 String.valueOf(recommendation.getAccelerationArtifact()));
         } else {
             String rewriteSql = String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"));
-            assertTrue(rewriteSql.contains("FROM " + recommendation.getAccelerationArtifact().get("mvName")), rewriteSql);
-            assertFalse(rewriteSql.contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
+            assertTrue(rewriteSql.contains(String.valueOf(recommendation.getAccelerationArtifact().get("mvName"))),
+                rewriteSql);
+            assertFalse(rewriteSql.contains("FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
+            assertFalse(rewriteSql.contains("FROM BI_HQX00_V.BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
         }
         assertTrue(generationMicros < 2000000L, "docs/test01.sql 推荐生成耗时微秒=" + generationMicros);
-        System.out.println("TEST01_DYNAMIC_SNAPSHOT_REWRITE_METRICS generation_us=" + generationMicros);
+        System.out.println("TEST01_COMMON_SUBGRAPH_REWRITE_METRICS generation_us=" + generationMicros);
     }
 
     private RewriteTrialRequest test01TrialRequest(String sqlText) {
