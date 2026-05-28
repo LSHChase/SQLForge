@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RUNTIME-REWRITE-CONSISTENCY-20260528: Fix runtime rewrite activation consistency
+
+- Status: done
+- Completed at: 2026-05-28
+- Commit subject: `fix(sql-optimization): prevent forged runtime rewrite activation`
+- Priority: 1
+- Depends on: N/A
+- Scope: Prevent rewrite record creation from bypassing query-execution runtime binding activation and add diagnostics evidence for tenant/datasource/route consistency.
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RUNTIME-REWRITE-CONSISTENCY-20260528`
+- Progress log:
+  - 2026-05-28: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Prevent rewrite-record creation from persisting ACTIVE or runtime binding fields without query-execution activation; keep activation path as the only writer of runtimeBindingId/runtimeRuleVersion.
+  - Validation evidence: Route calibration probe with protected headers showed hetuEnabled=false on running 8081; rewrite-record probe found ACTIVE record with null runtimeBindingId and query-execution resolve-active returned MISSING; mvn -pl sql-optimization -am -Dtest=ProductionRewriteClosedLoopEndToEndTest -Dsurefire.failIfNoSpecifiedTests=false test; mvn -pl query-execution -am -Dtest=QueryExecutionRuntimeRewriteBindingServiceTest,QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test; git diff --check; foreman validate with task audit.
+  - Residual risk: Existing persisted records with activationStatus=ACTIVE and null runtimeBindingId remain dirty data and need manual re-create/re-activate or data correction after deploying this guard; running services must be restarted with QUERY_EXECUTION_HETU_ENABLED=true to clear the route calibration finding.
+  - Next step: Restart query-execution/sql-optimization with the updated build and correct Hetu overlay, then re-run route calibration and activate the affected rewrite record through /activate.
+
 ### USER-CN-RUNTIME-REWRITE-ROUTE-FIX-20260528: 修复运行时改写路由数据源证据与对象归一化命中
 
 - Status: done

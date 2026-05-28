@@ -249,6 +249,7 @@ public class SqlRewriteRecordApplicationService {
         if (request == null) {
             throw invalidArgument("request", "rewrite record request 为必填项");
         }
+        requireCreateRuntimeActivationBaseline(request);
         Instant now = Instant.now();
         Map<String, Object> traceRefs = buildCreateTraceRefs(request, tenantId);
         String sqlFingerprint = canonicalSqlFingerprint(request.getOriginalSqlText(), request.getSqlFingerprint());
@@ -273,13 +274,13 @@ public class SqlRewriteRecordApplicationService {
             .reviewNote(null)
             .reviewedBy(null)
             .reviewedAt(null)
-            .activationStatus(request.getActivationStatus())
-            .runtimeBindingId(trimToNull(request.getRuntimeBindingId()))
-            .runtimeBindingAt(request.getRuntimeBindingAt())
-            .runtimeBindingBy(trimToNull(request.getRuntimeBindingBy()))
-            .runtimeBindingScope(trimToNull(request.getRuntimeBindingScope()))
-            .activatedSqlFingerprint(trimToNull(request.getActivatedSqlFingerprint()))
-            .runtimeRuleVersion(trimToNull(request.getRuntimeRuleVersion()))
+            .activationStatus(RewriteActivationStatus.INACTIVE)
+            .runtimeBindingId(null)
+            .runtimeBindingAt(null)
+            .runtimeBindingBy(null)
+            .runtimeBindingScope(null)
+            .activatedSqlFingerprint(null)
+            .runtimeRuleVersion(null)
             .validationPolicyId(trimToNull(request.getValidationPolicyId()))
             .alertStatus(request.getAlertStatus())
             .originalSqlText(trimToNull(request.getOriginalSqlText()))
@@ -296,6 +297,27 @@ public class SqlRewriteRecordApplicationService {
         requireMvRuntimeRewriteSqlAligned(rewriteRecord);
         assertRewriteAuthorization(rewriteRecord, CREATE_OPERATION);
         return toRewriteRecordVo(sqlRewriteRecordRepository.saveRecord(rewriteRecord));
+    }
+
+    private void requireCreateRuntimeActivationBaseline(SqlRewriteRecordCreateRequest request) {
+        RewriteActivationStatus activationStatus = request.getActivationStatus();
+        if (activationStatus != null && activationStatus != RewriteActivationStatus.INACTIVE) {
+            throw invalidArgument(
+                "activationStatus",
+                "创建改写记录只能为 INACTIVE，运行时激活必须调用 activate 动作"
+            );
+        }
+        if (StringUtils.hasText(request.getRuntimeBindingId())
+            || request.getRuntimeBindingAt() != null
+            || StringUtils.hasText(request.getRuntimeBindingBy())
+            || StringUtils.hasText(request.getRuntimeBindingScope())
+            || StringUtils.hasText(request.getActivatedSqlFingerprint())
+            || StringUtils.hasText(request.getRuntimeRuleVersion())) {
+            throw invalidArgument(
+                "runtimeBinding",
+                "创建改写记录不得携带运行时绑定字段，必须由 activate 动作写入"
+            );
+        }
     }
 
     public List<SqlRewriteRecordVO> listRewriteRecords(String historyId,

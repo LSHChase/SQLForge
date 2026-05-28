@@ -3,6 +3,7 @@ package com.company.sqloptimization.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.queryexecution.application.controller.dto.QueryContextDTO;
@@ -23,6 +24,7 @@ import com.company.queryexecution.infrastructure.governance.QueryExecutionAuditR
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.context.RequestMetadataContext;
+import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteRequest;
 import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWriteResponse;
 import com.company.sqlforge.common.governance.GovernanceJdbcDatasourceResolveRequest;
@@ -99,6 +101,32 @@ class ProductionRewriteClosedLoopEndToEndTest {
     void tearDown() {
         RequestContext.clear();
         RequestMetadataContext.clear();
+    }
+
+    @Test
+    void shouldRejectRewriteRecordCreateWithForgedRuntimeActivationState() {
+        setRequestContext("user-001", "request-forged-runtime-create", "trace-forged-runtime-create");
+        SqlRewriteRecordApplicationService rewriteRecordService =
+            new SqlRewriteRecordApplicationService(new InMemorySqlRewriteRecordRepository());
+        AccelerationRecommendationVO recommendation = new AccelerationRecommendationVO();
+        recommendation.setRecommendationId("rec-forged-runtime");
+
+        SqlRewriteRecordCreateRequest activeRequest = rewriteRecordRequest(recommendation);
+        activeRequest.setActivationStatus(RewriteActivationStatus.ACTIVE);
+        BizException activeError = assertThrows(
+            BizException.class,
+            () -> rewriteRecordService.createRewriteRecord(activeRequest)
+        );
+        assertTrue(activeError.getMessage().contains("activationStatus"));
+
+        SqlRewriteRecordCreateRequest bindingRequest = rewriteRecordRequest(recommendation);
+        bindingRequest.setRuntimeBindingId("rwb-forged");
+        bindingRequest.setRuntimeRuleVersion("runtime-rewrite-v1");
+        BizException bindingError = assertThrows(
+            BizException.class,
+            () -> rewriteRecordService.createRewriteRecord(bindingRequest)
+        );
+        assertTrue(bindingError.getMessage().contains("runtimeBinding"));
     }
 
     @Test
