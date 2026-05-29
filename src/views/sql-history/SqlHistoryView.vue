@@ -487,6 +487,7 @@ const sqlCodeBlockProps = item => ({
   value: item.value,
   label: item.label,
   copyLabel: t('sqlHistory.actions.copy'),
+  rawLabel: t('common.actions.raw'),
   autoFormat: item.autoFormat !== false
 })
 
@@ -1590,6 +1591,7 @@ watch(
                     <SqlCodeBlock
                       :value="record.originalSqlText"
                       :copy-label="t('sqlHistory.actions.copy')"
+                      :raw-label="t('common.actions.raw')"
                       :auto-format="false"
                       data-testid="sql-history-rewrite-record-original-sql"
                     />

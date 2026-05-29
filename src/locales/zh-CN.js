@@ -31,6 +31,7 @@ export default {
     actions: {
       copy: '复制',
       format: '格式化',
+      raw: '原文',
       cancel: '取消',
       reset: '重置',
       viewRawJson: '查看原始 JSON',

@@ -6301,3 +6301,52 @@
 2026-05-29T08:06:49+08:00 | USER-CN-ADVANCED-MV-COMPLEX-BI-20260528 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-29T08:06:49+08:00 | USER-CN-ADVANCED-MV-COMPLEX-BI-20260528 closeout commit | `R-168` | projected | `git commit -m 'USER-CN-ADVANCED-MV-COMPLEX-BI-20260528 enhance complex BI MV recommendation' (projected-precommit)`
 2026-05-29T08:06:49+08:00 | USER-CN-ADVANCED-MV-COMPLEX-BI-20260528 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-29T08:38:33+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-29T08:38:33+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-131`, `R-133` | failed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:38:35+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-29T08:38:39+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-29T08:38:39+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-29T08:38:40+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-29T08:38:40+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-29T08:38:40+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-187`, `R-188`, `R-189`, `R-190` | failed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-29T08:38:40+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:38:40+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-29T08:38:42+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-29T08:38:46+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-29T08:45:35+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-29T08:45:35+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:45:36+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-29T08:45:41+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-29T08:45:41+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-29T08:45:41+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-29T08:45:41+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-29T08:45:41+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-29T08:45:45+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-133`, `R-168` | passed | `npm run build:portable`
+2026-05-29T08:45:49+08:00 | USER-CN-DIST-PORTABLE-UPDATE-20260529 validate | `R-133`, `R-168` | passed | `npm run smoke:portable-frontend`
+2026-05-28T20:37:25-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-split | `R-119`, `R-133` | passed | `mvn -pl sql-optimization -am -Dtest=L2CommonSubgraphMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-28T20:37:25-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-split | `R-119`, `R-133` | passed | `mvn -pl sql-optimization -am -Dtest=L2StarAggMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-28T20:37:25-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-split | `R-119`, `R-133` | passed | `mvn -pl sql-optimization -am -Dtest=L2ParameterizedAggMvCandidateGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-28T20:37:25-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against L2 CommonSubgraph, StarAgg, and ParameterizedAgg split file groups
+2026-05-29T10:24:13+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-29T10:24:13+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T10:24:15+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-29T10:24:19+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-29T10:24:19+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-29T10:24:19+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-29T10:24:19+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-29T10:24:19+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-29T10:25:00+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-29T10:25:00+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T10:25:01+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-29T10:25:05+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-29T10:25:05+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-29T10:25:06+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-29T10:25:06+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-29T10:25:06+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-29T10:25:06+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T10:25:06+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `npm run test:sql-ui-contract`
+2026-05-29T10:25:08+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-29T10:25:12+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 validate | `R-133`, `R-168` | passed | `npm run build`
+2026-05-29T10:27:50+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T10:27:50+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): unify SQL format controls' (projected-precommit)`
+2026-05-29T10:27:50+08:00 | USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

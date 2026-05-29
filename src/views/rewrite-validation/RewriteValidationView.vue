@@ -852,6 +852,7 @@ onMounted(loadGovernanceDatasources)
               :recommended-label="t('rewriteValidation.fields.recommendedSql')"
               :copy-label="t('rewriteValidation.actions.copy')"
               :format-label="t('rewriteValidation.actions.format')"
+              :raw-label="t('common.actions.raw')"
             />
           </section>
 

@@ -35,6 +35,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  formatEnabled: {
+    type: Boolean,
+    default: true
+  },
   compact: {
     type: Boolean,
     default: false
@@ -56,11 +60,12 @@ watch(
 
 const rawSql = computed(() => String(props.value ?? ''))
 const hasRawSql = computed(() => rawSql.value.trim().length > 0)
-const canToggleRawFormat = computed(() => !props.autoFormat && hasRawSql.value)
+const shouldAutoFormat = computed(() => props.formatEnabled && props.autoFormat)
+const canToggleRawFormat = computed(() => props.formatEnabled && !props.autoFormat && hasRawSql.value)
 
 const displaySql = computed(() => {
   const fallback = hasRawSql.value ? rawSql.value : props.emptyText
-  if (props.autoFormat || (canToggleRawFormat.value && showFormattedRaw.value)) {
+  if (shouldAutoFormat.value || (canToggleRawFormat.value && showFormattedRaw.value)) {
     return formatSqlText(fallback) || fallback
   }
   return fallback
@@ -84,7 +89,7 @@ const toggleRawFormat = () => {
     <div class="sql-code-panel__header">
       <span class="sql-code-panel__label">{{ label }}</span>
       <div class="sql-code-panel__actions">
-        <el-button text size="small" @click.stop="copySql">{{ copyLabel }}</el-button>
+        <el-button text size="small" :disabled="!hasRawSql" @click.stop="copySql">{{ copyLabel }}</el-button>
         <el-button
           v-if="canToggleRawFormat"
           text

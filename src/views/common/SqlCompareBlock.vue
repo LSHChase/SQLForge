@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { buildFormattedSqlDisplayText, buildSqlCompareRows } from './sqlCompare.mjs'
+import { buildFormattedSqlDisplayText, buildRawSqlDisplayText, buildSqlCompareRows } from './sqlCompare.mjs'
 import { copyTextToClipboard, highlightSql } from './sqlFormatting.mjs'
 
 const props = defineProps({
@@ -31,25 +31,43 @@ const props = defineProps({
   formatLabel: {
     type: String,
     default: 'Format'
+  },
+  rawLabel: {
+    type: String,
+    default: 'Raw'
   }
 })
 
-const originalDisplaySql = ref('')
-const recommendedDisplaySql = ref('')
+const originalFormatActive = ref(true)
+const recommendedFormatActive = ref(true)
 const originalPaneViewportRef = ref(null)
 const recommendedPaneViewportRef = ref(null)
 let syncPaneScrollGuard = false
 
 watch(
   () => [props.originalSql, props.recommendedSql],
-  ([originalSql, recommendedSql]) => {
-    originalDisplaySql.value = buildFormattedSqlDisplayText(originalSql)
-    recommendedDisplaySql.value = buildFormattedSqlDisplayText(recommendedSql)
+  () => {
+    originalFormatActive.value = true
+    recommendedFormatActive.value = true
   },
   { immediate: true }
 )
 
-const compareRows = computed(() => buildSqlCompareRows(originalDisplaySql.value, recommendedDisplaySql.value))
+const originalRawSql = computed(() => buildRawSqlDisplayText(props.originalSql))
+const recommendedRawSql = computed(() => buildRawSqlDisplayText(props.recommendedSql))
+const originalFormattedSql = computed(() => buildFormattedSqlDisplayText(props.originalSql))
+const recommendedFormattedSql = computed(() => buildFormattedSqlDisplayText(props.recommendedSql))
+const originalDisplaySql = computed(() => (originalFormatActive.value ? originalFormattedSql.value : originalRawSql.value))
+const recommendedDisplaySql = computed(() => (recommendedFormatActive.value ? recommendedFormattedSql.value : recommendedRawSql.value))
+const originalHasSql = computed(() => originalRawSql.value.length > 0)
+const recommendedHasSql = computed(() => recommendedRawSql.value.length > 0)
+
+const compareRows = computed(() =>
+  buildSqlCompareRows(originalDisplaySql.value, recommendedDisplaySql.value, {
+    originalAutoFormat: false,
+    recommendedAutoFormat: false
+  })
+)
 
 const paneRows = side =>
   compareRows.value.map(row => ({
@@ -65,12 +83,16 @@ const emptyLineHtml = computed(() => highlightSql(props.emptyText))
 
 const currentPaneDisplayText = pane => (pane === 'original' ? originalDisplaySql.value : recommendedDisplaySql.value)
 
-const setPaneDisplayText = (pane, value) => {
+const isPaneFormatted = pane => (pane === 'original' ? originalFormatActive.value : recommendedFormatActive.value)
+const hasPaneSql = pane => (pane === 'original' ? originalHasSql.value : recommendedHasSql.value)
+const paneFormatLabel = pane => (isPaneFormatted(pane) ? props.rawLabel : props.formatLabel)
+
+const setPaneFormatActive = (pane, value) => {
   if (pane === 'original') {
-    originalDisplaySql.value = value
+    originalFormatActive.value = value
     return
   }
-  recommendedDisplaySql.value = value
+  recommendedFormatActive.value = value
 }
 
 const currentPaneCopyText = pane => currentPaneDisplayText(pane) || props.emptyText
@@ -78,7 +100,10 @@ const currentPaneCopyText = pane => currentPaneDisplayText(pane) || props.emptyT
 const copyPaneSql = pane => copyTextToClipboard(currentPaneCopyText(pane))
 
 const formatPaneSql = pane => {
-  setPaneDisplayText(pane, buildFormattedSqlDisplayText(currentPaneDisplayText(pane)))
+  if (!hasPaneSql(pane)) {
+    return
+  }
+  setPaneFormatActive(pane, !isPaneFormatted(pane))
 }
 
 const peerViewportForPane = pane => (pane === 'original' ? recommendedPaneViewportRef.value : originalPaneViewportRef.value)
@@ -109,11 +134,11 @@ const syncPaneScroll = (pane, event) => {
         <div class="sql-compare-pane__toolbar">
           <span class="sql-compare-pane__label">{{ originalLabel }}</span>
           <div class="sql-compare-pane__actions">
-            <el-button text size="small" data-testid="sql-compare-copy-original" @click.stop="copyPaneSql('original')">
+            <el-button text size="small" :disabled="!originalHasSql" data-testid="sql-compare-copy-original" @click.stop="copyPaneSql('original')">
               {{ copyLabel }}
             </el-button>
-            <el-button text size="small" data-testid="sql-compare-format-original" @click.stop="formatPaneSql('original')">
-              {{ formatLabel }}
+            <el-button text size="small" :disabled="!originalHasSql" data-testid="sql-compare-format-original" @click.stop="formatPaneSql('original')">
+              {{ paneFormatLabel('original') }}
             </el-button>
           </div>
         </div>
@@ -151,11 +176,11 @@ const syncPaneScroll = (pane, event) => {
         <div class="sql-compare-pane__toolbar">
           <span class="sql-compare-pane__label">{{ recommendedLabel }}</span>
           <div class="sql-compare-pane__actions">
-            <el-button text size="small" data-testid="sql-compare-copy-recommended" @click.stop="copyPaneSql('recommended')">
+            <el-button text size="small" :disabled="!recommendedHasSql" data-testid="sql-compare-copy-recommended" @click.stop="copyPaneSql('recommended')">
               {{ copyLabel }}
             </el-button>
-            <el-button text size="small" data-testid="sql-compare-format-recommended" @click.stop="formatPaneSql('recommended')">
-              {{ formatLabel }}
+            <el-button text size="small" :disabled="!recommendedHasSql" data-testid="sql-compare-format-recommended" @click.stop="formatPaneSql('recommended')">
+              {{ paneFormatLabel('recommended') }}
             </el-button>
           </div>
         </div>

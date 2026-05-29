@@ -32,6 +32,7 @@ export default {
     actions: {
       copy: 'Copy',
       format: 'Format',
+      raw: 'Raw',
       cancel: 'Cancel',
       reset: 'Reset',
       viewRawJson: 'View raw JSON',

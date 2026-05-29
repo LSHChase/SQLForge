@@ -7,15 +7,17 @@ const TOKEN_MARK_CLASSES = {
 
 const normalizeSqlText = value => String(value ?? '').replace(/\r\n?/g, '\n')
 
+export const buildRawSqlDisplayText = value => normalizeSqlText(value).trim()
+
 export const buildFormattedSqlDisplayText = value => {
-  const raw = normalizeSqlText(value)
+  const raw = buildRawSqlDisplayText(value)
   const formatted = formatSqlText(raw) || raw.trim()
   return formatted
 }
 
-const splitFormattedSqlLines = value => {
-  const formatted = buildFormattedSqlDisplayText(value)
-  return formatted ? formatted.split('\n') : []
+const splitSqlLines = (value, autoFormat) => {
+  const displayText = autoFormat ? buildFormattedSqlDisplayText(value) : buildRawSqlDisplayText(value)
+  return displayText ? displayText.split('\n') : []
 }
 
 export const extractLeadingSqlComments = value => {
@@ -79,9 +81,9 @@ export const buildRecommendedSqlDisplay = (sourceSql, recommendedSql) => {
   return `${sourceComments}\n${recommended}`
 }
 
-export const buildSqlCompareRows = (originalSql, recommendedSql) => {
-  const originalLines = splitFormattedSqlLines(originalSql)
-  const recommendedLines = splitFormattedSqlLines(recommendedSql)
+export const buildSqlCompareRows = (originalSql, recommendedSql, options = {}) => {
+  const originalLines = splitSqlLines(originalSql, options.originalAutoFormat !== false)
+  const recommendedLines = splitSqlLines(recommendedSql, options.recommendedAutoFormat !== false)
   if (!originalLines.length && !recommendedLines.length) {
     return []
   }

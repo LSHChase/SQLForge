@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529: 前端 SQL 格式化按钮统一修复
+
+- Status: done
+- Completed at: 2026-05-29
+- Commit subject: `fix(frontend): unify SQL format controls`
+- Priority: 1
+- Depends on: N/A
+- Scope: 仅修改前端页面与共享前端组件，分析所有 SQL 输入或输出框，修复格式化/Format 按钮不生效或不一致的问题，并尽量统一到 SqlEditorField / SqlCodeBlock 模板。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529`
+- Progress log:
+  - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-29: 前端 SQL 输入/输出格式化控件已统一到共享组件层；`python3 scripts/foreman.py validate USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 --include-task-audit --extra-command 'npm run test:sql-ui-contract' --extra-command 'npm run lint' --extra-command 'npm run build'` 通过。
+- Context closeout:
+  - Completed scope: 统一前端 SQL 输入和输出区域的格式化控件：共享 SqlEditorField、SqlCodeBlock、SqlCompareBlock 支持一致的格式化入口和格式化状态文案；查询、改写验证、推荐中心、SQL 历史、解析批次与解析记录页面显式接入共享格式化能力；SQL UI 合同脚本补充格式化按钮覆盖。
+  - Validation evidence: python3 scripts/foreman.py validate USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529 --include-task-audit --extra-command 'npm run test:sql-ui-contract' --extra-command 'npm run lint' --extra-command 'npm run build'；npm run test:sql-ui-contract；npm run lint；npm run build；node scripts/check-developer-copy-language.mjs --changed；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 未连接真实后端验证格式化后的 SQL 执行结果；仓库侧覆盖共享组件、页面引用、合同检查、lint 与生产构建。
+  - Next step: portable 包任务基于已提交前端源码重新构建 dist-portable 并执行 portable smoke。
+
 ### USER-CN-ADVANCED-MV-COMPLEX-BI-20260528: 复杂 BI SQL 高级 MV 推荐增强
 
 - Status: done

@@ -32,6 +32,7 @@ const { formatSqlText, highlightSql } = await import(
 )
 const {
   buildFormattedSqlDisplayText,
+  buildRawSqlDisplayText,
   buildRecommendedSqlDisplay,
   buildSqlCompareRows,
   extractLeadingSqlComments
@@ -128,6 +129,22 @@ const formattedDisplaySql = buildFormattedSqlDisplayText("select * from sales.or
 if (!formattedDisplaySql.includes('SELECT') || !formattedDisplaySql.includes('\nFROM')) {
   errors.push('buildFormattedSqlDisplayText must provide the formatted display and copy text for SQL compare panes.')
 }
+const rawDisplaySql = buildRawSqlDisplayText(" select * from sales.orders where dt = '2026-05-17' ")
+if (!rawDisplaySql.startsWith('select * from') || rawDisplaySql.includes('\r')) {
+  errors.push('buildRawSqlDisplayText must preserve raw SQL casing while normalizing line endings.')
+}
+const rawCompareRows = buildSqlCompareRows(
+  "select * from sales.orders where dt = '2026-05-17'",
+  "select id from sales.orders where dt = '2026-05-17'",
+  { originalAutoFormat: false, recommendedAutoFormat: false }
+)
+const formattedCompareRows = buildSqlCompareRows(
+  "select * from sales.orders where dt = '2026-05-17'",
+  "select id from sales.orders where dt = '2026-05-17'"
+)
+if (rawCompareRows.length !== 1 || formattedCompareRows.length <= rawCompareRows.length) {
+  errors.push('buildSqlCompareRows must support raw compare rows so the compare pane format/raw toggle visibly changes output.')
+}
 
 const requiredFiles = {
   'src/views/common/SqlEditorField.vue': [
@@ -143,6 +160,8 @@ const requiredFiles = {
     'highlightSql',
     'showFormattedRaw',
     'canToggleRawFormat',
+    'formatEnabled',
+    'shouldAutoFormat',
     'data-testid="sql-code-format-toggle"',
     'rawLabel',
     'maxHeight'
@@ -206,10 +225,15 @@ const requiredFiles = {
   'src/views/common/SqlCompareBlock.vue': [
     'buildSqlCompareRows',
     'buildFormattedSqlDisplayText',
+    'buildRawSqlDisplayText',
     'copyTextToClipboard',
     'currentPaneCopyText',
     'copyTextToClipboard(currentPaneCopyText(pane))',
     'formatPaneSql',
+    'rawLabel',
+    'originalFormatActive',
+    'recommendedFormatActive',
+    'paneFormatLabel',
     'syncPaneScroll',
     'syncPaneScrollGuard',
     'originalPaneViewportRef',
@@ -233,6 +257,7 @@ const requiredFiles = {
   'src/views/common/sqlCompare.mjs': [
     'extractLeadingSqlComments',
     'buildFormattedSqlDisplayText',
+    'buildRawSqlDisplayText',
     'buildRecommendedSqlDisplay',
     'buildSqlCompareRows',
     'sql-compare-token-mark--insert',
@@ -253,6 +278,12 @@ for (const [relativePath, needles] of Object.entries(requiredFiles)) {
 const sqlEditorField = read('src/views/common/SqlEditorField.vue')
 if (!/const original = displayValue\.value[\s\S]{0,180}emit\('format', formatted, original\)/.test(sqlEditorField)) {
   errors.push('SqlEditorField format event must expose the pre-format SQL so callers can preserve raw submission text.')
+}
+if (!/const canFormat = computed\(\(\) => props\.formatEnabled && displayValue\.value\.trim\(\)\.length > 0\)/.test(sqlEditorField)) {
+  errors.push('SqlEditorField format button must be disabled for empty SQL and hidden when formatting is not allowed.')
+}
+if (!/<el-button v-if="formatEnabled"[\s\S]{0,140}:disabled="!canFormat"[\s\S]{0,120}@click\.stop="formatValue"/.test(sqlEditorField)) {
+  errors.push('SqlEditorField must not render an inert format button when formatEnabled is false.')
 }
 if (/<pre[^>]*sql-editor-field__highlight[^>]*>\s+<code/.test(sqlEditorField)) {
   errors.push('SqlEditorField highlight pre must not inject leading template whitespace before code.')
@@ -285,6 +316,23 @@ if (!/<pre[^>]*sql-code-panel__body[^>]*><code\s+v-html="highlightedSql"\s*\/><\
 }
 if (!/v-if="canToggleRawFormat"[\s\S]{0,220}data-testid="sql-code-format-toggle"/.test(sqlCodeBlock)) {
   errors.push('SqlCodeBlock raw SQL output must expose a format/raw toggle without changing the incoming value.')
+}
+if (!/const shouldAutoFormat = computed\(\(\) => props\.formatEnabled && props\.autoFormat\)/.test(sqlCodeBlock)) {
+  errors.push('SqlCodeBlock formatEnabled=false must disable automatic SQL formatting.')
+}
+if (!/const canToggleRawFormat = computed\(\(\) => props\.formatEnabled && !props\.autoFormat && hasRawSql\.value\)/.test(sqlCodeBlock)) {
+  errors.push('SqlCodeBlock formatEnabled=false must hide the raw SQL format toggle.')
+}
+
+const sqlCompareBlock = read('src/views/common/SqlCompareBlock.vue')
+if (!/originalFormatActive\.value = true[\s\S]{0,80}recommendedFormatActive\.value = true/.test(sqlCompareBlock)) {
+  errors.push('SqlCompareBlock must reset to formatted display when the compared SQL changes.')
+}
+if (!/setPaneFormatActive\(pane, !isPaneFormatted\(pane\)\)/.test(sqlCompareBlock)) {
+  errors.push('SqlCompareBlock format action must toggle between formatted SQL and raw SQL instead of reformatting already formatted text.')
+}
+if (!/buildSqlCompareRows\(originalDisplaySql\.value, recommendedDisplaySql\.value,[\s\S]{0,160}originalAutoFormat: false,[\s\S]{0,120}recommendedAutoFormat: false/.test(sqlCompareBlock)) {
+  errors.push('SqlCompareBlock must pass pre-rendered pane text into compare rows so format/raw toggles are visible.')
 }
 
 const rawSqlTextareaPattern =
@@ -349,6 +397,9 @@ if (!/:model-value="form\.sqlText"[\s\S]{0,420}@update:model-value="updateSqlTex
 if (!/:original-sql="originalSqlText"/.test(rewriteValidationView)) {
   errors.push('RewriteValidationView compare pane must use preserved original SQL as the original side.')
 }
+if (!/data-testid="rewrite-validation-raw-evidence"[\s\S]{0,180}:format-enabled="false"|:format-enabled="false"[\s\S]{0,180}data-testid="rewrite-validation-raw-evidence"/.test(rewriteValidationView)) {
+  errors.push('RewriteValidationView raw evidence must not expose SQL format controls.')
+}
 if (
   !/data-testid="sql-history-pagination"[\s\S]{0,220}layout="total, sizes, prev, pager, next, jumper"[\s\S]{0,220}:total="pageInfo\.total"/.test(
     sqlHistoryView
@@ -358,6 +409,19 @@ if (
 }
 if (/paginationSummaryText|sqlHistory\.footer\.resultWindow|data-testid="sql-history-pagination-summary"/.test(sqlHistoryView)) {
   errors.push('SqlHistoryView must not reintroduce a custom mixed pagination summary.')
+}
+
+const queryView = read('src/views/query/SqlQueryView.vue')
+if (!/data-testid="query-explain-plan-text"[\s\S]{0,180}:format-enabled="false"|:format-enabled="false"[\s\S]{0,180}data-testid="query-explain-plan-text"/.test(queryView)) {
+  errors.push('SqlQueryView explain-plan text must not expose SQL format controls.')
+}
+
+const parseBatchView = read('src/views/parse-batch/ParseBatchCenterView.vue')
+if (!/parseTemplatePreview[\s\S]{0,260}:auto-format="false"[\s\S]{0,120}:format-enabled="false"/.test(parseBatchView)) {
+  errors.push('ParseBatchCenterView CSV parse template preview must not expose SQL format controls.')
+}
+if (!/reportTemplatePreview[\s\S]{0,260}:auto-format="false"[\s\S]{0,120}:format-enabled="false"/.test(parseBatchView)) {
+  errors.push('ParseBatchCenterView report wide-table template preview must not expose SQL format controls.')
 }
 
 for (const relativePath of [
@@ -373,6 +437,12 @@ for (const relativePath of [
 const docs = read('docs/frontend/form-component-governance.md')
 if (!docs.includes('HARN-070 SQL Input Output Display Contract')) {
   errors.push('docs/frontend/form-component-governance.md is missing the HARN-070 SQL display contract section.')
+}
+
+const zhLocale = read('src/locales/zh-CN.js')
+const enLocale = read('src/locales/en-US.js')
+if (!/raw:\s*'原文'/.test(zhLocale) || !/raw:\s*'Raw'/.test(enLocale)) {
+  errors.push('common.actions.raw must be available for shared SQL format/raw toggles.')
 }
 
 if (errors.length) {

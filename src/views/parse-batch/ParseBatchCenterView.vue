@@ -512,6 +512,7 @@ const {
           :label="t('inline.viewsParseBatchParseBatchCenterView.text058')"
           :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text059')"
           :auto-format="false"
+          :format-enabled="false"
         />
       </div>
       <template #footer>
@@ -535,6 +536,7 @@ const {
           :label="t('inline.viewsParseBatchParseBatchCenterView.text064')"
           :copy-label="t('inline.viewsParseBatchParseBatchCenterView.text065')"
           :auto-format="false"
+          :format-enabled="false"
         />
       </div>
       <template #footer>

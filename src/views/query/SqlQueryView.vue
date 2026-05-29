@@ -1219,6 +1219,7 @@ const formatJson = value => JSON.stringify(value, null, 2)
               :label="t('inline.viewsQuerySqlQueryView.text110')"
               :copy-label="t('inline.viewsQuerySqlQueryView.text048')"
               :auto-format="false"
+              :format-enabled="false"
               data-testid="query-explain-plan-text"
             />
           </div>

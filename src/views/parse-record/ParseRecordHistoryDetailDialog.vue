@@ -120,6 +120,7 @@ const auditEventPagination = {
                 :value="selectedHistoryDetail.sqlText || '-'"
                 :label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text008')"
                 :copy-label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text009')"
+                :raw-label="t('common.actions.raw')"
                 :auto-format="false"
                 data-testid="parse-record-history-original-sql-text"
               />
@@ -414,6 +415,7 @@ const auditEventPagination = {
                 :value="item.value"
                 :label="item.label"
                 :copy-label="t('inline.viewsParseRecordParseRecordHistoryDetailDialog.text029')"
+                :raw-label="t('common.actions.raw')"
                 :auto-format="item.autoFormat !== false"
                 :data-testid="`parse-record-${item.key}`"
               />

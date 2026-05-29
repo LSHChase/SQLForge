@@ -47,6 +47,7 @@ const highlightRef = ref(null)
 
 const minHeight = computed(() => `${Math.max(props.rows, 4) * 22 + 32}px`)
 const displayValue = computed(() => String(props.modelValue ?? ''))
+const canFormat = computed(() => props.formatEnabled && displayValue.value.trim().length > 0)
 const highlightedSql = computed(() => highlightSql(displayValue.value || props.placeholder))
 
 const updateValue = event => {
@@ -54,6 +55,9 @@ const updateValue = event => {
 }
 
 const formatValue = () => {
+  if (!canFormat.value) {
+    return
+  }
   const original = displayValue.value
   const formatted = formatSqlText(original)
   emit('update:modelValue', formatted)
@@ -77,7 +81,7 @@ const syncScroll = event => {
       <span class="sql-editor-field__label">{{ label }}</span>
       <div class="sql-editor-field__actions">
         <el-button text size="small" :disabled="!displayValue" @click.stop="copySql">{{ copyLabel }}</el-button>
-        <el-button text size="small" :disabled="!formatEnabled" @click.stop="formatValue">{{ formatLabel }}</el-button>
+        <el-button v-if="formatEnabled" text size="small" :disabled="!canFormat" @click.stop="formatValue">{{ formatLabel }}</el-button>
       </div>
     </div>
     <div class="sql-editor-field__shell" :style="{ minHeight, maxHeight }">

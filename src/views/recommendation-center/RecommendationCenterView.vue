@@ -1892,6 +1892,7 @@ watch(
                     :empty-text="t('recommendationCenter.states.noDiffHunks')"
                     :copy-label="t('common.actions.copy')"
                     :format-label="t('common.actions.format')"
+                    :raw-label="t('common.actions.raw')"
                     data-testid="recommendation-sql-compare"
                   />
                 </section>

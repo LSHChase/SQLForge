@@ -16,7 +16,31 @@ _No tasks._
 
 ## In Progress
 
-_No tasks._
+### USER-CN-DIST-PORTABLE-UPDATE-20260529: 全量更新 dist-portable 便携前端包
+
+- Status: in_progress
+- Priority: 1
+- Depends on: N/A
+- Scope: 基于当前前端源码执行 portable 模式完整构建，刷新 dist-portable 下静态资产、便携服务脚本、代理共享脚本、默认配置、启动脚本与 README，并执行便携前端 smoke 验证；不修改业务源码、不做交付 tag。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529`
+- Progress log:
+  - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-29: 已执行 `npm run build:portable` 全量重建 `dist-portable`，刷新 Vite hash 资产、`index.html`、便携服务脚本、代理共享脚本、默认配置、启动脚本与 README。
+  - 2026-05-29: `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529 --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend'` 通过；当前未执行 closeout/commit，避免把基于并行未提交源码生成的 portable 产物拆成脱离源码的单独提交。
+
+### USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528: 后端超 200 行类拆分
+
+- Status: in_progress
+- Priority: 1
+- Depends on: N/A
+- Scope: 将后端 src/main/java 中所有非空非注释代码行超过 200 行的类按职责拆分，保持 public API、持久化映射、接口契约和运行行为不变，并补充可重复统计与验证证据。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528`
+- Progress log:
+  - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-29: 建立非空非注释 Java 类行数统计口径，补充后端大类拆分策略文档，并完成 SQL catalog qualifier、组合解析结论、分发事件装配、L2 CommonSubgraph、L2 StarAgg、L2 ParameterizedAgg 等低耦合功能组拆分；对应聚焦测试通过。
+  - 2026-05-29: 当前局部门禁已确认 `L2CommonSubgraphMvCandidateGenerator`、`CommonSubgraph*`、`L2StarAggMvCandidateGenerator`、`StarAgg*`、`L2ParameterizedAggMvCandidateGenerator`、`ParameterizedAgg*` 均不超过 200 行；全量后端仍有剩余超限类，继续按模块拆分。
 
 
 ## In Review
