@@ -91,7 +91,7 @@ public class BenchmarkTaskWorker {
                 queueEvidence == null ? task.getCurrentPhase().name() : task.getCurrentPhase().name() + ";" + queueEvidence
             );
             if (shouldForceFailure(task)) {
-                delay();
+                BenchmarkTaskWorkerDelayer.delay(executionProperties);
                 task.markFailed(
                     new BenchmarkTaskError(
                         ErrorCodeConstants.BENCHMARK_ENGINE_SYSTEM_PIPELINE_NOT_READY,
@@ -108,7 +108,7 @@ public class BenchmarkTaskWorker {
                 return;
             }
             advanceWorkerPhases(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             Instant generatedAt = Instant.now();
             BenchmarkIsolatedExecutionResult executionResult =
                 benchmarkIsolatedExecutionService.execute(task, generatedAt);
@@ -154,45 +154,45 @@ public class BenchmarkTaskWorker {
 
     private void advanceWorkerPhases(BenchmarkTask task) {
         if (task.getTaskType() == BenchmarkTaskType.BASELINE) {
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.WARMING_UP, 35, "WORKER_WARMUP_READY");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.EXECUTING, 60, "WORKER_RUN_STARTED");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 80, "WORKER_RUN_FINISHED");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.REPORTING, 95, "WORKER_REPORT_ASSEMBLING");
             benchmarkTaskRepository.saveTask(task);
             return;
         }
         if (task.getTaskType() == BenchmarkTaskType.COMPARISON) {
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.SHADOW_VALIDATING, 25, "WORKER_SHADOW_ENVIRONMENT_VALIDATED");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.WARMING_UP, 45, "WORKER_WARMUP_READY");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.EXECUTING, 65, "WORKER_COMPARISON_RUN_STARTED");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 82, "WORKER_COMPARISON_RUN_FINISHED");
             benchmarkTaskRepository.saveTask(task);
-            delay();
+            BenchmarkTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(BenchmarkTaskPhase.REPORTING, 96, "WORKER_REPORT_ASSEMBLING");
             benchmarkTaskRepository.saveTask(task);
             return;
         }
-        delay();
+        BenchmarkTaskWorkerDelayer.delay(executionProperties);
         task.advancePhase(BenchmarkTaskPhase.EXECUTING, 55, "WORKER_REGRESSION_RUN_STARTED");
         benchmarkTaskRepository.saveTask(task);
-        delay();
+        BenchmarkTaskWorkerDelayer.delay(executionProperties);
         task.advancePhase(BenchmarkTaskPhase.THRESHOLD_EVALUATING, 82, "WORKER_REGRESSION_RUN_FINISHED");
         benchmarkTaskRepository.saveTask(task);
-        delay();
+        BenchmarkTaskWorkerDelayer.delay(executionProperties);
         task.advancePhase(BenchmarkTaskPhase.REPORTING, 96, "WORKER_REPORT_ASSEMBLING");
         benchmarkTaskRepository.saveTask(task);
     }
@@ -230,15 +230,4 @@ public class BenchmarkTaskWorker {
         );
     }
 
-    private void delay() {
-        if (executionProperties.getPhaseDelayMs() <= 0L) {
-            return;
-        }
-        try {
-            Thread.sleep(executionProperties.getPhaseDelayMs());
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("压测 worker 被中断", ex);
-        }
-    }
 }

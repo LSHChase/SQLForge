@@ -78,7 +78,7 @@ public class OptimizationTaskWorker {
             optimizationTaskRepository.save(task);
             logStateChange(task, STATE_TASK_QUEUED, STATE_WORKER_RUNNING, task.getCurrentPhase().name());
             if (shouldForceFailure(task)) {
-                delay();
+                OptimizationTaskWorkerDelayer.delay(executionProperties);
                 task.markFailed(
                     new OptimizationTaskError(
                         ErrorCodeConstants.SQL_OPTIMIZATION_SYSTEM_PIPELINE_NOT_READY,
@@ -104,7 +104,7 @@ public class OptimizationTaskWorker {
                 return;
             }
             OptimizationTaskSuggestion suggestion = executeTask(task);
-            delay();
+            OptimizationTaskWorkerDelayer.delay(executionProperties);
             task.markSucceeded(suggestion, Instant.now());
             optimizationTaskRepository.save(task);
             persistRewriteRecommendation(task);
@@ -144,26 +144,26 @@ public class OptimizationTaskWorker {
         SqlOptimizationPipelineService.ParsedSqlProfile parsedSqlProfile =
             sqlOptimizationPipelineService.analyze(task.getSqlText(), task.getDatasourceType());
         if (task.getTaskType() == OptimizationTaskType.PARSE) {
-            delay();
+            OptimizationTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_PARSE_ARTIFACTS_READY");
             optimizationTaskRepository.save(task);
             return sqlOptimizationPipelineService.buildParseSuggestion(parsedSqlProfile);
         }
         if (task.getTaskType() == OptimizationTaskType.REWRITE) {
-            delay();
+            OptimizationTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(OptimizationTaskPhase.SQL_REWRITING, 45, "WORKER_REWRITE_RULES_APPLIED");
             optimizationTaskRepository.save(task);
             OptimizationTaskSuggestion rewriteSuggestion =
                 sqlOptimizationPipelineService.buildRewriteSuggestion(parsedSqlProfile);
-            delay();
+            OptimizationTaskWorkerDelayer.delay(executionProperties);
             task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 85, "WORKER_REWRITE_ARTIFACTS_READY");
             optimizationTaskRepository.save(task);
             return rewriteSuggestion;
         }
-        delay();
+        OptimizationTaskWorkerDelayer.delay(executionProperties);
         task.advancePhase(OptimizationTaskPhase.COST_ESTIMATING, 35, "WORKER_COST_SIGNALS_READY");
         optimizationTaskRepository.save(task);
-        delay();
+        OptimizationTaskWorkerDelayer.delay(executionProperties);
         task.advancePhase(OptimizationTaskPhase.ACCELERATION_PLANNING, 70, "WORKER_ACCELERATION_PLAN_READY");
         optimizationTaskRepository.save(task);
         OptimizationTaskSuggestion accelerationSuggestion =
@@ -175,7 +175,7 @@ public class OptimizationTaskWorker {
                 task.getSqlFingerprint(),
                 task.getSourceContext() == null ? null : task.getSourceContext().getReportCode()
             );
-        delay();
+        OptimizationTaskWorkerDelayer.delay(executionProperties);
         task.advancePhase(OptimizationTaskPhase.RESULT_ASSEMBLING, 90, "WORKER_ACCELERATION_ARTIFACTS_READY");
         optimizationTaskRepository.save(task);
         return accelerationSuggestion;
@@ -231,15 +231,4 @@ public class OptimizationTaskWorker {
         );
     }
 
-    private void delay() {
-        if (executionProperties.getPhaseDelayMs() <= 0L) {
-            return;
-        }
-        try {
-            Thread.sleep(executionProperties.getPhaseDelayMs());
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("优化 worker 被中断", ex);
-        }
-    }
 }

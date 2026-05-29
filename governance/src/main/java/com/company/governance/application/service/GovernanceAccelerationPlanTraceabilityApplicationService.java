@@ -12,12 +12,9 @@ import com.company.sqlforge.common.context.RequestContext;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceRequest;
 import com.company.sqlforge.common.governance.GovernanceAccelerationPlanTraceResponse;
-import com.company.sqlforge.common.utils.DateUtils;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 @Service
 public class GovernanceAccelerationPlanTraceabilityApplicationService {
@@ -52,22 +49,23 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
                 "request 不能为 null"
             );
         }
-        String tenantId = requireContext("tenantId", RequestContext.getTenantId());
-        String userId = requireContext("userId", RequestContext.getUserId());
-        String requestId = requireContext("requestId", RequestContext.getRequestId());
-        String traceId = requireContext("traceId", RequestContext.getTraceId());
-        String planId = requireText(request.getPlanId(), "planId");
-        requireText(request.getSourceTaskId(), "sourceTaskId");
-        requireText(request.getSqlFingerprint(), "sqlFingerprint");
-        requireText(request.getDatasourceType(), "datasourceType");
-        requireText(request.getPlanStatus(), "planStatus");
+        String tenantId = GovernanceAccelerationPlanTraceSupport.requireContext("tenantId", RequestContext.getTenantId());
+        String userId = GovernanceAccelerationPlanTraceSupport.requireContext("userId", RequestContext.getUserId());
+        String requestId = GovernanceAccelerationPlanTraceSupport.requireContext("requestId", RequestContext.getRequestId());
+        String traceId = GovernanceAccelerationPlanTraceSupport.requireContext("traceId", RequestContext.getTraceId());
+        String planId = GovernanceAccelerationPlanTraceSupport.requireText(request.getPlanId(), "planId");
+        GovernanceAccelerationPlanTraceSupport.requireText(request.getSourceTaskId(), "sourceTaskId");
+        GovernanceAccelerationPlanTraceSupport.requireText(request.getSqlFingerprint(), "sqlFingerprint");
+        GovernanceAccelerationPlanTraceSupport.requireText(request.getDatasourceType(), "datasourceType");
+        GovernanceAccelerationPlanTraceSupport.requireText(request.getPlanStatus(), "planStatus");
 
-        String configSnapshotId = "cfg-acceleration-plan-" + sanitizeKey(planId);
-        String resultId = "result-acceleration-plan-" + sanitizeKey(planId);
-        String historyId = "history-acceleration-plan-" + sanitizeKey(planId);
-        String sagaId = "acceleration-plan-" + sanitizeKey(planId);
-        Instant createdAt = parseInstant(request.getCreatedAt(), Instant.now());
-        Instant updatedAt = parseInstant(request.getUpdatedAt(), createdAt);
+        String sanitizedPlanId = GovernanceAccelerationPlanTraceSupport.sanitizeKey(planId);
+        String configSnapshotId = "cfg-acceleration-plan-" + sanitizedPlanId;
+        String resultId = "result-acceleration-plan-" + sanitizedPlanId;
+        String historyId = "history-acceleration-plan-" + sanitizedPlanId;
+        String sagaId = "acceleration-plan-" + sanitizedPlanId;
+        Instant createdAt = GovernanceAccelerationPlanTraceSupport.parseInstant(request.getCreatedAt(), Instant.now());
+        Instant updatedAt = GovernanceAccelerationPlanTraceSupport.parseInstant(request.getUpdatedAt(), createdAt);
 
         persistConfigSnapshotIfMissing(
             request,
@@ -139,7 +137,7 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
         record.setSagaId(sagaId);
         record.setSnapshotPayload(request.getSnapshotPayloadJson());
         record.setCreatedBy(userId);
-        record.setCreateTime(toDatabaseTime(createdAt));
+        record.setCreateTime(GovernanceAccelerationPlanTraceSupport.toDatabaseTime(createdAt));
         governanceProtectedPersistenceService.saveConfigSnapshot(record);
     }
 
@@ -167,9 +165,11 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
         record.setResultPayload(request.getResultPayloadJson());
         record.setErrorCode(request.getErrorCode() == null ? null : String.valueOf(request.getErrorCode()));
         record.setErrorMessage(request.getErrorMessage());
-        record.setStartedAt(toDatabaseTime(createdAt));
-        record.setFinishedAt(isTerminalStatus(request.getPlanStatus()) ? toDatabaseTime(updatedAt) : null);
-        record.setCreateTime(toDatabaseTime(createdAt));
+        record.setStartedAt(GovernanceAccelerationPlanTraceSupport.toDatabaseTime(createdAt));
+        record.setFinishedAt(GovernanceAccelerationPlanTraceSupport.isTerminalStatus(request.getPlanStatus())
+            ? GovernanceAccelerationPlanTraceSupport.toDatabaseTime(updatedAt)
+            : null);
+        record.setCreateTime(GovernanceAccelerationPlanTraceSupport.toDatabaseTime(createdAt));
         if (executionResultMapper.selectById(resultId) == null) {
             governanceProtectedPersistenceService.saveExecutionResult(record);
             return;
@@ -201,52 +201,8 @@ public class GovernanceAccelerationPlanTraceabilityApplicationService {
         record.setSagaId(sagaId);
         record.setQueryContext(request.getQueryContextJson());
         record.setSubmittedBy(userId);
-        record.setSubmittedAt(toDatabaseTime(createdAt));
-        record.setCreateTime(toDatabaseTime(createdAt));
+        record.setSubmittedAt(GovernanceAccelerationPlanTraceSupport.toDatabaseTime(createdAt));
+        record.setCreateTime(GovernanceAccelerationPlanTraceSupport.toDatabaseTime(createdAt));
         governanceProtectedPersistenceService.saveQueryHistoryWithSqlText(record, request.getSqlText());
-    }
-
-    private boolean isTerminalStatus(String status) {
-        return "ACTIVE".equals(status)
-            || "PAUSED".equals(status)
-            || "ACTIVATE_FAILED".equals(status)
-            || "PAUSE_FAILED".equals(status);
-    }
-
-    private String requireContext(String fieldName, String value) {
-        if (!StringUtils.hasText(value)) {
-            throw new BizException(
-                ErrorCodeConstants.SYSTEM_CONTEXT_MISSING,
-                HttpStatus.UNAUTHORIZED,
-                "受保护请求上下文缺失：" + fieldName
-            );
-        }
-        return value;
-    }
-
-    private String requireText(String value, String fieldName) {
-        if (!StringUtils.hasText(value)) {
-            throw new BizException(
-                ErrorCodeConstants.SYSTEM_INVALID_ARGUMENT,
-                HttpStatus.BAD_REQUEST,
-                fieldName + " 不能为空"
-            );
-        }
-        return value.trim();
-    }
-
-    private String sanitizeKey(String value) {
-        return requireText(value, "planId").replaceAll("[^A-Za-z0-9]+", "-");
-    }
-
-    private Instant parseInstant(String value, Instant fallback) {
-        if (!StringUtils.hasText(value)) {
-            return fallback;
-        }
-        return Instant.parse(value.trim());
-    }
-
-    private LocalDateTime toDatabaseTime(Instant instant) {
-        return DateUtils.toBeijingDateTime(instant);
     }
 }

@@ -2,8 +2,6 @@ package com.company.queryexecution.domain.rewrite;
 
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class RuntimeRewriteBinding {
@@ -41,37 +39,37 @@ public class RuntimeRewriteBinding {
     private final Instant updatedAt;
 
     private RuntimeRewriteBinding(Builder builder) {
-        this.runtimeBindingId = requireText(builder.runtimeBindingId, "runtimeBindingId");
-        this.tenantId = requireText(builder.tenantId, "tenantId");
-        this.rewriteRecordId = requireText(builder.rewriteRecordId, "rewriteRecordId");
-        this.recommendationId = trimToNull(builder.recommendationId);
-        this.sourceType = requireText(builder.sourceType, "sourceType");
-        this.sourceKind = requireText(builder.sourceKind, "sourceKind");
-        this.sourceId = requireText(builder.sourceId, "sourceId");
-        this.sqlFingerprint = requireText(builder.sqlFingerprint, "sqlFingerprint");
-        this.originalSqlDigest = requireText(builder.originalSqlDigest, "originalSqlDigest");
-        this.originalSqlText = trimToNull(builder.originalSqlText);
-        this.recommendedSqlText = requireText(builder.recommendedSqlText, "recommendedSqlText");
-        this.rewriteMatchMode = trimToNull(builder.rewriteMatchMode) == null
+        this.runtimeBindingId = RuntimeRewriteBindingValues.requireText(builder.runtimeBindingId, "runtimeBindingId");
+        this.tenantId = RuntimeRewriteBindingValues.requireText(builder.tenantId, "tenantId");
+        this.rewriteRecordId = RuntimeRewriteBindingValues.requireText(builder.rewriteRecordId, "rewriteRecordId");
+        this.recommendationId = RuntimeRewriteBindingValues.trimToNull(builder.recommendationId);
+        this.sourceType = RuntimeRewriteBindingValues.requireText(builder.sourceType, "sourceType");
+        this.sourceKind = RuntimeRewriteBindingValues.requireText(builder.sourceKind, "sourceKind");
+        this.sourceId = RuntimeRewriteBindingValues.requireText(builder.sourceId, "sourceId");
+        this.sqlFingerprint = RuntimeRewriteBindingValues.requireText(builder.sqlFingerprint, "sqlFingerprint");
+        this.originalSqlDigest = RuntimeRewriteBindingValues.requireText(builder.originalSqlDigest, "originalSqlDigest");
+        this.originalSqlText = RuntimeRewriteBindingValues.trimToNull(builder.originalSqlText);
+        this.recommendedSqlText = RuntimeRewriteBindingValues.requireText(builder.recommendedSqlText, "recommendedSqlText");
+        this.rewriteMatchMode = RuntimeRewriteBindingValues.trimToNull(builder.rewriteMatchMode) == null
             ? "EXACT_FINGERPRINT"
-            : trimToNull(builder.rewriteMatchMode);
-        this.rewriteProgramJson = trimToNull(builder.rewriteProgramJson);
-        this.templateFamilyFingerprint = trimToNull(builder.templateFamilyFingerprint);
-        this.runtimeMatchObjectRefs = immutableSurfaceList(builder.runtimeMatchObjectRefs);
-        this.runtimeMatchObjectNames = immutableStringList(builder.runtimeMatchObjectNames);
-        this.analysisPhysicalObjectRefs = immutableSurfaceList(builder.analysisPhysicalObjectRefs);
-        this.metadataSnapshotVersion = trimToNull(builder.metadataSnapshotVersion);
-        this.viewDefinitionHash = trimToNull(builder.viewDefinitionHash);
-        this.metadataDegradationReason = trimToNull(builder.metadataDegradationReason);
-        this.datasourceCode = requireText(builder.datasourceCode, "datasourceCode");
+            : RuntimeRewriteBindingValues.trimToNull(builder.rewriteMatchMode);
+        this.rewriteProgramJson = RuntimeRewriteBindingValues.trimToNull(builder.rewriteProgramJson);
+        this.templateFamilyFingerprint = RuntimeRewriteBindingValues.trimToNull(builder.templateFamilyFingerprint);
+        this.runtimeMatchObjectRefs = RuntimeRewriteBindingValues.immutableSurfaceList(builder.runtimeMatchObjectRefs);
+        this.runtimeMatchObjectNames = RuntimeRewriteBindingValues.immutableStringList(builder.runtimeMatchObjectNames);
+        this.analysisPhysicalObjectRefs = RuntimeRewriteBindingValues.immutableSurfaceList(builder.analysisPhysicalObjectRefs);
+        this.metadataSnapshotVersion = RuntimeRewriteBindingValues.trimToNull(builder.metadataSnapshotVersion);
+        this.viewDefinitionHash = RuntimeRewriteBindingValues.trimToNull(builder.viewDefinitionHash);
+        this.metadataDegradationReason = RuntimeRewriteBindingValues.trimToNull(builder.metadataDegradationReason);
+        this.datasourceCode = RuntimeRewriteBindingValues.requireText(builder.datasourceCode, "datasourceCode");
         this.status = builder.status == null ? RuntimeRewriteBindingStatus.ACTIVE : builder.status;
         this.ruleVersion = builder.ruleVersion <= 0 ? 1L : builder.ruleVersion;
-        this.runtimeRuleVersion = requireText(builder.runtimeRuleVersion, "runtimeRuleVersion");
-        this.activatedBy = requireText(builder.activatedBy, "activatedBy");
+        this.runtimeRuleVersion = RuntimeRewriteBindingValues.requireText(builder.runtimeRuleVersion, "runtimeRuleVersion");
+        this.activatedBy = RuntimeRewriteBindingValues.requireText(builder.activatedBy, "activatedBy");
         this.activatedAt = builder.activatedAt == null ? Instant.now() : builder.activatedAt;
-        this.pausedBy = trimToNull(builder.pausedBy);
+        this.pausedBy = RuntimeRewriteBindingValues.trimToNull(builder.pausedBy);
         this.pausedAt = builder.pausedAt;
-        this.pauseReason = trimToNull(builder.pauseReason);
+        this.pauseReason = RuntimeRewriteBindingValues.trimToNull(builder.pauseReason);
         this.createdAt = builder.createdAt == null ? this.activatedAt : builder.createdAt;
         this.updatedAt = builder.updatedAt == null ? this.createdAt : builder.updatedAt;
     }
@@ -85,88 +83,17 @@ public class RuntimeRewriteBinding {
             return this;
         }
         Instant changedAt = now == null ? Instant.now() : now;
-        return copyBuilder()
+        return RuntimeRewriteBindingCopyFactory.copy(this)
             .status(RuntimeRewriteBindingStatus.PAUSED)
-            .pausedBy(requireText(actorId, "actorId"))
+            .pausedBy(RuntimeRewriteBindingValues.requireText(actorId, "actorId"))
             .pausedAt(changedAt)
-            .pauseReason(trimToNull(reason))
+            .pauseReason(RuntimeRewriteBindingValues.trimToNull(reason))
             .updatedAt(changedAt)
             .build();
     }
 
     public boolean isActive() {
         return status == RuntimeRewriteBindingStatus.ACTIVE;
-    }
-
-    private Builder copyBuilder() {
-        return RuntimeRewriteBinding.builder()
-            .runtimeBindingId(runtimeBindingId)
-            .tenantId(tenantId)
-            .rewriteRecordId(rewriteRecordId)
-            .recommendationId(recommendationId)
-            .sourceType(sourceType)
-            .sourceKind(sourceKind)
-            .sourceId(sourceId)
-            .sqlFingerprint(sqlFingerprint)
-            .originalSqlDigest(originalSqlDigest)
-            .originalSqlText(originalSqlText)
-            .recommendedSqlText(recommendedSqlText)
-            .rewriteMatchMode(rewriteMatchMode)
-            .rewriteProgramJson(rewriteProgramJson)
-            .templateFamilyFingerprint(templateFamilyFingerprint)
-            .runtimeMatchObjectRefs(runtimeMatchObjectRefs)
-            .runtimeMatchObjectNames(runtimeMatchObjectNames)
-            .analysisPhysicalObjectRefs(analysisPhysicalObjectRefs)
-            .metadataSnapshotVersion(metadataSnapshotVersion)
-            .viewDefinitionHash(viewDefinitionHash)
-            .metadataDegradationReason(metadataDegradationReason)
-            .datasourceCode(datasourceCode)
-            .status(status)
-            .ruleVersion(ruleVersion)
-            .runtimeRuleVersion(runtimeRuleVersion)
-            .activatedBy(activatedBy)
-            .activatedAt(activatedAt)
-            .pausedBy(pausedBy)
-            .pausedAt(pausedAt)
-            .pauseReason(pauseReason)
-            .createdAt(createdAt)
-            .updatedAt(updatedAt);
-    }
-
-    private static String requireText(String value, String fieldName) {
-        String trimmed = trimToNull(value);
-        if (trimmed == null) {
-            throw new IllegalArgumentException(fieldName + " 不能为空");
-        }
-        return trimmed;
-    }
-
-    private static String trimToNull(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-        return value.trim();
-    }
-
-    private static List<String> immutableStringList(List<String> value) {
-        if (value == null || value.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<String> result = new ArrayList<String>();
-        for (String item : value) {
-            String normalized = trimToNull(item);
-            if (normalized != null && !result.contains(normalized)) {
-                result.add(normalized);
-            }
-        }
-        return Collections.unmodifiableList(result);
-    }
-
-    private static List<LogicalObjectSurface> immutableSurfaceList(List<LogicalObjectSurface> value) {
-        if (value == null || value.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return Collections.unmodifiableList(new ArrayList<LogicalObjectSurface>(value));
     }
 
     public String getRuntimeBindingId() { return runtimeBindingId; }

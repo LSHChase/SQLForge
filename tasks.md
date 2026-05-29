@@ -28,6 +28,13 @@ _No tasks._
   - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
   - 2026-05-29: 建立非空非注释 Java 类行数统计口径，补充后端大类拆分策略文档，并完成 SQL catalog qualifier、组合解析结论、分发事件装配、L2 CommonSubgraph、L2 StarAgg、L2 ParameterizedAgg 等低耦合功能组拆分；对应聚焦测试通过。
   - 2026-05-29: 当前局部门禁已确认 `L2CommonSubgraphMvCandidateGenerator`、`CommonSubgraph*`、`L2StarAggMvCandidateGenerator`、`StarAgg*`、`L2ParameterizedAggMvCandidateGenerator`、`ParameterizedAgg*` 均不超过 200 行；全量后端仍有剩余超限类，继续按模块拆分。
+  - 2026-05-29: 继续拆分 L2 Rollup 与 L2 Prejoin 物化视图候选生成器，抽出计划解析、结构阻断策略、维度/列映射、SQL 构造、rewrite 替换与候选证据等 package-private 协作者；`L2*` 门面和 `CandidateSql` 调用契约保持不变，Rollup/Prejoin 拆分文件组局部门禁均不超过 200 行。
+  - 2026-05-29: 继续拆分 `L2MaterializedViewValidationSqlBuilder` 与 `L2GrainMeasureDeriver`，保留原嵌套输入/结果与推导结果 API，抽出校验 SQL 组装、CTE/列/指标渲染、grain/measure 推导、聚合解析和 coverage 构造协作者；对应文件组局部门禁均不超过 200 行，物化视图 41 个回归用例通过。
+  - 2026-05-29: 继续拆分 `L2MaterializedViewRewriteCoverageValidator`，保留原阻断码、`ValidationInput` 与 `ValidationResult` 调用契约，抽出只读 SQL 安全、FROM/JOIN 关系扫描、字段覆盖、投影/分组/指标/谓词覆盖和 profile 值处理协作者；对应文件组局部门禁均不超过 200 行，物化视图 44 个回归用例通过。
+  - 2026-05-29: 继续拆分 `L2AccelerationArtifactBuilder`，保留 `RULE_PRECOMPUTE_MV`、`AccelerationRecommendationInput` 与 `CommonSubgraphPeerSql` 调用契约，抽出候选生成编排、rewrite 覆盖校验、artifact map 装配、前置阻断、coverage proof、MV 字段覆盖和通用值处理协作者；对应文件组局部门禁均不超过 200 行，MV 聚焦 49 个用例与 pipeline/large-SQL/diff 55 个用例通过。
+  - 2026-05-29: 继续拆分 `L2PredicateClassifier`，保留分类常量与 `PredicateClassificationResult` 调用契约，抽出分类引擎、谓词信号函数匹配、字段族匹配和 profile 值处理协作者；对应文件组局部门禁均不超过 200 行，分类聚焦 5 个用例与 MV 聚焦 49 个用例通过。
+  - 2026-05-29: 继续拆分 `MaterializedViewRecommendationPlanner`、`L2AccelerationArtifactApplicationService`、`MaterializedViewCreateApplicationService`、worker delay 处理、治理 trace VO、加速方案 trace 支撑、优化任务 JSON codec 与结果摘要 runtime delta；新增协作者均通过局部门禁，受影响聚焦测试通过，当前全量后端超限类快照降至 107 个，任务继续推进。
+  - 2026-05-29: 继续拆分 governance 查询历史/trace/config/metadata VO 与 datasource/metadata 领域数据对象、shared 加密 envelope 与 runtime SQL rewrite scanner、结构解析/查询执行 metadata VO、`RuntimeRewriteBinding` 值清洗与 copy helper；公开 API、构造签名、Jackson getter 与 builder 契约保持不变，受影响 shared/governance/query/sql-optimization 聚焦测试通过，当前全量后端超限类快照降至 94 个，任务继续推进。
 
 
 ## In Review

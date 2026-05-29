@@ -8,11 +8,9 @@ import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqloptimization.application.controller.dto.DispatchEventActionRequest;
 import com.company.sqloptimization.application.controller.dto.DispatchRecommendationRequest;
 import com.company.sqloptimization.application.controller.vo.DispatchCollaborationContractVO;
-import com.company.sqloptimization.application.controller.vo.DispatchEventStatusHistoryVO;
 import com.company.sqloptimization.application.controller.vo.DispatchEventVO;
 import com.company.sqloptimization.domain.dispatch.DispatchEvent;
 import com.company.sqloptimization.domain.dispatch.DispatchEventStatus;
-import com.company.sqloptimization.domain.dispatch.DispatchEventTransition;
 import com.company.sqloptimization.domain.dispatch.DispatchType;
 import com.company.sqloptimization.domain.dispatch.repository.DispatchEventRepository;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
@@ -33,6 +31,7 @@ public class DispatchEventApplicationService {
 
     private final AccelerationRecommendationRepository recommendationRepository;
     private final DispatchEventRepository dispatchEventRepository;
+    private final DispatchEventAssembler dispatchEventAssembler = new DispatchEventAssembler();
 
     public DispatchEventApplicationService(AccelerationRecommendationRepository recommendationRepository,
                                            DispatchEventRepository dispatchEventRepository) {
@@ -62,7 +61,7 @@ public class DispatchEventApplicationService {
         );
         event.publish(now, RequestContext.getUserId());
         dispatchEventRepository.save(event);
-        return toVo(event);
+        return dispatchEventAssembler.toVo(event);
     }
 
     public DispatchCollaborationContractVO getCollaborationContract() {
@@ -92,7 +91,7 @@ public class DispatchEventApplicationService {
             : dispatchEventRepository.findByTenantIdAndStatus(tenantId, status);
         List<DispatchEventVO> result = new ArrayList<DispatchEventVO>(events.size());
         for (DispatchEvent event : events) {
-            result.add(toVo(event));
+            result.add(dispatchEventAssembler.toVo(event));
         }
         return result;
     }
@@ -100,7 +99,7 @@ public class DispatchEventApplicationService {
     public DispatchEventVO getEvent(String dispatchEventId) {
         DispatchEvent event = requireEvent(dispatchEventId);
         verifyTenantAccess(event.getTenantId());
-        return toVo(event);
+        return dispatchEventAssembler.toVo(event);
     }
 
     public DispatchEventVO markPulled(String dispatchEventId) {
@@ -108,7 +107,7 @@ public class DispatchEventApplicationService {
         verifyTenantAccess(event.getTenantId());
         event.markPulled(Instant.now(), RequestContext.getUserId());
         dispatchEventRepository.save(event);
-        return toVo(event);
+        return dispatchEventAssembler.toVo(event);
     }
 
     public DispatchEventVO ack(String dispatchEventId, DispatchEventActionRequest request) {
@@ -116,7 +115,7 @@ public class DispatchEventApplicationService {
         verifyTenantAccess(event.getTenantId());
         event.ack(Instant.now(), RequestContext.getUserId(), trimToNull(request == null ? null : request.getResultMessage()));
         dispatchEventRepository.save(event);
-        return toVo(event);
+        return dispatchEventAssembler.toVo(event);
     }
 
     public DispatchEventVO fail(String dispatchEventId, DispatchEventActionRequest request) {
@@ -124,7 +123,7 @@ public class DispatchEventApplicationService {
         verifyTenantAccess(event.getTenantId());
         event.fail(Instant.now(), RequestContext.getUserId(), trimToNull(request == null ? null : request.getResultMessage()));
         dispatchEventRepository.save(event);
-        return toVo(event);
+        return dispatchEventAssembler.toVo(event);
     }
 
     private AccelerationRecommendation requireRecommendation(String recommendationId) {
@@ -181,46 +180,6 @@ public class DispatchEventApplicationService {
         payload.put("recommendationType", recommendation.getRecommendationType().name());
         payload.put("riskLevel", recommendation.getRiskLevel().name());
         return JsonUtils.toJson(payload);
-    }
-
-    private DispatchEventVO toVo(DispatchEvent event) {
-        DispatchEventVO vo = new DispatchEventVO();
-        vo.setDispatchEventId(event.getDispatchEventId());
-        vo.setTenantId(event.getTenantId());
-        vo.setRecommendationId(event.getRecommendationId());
-        vo.setDispatchType(event.getDispatchType().name());
-        vo.setDispatchPayloadJson(event.getDispatchPayloadJson());
-        vo.setTargetEngine(event.getTargetEngine());
-        vo.setTargetDatasource(event.getTargetDatasource());
-        vo.setReportCode(event.getReportCode());
-        vo.setLogicalObjectKey(event.getLogicalObjectKey());
-        vo.setStatus(event.getStatus().name());
-        vo.setPulledBy(event.getPulledBy());
-        vo.setPulledAt(event.getPulledAt());
-        vo.setAckedBy(event.getAckedBy());
-        vo.setAckedAt(event.getAckedAt());
-        vo.setFailedBy(event.getFailedBy());
-        vo.setFailedAt(event.getFailedAt());
-        vo.setResultMessage(event.getResultMessage());
-        vo.setCreatedBy(event.getCreatedBy());
-        vo.setCreatedAt(event.getCreatedAt());
-        vo.setUpdatedAt(event.getUpdatedAt());
-        vo.setStatusHistory(toStatusHistory(event.getStatusHistory()));
-        return vo;
-    }
-
-    private List<DispatchEventStatusHistoryVO> toStatusHistory(List<DispatchEventTransition> transitions) {
-        List<DispatchEventStatusHistoryVO> result = new ArrayList<DispatchEventStatusHistoryVO>(transitions.size());
-        for (DispatchEventTransition transition : transitions) {
-            DispatchEventStatusHistoryVO vo = new DispatchEventStatusHistoryVO();
-            vo.setPreviousStatus(transition.getPreviousStatus() == null ? null : transition.getPreviousStatus().name());
-            vo.setCurrentStatus(transition.getCurrentStatus() == null ? null : transition.getCurrentStatus().name());
-            vo.setOccurredAt(transition.getOccurredAt());
-            vo.setNote(transition.getNote());
-            vo.setOperator(transition.getOperator());
-            result.add(vo);
-        }
-        return result;
     }
 
     private String requireContextTenant() {

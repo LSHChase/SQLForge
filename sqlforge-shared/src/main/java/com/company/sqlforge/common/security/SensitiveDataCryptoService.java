@@ -5,8 +5,8 @@ import com.company.sqlforge.common.exception.BizException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Arrays;
+import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -75,21 +75,15 @@ public class SensitiveDataCryptoService implements InitializingBean {
         byte[] iv = new byte[GCM_IV_LENGTH];
         secureRandom.nextBytes(iv);
         byte[] cipherBytes = encryptInternal(plainText.getBytes(StandardCharsets.UTF_8), iv);
-        return ENVELOPE_PREFIX
-            + getAlgorithm()
-            + "::"
-            + getKeyId()
-            + "::"
-            + Base64.getEncoder().encodeToString(iv)
-            + "::"
-            + Base64.getEncoder().encodeToString(cipherBytes);
+        return SensitiveDataCryptoEnvelopeCodec.format(ENVELOPE_PREFIX, getAlgorithm(), getKeyId(), iv, cipherBytes);
     }
 
     public String decrypt(String envelope) {
         if (!StringUtils.hasText(envelope)) {
             return envelope;
         }
-        ParsedEnvelope parsedEnvelope = parseEnvelope(envelope);
+        SensitiveDataCryptoEnvelope parsedEnvelope =
+            SensitiveDataCryptoEnvelopeCodec.parse(envelope, getAlgorithm(), getKeyId());
         byte[] plainBytes = decryptInternal(parsedEnvelope.getCipherBytes(), parsedEnvelope.getIv());
         return new String(plainBytes, StandardCharsets.UTF_8);
     }
@@ -227,24 +221,6 @@ public class SensitiveDataCryptoService implements InitializingBean {
         return length == output.length ? output : Arrays.copyOf(output, length);
     }
 
-    private ParsedEnvelope parseEnvelope(String envelope) {
-        String[] segments = envelope.split("::");
-        if (segments.length != 5 || !"ENC".equals(segments[0])) {
-            throw invalidCryptoConfiguration("敏感数据信封无效");
-        }
-        if (!getAlgorithm().equals(segments[1])) {
-            throw invalidCryptoConfiguration("敏感数据信封算法与当前配置不匹配");
-        }
-        if (!getKeyId().equals(segments[2])) {
-            throw invalidCryptoConfiguration("敏感数据信封 key id 与当前配置不匹配");
-        }
-        try {
-            return new ParsedEnvelope(Base64.getDecoder().decode(segments[3]), Base64.getDecoder().decode(segments[4]));
-        } catch (IllegalArgumentException ex) {
-            throw invalidCryptoConfiguration("敏感数据信封中的 base64 载荷无效", ex);
-        }
-    }
-
     private BizException invalidCryptoConfiguration(String message) {
         return invalidCryptoConfiguration(message, null);
     }
@@ -256,24 +232,5 @@ public class SensitiveDataCryptoService implements InitializingBean {
             message,
             cause
         );
-    }
-
-    private static final class ParsedEnvelope {
-
-        private final byte[] iv;
-        private final byte[] cipherBytes;
-
-        private ParsedEnvelope(byte[] iv, byte[] cipherBytes) {
-            this.iv = iv;
-            this.cipherBytes = cipherBytes;
-        }
-
-        private byte[] getIv() {
-            return iv;
-        }
-
-        private byte[] getCipherBytes() {
-            return cipherBytes;
-        }
     }
 }
