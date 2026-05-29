@@ -53,6 +53,10 @@ final class L2CommonSubgraphMvCandidateGenerator {
         "SUM", "COUNT", "MIN", "MAX", "AVG", "DATE_TRUNC", "TRUNC", "DATE_FORMAT", "YEAR", "MONTH",
         "DAY", "COALESCE", "NULLIF", "ROUND", "LOWER", "UPPER"
     ));
+    private static final Set<String> NON_DETERMINISTIC_FUNCTION_NAMES = new LinkedHashSet<String>(Arrays.asList(
+        "RAND", "RANDOM", "UUID", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "LOCALTIME",
+        "LOCALTIMESTAMP", "NOW", "SYSDATE", "SESSION_USER", "CURRENT_USER"
+    ));
     private static final int FINGERPRINT_CACHE_MAX_SIZE = 1024;
     private static final Map<String, String> SUBGRAPH_FINGERPRINT_CACHE =
         Collections.synchronizedMap(new LinkedHashMap<String, String>(FINGERPRINT_CACHE_MAX_SIZE, 0.75f, true) {
@@ -83,7 +87,18 @@ final class L2CommonSubgraphMvCandidateGenerator {
             return CandidateSql.blocked(blockingReasons);
         }
 
-        SubgraphCandidate candidate = chooseCandidate(sourceSql, candidates, advancedStructureProfile);
+        SubgraphCandidate candidate = chooseCandidate(
+            sourceSql,
+            candidateSelectableSubgraphs(candidates),
+            advancedStructureProfile
+        );
+        if (candidate == null) {
+            candidate = chooseCandidate(sourceSql, candidates, advancedStructureProfile);
+        }
+        blockingReasons.addAll(candidateBlockingReasons(candidate));
+        if (!blockingReasons.isEmpty()) {
+            return CandidateSql.blocked(blockingReasons);
+        }
         OutputColumns outputColumns = outputColumns(candidate.subgraphSql);
         blockingReasons.addAll(outputColumns.blockingReasons);
         if (blockingReasons.isEmpty() && outputColumns.columns.isEmpty()) {
@@ -243,8 +258,9 @@ final class L2CommonSubgraphMvCandidateGenerator {
         }
         SubgraphCandidate bestCandidate = null;
         int bestReplacementCount = 0;
+        int bestComplexityScore = -1;
         for (SubgraphCandidate candidate : candidates) {
-            if ("CTE".equals(candidate.sourceKind) && !relationReferenced(mainQuery, candidate.sourceName)) {
+            if ("CTE".equals(candidate.sourceKind) && !relationReferenced(sourceSql, candidate.sourceName)) {
                 continue;
             }
             int replacementCount = replacementCount(sourceSql, candidate);
@@ -264,9 +280,13 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 || accessesOriginalSources(rewriteSql, originalSources)) {
                 continue;
             }
-            if (bestCandidate == null || replacementCount > bestReplacementCount) {
+            int complexityScore = candidateComplexityScore(candidate);
+            if (bestCandidate == null
+                || replacementCount > bestReplacementCount
+                || (replacementCount == bestReplacementCount && complexityScore > bestComplexityScore)) {
                 bestCandidate = candidate;
                 bestReplacementCount = replacementCount;
+                bestComplexityScore = complexityScore;
             }
         }
         return bestCandidate;
@@ -280,7 +300,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
         SubgraphCandidate bestCandidate = null;
         int bestReplacementCount = 0;
         for (SubgraphCandidate candidate : candidates) {
-            if ("CTE".equals(candidate.sourceKind) && !relationReferenced(mainQuery, candidate.sourceName)) {
+            if ("CTE".equals(candidate.sourceKind) && !relationReferenced(sourceSql, candidate.sourceName)) {
                 continue;
             }
             int replacementCount = replacementCount(sourceSql, candidate);
@@ -326,6 +346,10 @@ final class L2CommonSubgraphMvCandidateGenerator {
 
     private static int intValue(Integer value) {
         return value == null ? 0 : value.intValue();
+    }
+
+    private static int candidateComplexityScore(SubgraphCandidate candidate) {
+        return candidate == null || candidate.subgraphSql == null ? 0 : candidate.subgraphSql.length();
     }
 
     private static boolean relationReferenced(String sql, String relationName) {
@@ -524,36 +548,10 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 "高级结构画像未完整可用，不能生成可激活的 COMMON_SUBGRAPH_MV SQL。"
             ));
         }
-        if (profile != null && profile.getWindowFunctionCount() > 0) {
-            reasons.add(reason(
-                "WINDOW_FUNCTION_COMMON_SUBGRAPH_UNSUPPORTED",
-                "公共子图包含窗口函数时需要证明窗口作用域不变，AMV-009 默认阻断。"
-            ));
-        }
         if (profile != null && profile.getCorrelatedSubqueryCount() > 0) {
             reasons.add(reason(
                 "CORRELATED_SUBQUERY_COMMON_SUBGRAPH_UNSUPPORTED",
                 "相关子查询依赖外层作用域，不能独立物化为 COMMON_SUBGRAPH_MV。"
-            ));
-        }
-        if (!mapList(advancedStructureProfile.get("nonDeterministicFunctions")).isEmpty()) {
-            reasons.add(reason(
-                "NON_DETERMINISTIC_FUNCTION_COMMON_SUBGRAPH_UNSUPPORTED",
-                "公共子图包含当前时间、随机或会话函数，缺少稳定化策略时不能物化。"
-            ));
-        }
-        for (Map<String, Object> cte : mapList(advancedStructureProfile.get("ctes"))) {
-            if (Boolean.TRUE.equals(cte.get("recursive"))) {
-                reasons.add(reason(
-                    "RECURSIVE_CTE_COMMON_SUBGRAPH_UNSUPPORTED",
-                    "递归 CTE 不能独立物化为 AMV-009 的公共子图 MV。"
-                ));
-            }
-        }
-        if (hasSubgraphOrderOrLimit(advancedStructureProfile)) {
-            reasons.add(reason(
-                "SUBGRAPH_ORDER_LIMIT_UNSUPPORTED",
-                "公共子图内部包含 ORDER BY 或 LIMIT，物化后可能改变排序分页语义。"
             ));
         }
         return reasons;
@@ -583,20 +581,6 @@ final class L2CommonSubgraphMvCandidateGenerator {
         return false;
     }
 
-    private static boolean hasSubgraphOrderOrLimit(Map<String, Object> advancedStructureProfile) {
-        for (Map<String, Object> cte : mapList(advancedStructureProfile.get("ctes"))) {
-            if (hasOrderOrLimit(text(cte.get("query")))) {
-                return true;
-            }
-        }
-        for (Map<String, Object> subquery : mapList(advancedStructureProfile.get("subqueries"))) {
-            if ("FROM".equals(upperText(subquery.get("location"))) && hasOrderOrLimit(text(subquery.get("query")))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static Map<String, Object> commonSubgraphCandidateRequiredReason(
         SqlOptimizationPipelineService.ParsedSqlProfile profile) {
         if (profile != null && profile.getRepeatedSubqueryCount() > 0) {
@@ -616,17 +600,21 @@ final class L2CommonSubgraphMvCandidateGenerator {
             return Collections.emptyList();
         }
         List<SubgraphCandidate> result = new ArrayList<SubgraphCandidate>();
-        for (Map<String, Object> cte : mapList(advancedStructureProfile.get("ctes"))) {
+        List<Map<String, Object>> ctes = mapList(advancedStructureProfile.get("ctes"));
+        for (int index = 0; index < ctes.size(); index++) {
+            Map<String, Object> cte = ctes.get(index);
             String query = normalizeSubgraphSql(text(cte.get("query")));
             if (!StringUtils.hasText(query)) {
                 continue;
             }
+            LinkedHashSet<String> materializedCteNames = materializedCteNames(ctes, index);
             result.add(new SubgraphCandidate(
                 "CTE",
                 text(cte.get("name")),
                 text(cte.get("name")),
-                query,
-                Boolean.TRUE.equals(cte.get("recursive"))
+                expandedCteSubgraphSql(ctes, index, materializedCteNames),
+                isRecursiveCteCandidate(ctes, index),
+                materializedCteNames
             ));
         }
         for (Map<String, Object> subquery : mapList(advancedStructureProfile.get("subqueries"))) {
@@ -647,17 +635,206 @@ final class L2CommonSubgraphMvCandidateGenerator {
                 false
             ));
         }
-        List<SubgraphCandidate> safe = new ArrayList<SubgraphCandidate>();
-        for (SubgraphCandidate candidate : result) {
-            if (candidate.recursive) {
+        return result;
+    }
+
+    private static LinkedHashSet<String> materializedCteNames(List<Map<String, Object>> ctes, int candidateIndex) {
+        LinkedHashSet<Integer> dependencyIndexes = new LinkedHashSet<Integer>();
+        collectCteDependencyIndexes(ctes, candidateIndex, dependencyIndexes, new LinkedHashSet<Integer>());
+        dependencyIndexes.add(Integer.valueOf(candidateIndex));
+        LinkedHashSet<String> names = new LinkedHashSet<String>();
+        for (Integer index : dependencyIndexes) {
+            if (index == null || index.intValue() < 0 || index.intValue() >= ctes.size()) {
                 continue;
             }
-            if (hasOrderOrLimit(candidate.subgraphSql)) {
-                continue;
-            }
-            safe.add(candidate);
+            addIfText(names, cteName(ctes.get(index.intValue())));
         }
-        return safe;
+        return names;
+    }
+
+    private static void collectCteDependencyIndexes(List<Map<String, Object>> ctes,
+                                                    int cteIndex,
+                                                    LinkedHashSet<Integer> result,
+                                                    Set<Integer> visiting) {
+        if (ctes == null || cteIndex < 0 || cteIndex >= ctes.size() || visiting.contains(Integer.valueOf(cteIndex))) {
+            return;
+        }
+        visiting.add(Integer.valueOf(cteIndex));
+        Map<String, Object> cte = ctes.get(cteIndex);
+        LinkedHashSet<String> knownNames = new LinkedHashSet<String>();
+        for (int index = 0; index < ctes.size(); index++) {
+            if (index == cteIndex) {
+                continue;
+            }
+            addRelationKey(knownNames, cteName(ctes.get(index)));
+        }
+        for (String dependencyName : referencedCteNames(text(cte.get("query")), knownNames)) {
+            int dependencyIndex = findCteIndex(ctes, dependencyName);
+            if (dependencyIndex < 0 || dependencyIndex == cteIndex) {
+                continue;
+            }
+            collectCteDependencyIndexes(ctes, dependencyIndex, result, visiting);
+            result.add(Integer.valueOf(dependencyIndex));
+        }
+        visiting.remove(Integer.valueOf(cteIndex));
+    }
+
+    private static LinkedHashSet<String> referencedCteNames(String query, Set<String> knownNames) {
+        LinkedHashSet<String> result = new LinkedHashSet<String>();
+        if (!StringUtils.hasText(query) || knownNames == null || knownNames.isEmpty()) {
+            return result;
+        }
+        try {
+            LinkedHashSet<String> relations = new LinkedHashSet<String>();
+            collectRelationReferences(parseStatement(query), relations);
+            for (String relation : relations) {
+                if (knownNames.contains(relationKey(relation)) || knownNames.contains(relationKey(unqualifiedName(relation)))) {
+                    result.add(unqualifiedName(relation));
+                }
+            }
+        } catch (RuntimeException ex) {
+            return result;
+        }
+        return result;
+    }
+
+    private static int findCteIndex(List<Map<String, Object>> ctes, String dependencyName) {
+        String expected = relationKey(dependencyName);
+        for (int index = 0; index < ctes.size(); index++) {
+            String actual = relationKey(cteName(ctes.get(index)));
+            if (actual.equals(expected) || relationKey(unqualifiedName(actual)).equals(relationKey(unqualifiedName(expected)))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private static String expandedCteSubgraphSql(List<Map<String, Object>> ctes,
+                                                 int candidateIndex,
+                                                 Set<String> materializedCteNames) {
+        String query = normalizeSubgraphSql(text(ctes.get(candidateIndex).get("query")));
+        if (materializedCteNames == null || materializedCteNames.size() <= 1) {
+            return query;
+        }
+        String candidateName = cteName(ctes.get(candidateIndex));
+        StringBuilder builder = new StringBuilder();
+        builder.append("WITH ");
+        boolean first = true;
+        for (int index = 0; index < ctes.size(); index++) {
+            String name = cteName(ctes.get(index));
+            if (!containsRelationName(materializedCteNames, name)
+                || relationKey(name).equals(relationKey(candidateName))) {
+                continue;
+            }
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(cleanIdentifier(name))
+                .append(" AS (")
+                .append(normalizeSubgraphSql(text(ctes.get(index).get("query"))))
+                .append(")");
+            first = false;
+        }
+        if (first) {
+            return query;
+        }
+        builder.append(" ").append(query);
+        return builder.toString();
+    }
+
+    private static boolean containsRelationName(Set<String> names, String relationName) {
+        if (names == null || !StringUtils.hasText(relationName)) {
+            return false;
+        }
+        String expected = relationKey(relationName);
+        String expectedUnqualified = relationKey(unqualifiedName(relationName));
+        for (String name : names) {
+            String actual = relationKey(name);
+            if (actual.equals(expected) || relationKey(unqualifiedName(actual)).equals(expectedUnqualified)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String cteName(Map<String, Object> cte) {
+        return text(cte == null ? null : cte.get("name"));
+    }
+
+    private static boolean isRecursiveCteCandidate(List<Map<String, Object>> ctes, int index) {
+        if (ctes == null || index < 0 || index >= ctes.size()) {
+            return false;
+        }
+        Map<String, Object> cte = ctes.get(index);
+        if (!Boolean.TRUE.equals(cte.get("recursive"))) {
+            return false;
+        }
+        String name = cteName(cte);
+        String query = text(cte.get("query"));
+        if (!StringUtils.hasText(name)) {
+            return true;
+        }
+        if (relationReferenced(query, name)) {
+            return true;
+        }
+        return ctes.size() == 1;
+    }
+
+    private static List<SubgraphCandidate> candidateSelectableSubgraphs(List<SubgraphCandidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<SubgraphCandidate> result = new ArrayList<SubgraphCandidate>();
+        for (SubgraphCandidate candidate : candidates) {
+            if (candidateBlockingReasons(candidate).isEmpty()) {
+                result.add(candidate);
+            }
+        }
+        return result;
+    }
+
+    private static List<Map<String, Object>> candidateBlockingReasons(SubgraphCandidate candidate) {
+        List<Map<String, Object>> reasons = new ArrayList<Map<String, Object>>();
+        if (candidate == null) {
+            reasons.add(reason(
+                "COMMON_SUBGRAPH_CANDIDATE_REQUIRED",
+                "未找到可独立物化的命名 CTE 或 FROM/JOIN 派生表。"
+            ));
+            return reasons;
+        }
+        if (candidate.recursive) {
+            reasons.add(reason(
+                "RECURSIVE_CTE_COMMON_SUBGRAPH_UNSUPPORTED",
+                "递归 CTE 不能独立物化为 AMV-009 的公共子图 MV。"
+            ));
+        }
+        SqlNode candidateNode = parseStatementOrNull(candidate.subgraphSql);
+        if (candidateNode == null) {
+            reasons.add(reason(
+                "COMMON_SUBGRAPH_CANDIDATE_PARSE_UNSUPPORTED",
+                "公共子图候选无法经 Calcite 重新解析，不能证明其可独立物化。"
+            ));
+            return reasons;
+        }
+        if (hasWindowFunction(candidateNode)) {
+            reasons.add(reason(
+                "WINDOW_FUNCTION_COMMON_SUBGRAPH_UNSUPPORTED",
+                "公共子图包含窗口函数时需要证明窗口作用域不变，AMV-009 默认阻断。"
+            ));
+        }
+        if (hasNonDeterministicFunction(candidateNode)) {
+            reasons.add(reason(
+                "NON_DETERMINISTIC_FUNCTION_COMMON_SUBGRAPH_UNSUPPORTED",
+                "公共子图包含当前时间、随机或会话函数，缺少稳定化策略时不能物化。"
+            ));
+        }
+        if (hasOrderOrLimit(candidate.subgraphSql)) {
+            reasons.add(reason(
+                "SUBGRAPH_ORDER_LIMIT_UNSUPPORTED",
+                "公共子图内部包含 ORDER BY 或 LIMIT，物化后可能改变排序分页语义。"
+            ));
+        }
+        return reasons;
     }
 
     private static List<SubgraphCandidate> subgraphCandidatesFromAst(String sourceSql) {
@@ -851,14 +1028,139 @@ final class L2CommonSubgraphMvCandidateGenerator {
     }
 
     private static SqlNode parseStatement(String sql) {
+        String normalizedSql = trimTrailingSemicolon(SqlDialectNormalizer.normalize(sql));
         try {
-            SqlParser.Config parserConfig = SqlParser.config()
-                .withConformance(SqlConformanceEnum.LENIENT)
-                .withUnquotedCasing(Casing.UNCHANGED);
-            return SqlParser.create(trimTrailingSemicolon(SqlDialectNormalizer.normalize(sql)), parserConfig).parseStmt();
+            return parseNormalizedStatement(normalizedSql);
         } catch (Exception ex) {
+            String compatibleSql = backtickQuotedIdentifiersToDoubleQuoted(normalizedSql);
+            if (!compatibleSql.equals(normalizedSql)) {
+                try {
+                    return parseNormalizedStatement(compatibleSql);
+                } catch (Exception compatibleEx) {
+                    throw new IllegalArgumentException("parse failed", compatibleEx);
+                }
+            }
             throw new IllegalArgumentException("parse failed", ex);
         }
+    }
+
+    private static SqlNode parseNormalizedStatement(String sql) throws Exception {
+        SqlParser.Config parserConfig = SqlParser.config()
+            .withConformance(SqlConformanceEnum.LENIENT)
+            .withUnquotedCasing(Casing.UNCHANGED);
+        return SqlParser.create(trimTrailingSemicolon(sql), parserConfig).parseStmt();
+    }
+
+    private static String backtickQuotedIdentifiersToDoubleQuoted(String sql) {
+        if (sql == null || sql.indexOf('`') < 0) {
+            return sql == null ? "" : sql;
+        }
+        StringBuilder builder = new StringBuilder(sql.length());
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktickQuote = false;
+        for (int index = 0; index < sql.length(); index++) {
+            char current = sql.charAt(index);
+            char next = index + 1 < sql.length() ? sql.charAt(index + 1) : '\0';
+            if (current == '\'' && !inDoubleQuote && !inBacktickQuote) {
+                builder.append(current);
+                if (inSingleQuote && next == '\'') {
+                    builder.append(next);
+                    index++;
+                } else {
+                    inSingleQuote = !inSingleQuote;
+                }
+                continue;
+            }
+            if (current == '"' && !inSingleQuote && !inBacktickQuote) {
+                builder.append(current);
+                if (inDoubleQuote && next == '"') {
+                    builder.append(next);
+                    index++;
+                } else {
+                    inDoubleQuote = !inDoubleQuote;
+                }
+                continue;
+            }
+            if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                if (inBacktickQuote && next == '`') {
+                    builder.append('`');
+                    index++;
+                    continue;
+                }
+                inBacktickQuote = !inBacktickQuote;
+                builder.append('"');
+                continue;
+            }
+            if (inBacktickQuote && current == '"') {
+                builder.append("\"\"");
+            } else {
+                builder.append(current);
+            }
+        }
+        return builder.toString();
+    }
+
+    private static SqlNode parseStatementOrNull(String sql) {
+        try {
+            return parseStatement(sql);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private static boolean hasWindowFunction(SqlNode node) {
+        if (node == null) {
+            return false;
+        }
+        if (node.getKind() == SqlKind.OVER) {
+            return true;
+        }
+        if (node instanceof SqlCall) {
+            for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+                if (hasWindowFunction(operand)) {
+                    return true;
+                }
+            }
+        }
+        if (node instanceof SqlNodeList) {
+            for (SqlNode item : ((SqlNodeList) node).getList()) {
+                if (hasWindowFunction(item)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasNonDeterministicFunction(SqlNode node) {
+        if (node == null) {
+            return false;
+        }
+        if (node instanceof SqlCall) {
+            SqlCall call = (SqlCall) node;
+            if (call.getOperator() != null) {
+                String functionName = call.getOperator().getName();
+                if (!call.getOperator().isDeterministic()
+                    || call.getOperator().isDynamicFunction()
+                    || NON_DETERMINISTIC_FUNCTION_NAMES.contains(upperText(functionName))) {
+                    return true;
+                }
+            }
+            for (SqlNode operand : call.getOperandList()) {
+                if (hasNonDeterministicFunction(operand)) {
+                    return true;
+                }
+            }
+        }
+        if (node instanceof SqlNodeList) {
+            for (SqlNode item : ((SqlNodeList) node).getList()) {
+                if (hasNonDeterministicFunction(item)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static SqlSelect unwrapSelect(SqlNode node) {
@@ -914,52 +1216,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
     }
 
     private static Set<String> requiredColumns(String sourceSql, SubgraphCandidate candidate) {
-        if ("DERIVED_TABLE".equals(candidate.sourceKind)) {
-            Set<String> astColumns = requiredQualifiedColumnsByAst(sourceSql, candidate);
-            if (!astColumns.isEmpty()) {
-                return astColumns;
-            }
-        }
-        String upperQuery = "CTE".equals(candidate.sourceKind)
-            ? extractMainQueryAfterWith(sourceSql)
-            : removeSubgraphSql(sourceSql, candidate);
-        String text = stripSingleQuotedLiterals(upperQuery);
-        text = text.replaceAll("(?i)\\bAS\\s+(?:\"[^\"]+\"|[A-Z_][A-Z0-9_$]*)\\b", " ");
-        LinkedHashSet<String> result = new LinkedHashSet<String>();
-        LinkedHashSet<String> relationNames = new LinkedHashSet<String>();
-        addIfText(relationNames, normalizeIdentifier(candidate.sourceName));
-        addIfText(relationNames, normalizeIdentifier(candidate.alias));
-
-        Matcher quotedQualified = QUOTED_QUALIFIED_COLUMN_PATTERN.matcher(text);
-        while (quotedQualified.find()) {
-            String qualifier = normalizeIdentifier(quotedQualified.group(1));
-            String column = normalizeIdentifier(quotedQualified.group(2));
-            if (relationNames.contains(qualifier)) {
-                result.add(column);
-            }
-        }
-        Matcher qualified = QUALIFIED_COLUMN_PATTERN.matcher(text);
-        while (qualified.find()) {
-            String qualifier = normalizeIdentifier(qualified.group(1));
-            String column = normalizeIdentifier(qualified.group(2));
-            if (relationNames.contains(qualifier)) {
-                result.add(column);
-            }
-        }
-        String withoutFrom = stripDoubleQuotedIdentifiers(
-            text.replaceAll("(?is)\\bFROM\\b.+?(\\bWHERE\\b|\\bGROUP\\s+BY\\b|\\bHAVING\\b|$)", " $1 ")
-        );
-        Matcher identifiers = IDENTIFIER_PATTERN.matcher(withoutFrom);
-        while (identifiers.find()) {
-            String token = normalizeIdentifier(identifiers.group());
-            if (SQL_KEYWORDS.contains(token.toUpperCase(Locale.ROOT))
-                || SQL_FUNCTIONS.contains(token.toUpperCase(Locale.ROOT))
-                || relationNames.contains(token)) {
-                continue;
-            }
-            result.add(token);
-        }
-        return result;
+        return requiredColumnsByAst(sourceSql, candidate);
     }
 
     private static OutputColumns withRequiredQualifiedColumns(OutputColumns outputColumns, Set<String> requiredColumns) {
@@ -979,7 +1236,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
         );
     }
 
-    private static Set<String> requiredQualifiedColumnsByAst(String sourceSql, SubgraphCandidate candidate) {
+    private static Set<String> requiredColumnsByAst(String sourceSql, SubgraphCandidate candidate) {
         LinkedHashSet<String> relationNames = new LinkedHashSet<String>();
         addIfText(relationNames, normalizeIdentifier(candidate.sourceName));
         addIfText(relationNames, normalizeIdentifier(candidate.alias));
@@ -988,57 +1245,295 @@ final class L2CommonSubgraphMvCandidateGenerator {
         }
         try {
             LinkedHashSet<String> result = new LinkedHashSet<String>();
-            collectQualifiedColumns(parseStatement(sourceSql), relationNames, result);
+            collectRequiredColumns(parseStatement(sourceSql), candidate, relationNames, result);
             return result;
         } catch (RuntimeException ex) {
             return Collections.emptySet();
         }
     }
 
-    private static void collectQualifiedColumns(SqlNode node,
-                                                Set<String> relationNames,
-                                                Set<String> result) {
+    private static void collectRequiredColumns(SqlNode node,
+                                               SubgraphCandidate candidate,
+                                               Set<String> relationNames,
+                                               Set<String> result) {
         if (node == null) {
-            return;
-        }
-        if (node instanceof SqlIdentifier) {
-            SqlIdentifier identifier = (SqlIdentifier) node;
-            if (identifier.names != null && identifier.names.size() >= 2) {
-                String qualifier = normalizeIdentifier(identifier.names.get(0));
-                if (relationNames.contains(qualifier)) {
-                    result.add(normalizeIdentifier(identifier.names.get(identifier.names.size() - 1)));
-                }
-            }
             return;
         }
         if (node instanceof SqlNodeList) {
             for (SqlNode item : ((SqlNodeList) node).getList()) {
-                collectQualifiedColumns(item, relationNames, result);
+                collectRequiredColumns(item, candidate, relationNames, result);
             }
             return;
         }
         if (node instanceof SqlWith) {
-            collectQualifiedColumns(((SqlWith) node).body, relationNames, result);
+            SqlWith with = (SqlWith) node;
+            if (with.withList != null) {
+                for (SqlNode item : with.withList.getList()) {
+                    if (item instanceof SqlWithItem) {
+                        collectRequiredColumns(((SqlWithItem) item).query, candidate, relationNames, result);
+                    }
+                }
+            }
+            collectRequiredColumns(with.body, candidate, relationNames, result);
             return;
         }
         if (node instanceof SqlOrderBy) {
             SqlOrderBy orderBy = (SqlOrderBy) node;
-            collectQualifiedColumns(orderBy.query, relationNames, result);
-            collectQualifiedColumns(orderBy.orderList, relationNames, result);
+            collectRequiredColumns(orderBy.query, candidate, relationNames, result);
+            SqlSelect select = unwrapSelect(orderBy.query);
+            if (select != null) {
+                RelationUsageScope scope = relationUsageScope(select.getFrom(), candidate, relationNames);
+                if (scope.referencesCandidate()) {
+                    collectColumnsFromExpression(
+                        orderBy.orderList,
+                        scope.candidateAliases,
+                        scope.allowUnqualifiedColumns(),
+                        selectAliases(select.getSelectList()),
+                        result
+                    );
+                }
+            }
+            return;
+        }
+        if (node instanceof SqlSelect) {
+            SqlSelect select = (SqlSelect) node;
+            RelationUsageScope scope = relationUsageScope(select.getFrom(), candidate, relationNames);
+            if (scope.referencesCandidate()) {
+                collectColumnsFromExpression(
+                    select.getSelectList(),
+                    scope.candidateAliases,
+                    scope.allowUnqualifiedColumns(),
+                    Collections.<String>emptySet(),
+                    result
+                );
+                collectColumnsFromExpression(
+                    select.getWhere(),
+                    scope.candidateAliases,
+                    scope.allowUnqualifiedColumns(),
+                    Collections.<String>emptySet(),
+                    result
+                );
+                collectColumnsFromExpression(
+                    select.getGroup(),
+                    scope.candidateAliases,
+                    scope.allowUnqualifiedColumns(),
+                    Collections.<String>emptySet(),
+                    result
+                );
+                collectColumnsFromExpression(
+                    select.getHaving(),
+                    scope.candidateAliases,
+                    scope.allowUnqualifiedColumns(),
+                    Collections.<String>emptySet(),
+                    result
+                );
+                collectColumnsFromExpression(
+                    select.getOrderList(),
+                    scope.candidateAliases,
+                    scope.allowUnqualifiedColumns(),
+                    selectAliases(select.getSelectList()),
+                    result
+                );
+                collectJoinConditionColumns(select.getFrom(), scope.candidateAliases, result);
+            }
+            collectRequiredColumns(select.getSelectList(), candidate, relationNames, result);
+            collectRequiredColumns(select.getFrom(), candidate, relationNames, result);
+            collectRequiredColumns(select.getWhere(), candidate, relationNames, result);
+            collectRequiredColumns(select.getGroup(), candidate, relationNames, result);
+            collectRequiredColumns(select.getHaving(), candidate, relationNames, result);
+            collectRequiredColumns(select.getOrderList(), candidate, relationNames, result);
             return;
         }
         if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
             List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
             if (!operands.isEmpty()) {
-                collectQualifiedColumns(operands.get(0), relationNames, result);
+                collectRequiredColumns(operands.get(0), candidate, relationNames, result);
             }
             return;
         }
         if (node instanceof SqlCall) {
             for (SqlNode operand : ((SqlCall) node).getOperandList()) {
-                collectQualifiedColumns(operand, relationNames, result);
+                collectRequiredColumns(operand, candidate, relationNames, result);
             }
         }
+    }
+
+    private static RelationUsageScope relationUsageScope(SqlNode from,
+                                                         SubgraphCandidate candidate,
+                                                         Set<String> relationNames) {
+        RelationUsageScope scope = new RelationUsageScope();
+        collectRelationUsageScope(from, candidate, relationNames, scope);
+        return scope;
+    }
+
+    private static void collectRelationUsageScope(SqlNode from,
+                                                  SubgraphCandidate candidate,
+                                                  Set<String> relationNames,
+                                                  RelationUsageScope scope) {
+        if (from == null || scope == null) {
+            return;
+        }
+        if (from instanceof SqlIdentifier) {
+            scope.sourceCount++;
+            if (identifierMatchesAnyRelation((SqlIdentifier) from, relationNames)) {
+                addIfText(scope.candidateAliases, normalizeIdentifier(identifierTail((SqlIdentifier) from)));
+            }
+            return;
+        }
+        if (from instanceof SqlJoin) {
+            SqlJoin join = (SqlJoin) from;
+            collectRelationUsageScope(join.getLeft(), candidate, relationNames, scope);
+            collectRelationUsageScope(join.getRight(), candidate, relationNames, scope);
+            return;
+        }
+        if (from instanceof SqlBasicCall && from.getKind() == SqlKind.AS) {
+            List<SqlNode> operands = ((SqlBasicCall) from).getOperandList();
+            if (operands.size() >= 2) {
+                scope.sourceCount++;
+                SqlNode relation = operands.get(0);
+                SqlNode alias = operands.get(1);
+                if (relationAliasMatchesCandidate(relation, alias, candidate, relationNames)) {
+                    addIfText(scope.candidateAliases, normalizeIdentifier(alias == null ? "" : alias.toString()));
+                    if (relation instanceof SqlIdentifier) {
+                        addIfText(scope.candidateAliases, normalizeIdentifier(identifierTail((SqlIdentifier) relation)));
+                    }
+                }
+            }
+            return;
+        }
+        if (from instanceof SqlCall) {
+            for (SqlNode operand : ((SqlCall) from).getOperandList()) {
+                collectRelationUsageScope(operand, candidate, relationNames, scope);
+            }
+        }
+    }
+
+    private static boolean relationAliasMatchesCandidate(SqlNode relation,
+                                                         SqlNode alias,
+                                                         SubgraphCandidate candidate,
+                                                         Set<String> relationNames) {
+        String normalizedAlias = normalizeIdentifier(alias == null ? "" : alias.toString());
+        if ("DERIVED_TABLE".equals(candidate.sourceKind)
+            && isSelectLike(relation)
+            && relationNames.contains(normalizedAlias)) {
+            return true;
+        }
+        if (relation instanceof SqlIdentifier && identifierMatchesAnyRelation((SqlIdentifier) relation, relationNames)) {
+            return true;
+        }
+        return relationNames.contains(normalizedAlias) && isSelectLike(relation);
+    }
+
+    private static boolean identifierMatchesAnyRelation(SqlIdentifier identifier, Set<String> relationNames) {
+        if (identifier == null || relationNames == null || relationNames.isEmpty()) {
+            return false;
+        }
+        String actual = normalizeIdentifier(identifier.toString());
+        String tail = normalizeIdentifier(identifierTail(identifier));
+        return relationNames.contains(actual) || relationNames.contains(tail);
+    }
+
+    private static void collectJoinConditionColumns(SqlNode from,
+                                                    Set<String> candidateAliases,
+                                                    Set<String> result) {
+        if (from == null) {
+            return;
+        }
+        if (from instanceof SqlJoin) {
+            SqlJoin join = (SqlJoin) from;
+            collectColumnsFromExpression(
+                join.getCondition(),
+                candidateAliases,
+                false,
+                Collections.<String>emptySet(),
+                result
+            );
+            collectJoinConditionColumns(join.getLeft(), candidateAliases, result);
+            collectJoinConditionColumns(join.getRight(), candidateAliases, result);
+            return;
+        }
+        if (from instanceof SqlBasicCall && from.getKind() == SqlKind.AS) {
+            return;
+        }
+        if (from instanceof SqlCall) {
+            for (SqlNode operand : ((SqlCall) from).getOperandList()) {
+                collectJoinConditionColumns(operand, candidateAliases, result);
+            }
+        }
+    }
+
+    private static void collectColumnsFromExpression(SqlNode node,
+                                                     Set<String> candidateAliases,
+                                                     boolean includeUnqualified,
+                                                     Set<String> unqualifiedIgnore,
+                                                     Set<String> result) {
+        if (node == null || result == null) {
+            return;
+        }
+        if (node instanceof SqlIdentifier) {
+            SqlIdentifier identifier = (SqlIdentifier) node;
+            if (identifier.isStar()) {
+                return;
+            }
+            if (identifier.names != null && identifier.names.size() >= 2) {
+                String qualifier = normalizeIdentifier(identifier.names.get(0));
+                if (candidateAliases != null && candidateAliases.contains(qualifier)) {
+                    String column = normalizeIdentifier(identifier.names.get(identifier.names.size() - 1));
+                    if (!"*".equals(column)) {
+                        result.add(column);
+                    }
+                }
+                return;
+            }
+            if (includeUnqualified) {
+                String column = normalizeIdentifier(identifierTail(identifier));
+                if (!StringUtils.hasText(column)
+                    || (candidateAliases != null && candidateAliases.contains(column))
+                    || (unqualifiedIgnore != null && unqualifiedIgnore.contains(column))) {
+                    return;
+                }
+                result.add(column);
+            }
+            return;
+        }
+        if (node instanceof SqlSelect || node instanceof SqlWith || node instanceof SqlOrderBy) {
+            return;
+        }
+        if (node instanceof SqlNodeList) {
+            for (SqlNode item : ((SqlNodeList) node).getList()) {
+                collectColumnsFromExpression(item, candidateAliases, includeUnqualified, unqualifiedIgnore, result);
+            }
+            return;
+        }
+        if (node instanceof SqlBasicCall && node.getKind() == SqlKind.AS) {
+            List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+            if (!operands.isEmpty()) {
+                collectColumnsFromExpression(
+                    operands.get(0),
+                    candidateAliases,
+                    includeUnqualified,
+                    unqualifiedIgnore,
+                    result
+                );
+            }
+            return;
+        }
+        if (node instanceof SqlCall) {
+            for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+                collectColumnsFromExpression(operand, candidateAliases, includeUnqualified, unqualifiedIgnore, result);
+            }
+        }
+    }
+
+    private static Set<String> selectAliases(SqlNodeList selectList) {
+        if (selectList == null) {
+            return Collections.emptySet();
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<String>();
+        for (SqlNode item : selectList.getList()) {
+            addIfText(result, normalizeIdentifier(aliasName(item)));
+        }
+        return result;
     }
 
     private static String rewriteSql(String sourceSql, SubgraphCandidate candidate, String mvName) {
@@ -1055,8 +1550,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
             SqlNode statement = parseStatement(sourceSql);
             SqlNode rewritten;
             if ("CTE".equals(candidate.sourceKind)) {
-                SqlNode body = statement instanceof SqlWith ? ((SqlWith) statement).body : statement;
-                rewritten = rewriteRelationReferencesByAst(body, candidate.sourceName, mvName, state);
+                rewritten = rewriteCteCandidateByAst(statement, candidate, mvName, state);
             } else {
                 rewritten = rewriteDerivedSourcesByAst(statement, candidate, mvName, state);
             }
@@ -1089,6 +1583,109 @@ final class L2CommonSubgraphMvCandidateGenerator {
         return normalized;
     }
 
+    private static SqlNode rewriteCteCandidateByAst(SqlNode statement,
+                                                    SubgraphCandidate candidate,
+                                                    String mvName,
+                                                    AstRewriteState state) {
+        SqlNode rewritten = rewriteRelationReferencesByAst(statement, candidate.sourceName, mvName, state);
+        if (rewritten instanceof SqlOrderBy) {
+            SqlOrderBy orderBy = (SqlOrderBy) rewritten;
+            if (orderBy.query instanceof SqlWith) {
+                SqlNode prunedQuery = pruneMaterializedAndUnusedCtes(
+                    (SqlWith) orderBy.query,
+                    candidate.materializedCteNames
+                );
+                return prunedQuery == orderBy.query
+                    ? orderBy
+                    : new SqlOrderBy(
+                        orderBy.getParserPosition() == null ? SqlParserPos.ZERO : orderBy.getParserPosition(),
+                        prunedQuery,
+                        orderBy.orderList,
+                        orderBy.offset,
+                        orderBy.fetch
+                    );
+            }
+            return orderBy;
+        }
+        if (!(rewritten instanceof SqlWith)) {
+            return rewritten;
+        }
+        SqlWith with = (SqlWith) rewritten;
+        return pruneMaterializedAndUnusedCtes(with, candidate.materializedCteNames);
+    }
+
+    private static SqlNode pruneMaterializedAndUnusedCtes(SqlWith with, Set<String> materializedCteNames) {
+        if (with == null || with.withList == null || with.withList.isEmpty()) {
+            return with == null ? null : with.body;
+        }
+        LinkedHashMap<String, SqlWithItem> remainingByName = new LinkedHashMap<String, SqlWithItem>();
+        for (SqlNode item : with.withList.getList()) {
+            if (!(item instanceof SqlWithItem)) {
+                continue;
+            }
+            SqlWithItem withItem = (SqlWithItem) item;
+            String name = withItem.name == null ? "" : withItem.name.toString();
+            if (containsRelationName(materializedCteNames, name)) {
+                continue;
+            }
+            remainingByName.put(relationKey(name), withItem);
+        }
+        if (remainingByName.isEmpty()) {
+            return with.body;
+        }
+
+        LinkedHashSet<String> neededNames = new LinkedHashSet<String>();
+        addReferencedRemainingCtes(with.body, remainingByName, neededNames);
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            List<String> snapshot = new ArrayList<String>(neededNames);
+            for (String name : snapshot) {
+                SqlWithItem item = remainingByName.get(name);
+                int before = neededNames.size();
+                if (item != null) {
+                    addReferencedRemainingCtes(item.query, remainingByName, neededNames);
+                }
+                changed = changed || neededNames.size() > before;
+            }
+        }
+
+        List<SqlNode> retained = new ArrayList<SqlNode>();
+        for (Map.Entry<String, SqlWithItem> entry : remainingByName.entrySet()) {
+            if (neededNames.contains(entry.getKey())) {
+                retained.add(entry.getValue());
+            }
+        }
+        if (retained.isEmpty()) {
+            return with.body;
+        }
+        with.withList = new SqlNodeList(
+            retained,
+            with.withList.getParserPosition() == null ? SqlParserPos.ZERO : with.withList.getParserPosition()
+        );
+        return with;
+    }
+
+    private static void addReferencedRemainingCtes(SqlNode node,
+                                                   Map<String, SqlWithItem> remainingByName,
+                                                   Set<String> neededNames) {
+        if (node == null || remainingByName == null || remainingByName.isEmpty()) {
+            return;
+        }
+        LinkedHashSet<String> relations = new LinkedHashSet<String>();
+        collectRelationReferences(node, relations);
+        for (String relation : relations) {
+            String key = relationKey(relation);
+            String unqualified = relationKey(unqualifiedName(relation));
+            if (remainingByName.containsKey(key)) {
+                neededNames.add(key);
+            }
+            if (remainingByName.containsKey(unqualified)) {
+                neededNames.add(unqualified);
+            }
+        }
+    }
+
     private static SqlNode rewriteRelationReferencesByAst(SqlNode node,
                                                           String relationName,
                                                           String mvName,
@@ -1111,6 +1708,14 @@ final class L2CommonSubgraphMvCandidateGenerator {
         }
         if (node instanceof SqlWith) {
             SqlWith with = (SqlWith) node;
+            if (with.withList != null) {
+                for (SqlNode item : with.withList.getList()) {
+                    if (item instanceof SqlWithItem) {
+                        SqlWithItem withItem = (SqlWithItem) item;
+                        withItem.query = rewriteRelationReferencesByAst(withItem.query, relationName, mvName, state);
+                    }
+                }
+            }
             with.body = rewriteRelationReferencesByAst(with.body, relationName, mvName, state);
             return with;
         }
@@ -1460,6 +2065,9 @@ final class L2CommonSubgraphMvCandidateGenerator {
     }
 
     private static int replacementCount(String sourceSql, SubgraphCandidate candidate) {
+        if ("CTE".equals(candidate.sourceKind)) {
+            return relationReferenceCount(sourceSql, candidate.sourceName);
+        }
         String alias = firstText(candidate.alias, candidate.sourceName);
         if (!StringUtils.hasText(sourceSql) || !StringUtils.hasText(alias)) {
             return 0;
@@ -1486,6 +2094,94 @@ final class L2CommonSubgraphMvCandidateGenerator {
             }
         }
         return count;
+    }
+
+    private static int relationReferenceCount(String sql, String relationName) {
+        if (!StringUtils.hasText(sql) || !StringUtils.hasText(relationName)) {
+            return 0;
+        }
+        try {
+            return relationReferenceCount(parseStatement(sql), relationName);
+        } catch (RuntimeException ex) {
+            return 0;
+        }
+    }
+
+    private static int relationReferenceCount(SqlNode node, String relationName) {
+        if (node == null) {
+            return 0;
+        }
+        if (node instanceof SqlWith) {
+            SqlWith with = (SqlWith) node;
+            int count = 0;
+            if (with.withList != null) {
+                for (SqlNode item : with.withList.getList()) {
+                    if (item instanceof SqlWithItem) {
+                        count += relationReferenceCount(((SqlWithItem) item).query, relationName);
+                    }
+                }
+            }
+            return count + relationReferenceCount(with.body, relationName);
+        }
+        if (node instanceof SqlOrderBy) {
+            return relationReferenceCount(((SqlOrderBy) node).query, relationName);
+        }
+        if (node instanceof SqlSelect) {
+            SqlSelect select = (SqlSelect) node;
+            return relationReferenceCountInFrom(select.getFrom(), relationName)
+                + relationReferenceCount(select.getSelectList(), relationName)
+                + relationReferenceCount(select.getWhere(), relationName)
+                + relationReferenceCount(select.getHaving(), relationName)
+                + relationReferenceCount(select.getOrderList(), relationName);
+        }
+        if (node instanceof SqlNodeList) {
+            int count = 0;
+            for (SqlNode item : ((SqlNodeList) node).getList()) {
+                count += relationReferenceCount(item, relationName);
+            }
+            return count;
+        }
+        if (node instanceof SqlCall) {
+            int count = 0;
+            for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+                count += relationReferenceCount(operand, relationName);
+            }
+            return count;
+        }
+        return 0;
+    }
+
+    private static int relationReferenceCountInFrom(SqlNode from, String relationName) {
+        if (from == null) {
+            return 0;
+        }
+        if (from instanceof SqlIdentifier) {
+            return relationNameMatches((SqlIdentifier) from, relationName) ? 1 : 0;
+        }
+        if (from instanceof SqlJoin) {
+            SqlJoin join = (SqlJoin) from;
+            return relationReferenceCountInFrom(join.getLeft(), relationName)
+                + relationReferenceCountInFrom(join.getRight(), relationName);
+        }
+        if (from instanceof SqlBasicCall && from.getKind() == SqlKind.AS) {
+            List<SqlNode> operands = ((SqlBasicCall) from).getOperandList();
+            if (operands.isEmpty()) {
+                return 0;
+            }
+            SqlNode relation = operands.get(0);
+            if (relation instanceof SqlIdentifier) {
+                return relationNameMatches((SqlIdentifier) relation, relationName) ? 1 : 0;
+            }
+            return relationReferenceCount(relation, relationName);
+        }
+        if (from instanceof SqlCall) {
+            int count = 0;
+            for (SqlNode operand : ((SqlCall) from).getOperandList()) {
+                count += relationReferenceCountInFrom(operand, relationName);
+            }
+            return count;
+        }
+        return 0;
     }
 
     private static boolean canReplaceByAliasCoverage(String innerSql, SubgraphCandidate candidate) {
@@ -1670,6 +2366,7 @@ final class L2CommonSubgraphMvCandidateGenerator {
         evidence.put("sourceKind", candidate.sourceKind);
         evidence.put("sourceName", candidate.sourceName);
         evidence.put("alias", candidate.alias);
+        evidence.put("materializedCteNames", new ArrayList<String>(candidate.materializedCteNames));
         evidence.put("matchedSqlFingerprints", matchedSqlFingerprints);
         evidence.put("matchedSourceRefs", matchedSourceRefs);
         evidence.put("referenceCount", Integer.valueOf(matchedSourceRefs.size()));
@@ -2286,17 +2983,30 @@ final class L2CommonSubgraphMvCandidateGenerator {
         private final String alias;
         private final String subgraphSql;
         private final boolean recursive;
+        private final Set<String> materializedCteNames;
 
         private SubgraphCandidate(String sourceKind,
                                   String sourceName,
                                   String alias,
                                   String subgraphSql,
                                   boolean recursive) {
+            this(sourceKind, sourceName, alias, subgraphSql, recursive, Collections.<String>emptySet());
+        }
+
+        private SubgraphCandidate(String sourceKind,
+                                  String sourceName,
+                                  String alias,
+                                  String subgraphSql,
+                                  boolean recursive,
+                                  Set<String> materializedCteNames) {
             this.sourceKind = sourceKind;
             this.sourceName = sourceName;
             this.alias = alias;
             this.subgraphSql = subgraphSql;
             this.recursive = recursive;
+            this.materializedCteNames = materializedCteNames == null
+                ? Collections.<String>emptySet()
+                : Collections.unmodifiableSet(new LinkedHashSet<String>(materializedCteNames));
         }
     }
 
@@ -2312,6 +3022,20 @@ final class L2CommonSubgraphMvCandidateGenerator {
             this.columns = columns;
             this.normalizedColumns = normalizedColumns;
             this.blockingReasons = blockingReasons;
+        }
+    }
+
+    private static final class RelationUsageScope {
+
+        private final LinkedHashSet<String> candidateAliases = new LinkedHashSet<String>();
+        private int sourceCount;
+
+        private boolean referencesCandidate() {
+            return !candidateAliases.isEmpty();
+        }
+
+        private boolean allowUnqualifiedColumns() {
+            return referencesCandidate() && sourceCount == 1;
         }
     }
 

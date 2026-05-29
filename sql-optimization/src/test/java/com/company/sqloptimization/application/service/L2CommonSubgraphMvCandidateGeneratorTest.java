@@ -175,6 +175,23 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
     }
 
     @Test
+    void shouldChooseSafeReferencedCteWhenAnotherCteIsRecursive() {
+        String sql = "WITH RECURSIVE unused_numbers(n) AS (SELECT 1 AS n), "
+            + "recent_orders AS (SELECT customer_id, amount, region FROM orders WHERE status = 'PAID') "
+            + "SELECT customer_id, SUM(amount) AS total_amount FROM recent_orders "
+            + "WHERE region = 'CN' GROUP BY customer_id";
+
+        Map<String, Object> artifact = artifact(sql);
+
+        assertEquals("GENERATED", artifact.get("artifactStatus"), String.valueOf(artifact));
+        assertEquals("COMMON_SUBGRAPH_MV", artifact.get("mvType"));
+        Map<String, Object> evidence = map(artifact.get("commonSubgraphEvidence"));
+        assertEquals("recent_orders", evidence.get("sourceName"), String.valueOf(evidence));
+        assertFalse(String.valueOf(artifact.get("rewriteSql")).contains("unused_numbers"),
+            String.valueOf(artifact.get("rewriteSql")));
+    }
+
+    @Test
     void shouldBlockWhenSubgraphOutputDoesNotCoverUpperQuery() {
         assertBlocked(
             artifact("WITH recent_orders AS (SELECT customer_id FROM orders) "

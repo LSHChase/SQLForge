@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-ADVANCED-MV-COMPLEX-BI-20260528: 复杂 BI SQL 高级 MV 推荐增强
+
+- Status: done
+- Completed at: 2026-05-29
+- Commit subject: `USER-CN-ADVANCED-MV-COMPLEX-BI-20260528 enhance complex BI MV recommendation`
+- Priority: 1
+- Depends on: AMV-005,AMV-006,AMV-007,AMV-008,AMV-009,AMV-010,AMV-011,AMV-016
+- Scope: 基于 Calcite 结构画像与既有高级 MV 产物链路，增强复杂永洪 BI 报表 SQL 的高级物化视图推荐、覆盖证明和回归样例；禁止 EXACT_QUERY_MV、禁止静态常量或字符串常量驱动的解析推荐，所有推荐必须来自解析/Rel/结构证据。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-ADVANCED-MV-COMPLEX-BI-20260528`
+- Progress log:
+  - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 基于 Calcite AST/QBDAG 结构证据增强 COMMON_SUBGRAPH_MV 候选选择与证明：候选级阻断窗口/非确定函数/ORDER LIMIT/递归 CTE，支持依赖 CTE 展开与未使用 CTE 裁剪，保留 fail-closed 候选重解析证明；补充 docs/test01.sql 到 docs/test01_mv.sql 的动态回归核验，确认不读取期望 SQL 作为运行时推荐输入且不生成 EXACT_QUERY_MV。
+  - Validation evidence: java -version = OpenJDK 1.8.0_112；mvn -pl sql-optimization -am -Dtest=L2CommonSubgraphMvCandidateGeneratorTest,L2MaterializedViewLargeSqlQualityTest -Dsurefire.failIfNoSpecifiedTests=false test；mvn -pl sql-optimization -am -Dtest=L2CommonSubgraphMvCandidateGeneratorTest,L2MaterializedViewLargeSqlQualityTest,L2MaterializedViewRewriteCoverageValidatorTest,RewriteTrialApplicationServiceTest,ProductionRewriteClosedLoopEndToEndTest,SqlOptimizationPipelineServiceTest -Dsurefire.failIfNoSpecifiedTests=false test；git diff --check；python3 scripts/foreman.py validate USER-CN-ADVANCED-MV-COMPLEX-BI-20260528；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 仓库侧已证明 docs/test01.sql 可由动态解析/结构证据生成 COMMON_SUBGRAPH_MV 产物；真实 Hetu/MRS 权限、刷新成本、EXPLAIN、结果等价和最高行数生产收益仍需外部环境证据。
+  - Next step: 在具备目标 Hetu/MRS 环境后执行真实 MV DDL/refresh/EXPLAIN/result-equivalence smoke，并按治理流程发布 runtime binding。
+
 ### USER-CN-CALCITE-MV-RECOMMENDATION-20260528: Calcite 原生 MV 推荐能力增强
 
 - Status: done

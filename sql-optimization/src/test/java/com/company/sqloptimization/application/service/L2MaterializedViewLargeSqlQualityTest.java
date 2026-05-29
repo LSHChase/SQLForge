@@ -11,10 +11,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -289,6 +295,46 @@ class L2MaterializedViewLargeSqlQualityTest {
             String.valueOf(artifact.get("rewriteSql")));
     }
 
+    @Test
+    void shouldGenerateDocsTest01CommonSubgraphMvAgainstExpectedDynamicFixture() throws Exception {
+        Path root = repositoryRoot();
+        String sourceSql = new String(Files.readAllBytes(root.resolve("docs/test01.sql")), StandardCharsets.UTF_8);
+        String expectedSql = new String(Files.readAllBytes(root.resolve("docs/test01_mv.sql")), StandardCharsets.UTF_8);
+
+        Map<String, Object> artifact = artifact(sourceSql);
+
+        assertNotNull(artifact);
+        assertEquals("COMMON_SUBGRAPH_MV", artifact.get("mvType"), artifactSummary(artifact));
+        assertEquals("GENERATED", artifact.get("artifactStatus"), artifactSummary(artifact));
+        assertTrue(maps(artifact.get("blockingReasons")).isEmpty(), artifactSummary(artifact));
+        assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR, artifact.get("generationSource"));
+
+        String ddlSql = String.valueOf(artifact.get("ddlSql"));
+        String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
+        String validationSql = String.valueOf(artifact.get("validationSql"));
+        String mvName = String.valueOf(artifact.get("mvName"));
+        assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"), ddlSql);
+        assertTrue(rewriteSql.contains(mvName), rewriteSql);
+        assertTrue(validationSql.contains("COMMON_SUBGRAPH_OUTPUT_CHECK"), validationSql);
+
+        Map<String, Object> evidence = map(artifact.get("commonSubgraphEvidence"));
+        assertEquals(Boolean.FALSE, evidence.get("staticConstantMatchUsed"), String.valueOf(evidence));
+        assertEquals("CALCITE_AST_QBDAG_STRUCTURAL_REUSE", evidence.get("candidateSelectionSource"),
+            String.valueOf(evidence));
+        assertFalse(String.valueOf(evidence.get("subgraphFingerprint")).isEmpty(), String.valueOf(evidence));
+
+        for (String factTable : expectedDottedTables(expectedSql)) {
+            assertTrue(containsNormalized(ddlSql, unqualifiedIdentifier(factTable)),
+                "docs/test01_mv.sql 中的事实表未被 DDL 覆盖: " + factTable);
+        }
+        for (String alias : expectedTopLevelAliases(expectedSql)) {
+            assertTrue(containsNormalized(rewriteSql, alias),
+                "docs/test01_mv.sql 中的顶层输出别名未被 rewrite 覆盖: " + alias);
+        }
+        assertTrue(matchedLiteralCount(expectedSql, ddlSql + "\n" + rewriteSql) >= 4,
+            "docs/test01_mv.sql 中的字面量锚点应被生成的 DDL/rewrite 携带");
+    }
+
     private void assertUsableBundle(MvCase item, Map<String, Object> artifact) {
         if (item.reviewCode == null) {
             assertEquals("GENERATED", artifact.get("artifactStatus"), item.name + " " + artifact);
@@ -473,6 +519,89 @@ class L2MaterializedViewLargeSqlQualityTest {
         assertTrue(value != null && String.valueOf(value).trim().length() > 0, name);
     }
 
+    private static String artifactSummary(Map<String, Object> artifact) {
+        return "status=" + artifact.get("artifactStatus")
+            + ", mvType=" + artifact.get("mvType")
+            + ", blockingReasons=" + artifact.get("blockingReasons")
+            + ", commonSubgraphEvidence=" + artifact.get("commonSubgraphEvidence");
+    }
+
+    private static List<String> expectedDottedTables(String sql) {
+        LinkedHashSet<String> tables = new LinkedHashSet<String>();
+        Matcher matcher = Pattern.compile(
+            "(?is)\\bFROM\\s+((?:\"[^\"]+\"|[A-Z_][A-Z0-9_$]*)(?:\\s*\\.\\s*(?:\"[^\"]+\"|[A-Z_][A-Z0-9_$]*))+)"
+        ).matcher(stripLineComments(sql));
+        while (matcher.find()) {
+            tables.add(cleanSqlToken(matcher.group(1)));
+        }
+        return new ArrayList<String>(tables);
+    }
+
+    private static List<String> expectedTopLevelAliases(String sql) {
+        String body = stripLineComments(sql);
+        int selectIndex = body.toUpperCase(Locale.ROOT).lastIndexOf("\nSELECT");
+        if (selectIndex < 0) {
+            return Collections.emptyList();
+        }
+        int fromIndex = body.toUpperCase(Locale.ROOT).indexOf("\nFROM", selectIndex);
+        if (fromIndex < 0) {
+            return Collections.emptyList();
+        }
+        String selectList = body.substring(selectIndex, fromIndex);
+        LinkedHashSet<String> aliases = new LinkedHashSet<String>();
+        Matcher matcher = Pattern.compile("(?is)\\bAS\\s+(\"[^\"]+\"|[A-Z_][A-Z0-9_$]*)").matcher(selectList);
+        while (matcher.find()) {
+            aliases.add(cleanSqlToken(matcher.group(1)));
+        }
+        return new ArrayList<String>(aliases);
+    }
+
+    private static int matchedLiteralCount(String expectedSql, String actualSql) {
+        Set<String> literals = new LinkedHashSet<String>();
+        Matcher matcher = Pattern.compile("'([^']*)'").matcher(stripLineComments(expectedSql));
+        while (matcher.find()) {
+            String literal = matcher.group(1);
+            if (literal.length() >= 2) {
+                literals.add(literal);
+            }
+        }
+        int count = 0;
+        for (String literal : literals) {
+            if (actualSql.contains("'" + literal + "'")) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean containsNormalized(String text, String token) {
+        return normalizeForContains(text).contains(normalizeForContains(token));
+    }
+
+    private static String normalizeForContains(String text) {
+        return cleanSqlToken(text).replaceAll("\\s+", " ").toUpperCase(Locale.ROOT);
+    }
+
+    private static String unqualifiedIdentifier(String value) {
+        String cleaned = cleanSqlToken(value);
+        int dot = cleaned.lastIndexOf('.');
+        return dot < 0 ? cleaned : cleaned.substring(dot + 1);
+    }
+
+    private static String cleanSqlToken(String value) {
+        return value == null ? "" : value.replace("\"", "").replace("`", "").replaceAll("\\s*\\.\\s*", ".").trim();
+    }
+
+    private static String stripLineComments(String sql) {
+        StringBuilder builder = new StringBuilder();
+        for (String line : sql.split("\\r?\\n", -1)) {
+            if (!line.trim().startsWith("--") && !line.trim().startsWith("#")) {
+                builder.append(line).append('\n');
+            }
+        }
+        return builder.toString();
+    }
+
     private static boolean hasCode(List<Map<String, Object>> items, String code) {
         for (Map<String, Object> item : items) {
             if (code.equals(item.get("code"))) {
@@ -488,6 +617,14 @@ class L2MaterializedViewLargeSqlQualityTest {
             return Collections.emptyList();
         }
         return (List<Map<String, Object>>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> map(Object value) {
+        if (value == null) {
+            return Collections.emptyMap();
+        }
+        return (Map<String, Object>) value;
     }
 
     private static final class MvCase {
