@@ -16,19 +16,6 @@ _No tasks._
 
 ## In Progress
 
-### USER-CN-DIST-PORTABLE-UPDATE-20260529: 全量更新 dist-portable 便携前端包
-
-- Status: in_progress
-- Priority: 1
-- Depends on: N/A
-- Scope: 基于当前前端源码执行 portable 模式完整构建，刷新 dist-portable 下静态资产、便携服务脚本、代理共享脚本、默认配置、启动脚本与 README，并执行便携前端 smoke 验证；不修改业务源码、不做交付 tag。
-- Validation:
-  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529`
-- Progress log:
-  - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
-  - 2026-05-29: 已执行 `npm run build:portable` 全量重建 `dist-portable`，刷新 Vite hash 资产、`index.html`、便携服务脚本、代理共享脚本、默认配置、启动脚本与 README。
-  - 2026-05-29: `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529 --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend'` 通过；当前未执行 closeout/commit，避免把基于并行未提交源码生成的 portable 产物拆成脱离源码的单独提交。
-
 ### USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528: 后端超 200 行类拆分
 
 - Status: in_progress

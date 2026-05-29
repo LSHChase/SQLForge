@@ -4,6 +4,26 @@
 
 ## Done
 
+### USER-CN-DIST-PORTABLE-UPDATE-20260529: 全量更新 dist-portable 便携前端包
+
+- Status: done
+- Completed at: 2026-05-29
+- Commit subject: `build(portable): refresh dist-portable package`
+- Priority: 1
+- Depends on: N/A
+- Scope: 基于当前前端源码执行 portable 模式完整构建，刷新 dist-portable 下静态资产、便携服务脚本、代理共享脚本、默认配置、启动脚本与 README，并执行便携前端 smoke 验证；不修改业务源码、不做交付 tag。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529`
+- Progress log:
+  - 2026-05-29: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-29: 已执行 `npm run build:portable` 全量重建 `dist-portable`，刷新 Vite hash 资产、`index.html`、便携服务脚本、代理共享脚本、默认配置、启动脚本与 README。
+  - 2026-05-29: `python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529 --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend'` 通过；已在前端源码提交后执行 closeout/commit，portable 产物与对应源码提交保持顺序一致。
+- Context closeout:
+  - Completed scope: 基于已提交的前端 SQL 格式化控件源码重新执行 portable 模式完整构建，刷新 dist-portable/index.html 与 Vite hash 静态资产，移除过期 hashed assets，并保留便携包启动和配置语义不变。
+  - Validation evidence: npm run build:portable；npm run smoke:portable-frontend；python3 scripts/foreman.py validate USER-CN-DIST-PORTABLE-UPDATE-20260529 --extra-command 'npm run build:portable' --extra-command 'npm run smoke:portable-frontend'；git diff --check；python3 scripts/task_audit.py --check --phase pre-closeout。
+  - Residual risk: 仓库侧 portable 构建和浏览器 smoke 已通过；真实目标机器仍依赖部署时 portable-config.json 指向可用后端服务。
+  - Next step: 分发时使用 dist-portable/start-portable.sh 或 start-portable.cmd，并按目标环境更新 portable-config.json 后连接后端服务。
+
 ### USER-CN-FRONTEND-SQL-FORMAT-CONTROLS-20260529: 前端 SQL 格式化按钮统一修复
 
 - Status: done
