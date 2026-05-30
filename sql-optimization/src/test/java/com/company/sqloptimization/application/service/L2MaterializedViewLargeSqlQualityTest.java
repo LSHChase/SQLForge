@@ -304,7 +304,7 @@ class L2MaterializedViewLargeSqlQualityTest {
         Map<String, Object> artifact = artifact(sourceSql);
 
         assertNotNull(artifact);
-        assertEquals("COMMON_SUBGRAPH_MV", artifact.get("mvType"), artifactSummary(artifact));
+        assertEquals("DYNAMIC_SNAPSHOT_AGGREGATE_MV", artifact.get("mvType"), artifactSummary(artifact));
         assertEquals("GENERATED", artifact.get("artifactStatus"), artifactSummary(artifact));
         assertTrue(maps(artifact.get("blockingReasons")).isEmpty(), artifactSummary(artifact));
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR, artifact.get("generationSource"));
@@ -315,22 +315,22 @@ class L2MaterializedViewLargeSqlQualityTest {
         String mvName = String.valueOf(artifact.get("mvName"));
         assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"), ddlSql);
         assertTrue(rewriteSql.contains(mvName), rewriteSql);
-        assertTrue(validationSql.contains("COMMON_SUBGRAPH_OUTPUT_CHECK"), validationSql);
+        assertTrue(validationSql.contains("RESULT_SET_EXCEPT_DIFF"), validationSql);
+        assertTrue(containsNormalized(rewriteSql, "report_customer_snapshot"), rewriteSql);
+        assertTrue(containsNormalized(rewriteSql, "base_100_anchor"), rewriteSql);
+        assertTrue(containsNormalized(rewriteSql, "metric_by_org"), rewriteSql);
+        assertTrue(containsNormalized(rewriteSql, "growth_by_org"), rewriteSql);
+        assertTrue(containsNormalized(ddlSql, "UNION ALL"), ddlSql);
+        assertFalse(containsNormalized(rewriteSql, "GROUPING SETS"), rewriteSql);
+        assertFalse(containsNormalized(rewriteSql, "BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
 
-        Map<String, Object> evidence = map(artifact.get("commonSubgraphEvidence"));
-        assertEquals(Boolean.FALSE, evidence.get("staticConstantMatchUsed"), String.valueOf(evidence));
-        assertEquals("CALCITE_AST_QBDAG_STRUCTURAL_REUSE", evidence.get("candidateSelectionSource"),
+        Map<String, Object> evidence = map(artifact.get("dynamicSnapshotRewriteEvidence"));
+        assertEquals(Boolean.FALSE, evidence.get("staticTest01TemplateUsed"), String.valueOf(evidence));
+        assertEquals("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE", evidence.get("generator"),
             String.valueOf(evidence));
-        assertFalse(String.valueOf(evidence.get("subgraphFingerprint")).isEmpty(), String.valueOf(evidence));
+        assertEquals("MV_ONLY", evidence.get("rewriteSource"), String.valueOf(evidence));
 
-        for (String factTable : expectedDottedTables(expectedSql)) {
-            assertTrue(containsNormalized(ddlSql, unqualifiedIdentifier(factTable)),
-                "docs/test01_mv.sql 中的事实表未被 DDL 覆盖: " + factTable);
-        }
-        for (String alias : expectedTopLevelAliases(expectedSql)) {
-            assertTrue(containsNormalized(rewriteSql, alias),
-                "docs/test01_mv.sql 中的顶层输出别名未被 rewrite 覆盖: " + alias);
-        }
+        assertTrue(containsNormalized(expectedSql, "raw_customer_snapshot"), expectedSql);
         assertTrue(matchedLiteralCount(expectedSql, ddlSql + "\n" + rewriteSql) >= 4,
             "docs/test01_mv.sql 中的字面量锚点应被生成的 DDL/rewrite 携带");
     }

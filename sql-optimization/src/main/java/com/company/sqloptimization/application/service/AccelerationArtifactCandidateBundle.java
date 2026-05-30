@@ -5,6 +5,7 @@ import java.util.Map;
 
 final class AccelerationArtifactCandidateBundle {
 
+    private L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshot;
     private L2ParameterizedAggMvCandidateGenerator.CandidateSql parameterizedAgg;
     private L2PrejoinMvCandidateGenerator.CandidateSql prejoin;
     private L2StarAggMvCandidateGenerator.CandidateSql starAgg;
@@ -28,7 +29,15 @@ final class AccelerationArtifactCandidateBundle {
         if (!blockingReasons.isEmpty()) {
             return bundle;
         }
-        if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
+        bundle.dynamicSnapshot = L2DynamicSnapshotAggregateMvCandidateGenerator.generate(
+            candidateSourceSql,
+            mvName,
+            targetEngine,
+            candidateProfile
+        );
+        if (bundle.dynamicSnapshot != null) {
+            blockingReasons.addAll(bundle.dynamicSnapshot.getBlockingReasons());
+        } else if (L2GrainMeasureDeriver.MV_TYPE_COMMON_SUBGRAPH.equals(grainMeasureDerivation.getMvType())) {
             bundle.commonSubgraph = L2CommonSubgraphMvCandidateGenerator.generate(
                 candidateSourceSql,
                 mvName,
@@ -83,6 +92,9 @@ final class AccelerationArtifactCandidateBundle {
     }
 
     String candidateRewriteSql() {
+        if (dynamicSnapshot != null) {
+            return dynamicSnapshot.getRewriteSql();
+        }
         if (commonSubgraph != null) {
             return commonSubgraph.getRewriteSql();
         }
@@ -99,6 +111,16 @@ final class AccelerationArtifactCandidateBundle {
     }
 
     void addVariantEvidence(Map<String, Object> artifact) {
+        if (dynamicSnapshot != null) {
+            artifact.put("dynamicSnapshotRewriteEvidence", dynamicSnapshot.getRewriteEvidence());
+            artifact.put("dynamicSnapshotValidationMethods", dynamicSnapshot.getValidationMethods());
+            artifact.put("grain", dynamicSnapshot.getGrain());
+            artifact.put("dimensions", dynamicSnapshot.getDimensions());
+            artifact.put("measures", dynamicSnapshot.getMeasures());
+            artifact.put("externalizedPredicates", dynamicSnapshot.getExternalizedPredicates());
+            artifact.put("retainedPredicates", dynamicSnapshot.getRetainedPredicates());
+            artifact.put("reviewWarnings", dynamicSnapshot.getReviewWarnings());
+        }
         if (prejoin != null) {
             artifact.put("joinKeys", prejoin.getJoinKeys());
             artifact.put("fieldMappings", prejoin.getFieldMappings());
@@ -124,7 +146,10 @@ final class AccelerationArtifactCandidateBundle {
     }
 
     void addSqlOutputs(Map<String, Object> artifact, String plannedRewriteSql) {
-        if (commonSubgraph != null) {
+        if (dynamicSnapshot != null) {
+            putSqlOutputs(artifact, dynamicSnapshot.getDdlSql(), dynamicSnapshot.getRefreshSql(),
+                dynamicSnapshot.getRollbackSql(), dynamicSnapshot.getValidationSql(), plannedRewriteSql);
+        } else if (commonSubgraph != null) {
             putSqlOutputs(artifact, commonSubgraph.getDdlSql(), commonSubgraph.getRefreshSql(),
                 commonSubgraph.getRollbackSql(), commonSubgraph.getValidationSql(), plannedRewriteSql);
         } else if (starAgg != null) {
@@ -156,6 +181,10 @@ final class AccelerationArtifactCandidateBundle {
 
     CommonSubgraphCandidateSql commonSubgraph() {
         return commonSubgraph;
+    }
+
+    L2DynamicSnapshotAggregateMvCandidateGenerator.CandidateSql dynamicSnapshot() {
+        return dynamicSnapshot;
     }
 
     private static void putSqlOutputs(Map<String, Object> artifact,

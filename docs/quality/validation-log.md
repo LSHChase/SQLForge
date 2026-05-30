@@ -6418,3 +6418,70 @@
 2026-05-29T00:31:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
 2026-05-29T00:31:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
 2026-05-29T00:31:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:41:45-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 preflight | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/foreman.py preflight --task USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 --task-class standard`
+2026-05-29T08:41:45-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-shared-jdbcagent-surface-fingerprint-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl sqlforge-shared -Dtest=SqlForgeJdbcAgentTest,SqlForgeJdbcAgentObserveTest,SqlForgeJdbcAgentGovernedExecuteTest,RedisJdbcAgentRewriteRuleProviderTest,SqlSurfaceObjectRefExtractorTest,SqlFingerprintUtilsTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T08:41:45-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against shared jdbcagent/logicalobject/utils split file groups with no reported offenders
+2026-05-29T08:41:45-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T08:41:45-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:41:45-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:47:20-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-shared-runtime-template-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl sqlforge-shared -Dtest=RuntimeSqlRewriteTemplateEngineTest,SqlFingerprintUtilsTest,SqlForgeJdbcAgentTest,SqlForgeJdbcAgentObserveTest,SqlForgeJdbcAgentGovernedExecuteTest,RedisJdbcAgentRewriteRuleProviderTest,SqlSurfaceObjectRefExtractorTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T08:47:20-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against shared rewrite split file groups with no reported offenders
+2026-05-29T08:47:20-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T08:47:20-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:47:20-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:50:15-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-query-result-digest-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl query-execution -am -Dtest=QueryExecutionResultDigestServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T08:50:15-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against query-execution digest split file groups with no reported offenders
+2026-05-29T08:50:15-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T08:50:15-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:50:15-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:52:46-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-query-hetu-calibration-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl query-execution -am -Dtest=HetuRouteCalibrationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T08:52:46-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against query-execution hetu calibration split file groups with no reported offenders
+2026-05-29T08:52:46-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T08:52:46-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:52:46-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:55:59-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-governance-datasource-access-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl governance -am -Dtest=GovernanceDatasourceAccessApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T08:55:59-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against governance datasource-access split file groups with no reported offenders
+2026-05-29T08:55:59-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T08:55:59-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:55:59-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T08:58:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-governance-alert-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl governance -am -Dtest=GovernanceAlertApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T08:58:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against governance alert split file groups with no reported offenders
+2026-05-29T08:58:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T08:58:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T08:58:26-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T09:03:08-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-query-mv-create-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl query-execution -am -Dtest=QueryExecutionMaterializedViewCreateServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T09:03:08-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against query-execution mv-create split file groups with no reported offenders
+2026-05-29T09:03:08-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T09:03:08-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T09:03:08-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T09:08:01-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-query-metrics-recorder-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl query-execution -am -Dtest=QueryExecutionMetricsRecorderTest,QueryExecutionApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T09:08:01-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against query-execution metrics recorder split file group with no reported offenders
+2026-05-29T09:08:01-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T09:08:01-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T09:08:01-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T09:20:18-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-query-cache-governance-runtime-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl query-execution -am -Dtest=QueryExecutionCacheGovernanceRuntimeServiceTest,QueryExecutionApplicationServiceTest,QueryExecutionInternalControllerTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T09:20:18-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against query-execution cache-governance runtime split file group with no reported offenders
+2026-05-29T09:20:18-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T09:20:18-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T09:20:18-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T09:28:21-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-governance-protected-persistence-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl governance -am -Dtest=GovernanceProtectedPersistenceServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T09:28:21-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against governance protected-persistence split file group with no reported offenders
+2026-05-29T09:28:21-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T09:28:21-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T09:28:21-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-29T09:34:12-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-governance-datasource-config-split | `R-119`, `R-126`, `R-133` | passed | `mvn -pl governance -am -Dtest=DatasourceConfigApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+2026-05-29T09:34:12-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 focused-line-gate | `R-133`, `R-168` | passed | `python3 scripts/check_java_class_loc.py --limit 200` against governance datasource-config split file group with no reported offenders
+2026-05-29T09:34:12-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 whitespace | `R-017`, `R-133` | passed | `git diff --check`
+2026-05-29T09:34:12-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 knowledge-lint | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-29T09:34:12-05:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528 governance | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-30T09:35:15+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-30T09:35:15+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-30T09:35:17+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-124`, `R-184` | passed | `npm run lint`
+2026-05-30T09:35:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-124`, `R-184` | passed | `npm run build`
+2026-05-30T09:35:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-180`, `R-184` | passed | `npm run test:form-governance`
+2026-05-30T09:35:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-180`, `R-184` | passed | `npm run test:sql-ui-contract`
+2026-05-30T09:35:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-177`, `R-178`, `R-179`, `R-180`, `R-181`, `R-182`, `R-183`, `R-184`, `R-186` | passed | `npm run test:frontend-page-governance`
+2026-05-30T09:35:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-30T09:36:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-30T09:36:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 closeout commit | `R-168` | projected | `git commit -m 'feat: restore dynamic test01 mv rewrite' (projected-precommit)`
+2026-05-30T09:36:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`

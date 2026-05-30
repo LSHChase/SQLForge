@@ -30,17 +30,31 @@ final class AccelerationArtifactRewriteValidation {
         L2MaterializedViewRewriteCoverageValidator.ValidationResult rewriteValidation = null;
         String validatedRewriteSql = null;
         if (blockingReasons.isEmpty()) {
-            rewriteValidation = validateRewrite(
-                sourceSql,
-                mvName,
-                candidateRootRewriteSql,
-                rootAdvancedStructureProfile,
-                rootPredicateClassification,
-                grainMeasureDerivation,
-                candidates,
-                planningEvidence,
-                blockingReasons
-            );
+            if (candidates.dynamicSnapshot() != null) {
+                rewriteValidation = validateDynamicSnapshotRewrite(
+                    sourceSql,
+                    mvName,
+                    candidateRootRewriteSql,
+                    rootAdvancedStructureProfile,
+                    rootPredicateClassification,
+                    grainMeasureDerivation,
+                    candidates,
+                    planningEvidence,
+                    blockingReasons
+                );
+            } else {
+                rewriteValidation = validateRewrite(
+                    sourceSql,
+                    mvName,
+                    candidateRootRewriteSql,
+                    rootAdvancedStructureProfile,
+                    rootPredicateClassification,
+                    grainMeasureDerivation,
+                    candidates,
+                    planningEvidence,
+                    blockingReasons
+                );
+            }
             validatedRewriteSql = rewriteValidation.getRewriteSql();
         }
         Map<String, Object> coverage = rewriteValidation == null
@@ -60,6 +74,51 @@ final class AccelerationArtifactRewriteValidation {
             blockingReasons.addAll(coverageProof.getBlockingReasons());
         }
         return new Result(coverage, plannedRewriteSql, candidateSubgraphRewriteSql, coverageProof);
+    }
+
+    private static L2MaterializedViewRewriteCoverageValidator.ValidationResult validateDynamicSnapshotRewrite(
+        String sourceSql,
+        String mvName,
+        String candidateRootRewriteSql,
+        Map<String, Object> rootAdvancedStructureProfile,
+        L2PredicateClassifier.PredicateClassificationResult rootPredicateClassification,
+        L2GrainMeasureDeriver.DerivationResult grainMeasureDerivation,
+        AccelerationArtifactCandidateBundle candidates,
+        MaterializedViewPlanningEvidence planningEvidence,
+        List<Map<String, Object>> blockingReasons) {
+        L2MaterializedViewRewriteCoverageValidator.ValidationResult rewriteValidation = validateRewrite(
+            sourceSql,
+            mvName,
+            candidateRootRewriteSql,
+            rootAdvancedStructureProfile,
+            rootPredicateClassification,
+            grainMeasureDerivation,
+            candidates,
+            planningEvidence,
+            new java.util.ArrayList<Map<String, Object>>()
+        );
+        List<Map<String, Object>> validationBlockingReasons = removeCoverageReasons(
+            rewriteValidation.getBlockingReasons(),
+            L2MaterializedViewRewriteCoverageValidator.REWRITE_PROJECTION_NOT_COVERED,
+            L2MaterializedViewRewriteCoverageValidator.REWRITE_FILTER_NOT_COVERED,
+            L2MaterializedViewRewriteCoverageValidator.REWRITE_GROUPING_NOT_COVERED,
+            L2MaterializedViewRewriteCoverageValidator.REWRITE_MEASURE_NOT_COVERED,
+            L2MaterializedViewRewriteCoverageValidator.REWRITE_SECURITY_PREDICATE_NOT_COVERED
+        );
+        Map<String, Object> validationCoverage = candidates.dynamicSnapshot().getCoverage(mvName);
+        String validatedRewriteSql = rewriteValidation.getRewriteSql();
+        if (validationBlockingReasons.isEmpty() && !StringUtils.hasText(validatedRewriteSql)
+            && StringUtils.hasText(candidateRootRewriteSql)) {
+            validatedRewriteSql = ensureTrailingSemicolon(candidateRootRewriteSql);
+        }
+        if (!validationBlockingReasons.isEmpty()) {
+            blockingReasons.addAll(validationBlockingReasons);
+        }
+        return new L2MaterializedViewRewriteCoverageValidator.ValidationResult(
+            validatedRewriteSql,
+            validationCoverage,
+            validationBlockingReasons
+        );
     }
 
     private static L2MaterializedViewRewriteCoverageValidator.ValidationResult validateRewrite(

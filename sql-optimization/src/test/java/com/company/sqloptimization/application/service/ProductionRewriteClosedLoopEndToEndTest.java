@@ -321,8 +321,8 @@ class ProductionRewriteClosedLoopEndToEndTest {
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
             .contains("EXPLAIN_UNAVAILABLE"));
         assertFalse("EXACT_QUERY_MV".equals(recommendation.getAccelerationArtifact().get("mvType")));
-        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("commonSubgraphEvidence"))
-            .contains("CALCITE_AST_QBDAG_STRUCTURAL_REUSE"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("dynamicSnapshotRewriteEvidence"))
+            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
 
         String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
         if ("BLOCKED".equals(artifactStatus)) {
@@ -330,6 +330,10 @@ class ProductionRewriteClosedLoopEndToEndTest {
                 String.valueOf(recommendation.getAccelerationArtifact()));
         } else {
             String rewriteSql = String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"));
+            assertTrue(rewriteSql.contains("report_customer_snapshot"), rewriteSql);
+            assertTrue(rewriteSql.contains("base_100_anchor"), rewriteSql);
+            assertTrue(rewriteSql.contains("metric_by_org"), rewriteSql);
+            assertTrue(rewriteSql.contains("growth_by_org"), rewriteSql);
             assertTrue(rewriteSql.contains(String.valueOf(recommendation.getAccelerationArtifact().get("mvName"))),
                 rewriteSql);
             assertFalse(rewriteSql.contains("FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);

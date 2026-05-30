@@ -419,8 +419,19 @@ public class SqlOptimizationPipelineService {
 
     public OptimizationTaskSuggestion buildRewriteSuggestion(ParsedSqlProfile profile) {
         RewriteOutcome outcome = profile == null ? RewriteOutcome.empty() : profile.getRewriteOutcome();
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate dynamicSnapshotRewrite =
+            profile == null ? null : L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(
+                profile.getNormalizedSql(),
+                profile
+            );
         List<String> appliedRules = new ArrayList<String>(outcome.appliedRules);
         String candidateSql = outcome.rewrittenSql;
+        if (dynamicSnapshotRewrite != null && StringUtils.hasText(dynamicSnapshotRewrite.getRewriteSql())) {
+            candidateSql = dynamicSnapshotRewrite.getRewriteSql();
+            if (!appliedRules.contains(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE)) {
+                appliedRules.add(L2DynamicSnapshotAggregateMvCandidateGenerator.RULE);
+            }
+        }
         RewriteCoreIrSnapshot coreIrSnapshot = profile == null ? null : buildRewriteCoreIr(profile);
         List<OptimizationTaskRisk> risks = new ArrayList<OptimizationTaskRisk>(buildShapeRisks(profile));
         if (appliedRules.isEmpty()) {
@@ -445,6 +456,18 @@ public class SqlOptimizationPipelineService {
         List<OptimizationTaskArtifact> artifacts = new ArrayList<OptimizationTaskArtifact>();
         artifacts.add(new OptimizationTaskArtifact("REWRITTEN_SQL", "candidateSql", candidateSql));
         artifacts.add(new OptimizationTaskArtifact("REWRITE_RULE_TRACE", "appliedRules", JsonUtils.toJson(appliedRules)));
+        if (dynamicSnapshotRewrite != null) {
+            artifacts.add(new OptimizationTaskArtifact(
+                "DYNAMIC_REWRITE_EVIDENCE",
+                "dynamicSnapshotRewriteEvidence",
+                JsonUtils.toJson(dynamicSnapshotRewrite.getEvidence())
+            ));
+            artifacts.add(new OptimizationTaskArtifact(
+                "DYNAMIC_REWRITE_VALIDATION_METHODS",
+                "dynamicSnapshotValidationMethods",
+                JsonUtils.toJson(dynamicSnapshotRewrite.getValidationMethods())
+            ));
+        }
         artifacts.add(new OptimizationTaskArtifact("AST_PROFILE", "astProfile", JsonUtils.toJson(profile.toAstProfile())));
         if (coreIrSnapshot != null) {
             artifacts.add(new OptimizationTaskArtifact(
@@ -1471,6 +1494,21 @@ public class SqlOptimizationPipelineService {
                                      List<Map<String, Object>> ruleChain,
                                      List<Map<String, Object>> preconditions,
                                      List<Map<String, Object>> semanticRisks) {
+        if (L2DynamicSnapshotAggregateMvCandidateGenerator.rewriteCandidate(
+            profile.getNormalizedSql(),
+            profile
+        ) != null) {
+            addPullOnlyRuleIfAbsent(
+                ruleChain,
+                preconditions,
+                semanticRisks,
+                L2DynamicSnapshotAggregateMvCandidateGenerator.RULE,
+                "REPEATED_SNAPSHOT_AGGREGATE_SHAPE_REQUIRED",
+                "重复日期快照与客户阈值聚合形态可收敛为客户-日期快照 MV，再按机构层派生结果。",
+                "改写必须先通过结果集、逐键指标和计划形态验证，不能仅凭静态解析自动应用。",
+                MaterializedViewRecommendationPlanner.SOURCE_AST_IR
+            );
+        }
         if (!profile.getAggregateFunctions().isEmpty() || profile.getGroupByCount() > 0) {
             ruleChain.add(ruleEntry(
                 "L2",
@@ -1785,6 +1823,26 @@ public class SqlOptimizationPipelineService {
                                          String missingEvidence,
                                          String description,
                                          String riskDescription) {
+        addPullOnlyRuleIfAbsent(
+            ruleChain,
+            preconditions,
+            semanticRisks,
+            rule,
+            missingEvidence,
+            description,
+            riskDescription,
+            "STATIC_PARSE"
+        );
+    }
+
+    private void addPullOnlyRuleIfAbsent(List<Map<String, Object>> ruleChain,
+                                         List<Map<String, Object>> preconditions,
+                                         List<Map<String, Object>> semanticRisks,
+                                         String rule,
+                                         String missingEvidence,
+                                         String description,
+                                         String riskDescription,
+                                         String evidenceLevel) {
         if (containsRule(ruleChain, rule)) {
             return;
         }
@@ -1792,7 +1850,7 @@ public class SqlOptimizationPipelineService {
             "L2",
             rule,
             "PULL_ONLY_CANDIDATE",
-            "STATIC_PARSE",
+            evidenceLevel,
             Boolean.FALSE,
             description
         ));

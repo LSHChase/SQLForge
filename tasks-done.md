@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529: 恢复 docs/test01 动态 MV 推荐与改写能力
+
+- Status: done
+- Completed at: 2026-05-30
+- Commit subject: `feat: restore dynamic test01 mv rewrite`
+- Priority: 1
+- Depends on: N/A
+- Scope: 定位并修复 docs/test01.sql 当前无法动态推荐出类似 docs/test01_mv.sql 的 MV 及推荐 SQL 的回归问题；禁止静态解析、静态推荐、运行时读取期望 SQL 或使用静态常量/变量驱动推荐；以当前动态解析链路、推荐链路和回归测试为准补齐实现与验证证据。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529`
+- Progress log:
+  - 2026-05-30: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 恢复 docs/test01 动态 snapshot/report MV 候选生成、rewrite suggestion、PRECOMPUTE_MV artifact 与 rewrite-validation 页面展示；补强相关回归测试。
+  - Validation evidence: python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: 仓库内仍存在与本任务无关的既有失败套件 AccelerationRewriteContractApplicationServiceTest，本次未处理。
+  - Next step: 如需扩展到更多报表形态，可继续抽象动态 snapshot aggregate 识别规则。
+
 ### USER-CN-DIST-PORTABLE-UPDATE-20260529: 全量更新 dist-portable 便携前端包
 
 - Status: done

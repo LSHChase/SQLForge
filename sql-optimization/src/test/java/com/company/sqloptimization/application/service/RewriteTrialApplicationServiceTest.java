@@ -160,8 +160,8 @@ class RewriteTrialApplicationServiceTest {
             .contains("MV_COVERAGE_PROOF_ENGINE_V1"));
         assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("explainEvidence"))
             .contains("EXPLAIN_UNAVAILABLE"));
-        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("commonSubgraphEvidence"))
-            .contains("CALCITE_AST_QBDAG_STRUCTURAL_REUSE"));
+        assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("dynamicSnapshotRewriteEvidence"))
+            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
         String artifactStatus = String.valueOf(recommendation.getAccelerationArtifact().get("artifactStatus"));
         if ("BLOCKED".equals(artifactStatus)) {
             assertTrue(recommendation.getAccelerationArtifact().get("rewriteSql") == null,
@@ -169,6 +169,10 @@ class RewriteTrialApplicationServiceTest {
         } else {
             assertTrue("GENERATED".equals(artifactStatus) || "REVIEW_REQUIRED".equals(artifactStatus),
                 String.valueOf(recommendation.getAccelerationArtifact()));
+            assertTrue(String.valueOf(recommendation.getRecommendedSqlText()).contains("report_customer_snapshot"));
+            assertTrue(String.valueOf(recommendation.getRecommendedSqlText()).contains("base_100_anchor"));
+            assertTrue(String.valueOf(recommendation.getRecommendedSqlText()).contains("metric_by_org"));
+            assertTrue(String.valueOf(recommendation.getRecommendedSqlText()).contains("growth_by_org"));
             assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("rewriteSql"))
                 .contains(String.valueOf(recommendation.getAccelerationArtifact().get("mvName"))));
             assertTrue(String.valueOf(recommendation.getAccelerationArtifact().get("ddlSql"))

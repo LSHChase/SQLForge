@@ -26,6 +26,7 @@ import {
   firstDatasourceForEngine,
   groupGovernanceDatasources
 } from '../common/governanceDatasourceOptions.mjs'
+import { resolveRuntimeRewriteSql } from '../common/runtimeRewriteSql.mjs'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -95,7 +96,14 @@ const benefits = computed(() => normalizeArray(suggestion.value?.benefits))
 const costs = computed(() => normalizeArray(suggestion.value?.costs))
 const risks = computed(() => normalizeArray(suggestion.value?.risks))
 const originalSqlText = computed(() => String(form.rawSqlText ?? form.sqlText ?? ''))
-const recommendedSql = computed(() => artifactContent('REWRITTEN_SQL', 'candidateSql') || originalSqlText.value)
+const runtimeRewriteSqlSelection = computed(() =>
+  resolveRuntimeRewriteSql({
+    artifact: parseJsonObject(artifactContent('ACCELERATION_ARTIFACT', 'accelerationArtifact')),
+    recommendedSqlText: artifactContent('REWRITTEN_SQL', 'candidateSql'),
+    diffRecommendedSql: ''
+  })
+)
+const recommendedSql = computed(() => runtimeRewriteSqlSelection.value.sqlText || originalSqlText.value)
 const appliedRules = computed(() => normalizeRuleTrace(artifactContent('REWRITE_RULE_TRACE', 'appliedRules')))
 const astProfile = computed(() => parseJsonObject(artifactContent('AST_PROFILE', 'astProfile')))
 const recommendationReport = computed(() =>
