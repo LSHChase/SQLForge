@@ -37,16 +37,29 @@ final class CommonSubgraphAliasScanner {
     }
 
     static CommonSubgraphAliasMatch aliasAfter(String sql, int start, String expectedAlias) {
+        CommonSubgraphAliasMatch match = aliasAfter(sql, start);
+        if (!match.matched) {
+            return match;
+        }
         int index = skipWhitespace(sql, start);
         int aliasStart = index;
         if (startsWithWord(sql, index, "AS")) {
             aliasStart = skipWhitespace(sql, index + 2);
         }
         CommonSubgraphAliasToken token = readAliasToken(sql, aliasStart);
-        if (!token.present) {
-            return CommonSubgraphAliasMatch.none();
-        }
         return normalizeIdentifier(token.value).equals(normalizeIdentifier(expectedAlias))
+            ? match
+            : CommonSubgraphAliasMatch.none();
+    }
+
+    static CommonSubgraphAliasMatch aliasAfter(String sql, int start) {
+        int index = skipWhitespace(sql, start);
+        int aliasStart = index;
+        if (startsWithWord(sql, index, "AS")) {
+            aliasStart = skipWhitespace(sql, index + 2);
+        }
+        CommonSubgraphAliasToken token = readAliasToken(sql, aliasStart);
+        return token.present
             ? new CommonSubgraphAliasMatch(true, token.endIndex)
             : CommonSubgraphAliasMatch.none();
     }

@@ -26,11 +26,6 @@ final class AccelerationArtifactFields {
             fields.addAll(grainMeasureDerivation.getDimensions());
             addMeasureFields(fields, grainMeasureDerivation.getMeasures());
         }
-        if (candidates.dynamicSnapshot() != null) {
-            fields.addAll(candidates.dynamicSnapshot().getGrain());
-            fields.addAll(candidates.dynamicSnapshot().getDimensions());
-            addMeasureFields(fields, candidates.dynamicSnapshot().getMeasures());
-        }
         if (candidates.prejoin() != null) {
             for (Map<String, Object> mapping : candidates.prejoin().getFieldMappings()) {
                 addIfText(fields, text(mapping.get("mvColumn")));
@@ -60,10 +55,6 @@ final class AccelerationArtifactFields {
         if (grainMeasureDerivation != null) {
             references.addAll(grainMeasureDerivation.getGrain());
             references.addAll(grainMeasureDerivation.getDimensions());
-        }
-        if (candidates.dynamicSnapshot() != null) {
-            references.addAll(candidates.dynamicSnapshot().getGrain());
-            references.addAll(candidates.dynamicSnapshot().getDimensions());
         }
         if (candidates.rollup() != null) {
             addRollupReferences(references, candidates.rollup().getTimeRollupEvidence());

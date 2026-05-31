@@ -26,15 +26,21 @@ final class CommonSubgraphReplacementMatcher {
             if (close < 0) {
                 continue;
             }
-            CommonSubgraphAliasMatch aliasMatch = CommonSubgraphAliasScanner.aliasAfter(sourceSql, close + 1, alias);
-            if (!aliasMatch.matched) {
+            CommonSubgraphAliasMatch anyAliasMatch = CommonSubgraphAliasScanner.aliasAfter(sourceSql, close + 1);
+            if (!anyAliasMatch.matched) {
                 continue;
             }
             String innerSql = sourceSql.substring(index + 1, close);
-            if (candidateFingerprint.equals(CommonSubgraphFingerprint.subgraphFingerprint(innerSql))
-                || canReplaceByAliasCoverage(innerSql, candidate)) {
+            if (candidateFingerprint.equals(CommonSubgraphFingerprint.subgraphFingerprint(innerSql))) {
                 count++;
-                index = aliasMatch.endIndex - 1;
+                index = anyAliasMatch.endIndex - 1;
+                continue;
+            }
+            CommonSubgraphAliasMatch expectedAliasMatch =
+                CommonSubgraphAliasScanner.aliasAfter(sourceSql, close + 1, alias);
+            if (expectedAliasMatch.matched && canReplaceByAliasCoverage(innerSql, candidate)) {
+                count++;
+                index = expectedAliasMatch.endIndex - 1;
             }
         }
         return count;

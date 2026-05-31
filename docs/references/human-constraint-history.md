@@ -330,3 +330,17 @@
   - `query-execution`
   - `sql-optimization`
   - `docs/product/sql-governance-platform-implementation-spec.md`
+
+## 2026-05-31T11:30:00-05:00
+
+- 事件：人类要求严格恢复 `docs/test01.sql` 的 MV 推荐能力，并禁止以静态解析、静态推荐或伪动态模板替代 SQL 结构推导。
+- 约束：
+  - SQL 解析、推荐、改写和 MV 推荐不得读取期望 SQL fixture 作为运行时输入。
+  - 不得使用 test01 专用字段白名单、业务别名白名单、阈值默认值、固定报表 CTE、固定输出列或固定 SQL 模板生成推荐。
+  - 允许 parser 节点类型、协议 key、通用阻断码和通用 SQL 渲染规则使用稳定常量，但这些常量不得编码某一条 SQL 或某一类业务报表的业务内容。
+  - 对重复扫描报表，优先基于 Calcite AST / QBDAG 抽取可独立物化的重复只读计算子图，生成可复用 MV，并保留原查询剩余语义。
+  - 动态结构证据不足时必须结构化阻断，不得使用静态模板兜底。
+- 落点：
+  - `docs/references/raw-requirements/USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531.md`
+  - `docs/plans/l2-advanced-materialized-view-task-plan.md`
+  - `sql-optimization`

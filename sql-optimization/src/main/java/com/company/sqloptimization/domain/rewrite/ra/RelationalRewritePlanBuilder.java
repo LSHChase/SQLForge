@@ -164,7 +164,7 @@ public class RelationalRewritePlanBuilder {
                 preconditions,
                 risks,
                 evidence(group, blocks),
-                scanReductionBenefit(blocks.size(), "多指标聚合可合并为单个 GROUP BY，通过 CASE WHEN 区分日期、分层或 AUM 条件。"),
+                scanReductionBenefit(blocks.size(), "多指标聚合可合并为单个 GROUP BY，通过 CASE WHEN 区分日期、分层或指标阈值条件。"),
                 false,
                 true,
                 attributes

@@ -4,6 +4,26 @@
 
 ## Done
 
+### USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531: 替换 docs/test01 模板式 MV 推荐为动态重复子图推荐
+
+- Status: done
+- Completed at: 2026-06-01
+- Commit subject: `feat(sql-optimization): recommend repeated subgraph mv dynamically`
+- Priority: 1
+- Depends on: USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531
+- Scope: 严格禁止 SQL 解析、推荐、改写和 MV 推荐使用 docs/test01 专用静态常量、静态变量、字段白名单、固定报表 CTE 或输出模板；基于 Calcite AST 与 advancedStructureProfile 动态抽取重复只读计算子图，生成可复用 MV DDL、刷新/校验/回滚 SQL 和查询 MV 的 rewrite SQL，并以 docs/test01.sql 及结构变体回归证明类似 docs/test01_mv.sql 的推荐能力。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531`
+- Progress log:
+  - 2026-06-01: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-31: 定位退化原因：删除 `L2DynamicSnapshotAggregateMvCandidateGenerator` 后，原有 `COMMON_SUBGRAPH_MV` 已可动态选择并替换 `docs/test01.sql` 的底层派生子图，但单 SQL 内不同别名下的等价派生子图复用次数仍按候选别名计数，证据错误退化为单引用；历史回归仍绑定已删除的固定 snapshot CTE、固定输出结构与专用 evidence。
+  - 2026-05-31: 扩展通用 `CommonSubgraph` 结构指纹计数：不同别名下的等价派生子图按 Calcite AST 归一化指纹识别，证据新增 `currentSqlReferenceCount`、`crossSqlReferenceCount`、`rewriteReplacementCount` 与 `SINGLE_SQL_REPEATED_SUBGRAPH` 模式；同步把 `docs/test01.sql`、推荐试跑和闭环回归改为验证 `COMMON_SUBGRAPH_MV`、MV-only rewrite、结构复用与非静态匹配，不恢复任何报表专用模板。
+- Context closeout:
+  - Completed scope: 移除 docs/test01 专用 snapshot MV 生成路径，基于 Calcite AST 归一化指纹识别单 SQL 不同别名重复派生子图，生成 COMMON_SUBGRAPH_MV DDL、MV-only rewrite 与结构证据，并同步文档和回归。
+  - Validation evidence: JDK 8u112；聚焦 Maven 回归 69 个用例通过；foreman validate、git diff --check、静态残留扫描与 task_audit pre-closeout 通过。
+  - Residual risk: SQLForge 仍只输出 PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE 草案，不执行外部 MV DDL、refresh 或生产 runtime binding；真实 Hetu 环境收益仍需外部验证。
+  - Next step: 按既有治理链在外部 Hetu 测试环境评审并执行 MV 草案，保留验证证据；后端大类拆分任务继续独立推进。
+
 ### USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531: 移除 docs/test01 MV 推荐中的静态启发式残留
 
 - Status: done

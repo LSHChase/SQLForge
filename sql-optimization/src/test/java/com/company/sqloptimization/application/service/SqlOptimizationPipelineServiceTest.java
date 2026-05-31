@@ -1330,7 +1330,6 @@ class SqlOptimizationPipelineServiceTest {
     @Test
     void shouldAnalyzeYonghongProductionReportSqlAndRecommendGovernedRewriteShapes() throws Exception {
         String sql = readRepositorySqlFixture("docs/test01.sql");
-        String expectedRecommendedSql = readRepositorySqlFixture("docs/test01_mv.sql");
 
         SqlOptimizationPipelineService.ParsedSqlProfile profile = service.analyze(sql, DataSourceTypeEnum.HETU);
         SqlOptimizationPipelineService.RecommendationRuleOutputModel model =
@@ -1371,7 +1370,7 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(containsRule(model.getUnappliedRules(), "OR_TO_UNION_ALL"));
         assertTrue(containsRule(model.getUnappliedRules(), "MULTI_COUNT_DISTINCT_DECOMPOSITION"));
         assertTrue(containsRule(model.getRuleChain(), "PRECOMPUTE_MV"));
-        assertTrue(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
+        assertFalse(containsRule(model.getRuleChain(), "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"));
         assertTrue(containsRule(model.getRuleChain(), "PARTITION_PRUNING"));
         assertTrue(containsRule(model.getRuleChain(), "REPORT_SQL_MERGE"));
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR,
@@ -1380,11 +1379,6 @@ class SqlOptimizationPipelineServiceTest {
 
         String rewriteCandidateSql = rewriteSuggestion.getArtifacts().get(0).getContent();
         String appliedRulesJson = artifact(rewriteSuggestion, "REWRITE_RULE_TRACE", "appliedRules");
-        String dynamicEvidenceJson = artifact(
-            rewriteSuggestion,
-            "DYNAMIC_REWRITE_EVIDENCE",
-            "dynamicSnapshotRewriteEvidence"
-        );
         String recommendationReportJson = artifact(
             rewriteSuggestion,
             "REWRITE_RECOMMENDATION_REPORT",
@@ -1400,18 +1394,10 @@ class SqlOptimizationPipelineServiceTest {
             "REWRITE_ALGORITHM_CONFORMANCE",
             "conformanceReport"
         );
-        assertEquals(normalizeExecutableSql(expectedRecommendedSql), normalizeExecutableSql(rewriteCandidateSql));
-        assertTrue(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("report_customer_snapshot"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("metric_by_org"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("growth_by_org"), rewriteCandidateSql);
-        assertTrue(rewriteCandidateSql.contains("UNION ALL"), rewriteCandidateSql);
-        assertFalse(rewriteCandidateSql.contains("GROUPING SETS"), rewriteCandidateSql);
-        assertTrue(appliedRulesJson.contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"), appliedRulesJson);
-        assertTrue(dynamicEvidenceJson.contains("\"generator\":\"DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE\""),
-            dynamicEvidenceJson);
-        assertTrue(dynamicEvidenceJson.contains("\"staticTest01TemplateUsed\":false"), dynamicEvidenceJson);
+        assertNotNull(rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("raw_customer_snapshot"), rewriteCandidateSql);
+        assertFalse(rewriteCandidateSql.contains("base_100_anchor"), rewriteCandidateSql);
+        assertFalse(appliedRulesJson.contains("REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG"), appliedRulesJson);
         assertTrue(appliedRulesJson.startsWith("["), appliedRulesJson);
         assertTrue(recommendationReportJson.contains("\"generationStatus\":\"RECOMMENDATION_GENERATED\""),
             recommendationReportJson);
@@ -1430,27 +1416,23 @@ class SqlOptimizationPipelineServiceTest {
         assertTrue(String.valueOf(accelerationArtifact.get("coverageProof")).contains("MV_COVERAGE_PROOF_ENGINE_V1"));
         assertTrue(String.valueOf(accelerationArtifact.get("explainEvidence")).contains("EXPLAIN_UNAVAILABLE"));
         assertTrue(String.valueOf(accelerationArtifact.get("metadataEvidence")).contains("METADATA_PARTIAL"));
-        assertTrue(String.valueOf(accelerationArtifact.get("dynamicSnapshotRewriteEvidence"))
-            .contains("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE"));
-        String status = String.valueOf(accelerationArtifact.get("artifactStatus"));
-        if ("BLOCKED".equals(status)) {
-            assertFalse(maps(accelerationArtifact.get("blockingReasons")).isEmpty(), String.valueOf(accelerationArtifact));
-            assertTrue(accelerationArtifact.get("rewriteSql") == null, String.valueOf(accelerationArtifact));
-        } else {
-            assertTrue("GENERATED".equals(status) || "REVIEW_REQUIRED".equals(status), String.valueOf(accelerationArtifact));
-            assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql"))
-                .contains("report_customer_snapshot"), String.valueOf(accelerationArtifact));
-            assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql"))
-                .contains(String.valueOf(accelerationArtifact.get("mvName"))), String.valueOf(accelerationArtifact));
-            assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"),
-                String.valueOf(accelerationArtifact));
-            assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
-                .contains("FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"),
-                String.valueOf(accelerationArtifact));
-            assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
-                .contains("FROM BI_HQX00_V.BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"),
-                String.valueOf(accelerationArtifact));
-        }
+        assertEquals("COMMON_SUBGRAPH_MV", accelerationArtifact.get("mvType"), String.valueOf(accelerationArtifact));
+        assertEquals("GENERATED", accelerationArtifact.get("artifactStatus"), String.valueOf(accelerationArtifact));
+        Map<String, Object> commonSubgraphEvidence = nestedMap(accelerationArtifact, "commonSubgraphEvidence");
+        assertEquals("SINGLE_SQL_REPEATED_SUBGRAPH", commonSubgraphEvidence.get("mode"));
+        assertEquals(Boolean.FALSE, commonSubgraphEvidence.get("staticConstantMatchUsed"));
+        assertTrue(((Integer) commonSubgraphEvidence.get("rewriteReplacementCount")).intValue() >= 2,
+            String.valueOf(commonSubgraphEvidence));
+        assertTrue(String.valueOf(accelerationArtifact.get("rewriteSql"))
+            .contains(String.valueOf(accelerationArtifact.get("mvName"))), String.valueOf(accelerationArtifact));
+        assertTrue(String.valueOf(accelerationArtifact.get("ddlSql")).contains("CREATE MATERIALIZED VIEW"),
+            String.valueOf(accelerationArtifact));
+        assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
+            .contains("FROM \"BI_HQX00_V\".BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"),
+            String.valueOf(accelerationArtifact));
+        assertFalse(String.valueOf(accelerationArtifact.get("rewriteSql"))
+            .contains("FROM BI_HQX00_V.BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"),
+            String.valueOf(accelerationArtifact));
     }
 
     @Test

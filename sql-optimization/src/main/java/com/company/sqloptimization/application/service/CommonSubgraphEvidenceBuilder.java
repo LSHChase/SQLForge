@@ -1,5 +1,7 @@
 package com.company.sqloptimization.application.service;
 
+import static com.company.sqloptimization.application.service.CommonSubgraphReplacementMatcher.replacementCount;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +25,8 @@ final class CommonSubgraphEvidenceBuilder {
         List<String> matchedSqlFingerprints = new ArrayList<String>();
         addSourceRef(matchedSourceRefs, matchedSqlFingerprints, "CURRENT_SQL", "CURRENT", sourceSql, fingerprint);
         appendPeerSourceRefs(peerSqls, fingerprint, matchedSourceRefs, matchedSqlFingerprints);
+        int currentSqlReferenceCount = Math.max(1, replacementCount(sourceSql, candidate));
+        int crossSqlReferenceCount = Math.max(0, matchedSourceRefs.size() - 1);
 
         LinkedHashMap<String, Object> coverage = new LinkedHashMap<String, Object>();
         coverage.put("status", "COVERED");
@@ -31,7 +35,7 @@ final class CommonSubgraphEvidenceBuilder {
         coverage.put("rewriteSource", "MV_ONLY");
 
         LinkedHashMap<String, Object> evidence = new LinkedHashMap<String, Object>();
-        evidence.put("mode", matchedSourceRefs.size() > 1 ? "CROSS_SQL_SHARED_SUBGRAPH" : "SINGLE_SQL_SUBGRAPH");
+        evidence.put("mode", evidenceMode(currentSqlReferenceCount, crossSqlReferenceCount));
         evidence.put("candidateSelectionSource", "CALCITE_AST_QBDAG_STRUCTURAL_REUSE");
         evidence.put("staticConstantMatchUsed", Boolean.FALSE);
         evidence.put("subgraphFingerprint", fingerprint);
@@ -41,10 +45,20 @@ final class CommonSubgraphEvidenceBuilder {
         evidence.put("materializedCteNames", new ArrayList<String>(candidate.materializedCteNames));
         evidence.put("matchedSqlFingerprints", matchedSqlFingerprints);
         evidence.put("matchedSourceRefs", matchedSourceRefs);
-        evidence.put("referenceCount", Integer.valueOf(matchedSourceRefs.size()));
+        evidence.put("currentSqlReferenceCount", Integer.valueOf(currentSqlReferenceCount));
+        evidence.put("crossSqlReferenceCount", Integer.valueOf(crossSqlReferenceCount));
+        evidence.put("referenceCount", Integer.valueOf(currentSqlReferenceCount + crossSqlReferenceCount));
+        evidence.put("rewriteReplacementCount", Integer.valueOf(currentSqlReferenceCount));
         evidence.put("outputColumns", outputColumns);
         evidence.put("rewriteCoverage", coverage);
         return evidence;
+    }
+
+    private static String evidenceMode(int currentSqlReferenceCount, int crossSqlReferenceCount) {
+        if (crossSqlReferenceCount > 0) {
+            return "CROSS_SQL_SHARED_SUBGRAPH";
+        }
+        return currentSqlReferenceCount > 1 ? "SINGLE_SQL_REPEATED_SUBGRAPH" : "SINGLE_SQL_SUBGRAPH";
     }
 
     private static void appendPeerSourceRefs(List<L2AccelerationArtifactBuilder.CommonSubgraphPeerSql> peerSqls,

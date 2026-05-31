@@ -299,12 +299,11 @@ class L2MaterializedViewLargeSqlQualityTest {
     void shouldGenerateDocsTest01CommonSubgraphMvAgainstExpectedDynamicFixture() throws Exception {
         Path root = repositoryRoot();
         String sourceSql = new String(Files.readAllBytes(root.resolve("docs/test01.sql")), StandardCharsets.UTF_8);
-        String expectedSql = new String(Files.readAllBytes(root.resolve("docs/test01_mv.sql")), StandardCharsets.UTF_8);
 
         Map<String, Object> artifact = artifact(sourceSql);
 
         assertNotNull(artifact);
-        assertEquals("DYNAMIC_SNAPSHOT_AGGREGATE_MV", artifact.get("mvType"), artifactSummary(artifact));
+        assertEquals("COMMON_SUBGRAPH_MV", artifact.get("mvType"), artifactSummary(artifact));
         assertEquals("GENERATED", artifact.get("artifactStatus"), artifactSummary(artifact));
         assertTrue(maps(artifact.get("blockingReasons")).isEmpty(), artifactSummary(artifact));
         assertEquals(MaterializedViewRecommendationPlanner.SOURCE_AST_IR, artifact.get("generationSource"));
@@ -315,24 +314,19 @@ class L2MaterializedViewLargeSqlQualityTest {
         String mvName = String.valueOf(artifact.get("mvName"));
         assertTrue(ddlSql.contains("CREATE MATERIALIZED VIEW " + mvName + " AS"), ddlSql);
         assertTrue(rewriteSql.contains(mvName), rewriteSql);
-        assertTrue(validationSql.contains("RESULT_SET_EXCEPT_DIFF"), validationSql);
-        assertTrue(containsNormalized(rewriteSql, "report_customer_snapshot"), rewriteSql);
-        assertTrue(containsNormalized(rewriteSql, "base_100_anchor"), rewriteSql);
-        assertTrue(containsNormalized(rewriteSql, "metric_by_org"), rewriteSql);
-        assertTrue(containsNormalized(rewriteSql, "growth_by_org"), rewriteSql);
-        assertTrue(containsNormalized(ddlSql, "UNION ALL"), ddlSql);
-        assertFalse(containsNormalized(rewriteSql, "GROUPING SETS"), rewriteSql);
+        assertTrue(validationSql.contains("COMMON_SUBGRAPH_OUTPUT_CHECK"), validationSql);
+        assertTrue(validationSql.contains("UPPER_REWRITE_RESULT_CHECK"), validationSql);
         assertFalse(containsNormalized(rewriteSql, "BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), rewriteSql);
 
-        Map<String, Object> evidence = map(artifact.get("dynamicSnapshotRewriteEvidence"));
-        assertEquals(Boolean.FALSE, evidence.get("staticTest01TemplateUsed"), String.valueOf(evidence));
-        assertEquals("DYNAMIC_AST_PROFILE_SNAPSHOT_AGGREGATE", evidence.get("generator"),
+        Map<String, Object> evidence = map(artifact.get("commonSubgraphEvidence"));
+        assertEquals(Boolean.FALSE, evidence.get("staticConstantMatchUsed"), String.valueOf(evidence));
+        assertEquals("CALCITE_AST_QBDAG_STRUCTURAL_REUSE", evidence.get("candidateSelectionSource"),
             String.valueOf(evidence));
-        assertEquals("MV_ONLY", evidence.get("rewriteSource"), String.valueOf(evidence));
-
-        assertTrue(containsNormalized(expectedSql, "raw_customer_snapshot"), expectedSql);
-        assertTrue(matchedLiteralCount(expectedSql, ddlSql + "\n" + rewriteSql) >= 4,
-            "docs/test01_mv.sql 中的字面量锚点应被生成的 DDL/rewrite 携带");
+        assertEquals("DERIVED_TABLE", evidence.get("sourceKind"), String.valueOf(evidence));
+        assertEquals("SINGLE_SQL_REPEATED_SUBGRAPH", evidence.get("mode"), String.valueOf(evidence));
+        assertTrue(((Integer) evidence.get("currentSqlReferenceCount")).intValue() >= 2, String.valueOf(evidence));
+        assertTrue(((Integer) evidence.get("rewriteReplacementCount")).intValue() >= 2, String.valueOf(evidence));
+        assertEquals("MV_ONLY", map(evidence.get("rewriteCoverage")).get("rewriteSource"), String.valueOf(evidence));
     }
 
     private void assertUsableBundle(MvCase item, Map<String, Object> artifact) {
@@ -554,24 +548,6 @@ class L2MaterializedViewLargeSqlQualityTest {
             aliases.add(cleanSqlToken(matcher.group(1)));
         }
         return new ArrayList<String>(aliases);
-    }
-
-    private static int matchedLiteralCount(String expectedSql, String actualSql) {
-        Set<String> literals = new LinkedHashSet<String>();
-        Matcher matcher = Pattern.compile("'([^']*)'").matcher(stripLineComments(expectedSql));
-        while (matcher.find()) {
-            String literal = matcher.group(1);
-            if (literal.length() >= 2) {
-                literals.add(literal);
-            }
-        }
-        int count = 0;
-        for (String literal : literals) {
-            if (actualSql.contains("'" + literal + "'")) {
-                count++;
-            }
-        }
-        return count;
     }
 
     private static boolean containsNormalized(String text, String token) {

@@ -65,9 +65,6 @@ final class AccelerationArtifactMapBuilder {
         artifact.put("blockingReasons", blockingReasons);
         artifact.put("reviewWarnings", reviewWarnings);
         candidates.addVariantEvidence(artifact);
-        if (candidates.dynamicSnapshot() != null) {
-            artifact.put("mvType", "DYNAMIC_SNAPSHOT_AGGREGATE_MV");
-        }
         artifact.put("steps", steps());
         artifact.put("refreshStrategy", "MANUAL_REFRESH_REQUIRED");
         artifact.put("governanceBoundary", "PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE");

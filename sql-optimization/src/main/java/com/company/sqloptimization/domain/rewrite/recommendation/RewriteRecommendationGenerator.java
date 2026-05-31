@@ -413,8 +413,8 @@ public class RewriteRecommendationGenerator {
         if (parserReport != null && parserReport.hasMetadataTag("FANRUAN")) {
             result.add(transformation(
                 "INLINE",
-                Arrays.asList("SubXX_分组和汇总_BASE"),
-                "normalized_repeated_scan_subgraph",
+                candidate.getSourceBlockIds(),
+                targetName(candidate),
                 "将 BI 工具生成的中间别名折叠为关系代数子图候选。"
             ));
         }
@@ -440,12 +440,19 @@ public class RewriteRecommendationGenerator {
 
     private String targetName(RelationalRewriteCandidate candidate) {
         if (RelationalRewriteRuleType.HORIZONTAL_UNNESTING == candidate.getRuleType()) {
-            return "growth_by_org";
+            return "horizontal_unnest_" + normalizedPrimaryBlockId(candidate);
         }
         if (RelationalRewriteRuleType.VERTICAL_FOLDING == candidate.getRuleType()) {
-            return "metric_by_org";
+            return "vertical_fold_" + normalizedPrimaryBlockId(candidate);
         }
-        return "common_block_" + candidate.getPrimaryBlockId().toLowerCase(Locale.ROOT);
+        return "common_block_" + normalizedPrimaryBlockId(candidate);
+    }
+
+    private String normalizedPrimaryBlockId(RelationalRewriteCandidate candidate) {
+        String blockId = candidate == null ? "" : candidate.getPrimaryBlockId();
+        return blockId == null || blockId.trim().isEmpty()
+            ? "unresolved"
+            : blockId.toLowerCase(Locale.ROOT);
     }
 
     private RewriteEquivalenceProof equivalenceProof(RelationalRewriteCandidate candidate,

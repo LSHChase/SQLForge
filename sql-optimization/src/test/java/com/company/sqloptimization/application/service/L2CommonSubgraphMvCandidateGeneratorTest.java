@@ -101,6 +101,28 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
     }
 
     @Test
+    void shouldCountAndRewriteEquivalentDerivedSubgraphsWithDifferentAliases() {
+        String sql = "SELECT a.customer_id, a.amount, b.amount AS peer_amount "
+            + "FROM (SELECT customer_id, amount FROM orders WHERE status = 'PAID') a "
+            + "JOIN (SELECT customer_id, amount FROM orders WHERE status = 'PAID') b "
+            + "ON a.customer_id = b.customer_id";
+
+        Map<String, Object> artifact = artifact(sql);
+
+        assertEquals("GENERATED", artifact.get("artifactStatus"), String.valueOf(artifact));
+        assertEquals("COMMON_SUBGRAPH_MV", artifact.get("mvType"));
+        Map<String, Object> evidence = map(artifact.get("commonSubgraphEvidence"));
+        assertEquals("SINGLE_SQL_REPEATED_SUBGRAPH", evidence.get("mode"));
+        assertEquals(Integer.valueOf(2), evidence.get("currentSqlReferenceCount"));
+        assertEquals(Integer.valueOf(2), evidence.get("rewriteReplacementCount"));
+        assertEquals(Boolean.FALSE, evidence.get("staticConstantMatchUsed"));
+        String rewriteSql = String.valueOf(artifact.get("rewriteSql"));
+        String mvName = String.valueOf(artifact.get("mvName"));
+        assertEquals(2, occurrenceCount(rewriteSql, mvName));
+        assertFalse(rewriteSql.contains("FROM orders"), rewriteSql);
+    }
+
+    @Test
     void applicationServiceShouldCollectBatchPeerRecommendationsForCrossSqlEvidence() {
         InMemoryAccelerationRecommendationRepository recommendationRepository =
             new InMemoryAccelerationRecommendationRepository();
@@ -282,6 +304,16 @@ class L2CommonSubgraphMvCandidateGeneratorTest {
             }
         }
         return false;
+    }
+
+    private static int occurrenceCount(String value, String token) {
+        int count = 0;
+        int offset = 0;
+        while (value != null && token != null && (offset = value.indexOf(token, offset)) >= 0) {
+            count++;
+            offset += token.length();
+        }
+        return count;
     }
 
     @SuppressWarnings("unchecked")

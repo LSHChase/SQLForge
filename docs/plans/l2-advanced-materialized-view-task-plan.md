@@ -25,6 +25,7 @@
 ## 非目标
 
 - 不实现 `EXACT_QUERY_MV`。
+- 不实现按单条 SQL、报表字段、业务别名、阈值默认值、固定 CTE 名或固定输出模板生成推荐的伪动态 MV；运行时推荐必须来自 SQL parser / AST / IR 中可审计的结构证据。
 - 不把 Redis 结果缓存替代成 MV 推荐。
 - 不直接执行生产 DDL、刷新、回滚或数据装载。
 - 不在缺少验证时自动激活 runtime rewrite binding。
@@ -231,6 +232,21 @@ GROUP BY o.dt, p.category, s.city
 - 子图物化后会破坏原查询过滤作用域。
 
 ## 推荐决策模型
+
+### 严格动态生成边界
+
+- 允许稳定常量：parser 节点类型、协议 key、通用阻断码、通用 SQL 语法渲染规则。
+- 禁止业务静态推荐：不得在运行时代码中编码 `docs/test01.sql`、`docs/test01_mv.sql`、特定业务字段白名单、特定业务别名白名单、阈值默认值、固定报表 CTE 名、固定输出列或固定推荐 SQL 模板。
+- 对重复扫描报表，优先从 Calcite AST / QBDAG 中发现可独立物化的重复只读计算子图；MV DDL 使用被选子图，rewrite 只替换对应关系来源并保留原查询剩余投影、过滤、Join、分组、排序和分页。
+- 当 AST 结构证据不足以证明可替换、字段覆盖或原始基表不再被 rewrite 访问时，必须返回结构化阻断，不得退回静态模板。
+
+### 单 SQL 重复派生子图动态物化
+
+- 同一 SQL 内多个 `FROM` / `JOIN` 派生表即使使用不同别名，也必须按 Calcite AST 归一化后的结构指纹识别等价子图，不能依赖别名、字段前缀或报表命名约定。
+- 候选选择优先考虑：结构指纹重复次数、实际 rewrite 替换次数、子图复杂度、输出字段覆盖，以及替换后是否仍访问原始基表。
+- `COMMON_SUBGRAPH_MV` 的 DDL 只物化动态选中的只读子图；rewrite 必须保留上层查询结构，并把所有可证明等价的派生来源替换为同一个 MV。
+- 证据至少包含 `currentSqlReferenceCount`、`crossSqlReferenceCount`、`rewriteReplacementCount`、`subgraphFingerprint`、`staticConstantMatchUsed=false` 与 `rewriteSource=MV_ONLY`。
+- `docs/test01_mv.sql` 只作为人工理解目标效果的参考，不得作为运行时 fixture、模板或比较输入参与推荐生成。
 
 ### SQL 结构抽取
 
