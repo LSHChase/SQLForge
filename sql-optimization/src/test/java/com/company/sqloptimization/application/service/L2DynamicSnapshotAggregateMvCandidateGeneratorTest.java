@@ -3,6 +3,7 @@ package com.company.sqloptimization.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
@@ -59,6 +60,35 @@ class L2DynamicSnapshotAggregateMvCandidateGeneratorTest {
         assertFalse(candidate.getRewriteSql().contains("BIM_PB_W_00_I_WDM_PF_IDV_CUST_FA_SUM"), candidate.getRewriteSql());
         assertTrue(candidate.getValidationSql().contains("RESULT_SET_EXCEPT_DIFF"), candidate.getValidationSql());
         assertEquals(Boolean.TRUE, candidate.getCoverage("mv_test01_dynamic").get("rewriteSqlReferencesMv"));
+    }
+
+    @Test
+    void shouldExternalizeOrgLevelAndThresholdsFromPredicates() throws Exception {
+        String sourceSql = readSqlFixture("docs/test01.sql")
+            .replace("ORG_LVL = 4", "ORG_LVL = 5")
+            .replace(">= 1000000", ">= 2000000")
+            .replace("< 6000000", "< 9000000")
+            .replace(">= 6000000", ">= 9000000");
+
+        L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate candidate = rewriteCandidate(sourceSql);
+
+        assertNotNull(candidate);
+        assertTrue(candidate.getRewriteSql().contains("ORG_LVL = 5"), candidate.getRewriteSql());
+        assertTrue(candidate.getRewriteSql().contains("base_aum >= 2000000"), candidate.getRewriteSql());
+        assertTrue(candidate.getRewriteSql().contains("snapshot_aum < 9000000"), candidate.getRewriteSql());
+        assertEquals("5", String.valueOf(candidate.getEvidence().get("orgLevelValue")));
+        assertEquals("2000000", String.valueOf(candidate.getEvidence().get("lowThreshold")));
+        assertEquals("9000000", String.valueOf(candidate.getEvidence().get("highThreshold")));
+    }
+
+    @Test
+    void shouldRejectSnapshotRewriteWhenThresholdShapeIsIncomplete() throws Exception {
+        String sourceSql = readSqlFixture("docs/test01.sql")
+            .replace("6000000", "1000000");
+
+        assertTrue(sourceSql.contains("1000000"));
+        assertFalse(sourceSql.contains("6000000"));
+        assertNull(rewriteCandidate(sourceSql));
     }
 
     private L2DynamicSnapshotAggregateMvCandidateGenerator.RewriteCandidate rewriteCandidate(String sql) {

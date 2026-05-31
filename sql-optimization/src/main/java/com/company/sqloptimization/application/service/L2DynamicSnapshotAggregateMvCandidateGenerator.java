@@ -19,32 +19,10 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
 
     static final String RULE = "REPORT_REPEATED_SCAN_TO_SNAPSHOT_AGG";
 
-    private static final Pattern FROM_TABLE_PATTERN =
-        Pattern.compile("(?is)\\bFROM\\s+((?:\"[^\"]+\"\\.)?[A-Z0-9_\\.]+)");
-    private static final Pattern DATE_LITERAL_PATTERN =
-        Pattern.compile("(?is)([A-Z0-9_\\.]*?(?:DTE|DT|DATE|DAY))\\s*(?:=|>=|<=|>|<)\\s*(?:DATE\\s*)?'([0-9]{8}|[0-9]{4}-[0-9]{2}-[0-9]{2})'");
-    private static final Pattern THRESHOLD_PATTERN =
-        Pattern.compile("(?is)(?:AUM|AMOUNT|BAL)[A-Z0-9_\\.\"\\s]*>=\\s*([0-9]+)");
-    private static final Pattern SPECIAL_BRANCH_NO_PATTERN =
-        Pattern.compile("(?is)CASE\\s+[^\\n]*?(?:ORG_NO_4|第四层时点机构号)[\\s\\S]*?WHEN\\s+'([^']+)'\\s+THEN\\s+'([^']+)'[\\s\\S]*?ELSE\\s+[^\\n]*(?:ORG_NO_3|第三层时点机构号)[\\s\\S]*?END");
-    private static final Pattern SPECIAL_BRANCH_NAME_PATTERN =
-        Pattern.compile("(?is)CASE\\s+[^\\n]*?(?:ORG_NO_4|第四层时点机构号)[\\s\\S]*?WHEN\\s+'[^']+'\\s+THEN\\s+'([^']+)'[\\s\\S]*?ELSE\\s+[^\\n]*(?:ORG_SNAM_3|第三层机构简称)[\\s\\S]*?END");
-    private static final Pattern TOP_ORG_PATTERN =
-        Pattern.compile("(?is)'([^']+)'\\s+AS\\s+(?:\"(?:org|org_label|report_org_label|机构|机构简称)\"|(?:org|org_label|report_org_label)\\b)");
-    private static final List<String> ORG_NO_COLUMN_PATTERNS = Arrays.asList(
-        "ORG_NO_([0-7])",
-        "ORG_(?:NO|CODE|CD|ID)_L([0-7])",
-        "ORG_(?:NO|CODE|CD|ID)_LEVEL_?([0-7])",
-        "ORG_L([0-7])_(?:NO|CODE|CD|ID)",
-        "ORG(?:NO|CODE|CD|ID)([0-7])"
-    );
-    private static final List<String> ORG_NAME_COLUMN_PATTERNS = Arrays.asList(
-        "ORG_(?:SNAM|SNAME|SHORT_NAME|NAME)_([0-7])",
-        "ORG_(?:SNAM|SNAME|SHORT_NAME|NAME)_L([0-7])",
-        "ORG_(?:SNAM|SNAME|SHORT_NAME|NAME)_LEVEL_?([0-7])",
-        "ORG_L([0-7])_(?:SNAM|SNAME|SHORT_NAME|NAME)",
-        "ORG(?:SNAM|SNAME|NAME)([0-7])"
-    );
+    private static final Pattern CASE_BRANCH_PATTERN =
+        Pattern.compile("(?is)^CASE\\s+WHEN\\s+.+?=\\s*'([^']+)'\\s+THEN\\s+'([^']+)'\\s+ELSE\\s+(.+?)\\s+END$");
+    private static final Pattern STRING_LITERAL_PATTERN = Pattern.compile("'([^']+)'");
+    private static final Pattern NUMERIC_LITERAL_PATTERN = Pattern.compile("(?<![A-Z0-9_])([0-9]+)(?![A-Z0-9_])");
 
     private L2DynamicSnapshotAggregateMvCandidateGenerator() {
     }
@@ -101,76 +79,62 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         if (!StringUtils.hasText(sourceSql) || profile == null) {
             return null;
         }
-        String upper = sourceSql.toUpperCase(Locale.ROOT);
         if (profile.getRepeatedTableScanCount() < 4
-            || !upper.contains("COUNT(DISTINCT")
+            || !profile.getAggregateFunctions().contains("COUNT")
             || profile.getDatePredicateColumns().isEmpty()) {
             return null;
         }
-        String factTable = firstFactTable(sourceSql, profile);
-        String dateColumn = firstColumn(
-            sourceSql,
-            Arrays.asList("SNAPSHOT_DATE", "DATA_DATE", "BIZ_DATE", "BUSINESS_DATE", "TXN_DATE", "DTE", "DT", "DAY")
-        );
-        if (!StringUtils.hasText(dateColumn)) {
-            dateColumn = firstProfileDateColumn(profile);
-        }
-        String customerColumn = firstColumn(
-            sourceSql,
-            Arrays.asList("CUSTOMER_NO", "CUSTOMER_ID", "CUST_NO", "CUST_ID", "CLIENT_NO", "CLIENT_ID", "USER_ID", "MEMBER_ID")
-        );
-        String measureColumn = firstColumn(
-            sourceSql,
-            Arrays.asList("AUM_MAVER_BAL", "AVG_BALANCE", "BALANCE_AMT", "ASSET_BAL", "AUM", "AMOUNT", "BALANCE", "BAL")
-        );
-        String orgLevelColumn = firstColumn(sourceSql, Arrays.asList(
-            "ORG_LEVEL_CODE",
-            "ORG_LEVEL_CD",
-            "ORG_LVL_CODE",
-            "ORG_LVL_CD",
-            "ORG_HIER_LEVEL",
-            "ORG_HIER_LVL",
-            "ORG_LEVEL",
-            "ORG_LVL"
-        ));
-        Map<Integer, String> orgNoColumns = orgNoColumns(sourceSql);
-        Map<Integer, String> orgNameColumns = orgNameColumns(sourceSql);
-        List<String> dates = dateLiterals(sourceSql);
-        String orgValue = firstOrgScopeValue(sourceSql, orgNoColumns);
+        List<Map<String, Object>> projections = advancedEntries(profile, "projections");
+        List<Map<String, Object>> predicates = advancedEntries(profile, "predicates");
+        String factTable = firstFactTable(profile);
+        String dateColumn = firstDateColumn(predicates, profile);
+        String customerColumn = firstCustomerColumn(projections, profile);
+        String measureColumn = firstMeasureColumn(projections);
+        OrgLevelSignal orgLevel = firstOrgLevelSignal(predicates);
+        Map<Integer, String> orgNoColumns = orgNoColumns(projections);
+        Map<Integer, String> orgNameColumns = orgNameColumns(projections);
+        ScopeSignal orgScope = firstOrgScope(predicates);
+        augmentOrgScopeColumns(orgNoColumns, orgScope.columns);
+        List<String> dates = dateLiterals(predicates, dateColumn);
+        List<Long> thresholds = thresholds(predicates);
         if (!StringUtils.hasText(factTable)
             || !StringUtils.hasText(dateColumn)
             || !StringUtils.hasText(customerColumn)
             || !StringUtils.hasText(measureColumn)
-            || !StringUtils.hasText(orgLevelColumn)
-            || orgNoColumns.size() < 3
+            || !StringUtils.hasText(orgLevel.column)
+            || !StringUtils.hasText(orgLevel.value)
+            || !StringUtils.hasText(orgScope.value)
+            || orgScope.columns.isEmpty()
             || !orgNoColumns.containsKey(Integer.valueOf(2))
             || !orgNoColumns.containsKey(Integer.valueOf(3))
             || !orgNoColumns.containsKey(Integer.valueOf(4))
             || !orgNameColumns.containsKey(Integer.valueOf(2))
-            || dates.size() < 2) {
+            || !orgNameColumns.containsKey(Integer.valueOf(3))
+            || dates.size() < 2
+            || thresholds.size() < 2) {
             return null;
         }
-        List<Long> thresholds = thresholds(sourceSql);
-        long low = thresholds.isEmpty() ? 1000000L : thresholds.get(0).longValue();
-        long high = thresholds.size() < 2 ? low * 6L : thresholds.get(thresholds.size() - 1).longValue();
-        String specialBranchSource = firstSpecialBranchNoLiteral(sourceSql, 1);
-        String specialBranchTarget = firstSpecialBranchNoLiteral(sourceSql, 2);
-        String specialBranchName = firstSpecialBranchNameLiteral(sourceSql);
+        long low = thresholds.get(0).longValue();
+        long high = thresholds.get(thresholds.size() - 1).longValue();
+        String specialBranchSource = branchCaseLiteral(projections, true, 1);
+        String specialBranchTarget = branchCaseLiteral(projections, true, 2);
+        String specialBranchName = branchCaseLiteral(projections, false, 2);
         return new SnapshotShape(
             trimTrailingSemicolon(sourceSql),
             factTable,
             dateColumn,
             customerColumn,
             measureColumn,
-            orgLevelColumn,
+            orgLevel.column,
+            orgLevel.value,
             orgNoColumns,
             orgNameColumns,
             dates.get(0),
             dates.get(dates.size() - 1),
-            firstText(orgValue, "UNKNOWN_ORG"),
+            firstText(orgScope.value, "UNKNOWN_ORG"),
             low,
             high,
-            firstText(firstGroup(TOP_ORG_PATTERN, sourceSql, 1), "ALL_ORG"),
+            firstText(firstTopOrgName(projections), "ALL_ORG"),
             specialBranchSource,
             specialBranchTarget,
             specialBranchName,
@@ -231,7 +195,7 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         sql.append("  ").append(shape.dateColumn).append(" AS snapshot_date,\n");
         sql.append("  SUM(").append(shape.measureColumn).append(") AS snapshot_aum\n");
         sql.append("FROM ").append(source).append("\n");
-        sql.append("WHERE ").append(shape.orgLevelColumn).append(" = 4\n");
+        sql.append("WHERE ").append(shape.orgLevelColumn).append(" = ").append(shape.orgLevelValue).append("\n");
         if (includeReportFilters) {
             sql.append("  AND ").append(orgScopePredicate(shape, rawOrgNoReferences(shape))).append("\n");
             sql.append("  AND ").append(datePredicate(shape, shape.dateColumn)).append("\n");
@@ -531,6 +495,8 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         evidence.put("dateColumn", shape.dateColumn);
         evidence.put("customerColumn", shape.customerColumn);
         evidence.put("measureColumn", shape.measureColumn);
+        evidence.put("orgLevelColumn", shape.orgLevelColumn);
+        evidence.put("orgLevelValue", shape.orgLevelValue);
         evidence.put("baseDate", shape.baseDate);
         evidence.put("currentDate", shape.currentDate);
         evidence.put("lowThreshold", Long.valueOf(shape.lowThreshold));
@@ -669,9 +635,9 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         return predicates;
     }
 
-    private static List<Map<String, Object>> retainedPredicates() {
+    private static List<Map<String, Object>> retainedPredicates(SnapshotShape shape) {
         return Collections.<Map<String, Object>>singletonList(
-            predicate("org_level", "org_level = 4", "RETAINED_BUSINESS_PREDICATE")
+            predicate("org_level", "org_level = " + shape.orgLevelValue, "RETAINED_BUSINESS_PREDICATE")
         );
     }
 
@@ -762,79 +728,119 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         return "COUNT(DISTINCT CASE WHEN " + predicate + " THEN customer_no END)";
     }
 
-    private static String firstFactTable(String sourceSql, SqlOptimizationPipelineService.ParsedSqlProfile profile) {
-        Matcher matcher = FROM_TABLE_PATTERN.matcher(sourceSql);
-        while (matcher.find()) {
-            String table = matcher.group(1).trim();
-            if (table.toUpperCase(Locale.ROOT).contains("SELECT")) {
-                continue;
-            }
-            if (table.toUpperCase(Locale.ROOT).contains("BIM_")
-                || table.toUpperCase(Locale.ROOT).contains("FACT")
-                || table.toUpperCase(Locale.ROOT).contains("SUM")) {
-                return table;
+    private static String firstFactTable(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        for (Map<String, Object> item : advancedEntries(profile, "tables")) {
+            if ("BASE_TABLE".equals(String.valueOf(item.get("sourceType")))) {
+                String table = String.valueOf(item.get("tableName"));
+                if (StringUtils.hasText(table)) {
+                    String schema = String.valueOf(item.get("schemaName"));
+                    if (StringUtils.hasText(schema) && table.startsWith(schema + ".")) {
+                        return "\"" + schema + "\"." + table.substring(schema.length() + 1);
+                    }
+                    return table;
+                }
             }
         }
         List<String> tables = profile.getTables();
-        return tables.isEmpty() ? "" : tables.get(0);
+        return tables.isEmpty() ? "" : stripAliasQualifier(tables.get(0));
     }
 
-    private static String firstProfileDateColumn(SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+    private static String firstDateColumn(List<Map<String, Object>> predicates,
+                                          SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        for (PredicateSignal signal : predicateSignals(predicates)) {
+            if (isDateLiteral(signal.literal) && StringUtils.hasText(signal.column)) {
+                return stripAliasQualifier(signal.column);
+            }
+        }
         for (String column : profile.getDatePredicateColumns()) {
             if (StringUtils.hasText(column)) {
-                return column;
+                return stripAliasQualifier(column);
             }
         }
         return "";
     }
 
-    private static String firstColumn(String sql, List<String> suffixes) {
-        String stripped = stripQuotedAliases(sql);
-        for (String suffix : suffixes) {
-            Pattern pattern = Pattern.compile("(?is)\\b([A-Z0-9_\\.]*" + Pattern.quote(suffix) + ")\\b");
-            Matcher matcher = pattern.matcher(stripped);
-            String best = "";
-            while (matcher.find()) {
-                String candidate = normalizeDetectedColumn(matcher.group(1));
-                if (!candidate.contains("__")
-                    && ("DT".equals(suffix) || "DAY".equals(suffix))
-                    && candidate.equalsIgnoreCase(suffix)) {
-                    continue;
-                }
-                if (isBetterColumnCandidate(candidate, best)) {
-                    best = candidate;
-                }
+    private static String firstCustomerColumn(List<Map<String, Object>> projections,
+                                              SqlOptimizationPipelineService.ParsedSqlProfile profile) {
+        String best = "";
+        for (Map<String, Object> item : projections) {
+            String alias = String.valueOf(item.get("alias"));
+            if (aliasSuggestsCustomer(alias)) {
+                best = choosePreferredColumn(best, projectionColumn(item));
             }
-            if (StringUtils.hasText(best)) {
-                return best;
+        }
+        if (StringUtils.hasText(best)) {
+            return best;
+        }
+        for (Map<String, Object> item : advancedEntries(profile, "aggregations")) {
+            if ("COUNT".equals(String.valueOf(item.get("functionName"))) && Boolean.TRUE.equals(item.get("distinct"))) {
+                List<String> sourceColumns = stringList(item.get("sourceColumns"));
+                if (!sourceColumns.isEmpty()) {
+                    return stripAliasQualifier(sourceColumns.get(0));
+                }
             }
         }
         return "";
     }
 
-    private static Map<Integer, String> orgNoColumns(String sql) {
-        return indexedColumns(sql, ORG_NO_COLUMN_PATTERNS);
+    private static String firstMeasureColumn(List<Map<String, Object>> projections) {
+        String best = "";
+        for (Map<String, Object> item : projections) {
+            String alias = String.valueOf(item.get("alias"));
+            if (aliasSuggestsMeasure(alias)) {
+                best = choosePreferredColumn(best, projectionColumn(item));
+            }
+        }
+        return best;
     }
 
-    private static Map<Integer, String> orgNameColumns(String sql) {
-        return indexedColumns(sql, ORG_NAME_COLUMN_PATTERNS);
+    private static OrgLevelSignal firstOrgLevelSignal(List<Map<String, Object>> predicates) {
+        for (PredicateSignal signal : predicateSignals(predicates)) {
+            if ("=".equals(signal.operator)
+                && StringUtils.hasText(signal.literal)
+                && StringUtils.hasText(signal.column)
+                && columnSuggestsOrgLevel(signal.column)) {
+                return new OrgLevelSignal(stripAliasQualifier(signal.column), signal.literal);
+            }
+        }
+        return new OrgLevelSignal("", "");
     }
 
-    private static Map<Integer, String> indexedColumns(String sql, List<String> suffixPatterns) {
+    private static Map<Integer, String> orgNoColumns(List<Map<String, Object>> projections) {
+        return indexedColumns(projections, true);
+    }
+
+    private static Map<Integer, String> orgNameColumns(List<Map<String, Object>> projections) {
+        return indexedColumns(projections, false);
+    }
+
+    private static Map<Integer, String> indexedColumns(List<Map<String, Object>> projections, boolean codeColumn) {
         LinkedHashMap<Integer, String> result = new LinkedHashMap<Integer, String>();
-        String stripped = stripQuotedAliases(sql);
-        for (String suffixPattern : suffixPatterns) {
-            Pattern pattern = Pattern.compile("(?is)\\b([A-Z0-9_\\.]*" + suffixPattern + ")\\b");
-            Matcher matcher = pattern.matcher(stripped);
-            while (matcher.find()) {
-                Integer level = Integer.valueOf(matcher.group(2));
-                String candidate = normalizeDetectedColumn(matcher.group(1));
-                if (!result.containsKey(level) || isBetterColumnCandidate(candidate, result.get(level))) {
-                    result.put(level, candidate);
-                }
+        for (Map<String, Object> item : projections) {
+            String alias = String.valueOf(item.get("alias"));
+            Integer level = aliasLevel(alias);
+            if (level == null) {
+                continue;
+            }
+            if ((codeColumn && !aliasSuggestsOrgCode(alias)) || (!codeColumn && !aliasSuggestsOrgName(alias))) {
+                continue;
+            }
+            String candidate = projectionColumn(item);
+            if (!result.containsKey(level) || isBetterColumnCandidate(candidate, result.get(level))) {
+                result.put(level, candidate);
             }
         }
         return result;
+    }
+
+    private static void augmentOrgScopeColumns(Map<Integer, String> orgNoColumns, List<String> scopeColumns) {
+        for (String scopeColumn : scopeColumns) {
+            Integer level = trailingLevel(scopeColumn);
+            if (level == null || orgNoColumns.containsKey(level)) {
+                continue;
+            }
+            orgNoColumns.put(level, stripAliasQualifier(scopeColumn));
+        }
     }
 
     private static String normalizeDetectedColumn(String column) {
@@ -886,42 +892,63 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         return score;
     }
 
-    private static String firstOrgScopeValue(String sourceSql, Map<Integer, String> orgNoColumns) {
-        for (Integer level : sortedLevels(orgNoColumns)) {
-            String value = firstColumnLiteralPredicate(sourceSql, orgNoColumns.get(level));
-            if (StringUtils.hasText(value)) {
-                return value;
+    private static ScopeSignal firstOrgScope(List<Map<String, Object>> predicates) {
+        LinkedHashMap<String, ScopeSignal> byGroup = new LinkedHashMap<String, ScopeSignal>();
+        for (PredicateSignal signal : predicateSignals(predicates)) {
+            if (!"=".equals(signal.operator)
+                || !StringUtils.hasText(signal.literal)
+                || !StringUtils.hasText(signal.column)
+                || !signal.groupId.startsWith("WHERE_OR_")) {
+                continue;
+            }
+            ScopeSignal group = byGroup.get(signal.groupId);
+            if (group == null) {
+                group = new ScopeSignal(signal.literal);
+                byGroup.put(signal.groupId, group);
+            }
+            if (!signal.literal.equals(group.value)) {
+                group.mixedLiteral = true;
+                continue;
+            }
+            group.columns.add(stripAliasQualifier(signal.column));
+        }
+        ScopeSignal best = new ScopeSignal("");
+        for (ScopeSignal candidate : byGroup.values()) {
+            if (!candidate.mixedLiteral && candidate.columns.size() > best.columns.size()) {
+                best = candidate;
             }
         }
-        return "";
+        return best;
     }
 
-    private static String firstColumnLiteralPredicate(String sourceSql, String column) {
-        if (!StringUtils.hasText(sourceSql) || !StringUtils.hasText(column)) {
-            return "";
-        }
-        Pattern pattern = Pattern.compile("(?is)\\b" + Pattern.quote(column) + "\\s*=\\s*'([^']+)'");
-        Matcher matcher = pattern.matcher(sourceSql);
-        return matcher.find() ? matcher.group(1) : "";
-    }
-
-    private static List<String> dateLiterals(String sourceSql) {
+    private static List<String> dateLiterals(List<Map<String, Object>> predicates, String dateColumn) {
         LinkedHashSet<String> dates = new LinkedHashSet<String>();
-        Matcher matcher = DATE_LITERAL_PATTERN.matcher(sourceSql);
-        while (matcher.find()) {
-            dates.add(matcher.group(2));
+        for (PredicateSignal signal : predicateSignals(predicates)) {
+            if (isDateLiteral(signal.literal)
+                && StringUtils.hasText(signal.column)
+                && stripAliasQualifier(signal.column).equals(stripAliasQualifier(dateColumn))) {
+                dates.add(signal.literal);
+            }
         }
         List<String> result = new ArrayList<String>(dates);
         Collections.sort(result);
         return result;
     }
 
-    private static List<Long> thresholds(String sourceSql) {
+    private static List<Long> thresholds(List<Map<String, Object>> predicates) {
         LinkedHashSet<Long> values = new LinkedHashSet<Long>();
-        Matcher matcher = THRESHOLD_PATTERN.matcher(sourceSql);
-        while (matcher.find()) {
+        for (PredicateSignal signal : predicateSignals(predicates)) {
+            if (!(">=".equals(signal.operator) || "<".equals(signal.operator))) {
+                continue;
+            }
+            if (!StringUtils.hasText(signal.literal) || isDateLiteral(signal.literal)) {
+                continue;
+            }
             try {
-                values.add(Long.valueOf(matcher.group(1)));
+                long value = Long.parseLong(signal.literal);
+                if (value >= 1000L) {
+                    values.add(Long.valueOf(value));
+                }
             } catch (NumberFormatException ex) {
                 // ignore malformed numeric literal from a partial SQL fragment
             }
@@ -931,51 +958,237 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         return result;
     }
 
-    private static String firstSpecialBranchNoLiteral(String sourceSql, int group) {
-        String literal = firstSpecialBranchCaseLiteral(sourceSql, group, "ORG_NO_3", "第三层时点机构号");
-        if (StringUtils.hasText(literal)) {
-            return literal;
-        }
-        return firstGroup(SPECIAL_BRANCH_NO_PATTERN, sourceSql, group);
-    }
-
-    private static String firstSpecialBranchNameLiteral(String sourceSql) {
-        String literal = firstSpecialBranchCaseLiteral(sourceSql, 2, "ORG_SNAM_3", "第三层机构简称");
-        if (StringUtils.hasText(literal)) {
-            return literal;
-        }
-        return firstGroup(SPECIAL_BRANCH_NAME_PATTERN, sourceSql, 1);
-    }
-
-    private static String firstSpecialBranchCaseLiteral(String sourceSql,
-                                                        int group,
-                                                        String rawElseSignal,
-                                                        String aliasElseSignal) {
-        Pattern caseBlockPattern = Pattern.compile("(?is)CASE\\s+.*?END");
-        Matcher matcher = caseBlockPattern.matcher(sourceSql == null ? "" : sourceSql);
-        while (matcher.find()) {
-            String block = matcher.group();
-            String upperBlock = block.toUpperCase(Locale.ROOT);
-            if (!(upperBlock.contains("ORG_NO_4") || block.contains("第四层时点机构号"))) {
+    private static String branchCaseLiteral(List<Map<String, Object>> projections, boolean codeBranch, int group) {
+        for (Map<String, Object> item : projections) {
+            String alias = String.valueOf(item.get("alias"));
+            if ((codeBranch && !aliasSuggestsBranchCode(alias)) || (!codeBranch && !aliasSuggestsBranchName(alias))) {
                 continue;
             }
-            if (!(upperBlock.contains(rawElseSignal) || block.contains(aliasElseSignal))) {
-                continue;
-            }
-            Matcher whenMatcher = Pattern.compile("(?is)WHEN\\s+'([^']+)'\\s+THEN\\s+'([^']+)'").matcher(block);
-            if (whenMatcher.find()) {
-                return whenMatcher.group(group);
+            Matcher matcher = CASE_BRANCH_PATTERN.matcher(String.valueOf(item.get("expression")));
+            if (matcher.matches()) {
+                return matcher.group(group);
             }
         }
         return "";
     }
 
-    private static String firstGroup(Pattern pattern, String sourceSql, int group) {
-        if (!StringUtils.hasText(sourceSql)) {
+    private static String firstTopOrgName(List<Map<String, Object>> projections) {
+        for (Map<String, Object> item : projections) {
+            String alias = String.valueOf(item.get("alias"));
+            String expression = String.valueOf(item.get("expression"));
+            if (!aliasSuggestsTopOrgLabel(alias)) {
+                continue;
+            }
+            Matcher matcher = STRING_LITERAL_PATTERN.matcher(expression);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+        return "";
+    }
+
+    private static Integer aliasLevel(String alias) {
+        String normalized = alias == null ? "" : alias.trim().toUpperCase(Locale.ROOT);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        if (normalized.contains("第二层") || normalized.endsWith("_L2") || normalized.contains("LEVEL2")) {
+            return Integer.valueOf(2);
+        }
+        if (normalized.contains("第三层") || normalized.endsWith("_L3") || normalized.contains("LEVEL3")) {
+            return Integer.valueOf(3);
+        }
+        if (normalized.contains("第四层") || normalized.endsWith("_L4") || normalized.contains("LEVEL4")) {
+            return Integer.valueOf(4);
+        }
+        if (normalized.matches(".*(?:_|\\b)L([0-9])(?:_|\\b).*")) {
+            Matcher matcher = Pattern.compile(".*(?:_|\\b)L([0-9])(?:_|\\b).*").matcher(normalized);
+            if (matcher.matches()) {
+                return Integer.valueOf(matcher.group(1));
+            }
+        }
+        return null;
+    }
+
+    private static Integer trailingLevel(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+        Matcher suffixMatcher = Pattern.compile(".*(?:_|\\b)([0-9])$").matcher(normalized);
+        if (suffixMatcher.matches()) {
+            return Integer.valueOf(suffixMatcher.group(1));
+        }
+        Matcher levelMatcher = Pattern.compile(".*(?:_|\\b)L([0-9])(?:_|\\b)?.*").matcher(normalized);
+        if (levelMatcher.matches()) {
+            return Integer.valueOf(levelMatcher.group(1));
+        }
+        return null;
+    }
+
+    private static boolean aliasSuggestsOrgCode(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("机构号")
+            || normalized.contains("ORG_CODE")
+            || normalized.contains("ORG_NO")
+            || normalized.contains("支行机构");
+    }
+
+    private static boolean aliasSuggestsOrgName(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("机构简称")
+            || normalized.contains("ORG_NAME")
+            || normalized.contains("SHORT_NAME")
+            || normalized.contains("BRANCH_NAME")
+            || normalized.contains("支行简称");
+    }
+
+    private static boolean aliasSuggestsCustomer(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("客户")
+            || normalized.contains("CUSTOMER")
+            || normalized.contains("CUST_");
+    }
+
+    private static boolean aliasSuggestsDate(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("日期")
+            || normalized.contains("DATE")
+            || normalized.endsWith("_DT")
+            || normalized.contains("BIZ_DATE");
+    }
+
+    private static boolean aliasSuggestsMeasure(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("AUM")
+            || normalized.contains("BALANCE")
+            || normalized.contains("AMOUNT")
+            || normalized.contains("月日均");
+    }
+
+    private static boolean aliasSuggestsTopOrgLabel(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return "ORG".equals(normalized) || normalized.contains("ORG_LABEL");
+    }
+
+    private static boolean aliasSuggestsBranchCode(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("支行机构") || normalized.contains("BRANCH_CODE");
+    }
+
+    private static boolean aliasSuggestsBranchName(String alias) {
+        String normalized = alias == null ? "" : alias.toUpperCase(Locale.ROOT);
+        return normalized.contains("支行简称") || normalized.contains("BRANCH_NAME");
+    }
+
+    private static boolean columnSuggestsOrgLevel(String column) {
+        String normalized = column == null ? "" : column.toUpperCase(Locale.ROOT);
+        return normalized.contains("ORG_LVL") || normalized.contains("ORG_LEVEL");
+    }
+
+    private static String projectionColumn(Map<String, Object> item) {
+        List<String> sourceColumns = stringList(item.get("sourceColumns"));
+        if (!sourceColumns.isEmpty()) {
+            return stripAliasQualifier(sourceColumns.get(0));
+        }
+        return stripAliasQualifier(String.valueOf(item.get("expression")));
+    }
+
+    private static String choosePreferredColumn(String current, String candidate) {
+        return isBetterColumnCandidate(candidate, current) ? candidate : current;
+    }
+
+    private static String stripAliasQualifier(String column) {
+        if (!StringUtils.hasText(column)) {
             return "";
         }
-        Matcher matcher = pattern.matcher(sourceSql);
-        return matcher.find() ? matcher.group(group) : "";
+        String normalized = column.replace("`", "").replace("\"", "").trim();
+        int dot = normalized.indexOf('.');
+        if (dot > 0) {
+            return normalized.substring(dot + 1);
+        }
+        return normalized;
+    }
+
+    private static boolean isDateLiteral(String value) {
+        return StringUtils.hasText(value)
+            && (value.matches("[0-9]{8}") || value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}"));
+    }
+
+    private static List<Map<String, Object>> advancedEntries(SqlOptimizationPipelineService.ParsedSqlProfile profile,
+                                                             String key) {
+        Object value = profile.toAdvancedStructureProfile().get(key);
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<?> raw = (List<?>) value;
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Object item : raw) {
+            if (item instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> cast = (Map<String, Object>) item;
+                result.add(cast);
+            }
+        }
+        return result;
+    }
+
+    private static List<String> stringList(Object value) {
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<?> raw = (List<?>) value;
+        List<String> result = new ArrayList<String>();
+        for (Object item : raw) {
+            if (item != null) {
+                result.add(String.valueOf(item));
+            }
+        }
+        return result;
+    }
+
+    private static List<PredicateSignal> predicateSignals(List<Map<String, Object>> predicates) {
+        List<PredicateSignal> result = new ArrayList<PredicateSignal>();
+        for (Map<String, Object> item : predicates) {
+            List<String> sourceColumns = stringList(item.get("sourceColumns"));
+            String column = sourceColumns.isEmpty() ? "" : sourceColumns.get(0);
+            String expression = String.valueOf(item.get("expression"));
+            String operator = "";
+            if (expression.contains(">=")) {
+                operator = ">=";
+            } else if (expression.contains("<=")) {
+                operator = "<=";
+            } else if (expression.contains(" <> ")) {
+                operator = "<>";
+            } else if (expression.contains(" != ")) {
+                operator = "!=";
+            } else if (expression.contains(" < ")) {
+                operator = "<";
+            } else if (expression.contains(" > ")) {
+                operator = ">";
+            } else if (expression.contains(" = ")) {
+                operator = "=";
+            }
+            String literal = firstStringLiteral(expression);
+            if (!StringUtils.hasText(literal)) {
+                literal = firstNumericLiteral(expression);
+            }
+            result.add(new PredicateSignal(column, operator, literal, String.valueOf(item.get("groupId"))));
+        }
+        return result;
+    }
+
+    private static String firstStringLiteral(String expression) {
+        Matcher matcher = STRING_LITERAL_PATTERN.matcher(expression == null ? "" : expression);
+        return matcher.find() ? matcher.group(1) : "";
+    }
+
+    private static String firstNumericLiteral(String expression) {
+        Matcher matcher = NUMERIC_LITERAL_PATTERN.matcher(expression == null ? "" : expression);
+        while (matcher.find()) {
+            String literal = matcher.group(1);
+            if (!"255".equals(literal)) {
+                return literal;
+            }
+        }
+        return "";
     }
 
     private static String stripQuotedAliases(String sql) {
@@ -1158,7 +1371,41 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         }
 
         List<Map<String, Object>> getRetainedPredicates() {
-            return retainedPredicates();
+            return retainedPredicates(shape);
+        }
+    }
+
+    private static final class ScopeSignal {
+        private final String value;
+        private final List<String> columns = new ArrayList<String>();
+        private boolean mixedLiteral;
+
+        private ScopeSignal(String value) {
+            this.value = value == null ? "" : value;
+        }
+    }
+
+    private static final class PredicateSignal {
+        private final String column;
+        private final String operator;
+        private final String literal;
+        private final String groupId;
+
+        private PredicateSignal(String column, String operator, String literal, String groupId) {
+            this.column = column == null ? "" : column;
+            this.operator = operator == null ? "" : operator;
+            this.literal = literal == null ? "" : literal;
+            this.groupId = groupId == null ? "" : groupId;
+        }
+    }
+
+    private static final class OrgLevelSignal {
+        private final String column;
+        private final String value;
+
+        private OrgLevelSignal(String column, String value) {
+            this.column = column == null ? "" : column;
+            this.value = value == null ? "" : value;
         }
     }
 
@@ -1169,6 +1416,7 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
         private final String customerColumn;
         private final String measureColumn;
         private final String orgLevelColumn;
+        private final String orgLevelValue;
         private final Map<Integer, String> orgNoColumns;
         private final Map<Integer, String> orgNameColumns;
         private final String baseDate;
@@ -1190,6 +1438,7 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
                               String customerColumn,
                               String measureColumn,
                               String orgLevelColumn,
+                              String orgLevelValue,
                               Map<Integer, String> orgNoColumns,
                               Map<Integer, String> orgNameColumns,
                               String baseDate,
@@ -1210,6 +1459,7 @@ final class L2DynamicSnapshotAggregateMvCandidateGenerator {
             this.customerColumn = customerColumn;
             this.measureColumn = measureColumn;
             this.orgLevelColumn = orgLevelColumn;
+            this.orgLevelValue = orgLevelValue;
             this.orgNoColumns = orgNoColumns;
             this.orgNameColumns = orgNameColumns;
             this.baseDate = baseDate;

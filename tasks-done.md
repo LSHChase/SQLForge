@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531: 移除 docs/test01 MV 推荐中的静态启发式残留
+
+- Status: done
+- Completed at: 2026-05-31
+- Commit subject: `fix: remove static test01 mv heuristics`
+- Priority: 1
+- Depends on: USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529
+- Scope: 基于当前 Calcite/advancedStructureProfile 动态解析链，移除 docs/test01 相关 MV 推荐/改写中的静态 regex、字段白名单和 test01 特化启发式；禁止运行时读取期望 SQL、禁止静态常量/变量驱动推荐；补齐能证明结构证据驱动的回归测试与验证。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531`
+- Progress log:
+  - 2026-05-31: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: Removed remaining static docs/test01 MV heuristics from dynamic snapshot rewrite detection by sourcing org-level, thresholds, scope columns, dates, and branch evidence from Calcite advancedStructureProfile; reject incomplete threshold shapes instead of falling back to static defaults; added regressions proving predicate-driven extraction and incomplete-shape rejection.
+  - Validation evidence: mvn -pl sql-optimization -am -Dtest=L2DynamicSnapshotAggregateMvCandidateGeneratorTest,SqlOptimizationPipelineServiceTest#shouldAnalyzeYonghongProductionReportSqlAndRecommendGovernedRewriteShapes,SqlOptimizationPipelineServiceTest#shouldRecommendReportSnapshotRewriteForEquivalentNamingVariants,L2MaterializedViewLargeSqlQualityTest#shouldGenerateDocsTest01CommonSubgraphMvAgainstExpectedDynamicFixture -Dsurefire.failIfNoSpecifiedTests=false test; python3 scripts/foreman.py validate USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531; python3 scripts/task_audit.py --check --phase pre-closeout
+  - Residual risk: Dynamic snapshot rewrite still depends on recognizable advancedStructureProfile lineage for report-style aliasing and CASE branch projections; unrelated in-progress module refactors remain dirty outside this task.
+  - Next step: If additional report variants appear, extend structure-driven evidence extraction and regression fixtures instead of adding literal-specific fallbacks.
+
 ### USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531: 修复本地 SQL 执行与改写推荐默认租户数据源范围错误
 
 - Status: done

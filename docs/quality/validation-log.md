@@ -6495,3 +6495,9 @@
 2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:frontend-dev (projected-precommit)`
 2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`
+2026-05-31T21:28:24+08:00 | USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-31T21:28:24+08:00 | USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-31T21:28:24+08:00 | USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-31T21:29:04+08:00 | USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-31T21:29:04+08:00 | USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531 closeout commit | `R-168` | projected | `git commit -m 'fix: remove static test01 mv heuristics' (projected-precommit)`
+2026-05-31T21:29:04+08:00 | USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
