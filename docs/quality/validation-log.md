@@ -6485,3 +6485,13 @@
 2026-05-30T09:36:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
 2026-05-30T09:36:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 closeout commit | `R-168` | projected | `git commit -m 'feat: restore dynamic test01 mv rewrite' (projected-precommit)`
 2026-05-30T09:36:21+08:00 | USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-31T21:12:40+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-05-31T21:12:40+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-05-31T21:12:40+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-05-31T21:12:42+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 validate | `R-133`, `R-168` | passed | `npm run lint`
+2026-05-31T21:12:56+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 validate | `R-133`, `R-168` | passed | `npm run smoke:frontend-dev`
+2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 closeout commit | `R-168` | projected | `git commit -m 'fix(frontend): default runtime tenant for SQL actions' (projected-precommit)`
+2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `npm run smoke:frontend-dev (projected-precommit)`
+2026-05-31T21:13:53+08:00 | USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check (projected-precommit)`

@@ -4,6 +4,25 @@
 
 ## Done
 
+### USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531: 修复本地 SQL 执行与改写推荐默认租户数据源范围错误
+
+- Status: done
+- Completed at: 2026-05-31
+- Commit subject: `fix(frontend): default runtime tenant for SQL actions`
+- Priority: 1
+- Depends on: N/A
+- Scope: 修复本地前端 SQL 执行、SQL 改写推荐等业务页面默认使用 system 租户触发 DATASOURCE_SCOPE_MISSING 的问题；保持治理数据源范围默认拒绝边界不变，系统管理仍可使用 system 上下文。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531`
+- Progress log:
+  - 2026-05-31: instantiated from foreman CLI using repository truth and task matrices.
+  - 2026-05-31: 已复现 `system` 租户触发 SQL 执行与 SQL 优化提交 `DATASOURCE_SCOPE_MISSING`；同请求改用 `tenant-a` 后通过数据源范围校验。前端全局租户 store 已改为运行态业务默认租户解析，保留系统管理 `system` 上下文能力不变；`npm run lint` 与 `npm run smoke:frontend-dev` 通过。
+- Context closeout:
+  - Completed scope: 修复本地前端全局工作租户默认值：Pinia tenant store 改为使用运行态业务租户解析，开发/portable 默认进入 tenant-a，使 SQL 执行、SQL 优化提交、推荐中心和首页等业务页面请求不再以 system 租户触发 DATASOURCE_SCOPE_MISSING；治理侧 system 只保留系统管理上下文和显式可选能力。
+  - Validation evidence: 复现 curl：system 租户 SQL 执行与 SQL 优化提交返回 DATASOURCE_SCOPE_MISSING，tenant-a 同请求通过数据源范围校验；npm run lint；npm run smoke:frontend-dev；python3 scripts/foreman.py validate USER-CN-FIX-RUNTIME-DATASOURCE-SCOPE-20260531 --extra-command 'npm run lint' --extra-command 'npm run smoke:frontend-dev'
+  - Residual risk: 已打开的浏览器页面需要刷新以重新初始化前端 store；如果用户手动在工作区选择 system，业务 SQL 执行/推荐仍会按治理默认拒绝，这是预期安全边界。
+  - Next step: 刷新 http://localhost:3000 后在顶部工作区确认租户为 tenant-a，再执行 SQL 或提交改写推荐。
+
 ### USER-CN-RESTORE-DYNAMIC-TEST01-MV-20260529: 恢复 docs/test01 动态 MV 推荐与改写能力
 
 - Status: done
