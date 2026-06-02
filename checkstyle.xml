@@ -13,6 +13,9 @@
         <!-- 配置项 property name=eachLine：说明该配置的用途、默认值或运行影响。 -->
         <property name="eachLine" value="true"/>
     </module>
+    <module name="FileLength">
+        <property name="max" value="2000"/>
+    </module>
     <!-- 配置项 module name=TreeWalker：说明该配置的用途、默认值或运行影响。 -->
     <module name="TreeWalker">
         <!-- 配置项 module name=OuterTypeFilename：说明该配置的用途、默认值或运行影响。 -->
@@ -41,5 +44,9 @@
         <module name="StaticVariableName"/>
         <!-- 配置项 module name=ConstantName：说明该配置的用途、默认值或运行影响。 -->
         <module name="ConstantName"/>
+        <module name="MethodLength">
+            <property name="max" value="300"/>
+            <property name="countEmpty" value="true"/>
+        </module>
     </module>
 </module>

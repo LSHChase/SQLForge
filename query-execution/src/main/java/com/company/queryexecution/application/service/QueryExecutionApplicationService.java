@@ -17,7 +17,6 @@ import com.company.queryexecution.infrastructure.adapter.HetuExecutionUnavailabl
 import com.company.queryexecution.infrastructure.adapter.QueryExecutionAdapter;
 import com.company.queryexecution.infrastructure.governance.GovernanceCapabilityClient;
 import com.company.sqlforge.common.access.AccessAuditContract;
-import com.company.sqlforge.common.config.ServiceCodeConstants;
 import com.company.sqlforge.common.constants.DataSourceTypeEnum;
 import com.company.sqlforge.common.constants.ErrorCodeConstants;
 import com.company.sqlforge.common.context.RequestContext;
@@ -27,35 +26,20 @@ import com.company.sqlforge.common.governance.GovernanceQueryExecutionHistoryWri
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteCandidate;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveRequest;
 import com.company.sqlforge.common.governance.GovernanceJdbcRouteResolveResponse;
-import com.company.sqlforge.common.jdbcagent.JdbcAgentSqlCommentParser;
-import com.company.sqlforge.common.logicalobject.LogicalObjectRef;
 import com.company.sqlforge.common.logicalobject.LogicalObjectSurface;
-import com.company.sqlforge.common.logicalobject.LogicalObjectType;
 import com.company.sqlforge.common.logicalobject.SqlSurfaceObjectRefExtractor;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResolveRequest;
 import com.company.sqlforge.common.queryexecution.RuntimeRewriteBindingResponse;
-import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqlforge.common.utils.SqlCatalogQualifierRewriteUtils;
 import com.company.sqlforge.common.utils.SqlFingerprintUtils;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -66,53 +50,7 @@ import org.springframework.util.StringUtils;
  * 在保留公共 HTTP 契约的同时执行最小同步查询闭环。
  */
 @Service
-public class QueryExecutionApplicationService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutionApplicationService.class);
-
-    private static final String CONTRACT_STAGE = "LONG_TERM_BASELINE";
-    private static final String IMPLEMENTATION_STAGE = "HETU_REAL_INTEGRATION";
-    private static final String OPERATION = "QUERY_EXECUTE_SYNC";
-    private static final String READONLY_SQL_REJECTION_MESSAGE = "当前同步查询路径仅允许只读单语句 SQL";
-    private static final String ROUTE_UNAVAILABLE_MESSAGE = "当前同步查询路径尚未为目标数据源开放执行路由";
-    private static final String QUERY_TIMEOUT_MESSAGE = "联机查询在当前超时阈值内未完成";
-    private static final String FALLBACK_IMMEDIATE_REASON = "当前容错策略要求立即走兜底路径。";
-    private static final String TIMEOUT_FALLBACK_REASON = "主引擎超过超时阈值，已应用兜底策略。";
-    private static final String STATE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
-    private static final String STATE_RISK_REJECTED = "RISK_REJECTED";
-    private static final String STATE_ROUTE_UNAVAILABLE = "ROUTE_UNAVAILABLE";
-    private static final String STATE_PRIMARY_ROUTE_SELECTED = "PRIMARY_ROUTE_SELECTED";
-    private static final String STATE_PRIMARY_MODE_CHAIN_FAILED = "PRIMARY_MODE_CHAIN_FAILED";
-    private static final String STATE_PRIMARY_TIMEOUT = "PRIMARY_TIMEOUT";
-    private static final String STATE_RUNTIME_REWRITE_EXECUTION_FAILED = "RUNTIME_REWRITE_EXECUTION_FAILED";
-    private static final String STATE_RUNTIME_REWRITE_ORIGINAL_RETRY = "RUNTIME_REWRITE_ORIGINAL_RETRY";
-    private static final String STATE_DEV_REWRITE_DIRECT_SUCCESS = "DEV_REWRITE_DIRECT_SUCCESS";
-    private static final String STATE_LOCAL_ROLLBACK_MARKED = "LOCAL_ROLLBACK_MARKED";
-    private static final String STATE_FALLBACK_REQUESTED = "FALLBACK_REQUESTED";
-    private static final String STATE_LOCAL_COMPENSATION_MARKED = "LOCAL_COMPENSATION_MARKED";
-    private static final String STATE_COMPLETED = "COMPLETED";
-    private static final String MARKER_TIMEOUT_ROLLBACK = "LOCAL_TIMEOUT_ROLLBACK_MARKED";
-    private static final String MARKER_PRIMARY_ROUTE_FAILURE = "LOCAL_PRIMARY_ROUTE_FAILURE_MARKED";
-    private static final String MARKER_FALLBACK_COMPENSATION = "LOCAL_FALLBACK_COMPENSATION_MARKED";
-    private static final String MARKER_RUNTIME_REWRITE_ORIGINAL_RETRY = "LOCAL_RUNTIME_REWRITE_ORIGINAL_SQL_RETRY";
-    private static final String ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT = "CLOSE_PRIMARY_ATTEMPT_CONTEXT";
-    private static final String ACTION_RECORD_DEGRADED_RESULT = "RECORD_DEGRADED_RESULT";
-    private static final String ACTION_RETRY_ORIGINAL_SQL = "RETRY_ORIGINAL_SQL_AFTER_REWRITE_FAILURE";
-    private static final String RESOURCE_TYPE_QUERY = "QUERY_EXECUTION_QUERY";
-    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
-    private static final Pattern ISO_DATE_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
-    private static final Pattern NAMED_BINDING_PATTERN = Pattern.compile(":[A-Za-z][A-Za-z0-9_]*");
-    private static final Pattern POSITIONAL_BINDING_PATTERN = Pattern.compile("\\?");
-    private static final Pattern LOGICAL_OBJECT_PATTERN = Pattern.compile("(?i)\\b(?:from|join|into|update)\\s+([A-Za-z0-9_$.]+)");
-
-    private final QueryExecutionAdapter queryExecutionAdapter;
-    private final GovernanceCapabilityClient governanceCapabilityClient;
-    private final QueryExecutionMetricsRecorder metricsRecorder;
-    private final QueryExecutionAccelerationRuntimeService queryExecutionAccelerationRuntimeService;
-    private final QueryExecutionCacheGovernanceRuntimeService queryExecutionCacheGovernanceRuntimeService;
-    private final QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService;
-    private final QueryExecutionRewriteProperties rewriteProperties;
-    private final Executor queryHistoryWriteExecutor;
+public class QueryExecutionApplicationService extends QueryExecutionApplicationServiceSupport {
 
     @Autowired
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -123,18 +61,16 @@ public class QueryExecutionApplicationService {
                                             QueryExecutionRuntimeRewriteBindingService queryExecutionRuntimeRewriteBindingService,
                                             QueryExecutionRewriteProperties rewriteProperties,
                                             @Qualifier("tenantAwareTaskExecutor") Executor queryHistoryWriteExecutor) {
-        this.queryExecutionAdapter = queryExecutionAdapter;
-        this.governanceCapabilityClient = governanceCapabilityClient;
-        this.metricsRecorder = metricsRecorder;
-        this.queryExecutionAccelerationRuntimeService = queryExecutionAccelerationRuntimeService;
-        this.queryExecutionCacheGovernanceRuntimeService = queryExecutionCacheGovernanceRuntimeService;
-        this.queryExecutionRuntimeRewriteBindingService = queryExecutionRuntimeRewriteBindingService;
-        this.rewriteProperties = rewriteProperties == null
-            ? new QueryExecutionRewriteProperties()
-            : rewriteProperties;
-        this.queryHistoryWriteExecutor = queryHistoryWriteExecutor == null
-            ? directExecutor()
-            : queryHistoryWriteExecutor;
+        super(
+            queryExecutionAdapter,
+            governanceCapabilityClient,
+            metricsRecorder,
+            queryExecutionAccelerationRuntimeService,
+            queryExecutionCacheGovernanceRuntimeService,
+            queryExecutionRuntimeRewriteBindingService,
+            rewriteProperties,
+            queryHistoryWriteExecutor
+        );
     }
 
     public QueryExecutionApplicationService(QueryExecutionAdapter queryExecutionAdapter,
@@ -230,7 +166,6 @@ public class QueryExecutionApplicationService {
             new QueryExecutionRewriteProperties()
         );
     }
-
     public QueryExecuteResponse executeSynchronously(QueryExecuteRequest request) {
         long start = System.currentTimeMillis();
         request.setTenantId(requireAuthorizedTenant(request.getTenantId()));
@@ -443,86 +378,17 @@ public class QueryExecutionApplicationService {
                 );
             }
             primaryStep = queryExecutionCacheGovernanceRuntimeService.finalizeSuccessfulExecution(cacheResolution, primaryStep);
-            if (timeoutMs != null && primaryStep.getElapsedMs() > timeoutMs.longValue()) {
-                logStateChange(
-                    sqlFingerprint,
-                    request,
-                    STATE_PRIMARY_ROUTE_SELECTED,
-                    STATE_PRIMARY_TIMEOUT,
-                    primaryEngine.name(),
-                    timeoutMs.longValue(),
-                    QueryExecutionStatus.TIMEOUT.name(),
-                    null
-                );
-                QueryRetryStepVO timeoutRecoveryStep = buildRecoveryStep(
-                    primaryEngine.name(),
-                    timeoutMs.longValue(),
-                    QueryExecutionStatus.TIMEOUT.name(),
-                    MARKER_TIMEOUT_ROLLBACK,
-                    ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT
-                );
-                logStateChange(
-                    sqlFingerprint,
-                    request,
-                    STATE_PRIMARY_TIMEOUT,
-                    STATE_LOCAL_ROLLBACK_MARKED,
-                    primaryEngine.name(),
-                    timeoutMs.longValue(),
-                    QueryExecutionStatus.TIMEOUT.name(),
-                    MARKER_TIMEOUT_ROLLBACK
-                );
-                if (FaultToleranceStrategy.RETRY_THEN_FALLBACK == request.getFaultToleranceStrategy()
-                    && resolveFallbackEngine(primaryEngine) != null) {
-                    logStateChange(
-                        sqlFingerprint,
-                        request,
-                        STATE_LOCAL_ROLLBACK_MARKED,
-                        STATE_FALLBACK_REQUESTED,
-                        resolveFallbackEngine(primaryEngine).name(),
-                        timeoutMs.longValue(),
-                        QueryExecutionStatus.PARTIAL.name(),
-                        timeoutRecoveryStep.getLocalRecoveryMarker()
-                    );
-                    return logAndReturn(
-                        buildFallbackResponse(
-                            primaryEngine,
-                            runtimeRewriteResolution,
-                            TIMEOUT_FALLBACK_REASON,
-                            Collections.singletonList(timeoutRecoveryStep),
-                            request
-                        ),
-                        request,
-                        start
-                    );
-                }
-
-                return logAndReturn(
-                    buildFailureResponse(
-                        QueryExecutionStatus.TIMEOUT,
-                        primaryEngine.name(),
-                        runtimeRewriteResolution,
-                        timeoutMs.longValue(),
-                        0L,
-                        Collections.singletonList(timeoutRecoveryStep),
-                        new QueryErrorDetailVO(
-                            ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ENGINE_TIMEOUT,
-                            QUERY_TIMEOUT_MESSAGE,
-                            "请增加 timeoutMs，或在当前同步基线下使用 RETRY_THEN_FALLBACK。",
-                            true
-                        ),
-                        sqlFingerprint,
-                        primaryStep.getExecutionMode(),
-                        primaryStep.getAttemptedModes(),
-                        primaryStep.getRouteProfile(),
-                        primaryStep.getRouteOrder(),
-                        primaryStep.getRouteEvidenceSource(),
-                        primaryStep.getRouteVerificationStatus(),
-                        primaryStep.getCacheGovernanceStatus(),
-                        primaryStep.getCacheGovernanceEvidence()
-                    ),
-                    request,
-                    start
-                );
+            QueryExecuteResponse timeoutResponse = handlePrimaryTimeout(
+                request,
+                primaryEngine,
+                sqlFingerprint,
+                runtimeRewriteResolution,
+                timeoutMs,
+                primaryStep,
+                start
+            );
+            if (timeoutResponse != null) {
+                return timeoutResponse;
             }
 
             return logAndReturn(
@@ -561,6 +427,98 @@ public class QueryExecutionApplicationService {
             );
             throw ex;
         }
+    }
+
+
+    private QueryExecuteResponse handlePrimaryTimeout(QueryExecuteRequest request,
+                                                      DataSourceTypeEnum primaryEngine,
+                                                      String sqlFingerprint,
+                                                      RuntimeRewriteResolution runtimeRewriteResolution,
+                                                      Long timeoutMs,
+                                                      QueryExecutionStep primaryStep,
+                                                      long start) {
+        if (timeoutMs == null || primaryStep.getElapsedMs() <= timeoutMs.longValue()) {
+            return null;
+        }
+        logStateChange(
+            sqlFingerprint,
+            request,
+            STATE_PRIMARY_ROUTE_SELECTED,
+            STATE_PRIMARY_TIMEOUT,
+            primaryEngine.name(),
+            timeoutMs.longValue(),
+            QueryExecutionStatus.TIMEOUT.name(),
+            null
+        );
+        QueryRetryStepVO timeoutRecoveryStep = buildRecoveryStep(
+            primaryEngine.name(),
+            timeoutMs.longValue(),
+            QueryExecutionStatus.TIMEOUT.name(),
+            MARKER_TIMEOUT_ROLLBACK,
+            ACTION_CLOSE_PRIMARY_ATTEMPT_CONTEXT
+        );
+        logStateChange(
+            sqlFingerprint,
+            request,
+            STATE_PRIMARY_TIMEOUT,
+            STATE_LOCAL_ROLLBACK_MARKED,
+            primaryEngine.name(),
+            timeoutMs.longValue(),
+            QueryExecutionStatus.TIMEOUT.name(),
+            MARKER_TIMEOUT_ROLLBACK
+        );
+        if (FaultToleranceStrategy.RETRY_THEN_FALLBACK == request.getFaultToleranceStrategy()
+            && resolveFallbackEngine(primaryEngine) != null) {
+            logStateChange(
+                sqlFingerprint,
+                request,
+                STATE_LOCAL_ROLLBACK_MARKED,
+                STATE_FALLBACK_REQUESTED,
+                resolveFallbackEngine(primaryEngine).name(),
+                timeoutMs.longValue(),
+                QueryExecutionStatus.PARTIAL.name(),
+                timeoutRecoveryStep.getLocalRecoveryMarker()
+            );
+            return logAndReturn(
+                buildFallbackResponse(
+                    primaryEngine,
+                    runtimeRewriteResolution,
+                    TIMEOUT_FALLBACK_REASON,
+                    Collections.singletonList(timeoutRecoveryStep),
+                    request
+                ),
+                request,
+                start
+            );
+        }
+
+        return logAndReturn(
+            buildFailureResponse(
+                QueryExecutionStatus.TIMEOUT,
+                primaryEngine.name(),
+                runtimeRewriteResolution,
+                timeoutMs.longValue(),
+                0L,
+                Collections.singletonList(timeoutRecoveryStep),
+                new QueryErrorDetailVO(
+                    ErrorCodeConstants.QUERY_EXECUTION_SYSTEM_ENGINE_TIMEOUT,
+                    QUERY_TIMEOUT_MESSAGE,
+                    "请增加 timeoutMs，或在当前同步基线下使用 RETRY_THEN_FALLBACK。",
+                    true
+                ),
+                sqlFingerprint,
+                primaryStep.getExecutionMode(),
+                primaryStep.getAttemptedModes(),
+                primaryStep.getRouteProfile(),
+                primaryStep.getRouteOrder(),
+                primaryStep.getRouteEvidenceSource(),
+                primaryStep.getRouteVerificationStatus(),
+                primaryStep.getCacheGovernanceStatus(),
+                primaryStep.getCacheGovernanceEvidence()
+            ),
+            request,
+            start
+        );
     }
 
     private QueryExecuteResponse buildFallbackResponse(DataSourceTypeEnum primaryEngine,
@@ -1556,731 +1514,4 @@ public class QueryExecutionApplicationService {
         }
     }
 
-    private static Executor directExecutor() {
-        return new Executor() {
-            @Override
-            public void execute(Runnable command) {
-                command.run();
-            }
-        };
-    }
-
-    private Map<String, Object> buildHistoryQueryContext(QueryExecuteRequest request,
-                                                         QueryExecuteResponse response,
-                                                         String resultStatus,
-                                                         String failureReason,
-                                                         AccessAuditContract accessAuditContract,
-                                                         RuntimeRewriteResolution fallbackRewriteResolution) {
-        QueryExecutionMetadataVO metadata = response == null ? null : response.getMetadata();
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("serviceCode", ServiceCodeConstants.QUERY_EXECUTION);
-        payload.put("operationCode", OPERATION);
-        payload.put("resourceType", RESOURCE_TYPE_QUERY);
-        payload.put("accessChannel", accessAuditContract.getAccessChannel().name());
-        payload.put("authSource", accessAuditContract.getAuthSource());
-        payload.put("tenantId", request.getTenantId());
-        payload.put("datasourceType", request.getDatasourceType() == null ? null : request.getDatasourceType().name());
-        payload.put("faultToleranceStrategy", request.getFaultToleranceStrategy() == null
-            ? null
-            : request.getFaultToleranceStrategy().name());
-        payload.put("accelerationPreference", request.getAccelerationPreference() == null
-            ? null
-            : request.getAccelerationPreference().name());
-        payload.put("requestContext", buildRequestContextPayload(request.getQueryContext()));
-        payload.put("resultStatus", resultStatus);
-        payload.put("targetEngine", response == null || response.getMetadata() == null
-            ? null
-            : response.getMetadata().getTargetEngine());
-        payload.put("returnedRowCount", response == null || response.getMetadata() == null
-            ? Long.valueOf(0L)
-            : Long.valueOf(response.getMetadata().getRowCount()));
-        payload.put("scannedRows", response == null || response.getMetadata() == null
-            ? Long.valueOf(0L)
-            : Long.valueOf(response.getMetadata().getScannedRows()));
-        payload.put("elapsedMs", response == null || response.getMetadata() == null
-            ? null
-            : Long.valueOf(response.getMetadata().getElapsedMs()));
-        payload.put("degraded", Boolean.valueOf(response != null && response.isDegraded()));
-        payload.put("degradeReason", response == null ? null : response.getDegradeReason());
-        payload.put("retryPathSize", response == null || response.getRetryPath() == null
-            ? Integer.valueOf(0)
-            : Integer.valueOf(response.getRetryPath().size()));
-        payload.put("commentContext", response == null ? null : response.getCommentContext());
-        payload.put("queryDateSummary", response == null ? null : response.getQueryDateSummary());
-        payload.put("bindingSummary", response == null ? null : response.getBindingSummary());
-        payload.put("logicalObjectHits", response == null ? null : response.getLogicalObjectHits());
-        payload.put("routeSummary", response == null ? null : response.getRouteSummary());
-        payload.put("cacheSummary", response == null ? null : response.getCacheSummary());
-        payload.put("rewriteApplied", metadata == null
-            ? Boolean.valueOf(fallbackRewriteResolution != null && fallbackRewriteResolution.isRewriteApplied())
-            : Boolean.valueOf(metadata.isRewriteApplied()));
-        payload.put("rewriteRecordId", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteRecordId()
-            : metadata.getRewriteRecordId());
-        payload.put("runtimeBindingId", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeBindingId()
-            : metadata.getRuntimeBindingId());
-        payload.put("ruleVersion", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuleVersion()
-            : metadata.getRuleVersion());
-        payload.put("runtimeRuleVersion", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeRuleVersion()
-            : metadata.getRuntimeRuleVersion());
-        payload.put("runtimeRewriteStatus", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRuntimeStatus()
-            : metadata.getRuntimeRewriteStatus());
-        payload.put("rewriteActivationStatusSnapshot", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteActivationStatusSnapshot()
-            : metadata.getRewriteActivationStatusSnapshot());
-        payload.put("rewriteFallbackReason", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getRewriteFallbackReason()
-            : metadata.getRewriteFallbackReason());
-        payload.put("originalSqlFingerprint", response == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getOriginalSqlFingerprint()
-            : response.getSqlFingerprint());
-        payload.put("actualSqlFingerprint", metadata == null
-            ? fallbackRewriteResolution == null ? null : fallbackRewriteResolution.getActualSqlFingerprint()
-            : SqlFingerprintUtils.fingerprint(metadata.getActualSql()));
-        if (response != null && response.getQueryDateSummary() != null) {
-            payload.put("queryDateStart", response.getQueryDateSummary().get("queryDateStart"));
-            payload.put("queryDateEnd", response.getQueryDateSummary().get("queryDateEnd"));
-            payload.put("queryDateStatus", response.getQueryDateSummary().get("queryDateStatus"));
-        }
-        payload.put("failureReason", failureReason);
-        return payload;
-    }
-
-    private Map<String, Object> buildRequestContextPayload(QueryContextDTO queryContext) {
-        if (queryContext == null) {
-            return Collections.emptyMap();
-        }
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
-        payload.put("databaseName", queryContext.getDatabaseName());
-        payload.put("schemaVersion", queryContext.getSchemaVersion());
-        payload.put("timeoutMs", queryContext.getTimeoutMs());
-        payload.put("sessionVariables", queryContext.getSessionVariables());
-        return payload;
-    }
-
-    private String resolveDatasourceCode(QueryExecuteRequest request, QueryExecuteResponse response) {
-        Map<String, String> commentContext = response == null ? null : response.getCommentContext();
-        return firstText(
-            request == null ? null : request.getDatasourceCode(),
-            extractRuntimeDatasourceCode(response),
-            commentContext == null ? null : commentContext.get("datasource"),
-            commentContext == null ? null : commentContext.get("datasource_code"),
-            request == null || request.getQueryContext() == null ? null : request.getQueryContext().getDatabaseName(),
-            request == null || request.getDatasourceType() == null ? null : request.getDatasourceType().name()
-        );
-    }
-
-    private String extractRuntimeDatasourceCode(QueryExecuteResponse response) {
-        if (response == null || response.getBindingSummary() == null) {
-            return null;
-        }
-        Object datasourceCode = response.getBindingSummary().get("runtimeDatasourceCode");
-        return datasourceCode == null ? null : String.valueOf(datasourceCode);
-    }
-
-    private String toJson(Object payload) {
-        return payload == null ? null : JsonUtils.toJson(payload);
-    }
-
-    private Map<String, String> buildCommentContext(String sqlText) {
-        return JdbcAgentSqlCommentParser.parseLeadingComments(sqlText);
-    }
-
-    private Map<String, Object> buildQueryDateSummary(String sqlText) {
-        Map<String, Object> summary = new LinkedHashMap<String, Object>();
-        if (!StringUtils.hasText(sqlText)) {
-            summary.put("queryDateFields", Collections.<String>emptyList());
-            summary.put("queryDateStatus", "UNRESOLVED");
-            return summary;
-        }
-        List<LocalDate> dates = new ArrayList<LocalDate>();
-        Matcher matcher = ISO_DATE_PATTERN.matcher(sqlText);
-        while (matcher.find()) {
-            LocalDate parsed = tryParseDate(matcher.group(1));
-            if (parsed != null) {
-                dates.add(parsed);
-            }
-        }
-        List<String> fields = detectQueryDateFields(sqlText);
-        summary.put("queryDateFields", fields);
-        if (!dates.isEmpty()) {
-            dates.sort(Comparator.naturalOrder());
-            summary.put("queryDateStart", dates.get(0).format(ISO_DATE));
-            summary.put("queryDateEnd", dates.get(dates.size() - 1).format(ISO_DATE));
-            summary.put("queryDateStatus", "RESOLVED");
-            return summary;
-        }
-        summary.put("queryDateStatus", fields.isEmpty() ? "UNRESOLVED" : "PARTIAL");
-        return summary;
-    }
-
-    private Map<String, Object> buildBindingSummary(String sqlText, String sqlFingerprint) {
-        return buildBindingSummary(
-            sqlText,
-            RuntimeRewriteResolution.noRewrite(sqlText, sqlFingerprint)
-        );
-    }
-
-    private Map<String, Object> buildBindingSummary(String sqlText,
-                                                    RuntimeRewriteResolution runtimeRewriteResolution) {
-        Map<String, Object> summary = new LinkedHashMap<String, Object>();
-        int namedBindings = countMatches(NAMED_BINDING_PATTERN, sqlText);
-        int positionalBindings = countMatches(POSITIONAL_BINDING_PATTERN, sqlText);
-        boolean parameterized = namedBindings > 0 || positionalBindings > 0;
-        summary.put("parameterizedSqlFlag", Boolean.valueOf(parameterized));
-        if (namedBindings > 0) {
-            summary.put("bindingMode", "NAMED");
-        } else if (positionalBindings > 0) {
-            summary.put("bindingMode", "POSITIONAL");
-        } else {
-            summary.put("bindingMode", "NONE");
-        }
-        summary.put("bindingRenderStatus", parameterized ? "PARTIAL" : "SUCCESS");
-        summary.put("bindingParameterCount", Integer.valueOf(namedBindings + positionalBindings));
-        summary.put("sqlTemplateFingerprint", runtimeRewriteResolution.getOriginalSqlFingerprint());
-        summary.put("boundSqlFingerprint", parameterized ? null : runtimeRewriteResolution.getActualSqlFingerprint());
-        summary.put("actualSqlFingerprint", runtimeRewriteResolution.getActualSqlFingerprint());
-        summary.put("rewriteApplied", Boolean.valueOf(runtimeRewriteResolution.isRewriteApplied()));
-        summary.put("runtimeRewriteStatus", runtimeRewriteResolution.getRuntimeStatus());
-        summary.put("rewriteRecordId", runtimeRewriteResolution.getRewriteRecordId());
-        summary.put("runtimeBindingId", runtimeRewriteResolution.getRuntimeBindingId());
-        summary.put("ruleVersion", runtimeRewriteResolution.getRuleVersion());
-        summary.put("runtimeRuleVersion", runtimeRewriteResolution.getRuntimeRuleVersion());
-        summary.put("runtimeDatasourceCode", runtimeRewriteResolution.getDatasourceCode());
-        summary.put("rewriteActivationStatusSnapshot", runtimeRewriteResolution.getRewriteActivationStatusSnapshot());
-        if (StringUtils.hasText(runtimeRewriteResolution.getRewriteFallbackReason())) {
-            summary.put("rewriteFallbackReason", runtimeRewriteResolution.getRewriteFallbackReason());
-        }
-        return summary;
-    }
-
-    private List<LogicalObjectSurface> buildLogicalObjectHits(String sqlText) {
-        if (!StringUtils.hasText(sqlText)) {
-            return Collections.emptyList();
-        }
-        List<LogicalObjectSurface> hits = new ArrayList<LogicalObjectSurface>();
-        List<String> seenKeys = new ArrayList<String>();
-        Matcher matcher = LOGICAL_OBJECT_PATTERN.matcher(sqlText);
-        while (matcher.find()) {
-            String rawReference = sanitizeObjectReference(matcher.group(1));
-            if (!StringUtils.hasText(rawReference)) {
-                continue;
-            }
-            LogicalObjectSurface hit = toLogicalObjectSurface(rawReference);
-            if (hit.getObjectKey() == null || seenKeys.contains(hit.getObjectKey())) {
-                continue;
-            }
-            seenKeys.add(hit.getObjectKey());
-            hits.add(hit);
-        }
-        return hits;
-    }
-
-    private Map<String, Object> buildRouteSummary(String selectedEngine,
-                                                  String executionMode,
-                                                  String routeProfile,
-                                                  List<String> routeOrder,
-                                                  String routeEvidenceSource,
-                                                  String routeVerificationStatus,
-                                                  boolean degraded,
-                                                  String degradeReason) {
-        Map<String, Object> summary = new LinkedHashMap<String, Object>();
-        summary.put("selectedEngine", selectedEngine);
-        summary.put("executionMode", executionMode);
-        summary.put("routeProfile", routeProfile);
-        summary.put("routeOrder", routeOrder == null ? Collections.<String>emptyList() : routeOrder);
-        summary.put("routeEvidenceSource", routeEvidenceSource);
-        summary.put("routeVerificationStatus", routeVerificationStatus);
-        summary.put("degraded", Boolean.valueOf(degraded));
-        if (StringUtils.hasText(degradeReason)) {
-            summary.put("degradeReason", degradeReason);
-        }
-        return summary;
-    }
-
-    private Map<String, Object> buildCacheSummary(boolean cacheHit,
-                                                  String cacheGovernanceStatus,
-                                                  String cacheGovernanceEvidence) {
-        Map<String, Object> summary = new LinkedHashMap<String, Object>();
-        summary.put("cacheHit", Boolean.valueOf(cacheHit));
-        summary.put("cacheGovernanceStatus", cacheGovernanceStatus);
-        summary.put("cacheGovernanceEvidence", cacheGovernanceEvidence);
-        return summary;
-    }
-
-    private Map<String, Object> buildLightweightParseSummary(String sqlText,
-                                                             QueryExecutionStatus status,
-                                                             QueryErrorDetailVO errorDetail) {
-        Map<String, Object> summary = new LinkedHashMap<String, Object>();
-        String normalized = sqlText == null ? "" : sqlText.trim();
-        ReadonlyQueryAssessment assessment = ReadonlyQueryGuard.assess(normalized);
-        String sqlType = resolveSqlType(normalized);
-        List<String> riskTags = detectRiskTags(normalized);
-        List<String> rewriteCandidates = detectRewriteCandidates(riskTags, buildQueryDateSummary(normalized));
-        List<String> issueCodes = new ArrayList<String>();
-        if (!assessment.isReadonly()) {
-            issueCodes.add("NON_READONLY_STATEMENT");
-        }
-        if (errorDetail != null && errorDetail.getCode() == ErrorCodeConstants.QUERY_EXECUTION_RISK_REJECTED
-            && !issueCodes.contains("NON_READONLY_STATEMENT")) {
-            issueCodes.add("NON_READONLY_STATEMENT");
-        }
-        summary.put("syntaxStatus", issueCodes.isEmpty() ? "VALID" : "INVALID");
-        summary.put("sqlType", sqlType);
-        summary.put("readonly", Boolean.valueOf(assessment.isReadonly()));
-        summary.put("complexityLevel", resolveComplexityLevel(riskTags));
-        summary.put("riskTags", riskTags);
-        summary.put("rewriteCandidates", rewriteCandidates);
-        summary.put("issueCodes", issueCodes);
-        summary.put("issueCount", Integer.valueOf(issueCodes.size()));
-        summary.put("resultStatus", status == null ? null : status.name());
-        return summary;
-    }
-
-    private List<String> detectQueryDateFields(String sqlText) {
-        if (!StringUtils.hasText(sqlText)) {
-            return Collections.emptyList();
-        }
-        String lower = sqlText.toLowerCase(Locale.ROOT);
-        List<String> hits = new ArrayList<String>();
-        if (lower.contains("query_date")) {
-            hits.add("query_date");
-        }
-        if (lower.contains("biz_date")) {
-            hits.add("biz_date");
-        }
-        if (lower.contains(" dt ") || lower.contains(".dt") || lower.contains("dt=")) {
-            hits.add("dt");
-        }
-        if (hits.isEmpty() && (lower.contains(" date ") || lower.contains(".date") || lower.contains("date="))) {
-            hits.add("date");
-        }
-        return hits;
-    }
-
-    private LocalDate tryParseDate(String candidate) {
-        if (!StringUtils.hasText(candidate)) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(candidate, ISO_DATE);
-        } catch (DateTimeParseException ex) {
-            return null;
-        }
-    }
-
-    private int countMatches(Pattern pattern, String sqlText) {
-        if (pattern == null || !StringUtils.hasText(sqlText)) {
-            return 0;
-        }
-        int count = 0;
-        Matcher matcher = pattern.matcher(sqlText);
-        while (matcher.find()) {
-            count += 1;
-        }
-        return count;
-    }
-
-    private String sanitizeObjectReference(String rawReference) {
-        if (!StringUtils.hasText(rawReference)) {
-            return null;
-        }
-        String sanitized = rawReference.trim();
-        while (sanitized.endsWith(",") || sanitized.endsWith(")") || sanitized.endsWith(";")) {
-            sanitized = sanitized.substring(0, sanitized.length() - 1).trim();
-        }
-        return sanitized;
-    }
-
-    private LogicalObjectSurface toLogicalObjectSurface(String objectReference) {
-        LogicalObjectType objectType = resolveLogicalObjectType(objectReference);
-        String[] parts = objectReference.split("\\.");
-        String objectName = parts.length == 0 ? objectReference : parts[parts.length - 1];
-        LogicalObjectSurface surface = new LogicalObjectSurface();
-        surface.setObjectType(objectType.name());
-        surface.setObjectName(objectName);
-        surface.setObjectKey(LogicalObjectRef.buildObjectKey(objectType, objectName));
-        if (parts.length >= 3) {
-            surface.setCatalogName(parts[0]);
-            surface.setSchemaName(parts[1]);
-        } else if (parts.length == 2) {
-            surface.setSchemaName(parts[0]);
-        }
-        surface.setMatchSource("SQL_TOKEN");
-        surface.setResolved(Boolean.TRUE);
-        surface.setMappedPhysicalTargets(Collections.<String>emptyList());
-        return surface;
-    }
-
-    private LogicalObjectType resolveLogicalObjectType(String objectReference) {
-        String lower = objectReference == null ? "" : objectReference.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("business_view")
-            || lower.contains(".business_view.")
-            || lower.endsWith("_logic")
-            || lower.contains("customer_360")) {
-            return LogicalObjectType.BUSINESS_VIEW;
-        }
-        if (lower.contains("vw_") || lower.endsWith("_view") || lower.contains(".view.")) {
-            return LogicalObjectType.DB_VIEW;
-        }
-        return LogicalObjectType.TABLE;
-    }
-
-    private String resolveSqlType(String sqlText) {
-        if (!StringUtils.hasText(sqlText)) {
-            return "UNKNOWN";
-        }
-        String upper = stripLeadingComments(sqlText).toUpperCase(Locale.ROOT);
-        if (upper.startsWith("EXPLAIN")) {
-            return "EXPLAIN";
-        }
-        if (upper.startsWith("WITH")) {
-            return "WITH";
-        }
-        if (upper.startsWith("SELECT")) {
-            return "SELECT";
-        }
-        if (upper.startsWith("INSERT")) {
-            return "INSERT";
-        }
-        if (upper.startsWith("UPDATE")) {
-            return "UPDATE";
-        }
-        if (upper.startsWith("DELETE")) {
-            return "DELETE";
-        }
-        return "UNKNOWN";
-    }
-
-    private String stripLeadingComments(String sqlText) {
-        if (!StringUtils.hasText(sqlText)) {
-            return "";
-        }
-        String[] lines = sqlText.replace("\r\n", "\n").replace('\r', '\n').split("\n");
-        StringBuilder builder = new StringBuilder();
-        boolean copying = false;
-        for (String line : lines) {
-            String trimmed = line == null ? "" : line.trim();
-            if (!copying && trimmed.startsWith("--")) {
-                continue;
-            }
-            copying = true;
-            if (builder.length() > 0) {
-                builder.append('\n');
-            }
-            builder.append(trimmed);
-        }
-        return builder.toString().trim();
-    }
-
-    private List<String> detectRiskTags(String sqlText) {
-        if (!StringUtils.hasText(sqlText)) {
-            return Collections.emptyList();
-        }
-        String lower = sqlText.toLowerCase(Locale.ROOT);
-        List<String> riskTags = new ArrayList<String>();
-        if (lower.contains("select *")) {
-            riskTags.add("SELECT_STAR");
-        }
-        if (lower.contains(" join ")) {
-            riskTags.add("JOIN");
-        }
-        if (lower.contains(" group by ")) {
-            riskTags.add("AGGREGATION");
-        }
-        if (lower.contains(" over ")) {
-            riskTags.add("WINDOW");
-        }
-        if (lower.contains(" limit ")) {
-            riskTags.add("LIMIT");
-        }
-        return riskTags;
-    }
-
-    private List<String> detectRewriteCandidates(List<String> riskTags, Map<String, Object> queryDateSummary) {
-        List<String> rewriteCandidates = new ArrayList<String>();
-        if (riskTags.contains("SELECT_STAR")) {
-            rewriteCandidates.add("NARROW_SELECT_COLUMNS");
-        }
-        if (riskTags.contains("JOIN")) {
-            rewriteCandidates.add("VALIDATE_JOIN_FILTERS");
-        }
-        Object queryDateStatus = queryDateSummary == null ? null : queryDateSummary.get("queryDateStatus");
-        if ("PARTIAL".equals(queryDateStatus)) {
-            rewriteCandidates.add("RESOLVE_QUERY_DATE_BINDINGS");
-        }
-        return rewriteCandidates;
-    }
-
-    private String resolveComplexityLevel(List<String> riskTags) {
-        if (riskTags == null || riskTags.isEmpty()) {
-            return "SIMPLE";
-        }
-        if (riskTags.size() >= 3 || riskTags.contains("WINDOW")) {
-            return "COMPLEX";
-        }
-        return "MODERATE";
-    }
-
-    private ActivatedAccelerationBinding resolveActivatedAccelerationBinding(QueryExecuteRequest request,
-                                                                           String sqlFingerprint,
-                                                                           DataSourceTypeEnum primaryEngine) {
-        if (request.getAccelerationPreference() != com.company.queryexecution.domain.query.AccelerationPreference.PREFER_ACCELERATED) {
-            return null;
-        }
-        if (primaryEngine == null) {
-            return null;
-        }
-        return queryExecutionAccelerationRuntimeService.resolveActiveBinding(
-            request.getTenantId(),
-            sqlFingerprint,
-            primaryEngine.name()
-        );
-    }
-
-    private QueryExecuteRequest normalizeAccelerationRequest(QueryExecuteRequest request,
-                                                            boolean accelerationAllowed,
-                                                            DataSourceTypeEnum primaryEngine,
-                                                            RuntimeRewriteResolution runtimeRewriteResolution) {
-        QueryExecuteRequest normalized = new QueryExecuteRequest();
-        String actualSql = runtimeRewriteResolution == null
-            ? request.getSqlText()
-            : runtimeRewriteResolution.getActualSql();
-        normalized.setSqlText(actualSql);
-        normalized.setTenantId(request.getTenantId());
-        normalized.setDatasourceType(primaryEngine == null ? request.getDatasourceType() : primaryEngine);
-        normalized.setDatasourceCode(firstText(
-            request.getDatasourceCode(),
-            runtimeRewriteResolution == null ? null : runtimeRewriteResolution.getDatasourceCode()
-        ));
-        normalized.setQueryContext(request.getQueryContext());
-        normalized.setFaultToleranceStrategy(request.getFaultToleranceStrategy());
-        normalized.setAccelerationPreference(accelerationAllowed
-            ? request.getAccelerationPreference()
-            : com.company.queryexecution.domain.query.AccelerationPreference.NONE);
-        return normalized;
-    }
-
-    private String firstText(String... values) {
-        if (values == null) {
-            return null;
-        }
-        for (String value : values) {
-            if (StringUtils.hasText(value)) {
-                return value.trim();
-            }
-        }
-        return null;
-    }
-
-    private String stableHash(String... parts) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            if (parts != null) {
-                for (String part : parts) {
-                    digest.update((part == null ? "" : part).getBytes(StandardCharsets.UTF_8));
-                    digest.update((byte) '|');
-                }
-            }
-            byte[] hash = digest.digest();
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < 12 && i < hash.length; i += 1) {
-                builder.append(String.format("%02x", Integer.valueOf(hash[i] & 0xff)));
-            }
-            return builder.toString();
-        } catch (Exception ex) {
-            return String.valueOf(Math.abs(Arrays.hashCode(parts)));
-        }
-    }
-
-    private static final class RuntimeRewriteResolution {
-        private final String originalSql;
-        private final String originalSqlFingerprint;
-        private final String actualSql;
-        private final String actualSqlFingerprint;
-        private final boolean rewriteApplied;
-        private final String runtimeStatus;
-        private final String rewriteRecordId;
-        private final String runtimeBindingId;
-        private final Long ruleVersion;
-        private final String runtimeRuleVersion;
-        private final String datasourceCode;
-        private final String rewriteActivationStatusSnapshot;
-        private final String rewriteFallbackReason;
-
-        private RuntimeRewriteResolution(String originalSql,
-                                         String originalSqlFingerprint,
-                                         String actualSql,
-                                         String actualSqlFingerprint,
-                                         boolean rewriteApplied,
-                                         String runtimeStatus,
-                                         String rewriteRecordId,
-                                         String runtimeBindingId,
-                                         Long ruleVersion,
-                                         String runtimeRuleVersion,
-                                         String datasourceCode,
-                                         String rewriteActivationStatusSnapshot,
-                                         String rewriteFallbackReason) {
-            this.originalSql = originalSql;
-            this.originalSqlFingerprint = originalSqlFingerprint;
-            this.actualSql = actualSql;
-            this.actualSqlFingerprint = actualSqlFingerprint;
-            this.rewriteApplied = rewriteApplied;
-            this.runtimeStatus = runtimeStatus;
-            this.rewriteRecordId = rewriteRecordId;
-            this.runtimeBindingId = runtimeBindingId;
-            this.ruleVersion = ruleVersion;
-            this.runtimeRuleVersion = runtimeRuleVersion;
-            this.datasourceCode = trimToNull(datasourceCode);
-            this.rewriteActivationStatusSnapshot = rewriteActivationStatusSnapshot;
-            this.rewriteFallbackReason = rewriteFallbackReason;
-        }
-
-        static RuntimeRewriteResolution noRewrite(String originalSql, String originalSqlFingerprint) {
-            return noRewrite(originalSql, originalSql, originalSqlFingerprint);
-        }
-
-        static RuntimeRewriteResolution noRewrite(String originalSql, String actualSql, String originalSqlFingerprint) {
-            return new RuntimeRewriteResolution(
-                originalSql,
-                originalSqlFingerprint,
-                actualSql,
-                SqlFingerprintUtils.fingerprint(actualSql),
-                false,
-                "NOT_LOOKED_UP",
-                null,
-                null,
-                null,
-                null,
-                null,
-                "INACTIVE",
-                null
-            );
-        }
-
-        static RuntimeRewriteResolution inactive(String originalSql,
-                                                 String actualSql,
-                                                 String originalSqlFingerprint,
-                                                 String runtimeStatus,
-                                                 String summary) {
-            return new RuntimeRewriteResolution(
-                originalSql,
-                originalSqlFingerprint,
-                actualSql,
-                SqlFingerprintUtils.fingerprint(actualSql),
-                false,
-                StringUtils.hasText(runtimeStatus) ? runtimeStatus : "MISSING",
-                null,
-                null,
-                null,
-                null,
-                null,
-                toRewriteActivationStatusSnapshot(runtimeStatus, null),
-                summary
-            );
-        }
-
-        static RuntimeRewriteResolution applied(String originalSql,
-                                                String originalSqlFingerprint,
-                                                String recommendedSql,
-                                                RuntimeRewriteBindingResponse response) {
-            return new RuntimeRewriteResolution(
-                originalSql,
-                originalSqlFingerprint,
-                recommendedSql,
-                SqlFingerprintUtils.fingerprint(recommendedSql),
-                true,
-                response.getStatus(),
-                response.getRewriteRecordId(),
-                response.getRuntimeBindingId(),
-                response.getRuleVersion(),
-                response.getRuntimeRuleVersion(),
-                response.getDatasourceCode(),
-                toRewriteActivationStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
-                null
-            );
-        }
-
-        static RuntimeRewriteResolution fallback(String originalSql,
-                                                 String originalSqlFingerprint,
-                                                 RuntimeRewriteBindingResponse response,
-                                                 String reason) {
-            return fallback(originalSql, originalSql, originalSqlFingerprint, response, reason);
-        }
-
-        static RuntimeRewriteResolution fallback(String originalSql,
-                                                 String actualSql,
-                                                 String originalSqlFingerprint,
-                                                 RuntimeRewriteBindingResponse response,
-                                                 String reason) {
-            return new RuntimeRewriteResolution(
-                originalSql,
-                originalSqlFingerprint,
-                actualSql,
-                SqlFingerprintUtils.fingerprint(actualSql),
-                false,
-                response == null ? "LOOKUP_FAILED" : response.getStatus(),
-                response == null ? null : response.getRewriteRecordId(),
-                response == null ? null : response.getRuntimeBindingId(),
-                response == null ? null : response.getRuleVersion(),
-                response == null ? null : response.getRuntimeRuleVersion(),
-                null,
-                response == null ? "UNKNOWN" : toRewriteActivationStatusSnapshot(response.getStatus(), response.getRewriteRecordId()),
-                reason
-            );
-        }
-
-        RuntimeRewriteResolution fallbackAfterRewriteExecutionFailure(String fallbackActualSql, String reason) {
-            return new RuntimeRewriteResolution(
-                originalSql,
-                originalSqlFingerprint,
-                fallbackActualSql,
-                SqlFingerprintUtils.fingerprint(fallbackActualSql),
-                false,
-                runtimeStatus,
-                rewriteRecordId,
-                runtimeBindingId,
-                ruleVersion,
-                runtimeRuleVersion,
-                datasourceCode,
-                rewriteActivationStatusSnapshot,
-                reason
-            );
-        }
-
-        private static String toRewriteActivationStatusSnapshot(String runtimeStatus, String rewriteRecordId) {
-            if ("ACTIVE".equals(runtimeStatus)) {
-                return "ACTIVE";
-            }
-            if ("PAUSED".equals(runtimeStatus)) {
-                return runtimeStatus;
-            }
-            if (StringUtils.hasText(rewriteRecordId)) {
-                return "UNKNOWN";
-            }
-            return "INACTIVE";
-        }
-
-        String getOriginalSql() { return originalSql; }
-        String getOriginalSqlFingerprint() { return originalSqlFingerprint; }
-        String getActualSql() { return actualSql; }
-        String getActualSqlFingerprint() { return actualSqlFingerprint; }
-        boolean isRewriteApplied() { return rewriteApplied; }
-        String getRuntimeStatus() { return runtimeStatus; }
-        String getRewriteRecordId() { return rewriteRecordId; }
-        String getRuntimeBindingId() { return runtimeBindingId; }
-        Long getRuleVersion() { return ruleVersion; }
-        String getRuntimeRuleVersion() { return runtimeRuleVersion; }
-        String getDatasourceCode() { return datasourceCode; }
-        String getRewriteActivationStatusSnapshot() { return rewriteActivationStatusSnapshot; }
-        String getRewriteFallbackReason() { return rewriteFallbackReason; }
-
-        private static String trimToNull(String value) {
-            return !StringUtils.hasText(value) ? null : value.trim();
-        }
-    }
 }

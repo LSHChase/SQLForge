@@ -6381,3 +6381,13 @@
 2026-06-01T07:59:06+08:00 | USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531 closeout commit | `R-168` | projected | `git commit -m 'feat(sql-optimization): recommend repeated subgraph mv dynamically' (projected-precommit)`
 2026-06-01T07:59:06+08:00 | USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
 2026-06-01T07:59:06+08:00 | USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-06-02T12:50:52+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 validate | `R-133`, `R-168` | passed | `python3 -m py_compile scripts/foreman.py .codex/hooks/permission_request.py .codex/hooks/pre_tool_use.py .codex/hooks/shared.py .codex/hooks/stop.py .codex/hooks/user_prompt_submit.py`
+2026-06-02T12:50:52+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 validate | `R-131`, `R-133` | passed | `node scripts/lint-repository-knowledge.js`
+2026-06-02T12:50:52+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 validate | `R-187`, `R-188`, `R-189`, `R-190` | passed | `node scripts/check-developer-copy-language.mjs --changed`
+2026-06-02T12:50:52+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 validate | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-06-02T12:50:53+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 validate | `R-133`, `R-168` | passed | `git diff --check`
+2026-06-02T12:51:39+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 closeout task-audit pre | `R-156`, `R-160`, `R-168` | passed | `python3 scripts/task_audit.py --check --phase pre-closeout`
+2026-06-02T12:51:39+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 closeout commit | `R-168` | projected | `git commit -m 'refactor(java): split oversized classes and methods' (projected-precommit)`
+2026-06-02T12:51:39+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 post-closeout task-audit | `R-156`, `R-160`, `R-168` | projected | `python3 scripts/task_audit.py --check --phase post-closeout (projected-precommit)`
+2026-06-02T12:51:39+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `node scripts/lint-repository-knowledge.js (projected-precommit)`
+2026-06-02T12:51:39+08:00 | USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602 post-closeout check | `R-131`, `R-133`, `R-168` | projected | `git diff --check 'HEAD^' HEAD (projected-precommit)`

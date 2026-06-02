@@ -4,6 +4,24 @@
 
 ## Done
 
+### USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602: 拆分超长 Java 类与方法
+
+- Status: done
+- Completed at: 2026-06-02
+- Commit subject: `refactor(java): split oversized classes and methods`
+- Priority: 1
+- Depends on: N/A
+- Scope: 仅重构 Java 生产与测试代码，消除单个 Java 文件超过 2000 行和单个方法超过 300 行的命中；保持 API、业务行为、数据库与前端不变。验证覆盖 JDK 8u112、规模扫描、相关模块测试、Maven 编译与静态检查。
+- Validation:
+  - `python3 scripts/foreman.py validate USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260602`
+- Progress log:
+  - 2026-06-02: instantiated from foreman CLI using repository truth and task matrices.
+- Context closeout:
+  - Completed scope: 将 6 个超过 2000 行的 Java 文件拆分为职责分层的 support 类；将 QueryExecutionApplicationService.executeSynchronously 与 SqlOptimizationPipelineRecommendationSupport.addExtendedStructuralRuleCandidates 中超过 300 行的逻辑提取为辅助方法；在 checkstyle.xml 固化 FileLength.max=2000 与 MethodLength.max=300。API、数据库、前端和业务契约未变更。
+  - Validation evidence: JDK 1.8.0_112 下 mvn -B -DskipTests compile 通过；扫描 1222 个 Java 文件，files_over_2000=0，Checkstyle FileLength/MethodLength threshold_hits=0；git diff --check、mvn -B validate pmd:pmd、node scripts/lint-repository-knowledge.js、foreman validate 与 pre-closeout audit 通过；query-execution 109、benchmark-engine 86、governance 171 个测试通过；SqlOptimizationPipelineServiceTest 44 个测试通过。
+  - Residual risk: 仓库仍有 40 条位于本次未改动文件的既存 Checkstyle 违规。全量 mvn -B test 在未改动的 AccelerationRewriteContractApplicationServiceTest 中仍有 2 个创建态约束错误，因此 reactor 全量测试未全绿；该问题与本次类拆分无关。
+  - Next step: 后续独立任务清理既存 Checkstyle 违规，并对齐 AccelerationRewriteContractApplicationServiceTest 与当前创建态约束。
+
 ### USER-CN-DYNAMIC-REPEATED-SUBGRAPH-MV-20260531: 替换 docs/test01 模板式 MV 推荐为动态重复子图推荐
 
 - Status: done
