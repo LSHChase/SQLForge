@@ -227,6 +227,159 @@ public final class RuntimeSqlRewriteTemplateEngine {
         return buffer.toString();
     }
 
+    private static int findKeywordAtDepth(String sql, String keyword, int start, Integer requiredDepth) {
+        String lowerSql = sql.toLowerCase(Locale.ROOT);
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktick = false;
+        int depth = 0;
+        int index = Math.max(0, start);
+        while (index <= sql.length() - lowerKeyword.length()) {
+            char current = sql.charAt(index);
+            char next = index + 1 < sql.length() ? sql.charAt(index + 1) : '\0';
+            if (current == '\'' && !inDoubleQuote && !inBacktick) {
+                if (inSingleQuote && next == '\'') {
+                    index += 2;
+                    continue;
+                }
+                inSingleQuote = !inSingleQuote;
+                index++;
+                continue;
+            }
+            if (current == '"' && !inSingleQuote && !inBacktick) {
+                if (inDoubleQuote && next == '"') {
+                    index += 2;
+                    continue;
+                }
+                inDoubleQuote = !inDoubleQuote;
+                index++;
+                continue;
+            }
+            if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                inBacktick = !inBacktick;
+                index++;
+                continue;
+            }
+            if (inSingleQuote || inDoubleQuote || inBacktick) {
+                index++;
+                continue;
+            }
+            if (current == '(') {
+                depth++;
+                index++;
+                continue;
+            }
+            if (current == ')') {
+                depth = Math.max(0, depth - 1);
+                index++;
+                continue;
+            }
+            if ((requiredDepth == null || depth == requiredDepth.intValue())
+                && lowerSql.startsWith(lowerKeyword, index)
+                && SqlShape.hasKeywordBoundary(sql, index, lowerKeyword.length())) {
+                return index;
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private static int findMatchingParen(String sql, int openIndex) {
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktick = false;
+        int depth = 0;
+        int index = openIndex;
+        while (index < sql.length()) {
+            char current = sql.charAt(index);
+            char next = index + 1 < sql.length() ? sql.charAt(index + 1) : '\0';
+            if (current == '\'' && !inDoubleQuote && !inBacktick) {
+                if (inSingleQuote && next == '\'') {
+                    index += 2;
+                    continue;
+                }
+                inSingleQuote = !inSingleQuote;
+                index++;
+                continue;
+            }
+            if (current == '"' && !inSingleQuote && !inBacktick) {
+                if (inDoubleQuote && next == '"') {
+                    index += 2;
+                    continue;
+                }
+                inDoubleQuote = !inDoubleQuote;
+                index++;
+                continue;
+            }
+            if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                inBacktick = !inBacktick;
+                index++;
+                continue;
+            }
+            if (inSingleQuote || inDoubleQuote || inBacktick) {
+                index++;
+                continue;
+            }
+            if (current == '(') {
+                depth++;
+            } else if (current == ')') {
+                depth--;
+                if (depth == 0) {
+                    return index;
+                }
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private static int depthAt(String sql, int offset) {
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean inBacktick = false;
+        int depth = 0;
+        int index = 0;
+        while (index < offset && index < sql.length()) {
+            char current = sql.charAt(index);
+            char next = index + 1 < sql.length() ? sql.charAt(index + 1) : '\0';
+            if (current == '\'' && !inDoubleQuote && !inBacktick) {
+                if (inSingleQuote && next == '\'') {
+                    index += 2;
+                    continue;
+                }
+                inSingleQuote = !inSingleQuote;
+                index++;
+                continue;
+            }
+            if (current == '"' && !inSingleQuote && !inBacktick) {
+                if (inDoubleQuote && next == '"') {
+                    index += 2;
+                    continue;
+                }
+                inDoubleQuote = !inDoubleQuote;
+                index++;
+                continue;
+            }
+            if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                inBacktick = !inBacktick;
+                index++;
+                continue;
+            }
+            if (inSingleQuote || inDoubleQuote || inBacktick) {
+                index++;
+                continue;
+            }
+            if (current == '(') {
+                depth++;
+            } else if (current == ')') {
+                depth = Math.max(0, depth - 1);
+            }
+            index++;
+        }
+        return depth;
+    }
+
     private static final class LiteralReplay {
         private final Map<String, String> literalMap;
 
@@ -454,7 +607,7 @@ public final class RuntimeSqlRewriteTemplateEngine {
         }
 
         private static String injectResidualPredicates(String recommendedSql, List<String> residualPredicates) {
-            for (String cteName : NestedWhereCteScanner.names(recommendedSql)) {
+            for (String cteName : cteNames(recommendedSql)) {
                 String injected = injectIntoCteWhere(recommendedSql, cteName, residualPredicates);
                 if (StringUtils.hasText(injected)) {
                     return injected;
@@ -463,12 +616,89 @@ public final class RuntimeSqlRewriteTemplateEngine {
             return null;
         }
 
+        private static List<String> cteNames(String sql) {
+            List<String> names = new ArrayList<String>();
+            if (!StringUtils.hasText(sql) || !sql.trim().toLowerCase(Locale.ROOT).startsWith("with ")) {
+                return names;
+            }
+            int cursor = sql.toLowerCase(Locale.ROOT).indexOf("with") + "with".length();
+            while (cursor < sql.length()) {
+                cursor = skipWhitespaceAndComma(sql, cursor);
+                int nameStart = cursor;
+                if (nameStart >= sql.length()) {
+                    break;
+                }
+                String name;
+                if (sql.charAt(nameStart) == '"') {
+                    int nameEnd = sql.indexOf('"', nameStart + 1);
+                    if (nameEnd < 0) {
+                        break;
+                    }
+                    name = sql.substring(nameStart + 1, nameEnd);
+                    cursor = nameEnd + 1;
+                } else {
+                    while (cursor < sql.length() && isIdentifierChar(sql.charAt(cursor))) {
+                        cursor++;
+                    }
+                    name = sql.substring(nameStart, cursor);
+                }
+                if (!StringUtils.hasText(name)) {
+                    break;
+                }
+                int asIndex = findKeywordAtDepth(sql, "as", cursor, null);
+                if (asIndex < 0) {
+                    break;
+                }
+                int openIndex = sql.indexOf('(', asIndex);
+                if (openIndex < 0) {
+                    break;
+                }
+                int closeIndex = findMatchingParen(sql, openIndex);
+                if (closeIndex < 0) {
+                    break;
+                }
+                names.add(name);
+                cursor = closeIndex + 1;
+                int next = skipWhitespaceAndComma(sql, cursor);
+                if (!startsWithWord(sql, next, "SELECT") && next < sql.length() && sql.charAt(next - 1) != ',') {
+                    cursor = next;
+                }
+                if (startsWithWord(sql, next, "SELECT")) {
+                    break;
+                }
+            }
+            return names;
+        }
+
+        private static int skipWhitespaceAndComma(String sql, int cursor) {
+            int index = cursor;
+            while (index < sql.length() && (Character.isWhitespace(sql.charAt(index)) || sql.charAt(index) == ',')) {
+                index++;
+            }
+            return index;
+        }
+
+        private static boolean isIdentifierChar(char value) {
+            return Character.isLetterOrDigit(value) || value == '_' || value == '$';
+        }
+
+        private static boolean startsWithWord(String sql, int offset, String word) {
+            if (sql == null || offset < 0 || offset + word.length() > sql.length()) {
+                return false;
+            }
+            if (!sql.regionMatches(true, offset, word, 0, word.length())) {
+                return false;
+            }
+            int end = offset + word.length();
+            return end >= sql.length() || !Character.isLetterOrDigit(sql.charAt(end));
+        }
+
         private static String injectIntoCteWhere(String sql, String cteName, List<String> residualPredicates) {
             int cteIndex = sql.toLowerCase(Locale.ROOT).indexOf(cteName.toLowerCase(Locale.ROOT));
             if (cteIndex < 0) {
                 return null;
             }
-            int asIndex = RuntimeSqlRewriteSqlScanner.findKeywordAtDepth(sql, "as", cteIndex + cteName.length(), null);
+            int asIndex = findKeywordAtDepth(sql, "as", cteIndex + cteName.length(), null);
             if (asIndex < 0) {
                 return null;
             }
@@ -476,7 +706,7 @@ public final class RuntimeSqlRewriteTemplateEngine {
             if (openIndex < 0) {
                 return null;
             }
-            int closeIndex = RuntimeSqlRewriteSqlScanner.findMatchingParen(sql, openIndex);
+            int closeIndex = findMatchingParen(sql, openIndex);
             if (closeIndex < 0) {
                 return null;
             }
@@ -522,12 +752,12 @@ public final class RuntimeSqlRewriteTemplateEngine {
             String sql = SqlShape.trimTrailingSemicolon(SqlShape.stripLeadingComments(sqlText == null ? "" : sqlText).trim());
             int cursor = 0;
             while (cursor < sql.length()) {
-                int whereIndex = RuntimeSqlRewriteSqlScanner.findKeywordAtDepth(sql, "where", cursor, null);
+                int whereIndex = findKeywordAtDepth(sql, "where", cursor, null);
                 if (whereIndex < 0) {
                     break;
                 }
                 int bodyStart = whereIndex + "where".length();
-                int bodyEnd = findWhereBodyEnd(sql, bodyStart, RuntimeSqlRewriteSqlScanner.depthAt(sql, whereIndex));
+                int bodyEnd = findWhereBodyEnd(sql, bodyStart, depthAt(sql, whereIndex));
                 if (bodyEnd <= bodyStart) {
                     cursor = bodyStart;
                     continue;
@@ -599,7 +829,7 @@ public final class RuntimeSqlRewriteTemplateEngine {
                 for (String clause : POST_WHERE_CLAUSES) {
                     if (depth == whereDepth
                         && sql.toLowerCase(Locale.ROOT).startsWith(clause, index)
-                        && RuntimeSqlRewriteSqlScanner.hasKeywordBoundary(sql, index, clause.length())) {
+                        && SqlShape.hasKeywordBoundary(sql, index, clause.length())) {
                         return index;
                     }
                 }
@@ -876,7 +1106,68 @@ public final class RuntimeSqlRewriteTemplateEngine {
         }
 
         private static int findTopLevelKeyword(String sql, String keyword, int start) {
-            return RuntimeSqlRewriteSqlScanner.findKeywordAtDepth(sql, keyword, start, Integer.valueOf(0));
+            String lowerSql = sql.toLowerCase(Locale.ROOT);
+            String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+            boolean inSingleQuote = false;
+            boolean inDoubleQuote = false;
+            boolean inBacktick = false;
+            int depth = 0;
+            int index = Math.max(0, start);
+            while (index <= sql.length() - lowerKeyword.length()) {
+                char current = sql.charAt(index);
+                char next = index + 1 < sql.length() ? sql.charAt(index + 1) : '\0';
+                if (current == '\'' && !inDoubleQuote && !inBacktick) {
+                    if (inSingleQuote && next == '\'') {
+                        index += 2;
+                        continue;
+                    }
+                    inSingleQuote = !inSingleQuote;
+                    index++;
+                    continue;
+                }
+                if (current == '"' && !inSingleQuote && !inBacktick) {
+                    inDoubleQuote = !inDoubleQuote;
+                    index++;
+                    continue;
+                }
+                if (current == '`' && !inSingleQuote && !inDoubleQuote) {
+                    inBacktick = !inBacktick;
+                    index++;
+                    continue;
+                }
+                if (inSingleQuote || inDoubleQuote || inBacktick) {
+                    index++;
+                    continue;
+                }
+                if (current == '(') {
+                    depth++;
+                    index++;
+                    continue;
+                }
+                if (current == ')') {
+                    depth = Math.max(0, depth - 1);
+                    index++;
+                    continue;
+                }
+                if (depth == 0
+                    && lowerSql.startsWith(lowerKeyword, index)
+                    && hasKeywordBoundary(sql, index, lowerKeyword.length())) {
+                    return index;
+                }
+                index++;
+            }
+            return -1;
+        }
+
+        private static boolean hasKeywordBoundary(String sql, int start, int length) {
+            int before = start - 1;
+            int after = start + length;
+            return (before < 0 || !isIdentifierPart(sql.charAt(before)))
+                && (after >= sql.length() || !isIdentifierPart(sql.charAt(after)));
+        }
+
+        private static boolean isIdentifierPart(char value) {
+            return Character.isLetterOrDigit(value) || value == '_' || value == '$';
         }
     }
 }

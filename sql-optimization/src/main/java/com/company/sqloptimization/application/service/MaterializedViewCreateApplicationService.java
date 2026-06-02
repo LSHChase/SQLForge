@@ -6,6 +6,7 @@ import com.company.sqlforge.common.exception.AccessDeniedException;
 import com.company.sqlforge.common.exception.BizException;
 import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateRequest;
 import com.company.sqlforge.common.queryexecution.QueryExecutionMaterializedViewCreateResponse;
+import com.company.sqlforge.common.utils.JsonUtils;
 import com.company.sqloptimization.application.controller.dto.MaterializedViewCreateRequest;
 import com.company.sqloptimization.domain.recommendation.AccelerationRecommendation;
 import com.company.sqloptimization.domain.recommendation.repository.AccelerationRecommendationRepository;
@@ -26,6 +27,7 @@ public class MaterializedViewCreateApplicationService {
     private static final String RULE_PRECOMPUTE_MV = "PRECOMPUTE_MV";
     private static final String STATUS_GENERATED = "GENERATED";
     private static final String STATUS_REVIEW_REQUIRED = "REVIEW_REQUIRED";
+    private static final String TRACE_KEY = "materializedViewCreateEvidence";
 
     private final AccelerationRecommendationRepository recommendationRepository;
     private final SqlRewriteRecordRepository sqlRewriteRecordRepository;
@@ -60,12 +62,7 @@ public class MaterializedViewCreateApplicationService {
         if (rewriteRecord != null) {
             sqlRewriteRecordRepository.saveRecord(
                 rewriteRecord.withTraceRefs(
-                    MaterializedViewCreateEvidenceBuilder.withEvidence(
-                        rewriteRecord.getTraceRefs(),
-                        response,
-                        artifact,
-                        request
-                    ),
+                    withMaterializedViewEvidence(rewriteRecord.getTraceRefs(), response, artifact, request),
                     Instant.now()
                 )
             );
@@ -165,6 +162,47 @@ public class MaterializedViewCreateApplicationService {
         createRequest.setRefreshSql(textValue(artifact.get("refreshSql")));
         createRequest.setReason(trimToNull(request == null ? null : request.getReason()));
         return createRequest;
+    }
+
+    private Map<String, Object> withMaterializedViewEvidence(Map<String, Object> traceRefs,
+                                                             QueryExecutionMaterializedViewCreateResponse response,
+                                                             Map<String, Object> artifact,
+                                                             MaterializedViewCreateRequest request) {
+        Map<String, Object> result = traceRefs == null
+            ? new LinkedHashMap<String, Object>()
+            : new LinkedHashMap<String, Object>(traceRefs);
+        Map<String, Object> evidence = new LinkedHashMap<String, Object>();
+        evidence.put("recommendationId", response.getRecommendationId());
+        evidence.put("rewriteRecordId", response.getRewriteRecordId());
+        evidence.put("mvName", response.getMvName());
+        evidence.put("targetEngine", response.getTargetEngine());
+        evidence.put("targetDatasource", response.getTargetDatasource());
+        evidence.put("status", response.getStatus());
+        evidence.put("ddlStatus", response.getDdlStatus());
+        evidence.put("refreshStatus", response.getRefreshStatus());
+        evidence.put("runtimeSummary", response.getRuntimeSummary());
+        evidence.put("runtimeDetails", parseRuntimeDetails(response.getRuntimeDetailsJson()));
+        evidence.put("artifactStatus", textValue(artifact.get("artifactStatus")));
+        evidence.put("mvType", textValue(artifact.get("mvType")));
+        evidence.put("createdAt", Instant.now().toString());
+        evidence.put("operator", RequestContext.getUserId());
+        String reason = trimToNull(request == null ? null : request.getReason());
+        if (reason != null) {
+            evidence.put("reason", reason);
+        }
+        result.put(TRACE_KEY, evidence);
+        return result;
+    }
+
+    private Object parseRuntimeDetails(String runtimeDetailsJson) {
+        if (!StringUtils.hasText(runtimeDetailsJson)) {
+            return null;
+        }
+        try {
+            return JsonUtils.fromJson(runtimeDetailsJson, Map.class);
+        } catch (RuntimeException ex) {
+            return runtimeDetailsJson;
+        }
     }
 
     private boolean hasBlockingReasons(Object value) {

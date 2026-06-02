@@ -22,7 +22,7 @@
   - Completed scope: 移除 docs/test01 专用 snapshot MV 生成路径，基于 Calcite AST 归一化指纹识别单 SQL 不同别名重复派生子图，生成 COMMON_SUBGRAPH_MV DDL、MV-only rewrite 与结构证据，并同步文档和回归。
   - Validation evidence: JDK 8u112；聚焦 Maven 回归 69 个用例通过；foreman validate、git diff --check、静态残留扫描与 task_audit pre-closeout 通过。
   - Residual risk: SQLForge 仍只输出 PULL_ONLY_NOT_EXECUTED_BY_SQLFORGE 草案，不执行外部 MV DDL、refresh 或生产 runtime binding；真实 Hetu 环境收益仍需外部验证。
-  - Next step: 按既有治理链在外部 Hetu 测试环境评审并执行 MV 草案，保留验证证据；后端大类拆分任务继续独立推进。
+  - Next step: 按既有治理链在外部 Hetu 测试环境评审并执行 MV 草案，保留验证证据。
 
 ### USER-CN-REMOVE-STATIC-TEST01-MV-HEURISTICS-20260531: 移除 docs/test01 MV 推荐中的静态启发式残留
 

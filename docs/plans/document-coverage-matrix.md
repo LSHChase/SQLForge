@@ -92,7 +92,6 @@
 | `docs/plans/phase-prerequisite-matrix.md` | Authority | 阶段输入文档、ADR、规则、验证和确认点矩阵 | Consumed | 阶段进入前置条件检查 |
 | `docs/plans/production-rewrite-auto-apply-task-plan.md` | Indexed | 生产自动改写闭环任务拆解计划 | Consumed | 将改写复核、激活、运行时自动改写、历史留痕、差异暂停和页面追溯拆成可执行任务；暂不覆盖投产前核验闭环 |
 | `docs/plans/l2-advanced-materialized-view-task-plan.md` | Indexed | L2 高级物化视图推荐任务拆解计划 | Consumed | 将参数外提聚合、预 Join、星型聚合、Rollup、公共子图 MV 推荐拆成可执行任务，并明确禁止 `EXACT_QUERY_MV` |
-| `docs/plans/backend-large-class-split-strategy-20260528.md` | Indexed | 后端超 200 行类职责拆分策略 | Referenced | 约束 `USER-CN-BACKEND-LARGE-CLASS-SPLIT-20260528` 按高内聚低耦合、功能组和行为不变原则拆分后端大类，并固定行数统计与验证门禁 |
 | `docs/plans/frontend-core-workflow-refocus-task-pack.md` | Indexed | 前端核心链路聚焦改造任务包 | Consumed | 将核心 SQL 工作流菜单、首页、历史、推荐、改写和参考页边界拆成可逐个 materialize、规划、实现和 closeout 的候选前端任务 |
 | `docs/plans/lifecycle-activation-pause-impact-analysis-2026-05-20.md` | Indexed | 生命周期激活/暂停折叠核心影响分析 | Referenced | 记录 `USER-CN-SIMPLIFY-LIFECYCLE-ACTIVATE-PAUSE-20260520` 对旧生命周期状态机的核心影响、可选方案和 `INBOX-006` 人工决策项 |
 | `docs/plans/simplify-engine-remove-ops-surfaces-impact-analysis-2026-05-20.md` | Indexed | 执行引擎纯化与运维治理面移除影响分析 | Referenced | 记录 `USER-CN-SIMPLIFY-ENGINE-REMOVE-OPS-SURFACES-20260520` 对审计取证、追踪查询、告警中心、运行门禁和恢复演练的核心影响、可选方案和 `INBOX-007` 人工决策项 |
